@@ -18,6 +18,7 @@
     "enforce": "medium"
   },
   "categories": {
+    "config": { "include": ["mbo/config/**"] },
     "container": { "include": ["mbo/container/**"] },
     "diff": { "include": ["mbo/diff/**"] },
     "digest": { "include": ["mbo/digest/**"] },

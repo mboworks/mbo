@@ -2,9 +2,7 @@
   "schema": 2,
   "description": "Bazel LCOV with the primary hermetic Clang toolchain; scope and exclusions are defined by coverage_policy.json",
   "scope": {
-    "include": [
-      "mbo/**"
-    ],
+    "include": ["mbo/**"],
     "exclude": [
       "mbo/**/*_benchmark.cc",
       "mbo/**/*_fuzz_test.cc",
@@ -13,69 +11,43 @@
     ],
     "categories": {
       "config": {
-        "include": [
-          "mbo/config/**"
-        ]
+        "include": ["mbo/config/**"]
       },
       "container": {
-        "include": [
-          "mbo/container/**"
-        ]
+        "include": ["mbo/container/**"]
       },
       "diff": {
-        "include": [
-          "mbo/diff/**"
-        ]
+        "include": ["mbo/diff/**"]
       },
       "digest": {
-        "include": [
-          "mbo/digest/**"
-        ]
+        "include": ["mbo/digest/**"]
       },
       "file": {
-        "include": [
-          "mbo/file/**"
-        ]
+        "include": ["mbo/file/**"]
       },
       "hash": {
-        "include": [
-          "mbo/hash/**"
-        ]
+        "include": ["mbo/hash/**"]
       },
       "json": {
-        "include": [
-          "mbo/json/**"
-        ]
+        "include": ["mbo/json/**"]
       },
       "log": {
-        "include": [
-          "mbo/log/**"
-        ]
+        "include": ["mbo/log/**"]
       },
       "mope": {
-        "include": [
-          "mbo/mope/**"
-        ]
+        "include": ["mbo/mope/**"]
       },
       "status": {
-        "include": [
-          "mbo/status/**"
-        ]
+        "include": ["mbo/status/**"]
       },
       "strings": {
-        "include": [
-          "mbo/strings/**"
-        ]
+        "include": ["mbo/strings/**"]
       },
       "testing": {
-        "include": [
-          "mbo/testing/**"
-        ]
+        "include": ["mbo/testing/**"]
       },
       "types": {
-        "include": [
-          "mbo/types/**"
-        ]
+        "include": ["mbo/types/**"]
       }
     }
   },

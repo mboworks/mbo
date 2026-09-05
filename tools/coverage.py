@@ -33,19 +33,19 @@ def _repo_path(value: str) -> str | None:
     return None
 
 
-def _branch_merge_markers(source_lines: list[str]) -> dict[int, int]:
-    """Maps instrumented lines to their logical branch width."""
-    result: dict[int, int] = {}
+def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]:
+    """Maps instrumented lines to acceptable logical branch widths."""
+    result: dict[int, tuple[int, ...]] = {}
     for index, source_line in enumerate(source_lines):
-        match = re.search(r"LCOV_MERGE_BR_LINE\s+(\d+)", source_line)
+        match = re.search(r"LCOV_MERGE_BR_LINE\s+(\d+(?:\s*,\s*\d+)*)", source_line)
         if not match:
             continue
-        width = int(match.group(1))
-        result[index + 1] = width
+        widths = tuple(int(value.strip()) for value in match.group(1).split(","))
+        result[index + 1] = widths
         if not source_line.lstrip().startswith("//"):
             continue
         for continuation in range(index + 1, len(source_lines)):
-            result[continuation + 1] = width
+            result[continuation + 1] = widths
             if "{" in source_lines[continuation]:
                 break
     return result
@@ -125,10 +125,19 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
             else:
                 ordinary_branches.append((line, taken))
         for line, branches in sorted(branches_by_line.items()):
-            width = merged_branch_groups[line]
-            if width <= 0 or len(branches) % width:
+            widths = merged_branch_groups[line]
+            width = next(
+                (
+                    candidate
+                    for candidate in sorted(widths, reverse=True)
+                    if candidate > 0 and len(branches) % candidate == 0
+                ),
+                None,
+            )
+            if width is None:
                 raise ValueError(
-                    f"{name}:{line}: LCOV_MERGE_BR_LINE {width} cannot merge "
+                    f"{name}:{line}: LCOV_MERGE_BR_LINE "
+                    f"{','.join(str(candidate) for candidate in widths)} cannot merge "
                     f"{len(branches)} branch records"
                 )
             ordinary_branches.extend(

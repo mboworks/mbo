@@ -132,6 +132,29 @@ class CoverageSourcesTest(unittest.TestCase):
                     workspace,
                 )
 
+    def test_selects_the_largest_compatible_branch_merge_width(self):
+        policy = {"categories": {"file": {"include": ["mbo/file/**"]}}}
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/file/file.h"
+            source.parent.mkdir(parents=True)
+            source.write_text("return true;  // LCOV_MERGE_BR_LINE 4,2\n")
+            report = (
+                "SF:mbo/file/file.h\n"
+                "BRDA:1,0,0,1\nBRDA:1,0,1,0\nBRDA:1,0,2,0\nBRDA:1,0,3,1\n"
+                "BRF:4\nBRH:2\nend_of_record\n"
+            )
+
+            actual = coverage_sources.grouped(
+                report, policy, Path(directory) / "grouped", workspace
+            )
+
+            self.assertIn(
+                "BRDA:1,0,0,1\nBRDA:1,0,1,0\nBRDA:1,0,2,0\nBRDA:1,0,3,1\n"
+                "BRF:4\nBRH:2",
+                actual,
+            )
+
     def test_applies_standalone_branch_merge_marker_to_function_declaration(self):
         policy = {"categories": {"file": {"include": ["mbo/file/**"]}}}
         with tempfile.TemporaryDirectory() as directory:

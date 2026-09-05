@@ -279,6 +279,29 @@ class CoverageTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "cannot merge 3 branch records"):
                 coverage_tool.parse_lcov(report, root)
 
+    def test_parse_selects_the_largest_compatible_branch_merge_width(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mbo/a.cc"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "return value;  // LCOV_MERGE_BR_LINE 4,2\n", encoding="utf-8"
+            )
+            report = root / "coverage.lcov"
+            report.write_text(
+                "SF:mbo/a.cc\n"
+                "BRDA:1,0,0,1\nBRDA:1,0,1,0\nBRDA:1,0,2,0\nBRDA:1,0,3,1\n"
+                "end_of_record\n",
+                encoding="utf-8",
+            )
+
+            files = coverage_tool.parse_lcov(report, root)
+
+            self.assertEqual(
+                [(1, True), (1, False), (1, False), (1, True)],
+                files["mbo/a.cc"].branches,
+            )
+
     def test_threshold_failure(self):
         measured = {
             "overall": {

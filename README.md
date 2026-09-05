@@ -201,7 +201,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - macro `MBO_ASSERT_OK_AND_ASSIGN`: Simplifies testing with functions that return `absl::StatusOr<T>`.
     - macro `MBO_ASSERT_OK_AND_MOVE_TO`: Simplifies testing with functions that return `absl::StatusOr<T>` where the result requires commas, in particular structured bindings.
 - Types
-  - `namespace mbo::types`
+  - `namespace mbo::types` - aggregate reflection design and support: [REFLECTION.md](REFLECTION.md)
   - mbo/types:cases_cc, mbo/types/cases.h
     - meta-type `Cases`: Allows to switch types based on conditions.
     - meta-type `CaseIndex`: Evaluates the first non zero case (1-based, 0 if all zero).

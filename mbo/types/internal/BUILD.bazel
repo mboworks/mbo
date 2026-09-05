@@ -56,7 +56,10 @@ cc_library(
 
 cc_library(
     name = "struct_names_cc",
-    srcs = ["struct_names_clang.h"],
+    srcs = [
+        "struct_names_clang.h",
+        "struct_names_gcc.h",
+    ],
     hdrs = ["struct_names.h"],
     deps = [
         ":traits_cc",

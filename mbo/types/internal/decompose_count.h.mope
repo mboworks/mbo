@@ -21,6 +21,7 @@
 // IWYU pragma: private, include "mbo/types/traits.h"
 
 #include <limits>
+#include <memory>
 #include <string>       // IWYU pragma: keep
 #include <string_view>  // IWYU pragma: keep
 #include <tuple>
@@ -448,6 +449,20 @@ struct CountBases
           std::integral_constant<std::size_t, 0>,
           CountBasesImpl<T, kRequireEmpty, AggregateFieldCountRawImpl<T>::value>> {};
 
+template<typename T>
+concept HasMboTypesDecomposeCount = requires {
+  { MboTypesDecomposeCount(static_cast<const std::remove_cvref_t<T>*>(nullptr)) } -> std::same_as<std::size_t>;
+};
+
+template<typename T>
+consteval std::size_t GetMboTypesDecomposeCount() {
+  if constexpr (HasMboTypesDecomposeCount<T>) {
+    return MboTypesDecomposeCount(static_cast<const std::remove_cvref_t<T>*>(nullptr));
+  } else {
+    return NotDecomposableImpl::value;
+  }
+}
+
 // Put all into once struct.
 template<typename T, bool = IsAggregate<std::remove_cvref_t<T>> && !IsEmptyType<std::remove_cvref_t<T>>>
 struct DecomposeInfo final {
@@ -463,11 +478,15 @@ struct DecomposeInfo final {
   static constexpr std::size_t kCountBases = kBadFieldCount ? 0 : CountBases<Type, false>::value;
   static constexpr std::size_t kCountEmptyBases = kBadFieldCount ? 0 : CountBases<Type, true>::value;
   static constexpr bool kOnlyEmptyBases = kCountBases <= kCountEmptyBases;
+  static constexpr std::size_t kCustomDecomposeCount = GetMboTypesDecomposeCount<Type>();
   static constexpr bool kDecomposable =
-      !kBadFieldCount && kIsAggregate && !kIsEmpty &&
-      ((kOneNonEmptyBase || kOnlyEmptyBases) && !kOneNonEmptyBasePlusFields);
+      kCustomDecomposeCount != NotDecomposableImpl::value ||
+      (!kBadFieldCount && kIsAggregate && !kIsEmpty &&
+       ((kOneNonEmptyBase || kOnlyEmptyBases) && !kOneNonEmptyBasePlusFields));
   static constexpr std::size_t kDecomposeCount =  // First check whether T is composable
-      kDecomposable                               // format-NL
+      kCustomDecomposeCount != NotDecomposableImpl::value
+          ? kCustomDecomposeCount
+      : kDecomposable  // format-NL
           ? (kCountBases + kCountEmptyBases == 0  // If it is, then check whether there are any bases.
                  ? kInitializerCount
                  : kFieldCount - kCountEmptyBases)
@@ -565,11 +584,35 @@ struct DecomposeCountImpl : std::integral_constant<std::size_t, DecomposeInfo<T>
 struct DecomposeHelper final {
   DecomposeHelper() = delete;
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
+  static constexpr auto ToAddressTuple(U& data) noexcept {
+    using UR = std::remove_cvref_t<U>;
+    constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    static_assert(kNumFields != kNotDecomposableValue);
+    if constexpr (kNumFields == 0) {
+      return std::make_tuple();
+    {{#num_fields=1;max_fields}}
+    } else if constexpr (kNumFields == {{num_fields}}) {
+      auto& [{{#field=1;num_fields;;', '}}a{{field}}{{/field}}] = data;
+      if constexpr (requires { {{#field=1;num_fields;;' '}}std::addressof(a{{field}});{{/field}} }) {
+        return std::make_tuple({{#field=1;num_fields;;', '}}std::addressof(a{{field}}){{/field}});
+      } else {
+        return std::make_tuple();
+      }
+    {{/num_fields}}
+    }
+  }
+
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(U&& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -581,11 +624,13 @@ struct DecomposeHelper final {
     }
   }
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -597,11 +642,13 @@ struct DecomposeHelper final {
     }
   }
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(const U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();

@@ -34,8 +34,6 @@ using ::mbo::testing::EqualsText;
 using ::mbo::types::SetStringifyOstreamOptions;
 using ::mbo::types::SetStringifyOstreamOutputMode;
 using ::mbo::types::Stringify;
-using ::mbo::types::types_internal::kStructNameSupport;
-using ::testing::Conditional;
 
 struct StringifyOstreamTest : ::testing::Test {};
 
@@ -106,7 +104,7 @@ TEST_F(StringifyOstreamTest, Nested) {
 
   std::stringstream os;
   os << TestStruct{};
-  EXPECT_THAT(os.str(), Conditional(kStructNameSupport, R"({.one: 11, .two: {.sub: 77}})", R"({11, {77}})"));
+  EXPECT_THAT(os.str(), R"({.one: 11, .two: {.sub: 77}})");
 }
 
 namespace existing_o_stream_operator {
@@ -157,8 +155,7 @@ struct TestStruct {
 TEST_F(StringifyOstreamTest, ExistingAbslStringify) {
   std::stringstream os;
   os << TestStruct{};
-  EXPECT_THAT(
-      os.str(), Conditional(kStructNameSupport, R"({.one: 11, .two: TestSub{sub=77}})", R"({11, TestSub{sub=77}})"))
+  EXPECT_THAT(os.str(), R"({.one: 11, .two: TestSub{sub=77}})")
       << "  Note: AbslStringify in TestStruct ignored since Stringify has higher precedence.";
 }
 }  // namespace existing_absl_stringify

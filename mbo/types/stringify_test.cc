@@ -71,7 +71,6 @@ using ::mbo::types::StringifyOptions;
 using ::mbo::types::StringifyRootOptions;
 using ::mbo::types::StringifyWithFieldNames;
 using ::mbo::types::types_internal::GetFieldNames;
-using ::mbo::types::types_internal::kStructNameSupport;
 using ::mbo::types::types_internal::SupportsFieldNames;
 using ::mbo::types::types_internal::SupportsFieldNamesConstexpr;
 using ::testing::ElementsAre;
@@ -81,14 +80,8 @@ using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
 
-// Matcher that checks the field name matches if field names are supported, or verifies that the
-// passed field_name is in fact empty.
 MATCHER_P(HasFieldName, field_name, "") {
-  if constexpr (kStructNameSupport) {
-    return ::testing::ExplainMatchResult(field_name, arg, result_listener);
-  } else {
-    return ::testing::ExplainMatchResult(IsEmpty(), arg, result_listener);
-  }
+  return ::testing::ExplainMatchResult(field_name, arg, result_listener);
 }
 
 struct StringifyTest : ::testing::Test {
@@ -813,8 +806,8 @@ TEST_F(StringifyTest, Shorten) {
   EXPECT_THAT(mbo::types::DecomposeCountV<TestStructShorten>, 5) << DecomposeInfo<TestStructShorten>();
   if constexpr (mbo::types::DecomposeCountV<TestStructShorten> == 5) {
     EXPECT_FALSE(::mbo::types::HasUnionMember<TestStructShorten>);
-    EXPECT_THAT(SupportsFieldNames<TestStructShorten>, kStructNameSupport);
-    EXPECT_THAT(SupportsFieldNamesConstexpr<TestStructShorten>, kStructNameSupport);
+    EXPECT_TRUE(SupportsFieldNames<TestStructShorten>);
+    EXPECT_TRUE(SupportsFieldNamesConstexpr<TestStructShorten>);
     if constexpr (SupportsFieldNames<TestStructShorten>) {
       EXPECT_THAT(GetFieldNames<TestStructShorten>(), ElementsAre("one", "two", "three", "four", "five"));
     }
@@ -999,27 +992,17 @@ TEST_F(StringifyTest, PrintWithControl) {
   };
 
   const TestStruct v;
-  if constexpr (kStructNameSupport) {
-    EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), R"({.one = 25})");
-    EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), EqualsText(R"({
+  EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), R"({.one = 25})");
+  EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), EqualsText(R"({
   .one = 25
 }
 )"));
-    EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), R"({"one":25}
+  EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), R"({"one":25}
 )");
-    EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(R"({
+  EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(R"({
   "one": 25
 }
 )"));
-  } else {
-    EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), R"({25})");
-    EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), R"({"0":25}
-)");
-    EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(R"({
-  "0": 25
-}
-)"));
-  }
 }
 
 TEST_F(StringifyTest, NestedDefaults) {
@@ -1035,10 +1018,9 @@ TEST_F(StringifyTest, NestedDefaults) {
 
   const TestStruct v;
 
-  if constexpr (kStructNameSupport) {
-    static constexpr std::string_view kExpectedDef = R"({.one: 11, .two: 25, .three: {.four: 42}})";
-    static constexpr std::string_view kExpectedCpp = R"({.one = 11, .two = 25, .three = {.four = 42}})";
-    static constexpr std::string_view kExpectedCppPretty = R"({
+  static constexpr std::string_view kExpectedDef = R"({.one: 11, .two: 25, .three: {.four: 42}})";
+  static constexpr std::string_view kExpectedCpp = R"({.one = 11, .two = 25, .three = {.four = 42}})";
+  static constexpr std::string_view kExpectedCppPretty = R"({
   .one = 11,
   .two = 25,
   .three = {
@@ -1046,9 +1028,9 @@ TEST_F(StringifyTest, NestedDefaults) {
   }
 }
 )";
-    static constexpr std::string_view kExpectedJson = R"({"one":11,"two":25,"three":{"four":42}}
+  static constexpr std::string_view kExpectedJson = R"({"one":11,"two":25,"three":{"four":42}}
 )";
-    static constexpr std::string_view kExpectedJsonPretty = R"({
+  static constexpr std::string_view kExpectedJsonPretty = R"({
   "one": 11,
   "two": 25,
   "three": {
@@ -1056,21 +1038,11 @@ TEST_F(StringifyTest, NestedDefaults) {
   }
 }
 )";
-    EXPECT_THAT(Stringify().ToString(v), kExpectedDef);
-    EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), kExpectedCpp);
-    EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), kExpectedCppPretty);
-    EXPECT_THAT(Stringify::AsJson().ToString(v), kExpectedJson);
-    EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(kExpectedJsonPretty));
-  } else {
-    EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(R"({
-  "0": 11,
-  "1": 25,
-  "2": {
-    "0": 42
-  }
-}
-)"));
-  }
+  EXPECT_THAT(Stringify().ToString(v), kExpectedDef);
+  EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), kExpectedCpp);
+  EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), kExpectedCppPretty);
+  EXPECT_THAT(Stringify::AsJson().ToString(v), kExpectedJson);
+  EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(kExpectedJsonPretty));
 }
 
 TEST_F(StringifyTest, NestedJsonNumericFallback) {
@@ -1179,8 +1151,14 @@ TEST_F(StringifyTest, FieldNameInjectionLeavesExhaustedListsUnchanged) {
 }
 
 TEST_F(StringifyTest, NonLiteralFields) {
-  ASSERT_THAT(SupportsFieldNames<TestStructNonLiteralFields>, kStructNameSupport);
+  ASSERT_TRUE(SupportsFieldNames<TestStructNonLiteralFields>);
+#if defined(__clang__)
   ASSERT_FALSE(SupportsFieldNamesConstexpr<TestStructNonLiteralFields>);
+#elif defined(__GNUC__)
+  ASSERT_TRUE(SupportsFieldNamesConstexpr<TestStructNonLiteralFields>);
+#else
+# error Unsupported compiler
+#endif
   ASSERT_FALSE(HasMboTypesStringifyDoNotPrintFieldNames<TestStructNonLiteralFields>);
   ASSERT_FALSE(HasMboTypesStringifyFieldNames<TestStructNonLiteralFields>);
   ASSERT_TRUE(HasMboTypesStringifyOptions<TestStructNonLiteralFields>);

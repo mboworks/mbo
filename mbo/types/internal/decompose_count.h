@@ -21,6 +21,7 @@
 // IWYU pragma: private, include "mbo/types/traits.h"
 
 #include <limits>
+#include <memory>
 #include <string>       // IWYU pragma: keep
 #include <string_view>  // IWYU pragma: keep
 #include <tuple>
@@ -637,6 +638,20 @@ struct CountBases
           std::integral_constant<std::size_t, 0>,
           CountBasesImpl<T, kRequireEmpty, AggregateFieldCountRawImpl<T>::value>> {};
 
+template<typename T>
+concept HasMboTypesDecomposeCount = requires {
+  { MboTypesDecomposeCount(static_cast<const std::remove_cvref_t<T>*>(nullptr)) } -> std::same_as<std::size_t>;
+};
+
+template<typename T>
+consteval std::size_t GetMboTypesDecomposeCount() {
+  if constexpr (HasMboTypesDecomposeCount<T>) {
+    return MboTypesDecomposeCount(static_cast<const std::remove_cvref_t<T>*>(nullptr));
+  } else {
+    return NotDecomposableImpl::value;
+  }
+}
+
 // Put all into once struct.
 template<typename T, bool = IsAggregate<std::remove_cvref_t<T>> && !IsEmptyType<std::remove_cvref_t<T>>>
 struct DecomposeInfo final {
@@ -652,10 +667,13 @@ struct DecomposeInfo final {
   static constexpr std::size_t kCountBases = kBadFieldCount ? 0 : CountBases<Type, false>::value;
   static constexpr std::size_t kCountEmptyBases = kBadFieldCount ? 0 : CountBases<Type, true>::value;
   static constexpr bool kOnlyEmptyBases = kCountBases <= kCountEmptyBases;
-  static constexpr bool kDecomposable = !kBadFieldCount && kIsAggregate && !kIsEmpty
-                                        && ((kOneNonEmptyBase || kOnlyEmptyBases) && !kOneNonEmptyBasePlusFields);
+  static constexpr std::size_t kCustomDecomposeCount = GetMboTypesDecomposeCount<Type>();
+  static constexpr bool kDecomposable = kCustomDecomposeCount != NotDecomposableImpl::value
+                                        || (!kBadFieldCount && kIsAggregate && !kIsEmpty
+                                            && ((kOneNonEmptyBase || kOnlyEmptyBases) && !kOneNonEmptyBasePlusFields));
   static constexpr std::size_t kDecomposeCount =  // First check whether T is composable
-      kDecomposable                               // format-NL
+      kCustomDecomposeCount != NotDecomposableImpl::value ? kCustomDecomposeCount
+      : kDecomposable                             // format-NL
           ? (kCountBases + kCountEmptyBases == 0  // If it is, then check whether there are any bases.
                  ? kInitializerCount
                  : kFieldCount - kCountEmptyBases)
@@ -751,11 +769,1359 @@ struct DecomposeCountImpl : std::integral_constant<std::size_t, DecomposeInfo<T>
 struct DecomposeHelper final {
   DecomposeHelper() = delete;
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
+  static constexpr auto ToAddressTuple(U& data) noexcept {
+    using UR = std::remove_cvref_t<U>;
+    constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    static_assert(kNumFields != kNotDecomposableValue);
+    if constexpr (kNumFields == 0) {
+      return std::make_tuple();
+    } else if constexpr (kNumFields == 1) {
+      auto& [a1] = data;
+      if constexpr (requires { std::addressof(a1); }) {
+        return std::make_tuple(std::addressof(a1));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 2) {
+      auto& [a1, a2] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                    }) {
+        return std::make_tuple(std::addressof(a1), std::addressof(a2));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 3) {
+      auto& [a1, a2, a3] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                    }) {
+        return std::make_tuple(std::addressof(a1), std::addressof(a2), std::addressof(a3));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 4) {
+      auto& [a1, a2, a3, a4] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                    }) {
+        return std::make_tuple(std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 5) {
+      auto& [a1, a2, a3, a4, a5] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 6) {
+      auto& [a1, a2, a3, a4, a5, a6] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 7) {
+      auto& [a1, a2, a3, a4, a5, a6, a7] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 8) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 9) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 10) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 11) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 12) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 13) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 14) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 15) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 16) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 17) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 18) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 19) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 20) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 21) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21] = data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 22) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 23) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 24) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 25) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 26) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 27) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 28) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 29) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 30) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 31) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 32) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 33) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 34) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 35) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 36) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                      std::addressof(a36);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35),
+            std::addressof(a36));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 37) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                      std::addressof(a36);
+                      std::addressof(a37);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35),
+            std::addressof(a36), std::addressof(a37));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 38) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                      std::addressof(a36);
+                      std::addressof(a37);
+                      std::addressof(a38);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35),
+            std::addressof(a36), std::addressof(a37), std::addressof(a38));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 39) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                      std::addressof(a36);
+                      std::addressof(a37);
+                      std::addressof(a38);
+                      std::addressof(a39);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35),
+            std::addressof(a36), std::addressof(a37), std::addressof(a38), std::addressof(a39));
+      } else {
+        return std::make_tuple();
+      }
+    } else if constexpr (kNumFields == 40) {
+      auto& [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a40] =
+          data;
+      if constexpr (requires {
+                      std::addressof(a1);
+                      std::addressof(a2);
+                      std::addressof(a3);
+                      std::addressof(a4);
+                      std::addressof(a5);
+                      std::addressof(a6);
+                      std::addressof(a7);
+                      std::addressof(a8);
+                      std::addressof(a9);
+                      std::addressof(a10);
+                      std::addressof(a11);
+                      std::addressof(a12);
+                      std::addressof(a13);
+                      std::addressof(a14);
+                      std::addressof(a15);
+                      std::addressof(a16);
+                      std::addressof(a17);
+                      std::addressof(a18);
+                      std::addressof(a19);
+                      std::addressof(a20);
+                      std::addressof(a21);
+                      std::addressof(a22);
+                      std::addressof(a23);
+                      std::addressof(a24);
+                      std::addressof(a25);
+                      std::addressof(a26);
+                      std::addressof(a27);
+                      std::addressof(a28);
+                      std::addressof(a29);
+                      std::addressof(a30);
+                      std::addressof(a31);
+                      std::addressof(a32);
+                      std::addressof(a33);
+                      std::addressof(a34);
+                      std::addressof(a35);
+                      std::addressof(a36);
+                      std::addressof(a37);
+                      std::addressof(a38);
+                      std::addressof(a39);
+                      std::addressof(a40);
+                    }) {
+        return std::make_tuple(
+            std::addressof(a1), std::addressof(a2), std::addressof(a3), std::addressof(a4), std::addressof(a5),
+            std::addressof(a6), std::addressof(a7), std::addressof(a8), std::addressof(a9), std::addressof(a10),
+            std::addressof(a11), std::addressof(a12), std::addressof(a13), std::addressof(a14), std::addressof(a15),
+            std::addressof(a16), std::addressof(a17), std::addressof(a18), std::addressof(a19), std::addressof(a20),
+            std::addressof(a21), std::addressof(a22), std::addressof(a23), std::addressof(a24), std::addressof(a25),
+            std::addressof(a26), std::addressof(a27), std::addressof(a28), std::addressof(a29), std::addressof(a30),
+            std::addressof(a31), std::addressof(a32), std::addressof(a33), std::addressof(a34), std::addressof(a35),
+            std::addressof(a36), std::addressof(a37), std::addressof(a38), std::addressof(a39), std::addressof(a40));
+      } else {
+        return std::make_tuple();
+      }
+    }
+  }
+
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(U&& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -1189,11 +2555,13 @@ struct DecomposeHelper final {
     }
   }
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -1375,11 +2743,13 @@ struct DecomposeHelper final {
     }
   }
 
-  template<typename U>
+  template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
   static constexpr auto ToTuple(const U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value;
+    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
+                                           ? kForcedNumFields
+                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();

@@ -51,7 +51,7 @@ auto converted = Name::ConstructFromConversions("Margaret", "Hamilton");
 | `ExtendNoDefault<T, Extender...>` | Only the explicitly selected extenders.                                                |
 | `extender::Default`               | `AbslStringify`, `AbslHashable`, `Comparable`, `Printable`, and `Streamable`.          |
 | `extender::NoPrint`               | `AbslStringify`, `AbslHashable`, and `Comparable`.                                     |
-| `extender::Comparable`            | Tuple-based equality and ordering.                                                     |
+| `extender::Comparable`            | `<=>`, `==`, and `<`, with the remaining relational operators supplied by C++.         |
 | `extender::AbslHashable`          | `AbslHashValue`; extended types also receive `std::hash`.                              |
 | `extender::AbslStringify`         | Abseil formatting backed by `Stringify`.                                               |
 | `extender::Printable`             | `ToString()` and `ToJsonString()`; requires `AbslStringify`.                           |
@@ -61,6 +61,12 @@ Use `ExtendNoDefault` when a type must expose only a narrow operation set. Use `
 the comparison and hashing semantics are useful but text output has a hand-written implementation.
 Additional extenders can be defined with `MakeExtender`; dependencies between extenders are checked
 while the CRTP chain is assembled.
+
+`extender::Comparable` compares fields in declaration order through the aggregate's tuple view. It
+defines `<=>`, `==`, and `<` for two values of the extended type; C++ rewriting supplies `!=`, `<=`,
+`>`, and `>=`. Member templates also compare an extended value with another decomposable aggregate
+or a compatible `std::tuple`. Field types must provide the operations needed by the requested
+comparison.
 
 ## Structural reflection and tuples
 

@@ -1574,8 +1574,11 @@ inline constexpr auto StringifyWithFieldNames(
     StringifyOptions options = field.options.outer;
     std::string_view field_name = std::data(field_names)[field.idx];  // NOLINT(*-pointer-arithmetic)
     options.key_overrides.as_data().key_use_name = field_name;
-    if (types_internal::SupportsFieldNames<T> && name_handling == StringifyNameHandling::kVerify) {
-      ABSL_CHECK_EQ(field.name, field_name) << "Bad field_name injection for field #" << field.idx;
+    if constexpr (types_internal::SupportsFieldNames<T>) {
+      if (name_handling == StringifyNameHandling::kVerify) {
+        ABSL_CHECK_EQ(field.name, field_name)  // LCOV_EXCL_BR_LINE: fatal mismatch cannot flush coverage.
+            << "Bad field_name injection for field #" << field.idx;  // LCOV_EXCL_LINE: fatal mismatch.
+      }
     }
     return options;
   };

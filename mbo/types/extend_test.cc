@@ -80,7 +80,6 @@ using ::mbo::types::extender::Printable;
 using ::mbo::types::extender::Streamable;
 using ::mbo::types::types_internal::kStructNameSupport;
 using ::testing::AnyOf;
-using ::testing::Conditional;
 using ::testing::Contains;
 using ::testing::ElementsAre;
 using ::testing::EndsWith;
@@ -195,9 +194,7 @@ TEST_F(ExtendTest, TestDecomposeInfo) {
 #undef DEBUG_AND_TEST
 }
 
-#if defined(__clang__)
 static_assert(kStructNameSupport);
-#endif
 
 TEST_F(ExtendTest, Test) {
   ASSERT_THAT(IsAggregate<Extend2>, true);
@@ -212,32 +209,25 @@ TEST_F(ExtendTest, Print) {
   {
     const Extend2 ext2{.a = 25, .b = 42};
     ASSERT_THAT(DecomposeCountV<decltype(ext2)>, 2);
-    EXPECT_THAT(ext2.ToString(), Conditional(kStructNameSupport, "{.a: 25, .b: 42}", "{25, 42}"));
+    EXPECT_THAT(ext2.ToString(), "{.a: 25, .b: 42}");
   }
 
   {
     const Extend4 ext4{.a = 25, .b = 42, .c = "Hello There!"};
     ASSERT_THAT(DecomposeCountV<decltype(ext4)>, 4);
-    EXPECT_THAT(
-        ext4.ToString(), Conditional(
-                             kStructNameSupport, R"({.a: 25, .b: 42, .c: "Hello There!", .ptr: <nullptr>})",
-                             R"({25, 42, "Hello There!", <nullptr>})"));
+    EXPECT_THAT(ext4.ToString(), R"({.a: 25, .b: 42, .c: "Hello There!", .ptr: <nullptr>})");
   }
   {
     constexpr int kVal = 1'337;
     const Extend4 ext4{.a = 25, .b = 42, .c = "Hello There!", .ptr = &kVal};
     ASSERT_THAT(DecomposeCountV<decltype(ext4)>, 4);
-    EXPECT_THAT(
-        ext4.ToString(), Conditional(
-                             kStructNameSupport, R"({.a: 25, .b: 42, .c: "Hello There!", .ptr: *{1337}})",
-                             R"({25, 42, "Hello There!", *{1337}})"));
+    EXPECT_THAT(ext4.ToString(), R"({.a: 25, .b: 42, .c: "Hello There!", .ptr: *{1337}})");
   }
 }
 
 TEST_F(ExtendTest, NestedPrint) {
   const Person person{.name = {.first = "First", .last = "Last"}, .age = 42};
-  static constexpr std::string_view kExpected =
-      kStructNameSupport ? R"({.name: {.first: "First", .last: "Last"}, .age: 42})" : R"({{"First", "Last"}, 42})";
+  static constexpr std::string_view kExpected = R"({.name: {.first: "First", .last: "Last"}, .age: 42})";
   EXPECT_THAT(person.ToString(), kExpected);
   EXPECT_THAT(absl::StrFormat("%v", person), kExpected);
 }
@@ -246,9 +236,7 @@ TEST_F(ExtendTest, Streamable) {
   const Extend4 ext4{.a = 25, .b = 42};
   std::ostringstream ss4;
   ss4 << ext4;
-  EXPECT_THAT(
-      ss4.str(),
-      Conditional(kStructNameSupport, R"({.a: 25, .b: 42, .c: "", .ptr: <nullptr>})", R"({25, 42, "", <nullptr>})"));
+  EXPECT_THAT(ss4.str(), R"({.a: 25, .b: 42, .c: "", .ptr: <nullptr>})");
 }
 
 #if defined(__clang__)
@@ -360,10 +348,7 @@ TEST_F(ExtendTest, StreamableComplexFields) {
   // NOTE: For Clang the top struct's field names are not present because the generated type names are far too long.
   EXPECT_THAT(
       out.str(),
-      Conditional(
-          kStructNameSupport,
-          R"({.index: 25, .person: {.name: {.first: "Hugo", .last: "Meyer"}, .age: 42}, .data: *{{"bar", "foo"}}})",
-          R"({25, {{"Hugo", "Meyer"}, 42}, *{{"bar", "foo"}}})"));
+      R"({.index: 25, .person: {.name: {.first: "Hugo", .last: "Meyer"}, .age: 42}, .data: *{{"bar", "foo"}}})");
 #ifdef __clang__
   std::cout << "Person:\n";
   EXPECT_THAT(debug::Print(&person), SizeIs(Le(198)));
@@ -431,7 +416,11 @@ TEST_F(ExtendTest, StreamableWithUnion) {
       .third = 99,
   };
 
+#if defined(__GNUC__) && !defined(__clang__)
+  EXPECT_THAT(kTest.ToString(), R"({.first: 25, .second: 42, .third: 99})");
+#else
   EXPECT_THAT(kTest.ToString(), R"({25, 42, 99})");
+#endif
 }
 
 struct ComparableTest : ExtendTest {
@@ -837,7 +826,7 @@ static_assert(!types::HasUnionMember<AbslFlatHashMapUser>);
 static_assert(!types::HasVariantMember<AbslFlatHashMapUser>);
 
 static_assert(DecomposeCountV<AbslFlatHashMapUser> == 1);
-static_assert(!kStructNameSupport || types_internal::SupportsFieldNames<AbslFlatHashMapUser>);
+static_assert(types_internal::SupportsFieldNames<AbslFlatHashMapUser>);
 
 TEST_F(ExtendTest, AbseilFlatHashMapMember) {
   const AbslFlatHashMapUser data = {
@@ -854,13 +843,13 @@ struct WithVariant : Extend<WithVariant> {
 static_assert(types::HasVariantMember<WithVariant>);
 
 static_assert(DecomposeCountV<WithVariant> == 1);
-static_assert(types_internal::SupportsFieldNames<WithVariant> == kStructNameSupport);
+static_assert(types_internal::SupportsFieldNames<WithVariant>);
 
 TEST_F(ExtendTest, VariantMember) {
   const WithVariant data = {
       .value = 69,
   };
-  EXPECT_THAT(data.ToString(), Conditional(kStructNameSupport, R"({.value: 69})", R"({69})"));
+  EXPECT_THAT(data.ToString(), R"({.value: 69})");
 }
 
 struct MoveOnly {

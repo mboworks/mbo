@@ -40,6 +40,26 @@ inline constexpr absl::Span<const std::string_view> GetFieldNames() {
 
 }  // namespace mbo::types::types_internal
 
+#elif defined(__GNUC__) && !defined(__clang__)
+
+# include "mbo/types/internal/struct_names_gcc.h"  // IWYU pragma: keep
+
+namespace mbo::types::types_internal {
+
+static constexpr bool kStructNameSupport = true;
+
+template<typename T>
+concept SupportsFieldNames = gcc::SupportsFieldNames<T>;
+template<typename T>
+concept SupportsFieldNamesConstexpr = gcc::SupportsFieldNamesConstexpr<T>;
+
+template<typename T>
+inline constexpr absl::Span<const std::string_view> GetFieldNames() {
+  return gcc::StructMeta<T>::GetFieldNames();
+}
+
+}  // namespace mbo::types::types_internal
+
 #else  // __clang__
 
 namespace mbo::types::types_internal {

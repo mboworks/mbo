@@ -62,20 +62,13 @@ using ::mbo::types::StringifyFieldInfo;
 using ::mbo::types::StringifyNameHandling;
 using ::mbo::types::StringifyOptions;
 using ::mbo::types::StringifyWithFieldNames;
-using ::mbo::types::types_internal::kStructNameSupport;
 using ::mbo::types::types_internal::SupportsFieldNames;
 using ::mbo::types::types_internal::SupportsFieldNamesConstexpr;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 
-// Matcher that checks the field name matches if field names are supported, or verifies that the
-// passed field_name is in fact empty.
 MATCHER_P(HasFieldName, field_name, "") {
-  if constexpr (kStructNameSupport) {
-    return ::testing::ExplainMatchResult(field_name, arg, result_listener);
-  } else {
-    return ::testing::ExplainMatchResult(IsEmpty(), arg, result_listener);
-  }
+  return ::testing::ExplainMatchResult(field_name, arg, result_listener);
 }
 
 struct ExtenderStringifyTest : ::testing::Test {
@@ -595,15 +588,9 @@ TEST_F(ExtenderStringifyTest, PrintWithControl) {
   };
 
   const TestStruct v;
-  if constexpr (kStructNameSupport) {
-    EXPECT_THAT(v.ToString(Stringify::OptionsCpp()), R"({.one = 25})");
-    EXPECT_THAT(v.ToString(Stringify::OptionsJson()), R"({"one":25}
+  EXPECT_THAT(v.ToString(Stringify::OptionsCpp()), R"({.one = 25})");
+  EXPECT_THAT(v.ToString(Stringify::OptionsJson()), R"({"one":25}
 )");
-  } else {
-    EXPECT_THAT(v.ToString(Stringify::OptionsCpp()), R"({25})");
-    EXPECT_THAT(v.ToString(Stringify::OptionsJson()), R"({"0":25}
-)");
-  }
 }
 
 TEST_F(ExtenderStringifyTest, NestedDefaults) {
@@ -619,10 +606,9 @@ TEST_F(ExtenderStringifyTest, NestedDefaults) {
 
   const TestStruct v;
 
-  if constexpr (kStructNameSupport) {
-    static constexpr std::string_view kExpectedDef = R"({.one: 11, .two: 25, .three: {.four: 42}})";
-    static constexpr std::string_view kExpectedCpp = R"({.one = 11, .two = 25, .three = {.four = 42}})";
-    static constexpr std::string_view kExpectedCppPretty = R"({
+  static constexpr std::string_view kExpectedDef = R"({.one: 11, .two: 25, .three: {.four: 42}})";
+  static constexpr std::string_view kExpectedCpp = R"({.one = 11, .two = 25, .three = {.four = 42}})";
+  static constexpr std::string_view kExpectedCppPretty = R"({
   .one = 11,
   .two = 25,
   .three = {
@@ -630,9 +616,9 @@ TEST_F(ExtenderStringifyTest, NestedDefaults) {
   }
 }
 )";
-    static constexpr std::string_view kExpectedJson = R"({"one":11,"two":25,"three":{"four":42}}
+  static constexpr std::string_view kExpectedJson = R"({"one":11,"two":25,"three":{"four":42}}
 )";
-    static constexpr std::string_view kExpectedJsonPretty = R"({
+  static constexpr std::string_view kExpectedJsonPretty = R"({
   "one": 11,
   "two": 25,
   "three": {
@@ -640,13 +626,12 @@ TEST_F(ExtenderStringifyTest, NestedDefaults) {
   }
 }
 )";
-    EXPECT_THAT(v.ToString(), kExpectedDef);
-    EXPECT_THAT(v.ToString(Stringify::OptionsCpp()), kExpectedCpp);
-    EXPECT_THAT(v.ToString(Stringify::OptionsCppPretty()), EqualsText(kExpectedCppPretty));
-    EXPECT_THAT(v.ToString(Stringify::OptionsJson()), kExpectedJson);
-    EXPECT_THAT(v.ToString(Stringify::OptionsJsonPretty()), EqualsText(kExpectedJsonPretty));
-    EXPECT_THAT(v.ToJsonString(), kExpectedJson);
-  }
+  EXPECT_THAT(v.ToString(), kExpectedDef);
+  EXPECT_THAT(v.ToString(Stringify::OptionsCpp()), kExpectedCpp);
+  EXPECT_THAT(v.ToString(Stringify::OptionsCppPretty()), EqualsText(kExpectedCppPretty));
+  EXPECT_THAT(v.ToString(Stringify::OptionsJson()), kExpectedJson);
+  EXPECT_THAT(v.ToString(Stringify::OptionsJsonPretty()), EqualsText(kExpectedJsonPretty));
+  EXPECT_THAT(v.ToJsonString(), kExpectedJson);
 }
 
 TEST_F(ExtenderStringifyTest, NestedJsonNumericFallback) {
@@ -726,8 +711,14 @@ struct TestStructNonLiteralFields : mbo::types::Extend<TestStructNonLiteralField
 };
 
 TEST_F(ExtenderStringifyTest, NonLiteralFields) {
-  ASSERT_THAT(SupportsFieldNames<TestStructNonLiteralFields>, kStructNameSupport);
+  ASSERT_TRUE(SupportsFieldNames<TestStructNonLiteralFields>);
+#if defined(__clang__)
   ASSERT_FALSE(SupportsFieldNamesConstexpr<TestStructNonLiteralFields>);
+#elif defined(__GNUC__)
+  ASSERT_TRUE(SupportsFieldNamesConstexpr<TestStructNonLiteralFields>);
+#else
+# error Unsupported compiler
+#endif
   ASSERT_FALSE(HasMboTypesStringifyDoNotPrintFieldNames<TestStructNonLiteralFields>);
   ASSERT_FALSE(HasMboTypesStringifyFieldNames<TestStructNonLiteralFields>);
   ASSERT_TRUE(HasMboTypesStringifyOptions<TestStructNonLiteralFields>);

@@ -90,7 +90,7 @@ jobs:
       # output root is deliberately NOT cached anymore - for clang cells it holds the
       # extracted ~4 GB hermetic LLVM, which crowded the 10 GB repo limit for no
       # benefit (LLVM re-downloads quickly, and the symbolizer wrapper resolves via
-      # runfiles so a fresh fetch location is fine). Ported from helly25/xff #409+#411.
+      # runfiles so a fresh fetch location is fine). Ported from mboworks/xff #409+#411.
       - name: Restore Bazel ${{inputs.bazel_config}} disk cache
         uses: actions/cache/restore@v6
         id: cache_restore

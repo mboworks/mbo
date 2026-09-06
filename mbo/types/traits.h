@@ -101,6 +101,15 @@ concept ConstructibleInto = ConstructibleFrom<Into, From>;
 // * T has no or only empty base classes.
 // * Has at least one field.
 //
+// GCC cannot always distinguish aggregate-initializer count from structured-
+// binding arity, most notably for aggregates containing built-in arrays. Such
+// a type can provide the exact structured-binding arity as a hidden friend:
+//
+//   friend consteval std::size_t MboTypesDecomposeCount(const T*) { return 2; }
+//
+// The returned count must exactly match the number of names required by a
+// structured binding of T.
+//
 // This templated constant does not answer whether a tuple can be constructed,
 // because en empty tuple can be created for an empty aggregate, but the latter
 // cannot be decomposed with structured bindings.

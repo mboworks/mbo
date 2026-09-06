@@ -348,6 +348,25 @@ class CoverageTest(unittest.TestCase):
                 coverage_tool.counts(files)["functions"],
             )
 
+    def test_parse_merges_function_instances_on_the_same_source_line(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mbo/a.cc"
+            source.parent.mkdir(parents=True)
+            source.write_text("template<typename T> void shared(T value) {}\n", encoding="utf-8")
+            report = root / "coverage.lcov"
+            report.write_text(
+                "SF:mbo/a.cc\n"
+                "FN:1,SharedInt\nFN:1,SharedLong\n"
+                "FNDA:0,SharedInt\nFNDA:2,SharedLong\n"
+                "end_of_record\n",
+                encoding="utf-8",
+            )
+
+            files = coverage_tool.parse_lcov(report, root)
+
+            self.assertEqual([(1, 2)], files["mbo/a.cc"].functions)
+
     def test_parse_merges_repeated_template_branches_at_marked_source_lines(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

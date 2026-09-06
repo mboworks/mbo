@@ -115,6 +115,25 @@ class CoverageSourcesTest(unittest.TestCase):
             self.assertIn("BRDA:3,0,0,2\nBRDA:3,0,1,4\nBRF:2\nBRH:2", actual)
             self.assertIn("DA:2,3\nDA:3,3\nLF:2\nLH:2", actual)
 
+    def test_merges_function_instances_on_the_same_source_line(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/file/file.h"
+            source.parent.mkdir(parents=True)
+            source.write_text("template<typename T> void shared(T value) {}\n", encoding="utf-8")
+            report = (
+                "SF:mbo/file/file.h\n"
+                "FN:1,shared_int\nFN:1,shared_long\n"
+                "FNDA:0,shared_int\nFNDA:3,shared_long\n"
+                "FNF:2\nFNH:1\nend_of_record\n"
+            )
+
+            actual = coverage_sources.normalized(report, workspace)
+
+            self.assertIn("FN:1,__mbo_lcov_merged_function_at_line_1", actual)
+            self.assertIn("FNDA:3,__mbo_lcov_merged_function_at_line_1", actual)
+            self.assertIn("FNF:1\nFNH:1", actual)
+
     def test_excludes_explicit_ranges_from_all_metrics(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "workspace"

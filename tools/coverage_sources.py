@@ -118,6 +118,7 @@ def _normalize_record(record: str, source: Path) -> str:
 
     functions: list[tuple[int, str, int]] = []
     function_groups: dict[int, list[tuple[int, str, int]]] = defaultdict(list)
+    explicit_function_groups = set(merged_functions.values())
     for line, name in definitions:
         if line in excluded_functions:
             continue
@@ -125,15 +126,18 @@ def _normalize_record(record: str, source: Path) -> str:
         if line in merged_functions:
             function_groups[merged_functions[line]].append(value)
         else:
-            functions.append(value)
+            function_groups[line].append(value)
     for group, values in sorted(function_groups.items()):
-        functions.append(
-            (
-                min(line for line, _, _ in values),
-                f"__mbo_lcov_merged_function_at_line_{group}",
-                max(hits for _, _, hits in values),
+        if len(values) == 1 and values[0][0] == group and group not in explicit_function_groups:
+            functions.append(values[0])
+        else:
+            functions.append(
+                (
+                    min(line for line, _, _ in values),
+                    f"__mbo_lcov_merged_function_at_line_{group}",
+                    max(hits for _, _, hits in values),
+                )
             )
-        )
 
     ordinary_branches: list[tuple[int, str, str, str]] = []
     branch_groups: dict[int, list[str]] = defaultdict(list)

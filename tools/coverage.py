@@ -128,14 +128,14 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
         data.lines = {line: hits for line, hits in data.lines.items() if line not in excluded_lines}
         data.functions = [function for function in data.functions if function[0] not in excluded_functions]
         merged_hits: dict[int, int] = {}
-        ordinary_functions: list[tuple[int, int]] = []
+        ordinary_hits: dict[int, int] = {}
         for line, hits in data.functions:
             if line in merged_function_groups:
                 group = merged_function_groups[line]
                 merged_hits[group] = max(merged_hits.get(group, 0), hits)
             else:
-                ordinary_functions.append((line, hits))
-        data.functions = ordinary_functions + sorted(merged_hits.items())
+                ordinary_hits[line] = max(ordinary_hits.get(line, 0), hits)
+        data.functions = list(ordinary_hits.items()) + sorted(merged_hits.items())
         ordinary_branches: list[tuple[int, bool]] = []
         branches_by_line: dict[int, list[bool]] = defaultdict(list)
         for line, taken in data.branches:

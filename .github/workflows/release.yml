@@ -27,16 +27,17 @@ jobs:
 
   release:
     needs: coverage
-    uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@v7
+    uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@1d798ff015ed0696433e01e2c3ccbb2abefadad7 # v7.7.0
     permissions:
       contents: write
       id-token: write
       attestations: write
     with:
       release_files: mbo-*.tar.gz
-      # Keep the GitHub release provisional until the secondary BCR
-      # publication process has completed.
-      prerelease: true
+      # Standard releases are assembled as drafts by action-gh-release v3 and
+      # published only after their assets are uploaded. Prereleases remain
+      # published during upload and are incompatible with immutable releases.
+      prerelease: false
       bazel_test_command: "bazel test //... --test_tag_filters=-lfs"
 
   # Mirror the release to the Bazel Central Registry (replaces the retired

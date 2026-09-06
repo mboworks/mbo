@@ -15,6 +15,8 @@
 - Updated Abseil to 20260817.0 and the associated dependency selections and compatibility patches.
 - Made the primary Clang toolchain authoritative for coverage while retaining GCC 14 and the
   supported Bazel/compiler combinations in the CI matrix.
+- Fixed immutable GitHub releases by assembling standard releases as drafts until their assets
+  are uploaded, updated BCR publication, and restored the reviewed post-release version-bump PR.
 
 # 0.14.0
 

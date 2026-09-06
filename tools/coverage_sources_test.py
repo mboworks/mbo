@@ -160,6 +160,65 @@ class CoverageSourcesTest(unittest.TestCase):
             self.assertIn("BRDA:4,0,0,1\nBRF:1\nBRH:1", actual)
             self.assertIn("DA:4,1\nLF:1\nLH:1", actual)
 
+    def test_excludes_absl_flag_declarations_from_all_metrics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/file/file.cc"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "ABSL_FLAG(\n"
+                "    bool,\n"
+                "    enabled,\n"
+                "    false,\n"
+                '    "Enable the feature.");\n'
+                'ABSL_FLAG(int, count, 1, "Number of uses.");\n'
+                "int runtime() { return 2; }\n",
+                encoding="utf-8",
+            )
+            report = (
+                "SF:mbo/file/file.cc\n"
+                "FN:1,enabled_flag\nFN:6,count_flag\nFN:7,runtime\n"
+                "FNDA:0,enabled_flag\nFNDA:0,count_flag\nFNDA:1,runtime\n"
+                "BRDA:1,0,0,0\nBRDA:6,0,0,0\nBRDA:7,0,0,1\n"
+                "DA:1,0\nDA:2,0\nDA:3,0\nDA:4,0\nDA:5,0\nDA:6,0\nDA:7,1\n"
+                "end_of_record\n"
+            )
+
+            actual = coverage_sources.normalized(report, workspace)
+
+            self.assertNotIn("enabled_flag", actual)
+            self.assertNotIn("count_flag", actual)
+            self.assertIn("FN:7,runtime\nFNDA:1,runtime", actual)
+            self.assertIn("BRDA:7,0,0,1\nBRF:1\nBRH:1", actual)
+            self.assertIn("DA:7,1\nLF:1\nLH:1", actual)
+
+    def test_excludes_non_code_lines_from_line_and_branch_metrics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/hash/hash.h"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "int hash() {\n"
+                "  // LLVM can attribute the preceding region to this comment.\n"
+                "\n"
+                "  return 1;\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            report = (
+                "SF:mbo/hash/hash.h\n"
+                "FN:1,hash\nFNDA:1,hash\n"
+                "BRDA:2,0,0,0\nBRDA:4,0,0,1\n"
+                "DA:1,1\nDA:2,0\nDA:3,0\nDA:4,1\nDA:5,1\n"
+                "end_of_record\n"
+            )
+
+            actual = coverage_sources.normalized(report, workspace)
+
+            self.assertIn("FN:1,hash\nFNDA:1,hash", actual)
+            self.assertIn("BRDA:4,0,0,1\nBRF:1\nBRH:1", actual)
+            self.assertIn("DA:1,1\nDA:4,1\nDA:5,1\nLF:3\nLH:3", actual)
+
     def test_rejects_unbalanced_exclusion_ranges(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "workspace"

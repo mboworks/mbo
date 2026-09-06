@@ -36,6 +36,34 @@ def _excluded_range_lines(source_lines: list[str]) -> set[int]:
     return result
 
 
+def _declaration_macro_lines(source_lines: list[str], macro: str) -> set[int]:
+    """Returns source lines occupied by invocations of a declaration macro."""
+    result: set[int] = set()
+    start: int | None = None
+    invocation = re.compile(rf"^\s*{re.escape(macro)}\s*\(")
+    terminator = re.compile(r"\);\s*(?://.*)?$")
+    for number, line in enumerate(source_lines, start=1):
+        if start is None and invocation.search(line):
+            start = number
+        if start is None:
+            continue
+        result.add(number)
+        if terminator.search(line):
+            start = None
+    if start is not None:
+        raise ValueError(f"unterminated {macro} invocation at line {start}")
+    return result
+
+
+def _non_code_lines(source_lines: list[str]) -> set[int]:
+    """Returns blank and C++ line-comment source lines."""
+    return {
+        number
+        for number, line in enumerate(source_lines, start=1)
+        if not line.strip() or line.lstrip().startswith("//")
+    }
+
+
 def _function_markers(source_lines: list[str]) -> tuple[set[int], dict[int, int]]:
     excluded: set[int] = set()
     merged: dict[int, int] = {}
@@ -75,8 +103,10 @@ def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]
 def _normalize_record(record: str, source: Path) -> str:
     """Applies source coverage directives to one raw LCOV record."""
     source_lines = source.read_text(encoding="utf-8").splitlines()
-    excluded_ranges = _excluded_range_lines(source_lines)
-    excluded_lines = excluded_ranges | {
+    excluded_ranges = _excluded_range_lines(source_lines) | _declaration_macro_lines(
+        source_lines, "ABSL_FLAG"
+    )
+    excluded_lines = excluded_ranges | _non_code_lines(source_lines) | {
         number
         for number, line in enumerate(source_lines, start=1)
         if "LCOV_EXCL_LINE" in line

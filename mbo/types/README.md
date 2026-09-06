@@ -1,16 +1,25 @@
 # `mbo/types`
 
-`mbo/types` combines small value and metaprogramming utilities with an aggregate framework that can
-derive construction, tuple access, comparison, hashing, and configurable text output from a type's
-fields. The framework targets C++23, GCC 14+, and Clang 22+.
+`mbo/types` combines small value and metaprogramming utilities with `Extend`: a simple, generic, and
+powerful way to enrich C++ aggregates. A single CRTP base can derive construction, tuple access,
+comparison, hashing, and highly configurable text output from a type's fields. Libraries with many
+record types can replace large amounts of repetitive operators, helpers, and formatting code with
+one consistent mechanism. Across a library, that can eliminate hundreds or thousands of lines of
+boilerplate while reducing both maintenance cost and the opportunity for bugs.
+
+`Extend` is not a fixed bundle. Its reusable extender mechanism makes project-specific functionality
+easy to define once and apply uniformly to aggregates throughout a codebase. Users can take the
+complete defaults, select only individual behaviors, omit printing, or compose the defaults with
+their own extenders. The framework targets C++23, GCC 14+, and Clang 22+.
 
 This guide describes the public model and common usage. The separate
 [reflection implementation note](REFLECTION.md) explains how automatic field-name discovery works,
 its compiler-specific limitations, and how mbo compares with other reflection libraries.
 
-## Quick start with `Extend`
+## Enriching aggregates with `Extend`
 
-Derive an aggregate from `mbo::types::Extend<T>` to install the default CRTP extenders:
+Derive an aggregate from `mbo::types::Extend<T>` to install the common CRTP extenders with one
+declaration:
 
 ```c++
 #include <iostream>
@@ -23,18 +32,20 @@ struct Name : mbo::types::Extend<Name> {
   std::string last;
 };
 
-Name name = Name::ConstructFromArgs("Ada", "Lovelace");
+Name name{{}, "Ada", "Lovelace"};
 std::cout << name << '\n';
 ```
 
-The type receives comparison, Abseil and standard hashing, Abseil stringification, stream output,
-`ToString()`, `ToJsonString()`, and construction helpers. When field-name reflection supports the
-aggregate, output can use `first` and `last`; otherwise it remains positional or uses configured
-names or numeric fallbacks.
+That one base gives `Name` comparison, Abseil and standard hashing, Abseil stringification, stream
+output, `ToString()`, `ToJsonString()`, and construction helpers. These implementations remain in
+sync with the aggregate's declared fields instead of duplicating the field list across hand-written
+operators. When field-name reflection supports the aggregate, output can use `first` and `last`;
+otherwise it remains positional or uses configured names or numeric fallbacks.
 
-`Extend` remains an aggregate base. It does not add data members or virtual dispatch, but the empty
-CRTP base participates in aggregate initialization. The named construction helpers avoid callers
-having to spell that base explicitly:
+`Extend` preserves aggregate initialization. It adds neither data members nor virtual dispatch. As
+shown above, the leading `{}` initializes the empty CRTP base and the remaining initializers map to
+fields in declaration order. The named construction helpers provide the same result without making
+callers spell the base initializer:
 
 ```c++
 auto name = Name::ConstructFromArgs("Grace", "Hopper");

@@ -41,17 +41,17 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">13</td>
-            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">18</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryMed">75.0&nbsp;%</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">12</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -126,9 +126,9 @@
 <span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">          58 :     StreamState state = {};</span></span>
 <span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">          58 :     sha3_internal::Update&lt;Rate&gt;(state, data);</span></span>
 <span id="L57"><span class="lineNum">      57</span> <span class="tlaGNC">          58 :     return sha3_internal::FinalizeXof&lt;OutputSize, Rate&gt;(state, kDomain);</span></span>
-<span id="L58"><span class="lineNum">      58</span>              :   }</span>
+<span id="L58"><span class="lineNum">      58</span> <span class="tlaGNC">          58 :   }</span></span>
 <span id="L59"><span class="lineNum">      59</span>              : </span>
-<span id="L60"><span class="lineNum">      60</span>              :   static constexpr StreamState StreamInit() noexcept { return {}; }</span>
+<span id="L60"><span class="lineNum">      60</span> <span class="tlaGNC">          18 :   static constexpr StreamState StreamInit() noexcept { return {}; }</span></span>
 <span id="L61"><span class="lineNum">      61</span>              : </span>
 <span id="L62"><span class="lineNum">      62</span> <span class="tlaGNC">        2026 :   static constexpr void StreamUpdate(StreamState&amp; state, std::string_view data) noexcept {</span></span>
 <span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">        2026 :     sha3_internal::Update&lt;Rate&gt;(state, data);</span></span>
@@ -136,7 +136,7 @@
 <span id="L65"><span class="lineNum">      65</span>              : </span>
 <span id="L66"><span class="lineNum">      66</span> <span class="tlaGNC">          20 :   static constexpr DigestType StreamFinalize(StreamState state) noexcept {</span></span>
 <span id="L67"><span class="lineNum">      67</span> <span class="tlaGNC">          20 :     return sha3_internal::FinalizeXof&lt;OutputSize, Rate&gt;(state, kDomain);</span></span>
-<span id="L68"><span class="lineNum">      68</span>              :   }</span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">          20 :   }</span></span>
 <span id="L69"><span class="lineNum">      69</span>              : };</span>
 <span id="L70"><span class="lineNum">      70</span>              : </span>
 <span id="L71"><span class="lineNum">      71</span>              : }  // namespace shake_internal</span>
@@ -150,7 +150,7 @@
 <span id="L79"><span class="lineNum">      79</span>              : template&lt;std::size_t OutputSize&gt;</span>
 <span id="L80"><span class="lineNum">      80</span> <span class="tlaGNC">           1 : constexpr std::array&lt;uint8_t, OutputSize&gt; Digest(std::string_view data) noexcept {</span></span>
 <span id="L81"><span class="lineNum">      81</span> <span class="tlaGNC">           1 :   return Algorithm&lt;OutputSize&gt;::Digest(data);</span></span>
-<span id="L82"><span class="lineNum">      82</span>              : }</span>
+<span id="L82"><span class="lineNum">      82</span> <span class="tlaGNC">           1 : }</span></span>
 <span id="L83"><span class="lineNum">      83</span>              : }  // namespace shake128</span>
 <span id="L84"><span class="lineNum">      84</span>              : </span>
 <span id="L85"><span class="lineNum">      85</span>              : namespace shake256 {</span>
@@ -162,7 +162,7 @@
 <span id="L91"><span class="lineNum">      91</span>              : template&lt;std::size_t OutputSize&gt;</span>
 <span id="L92"><span class="lineNum">      92</span> <span class="tlaGNC">           1 : constexpr std::array&lt;uint8_t, OutputSize&gt; Digest(std::string_view data) noexcept {</span></span>
 <span id="L93"><span class="lineNum">      93</span> <span class="tlaGNC">           1 :   return Algorithm&lt;OutputSize&gt;::Digest(data);</span></span>
-<span id="L94"><span class="lineNum">      94</span>              : }</span>
+<span id="L94"><span class="lineNum">      94</span> <span class="tlaGNC">           1 : }</span></span>
 <span id="L95"><span class="lineNum">      95</span>              : }  // namespace shake256</span>
 <span id="L96"><span class="lineNum">      96</span>              : </span>
 <span id="L97"><span class="lineNum">      97</span>              : }  // namespace mbo::digest</span>
@@ -187,10 +187,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -201,10 +201,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

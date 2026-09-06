@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">24</td>
-            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntry">35</td>
+            <td class="headerCovTableEntry">35</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -58,9 +58,9 @@
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryLo">65.2&nbsp;%</td>
-            <td class="headerCovTableEntry">92</td>
-            <td class="headerCovTableEntry">60</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">8</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -113,70 +113,50 @@
 <span id="L33"><span class="lineNum">      33</span>                 :             : // Return true if path is an absolute path.</span>
 <span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">           1 : inline bool IsAbsolutePath(const std::filesystem::path&amp; path) {</span></span>
 <span id="L35"><span class="lineNum">      35</span>                 :<span class="tlaGNC">           1 :   return path.is_absolute();</span></span>
-<span id="L36"><span class="lineNum">      36</span>                 :             : }</span>
+<span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">           1 : }</span></span>
 <span id="L37"><span class="lineNum">      37</span>                 :             : </span>
 <span id="L38"><span class="lineNum">      38</span>                 :             : // Combine all parameters as if they were path elements.</span>
 <span id="L39"><span class="lineNum">      39</span>                 :             : // Normalizes the result using `NormalizePath`.</span>
 <span id="L40"><span class="lineNum">      40</span>                 :             : // Any path component that is absolute will simply be treated as relative and concatenated.</span>
 <span id="L41"><span class="lineNum">      41</span>                 :             : template&lt;typename... T&gt;</span>
 <span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">         146 : inline std::filesystem::path JoinPaths(const std::filesystem::path&amp; first_path, const T&amp;... paths) {</span></span>
-<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">         438 :   return NormalizePath([&amp;] {</span></span>
-<span id="L44"><span class="lineNum">      44</span>                 :             :     if constexpr (sizeof...(paths) == 0) {</span>
+<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">         146 :   return NormalizePath([&amp;] {</span></span>
+<span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">         146 :     if constexpr (sizeof...(paths) == 0) {</span></span>
 <span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">          68 :       return std::filesystem::path(first_path);</span></span>
-<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">          78 :     } else if (first_path.empty()) {</span></span>
-<span class="lineNum">        </span>   [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaGBC" title="branch 3 was taken 3 times"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 4 was taken 1 time"> + </span><span class="tlaUNC" title="branch 5 was not taken"> - </span><span class="tlaGBC" title="branch 6 was taken 1 time"> + </span><span class="tlaGBC" title="branch 7 was taken 3 times"> + </span><span class="tlaGBC" title="branch 8 was taken 1 time"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 9 was taken 1 time"> + </span><span class="tlaGBC" title="branch 10 was taken 2 times"> + </span><span class="tlaGBC" title="branch 11 was taken 2 times"> + </span><span class="tlaGBC" title="branch 12 was taken 1 time"> + </span><span class="tlaGBC" title="branch 13 was taken 1 time"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 14 was taken 4 times"> + </span><span class="tlaGBC" title="branch 15 was taken 8 times"> + </span><span class="tlaGBC" title="branch 16 was taken 4 times"> + </span><span class="tlaGBC" title="branch 17 was taken 7 times"> + </span><span class="tlaUNC" title="branch 18 was not taken"> - </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 19 was taken 1 time"> + </span><span class="tlaUNC" title="branch 20 was not taken"> - </span><span class="tlaGBC" title="branch 21 was taken 1 time"> + </span><span class="tlaUNC" title="branch 22 was not taken"> - </span><span class="tlaGBC" title="branch 23 was taken 1 time"> + </span> 
-<span class="lineNum">        </span>    <span class="tlaUNC" title="branch 24 was not taken"> - </span><span class="tlaGBC" title="branch 25 was taken 5 times"> + </span><span class="tlaUNC" title="branch 26 was not taken"> - </span><span class="tlaGBC" title="branch 27 was taken 14 times"> + </span>]
+<span id="L46"><span class="lineNum">      46</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 64 times"> + </span>]:<span class="tlaGNC">          78 :     } else if (first_path.empty()) {</span></span>
 <span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaGNC">          14 :       return JoinPaths(paths...);</span></span>
-<span id="L48"><span class="lineNum">      48</span>                 :             :     } else {</span>
+<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">          64 :     } else {</span></span>
 <span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">          64 :       auto joined = JoinPaths(paths...);</span></span>
-<span id="L50"><span class="lineNum">      50</span>                 :<span class="tlaGNC">          64 :       if (joined.is_absolute()) {</span></span>
-<span class="lineNum">        </span>   [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span><span class="tlaGBC" title="branch 2 was taken 2 times"> + </span><span class="tlaGBC" title="branch 3 was taken 1 time"> + </span> 
-<span class="lineNum">        </span> <span class="tlaUNC" title="branch 4 was not taken"> - </span><span class="tlaUNC" title="branch 5 was not taken"> - </span><span class="tlaGBC" title="branch 6 was taken 2 times"> + </span><span class="tlaGBC" title="branch 7 was taken 1 time"> + </span><span class="tlaUNC" title="branch 8 was not taken"> - </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 9 was taken 1 time"> + </span><span class="tlaUNC" title="branch 10 was not taken"> - </span><span class="tlaGBC" title="branch 11 was taken 2 times"> + </span><span class="tlaUNC" title="branch 12 was not taken"> - </span><span class="tlaGBC" title="branch 13 was taken 1 time"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 14 was taken 2 times"> + </span><span class="tlaGBC" title="branch 15 was taken 6 times"> + </span><span class="tlaUNC" title="branch 16 was not taken"> - </span><span class="tlaGBC" title="branch 17 was taken 7 times"> + </span><span class="tlaUNC" title="branch 18 was not taken"> - </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 19 was taken 1 time"> + </span><span class="tlaUNC" title="branch 20 was not taken"> - </span><span class="tlaGBC" title="branch 21 was taken 1 time"> + </span><span class="tlaUNC" title="branch 22 was not taken"> - </span><span class="tlaGBC" title="branch 23 was taken 1 time"> + </span> 
-<span class="lineNum">        </span>    <span class="tlaUNC" title="branch 24 was not taken"> - </span><span class="tlaGBC" title="branch 25 was taken 5 times"> + </span><span class="tlaUNC" title="branch 26 was not taken"> - </span><span class="tlaGBC" title="branch 27 was taken 14 times"> + </span>]
+<span id="L50"><span class="lineNum">      50</span>         [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 55 times"> + </span>]:<span class="tlaGNC">          64 :       if (joined.is_absolute()) {</span></span>
 <span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">           9 :         return first_path / joined.relative_path();</span></span>
-<span id="L52"><span class="lineNum">      52</span>                 :             :       } else {</span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">          55 :       } else {</span></span>
 <span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">          55 :         return first_path / joined;</span></span>
-<span id="L54"><span class="lineNum">      54</span>                 :             :       }</span>
+<span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">          55 :       }</span></span>
 <span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          64 :     }</span></span>
 <span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">         146 :   }());</span></span>
-<span id="L57"><span class="lineNum">      57</span>                 :             : }</span>
+<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">         146 : }</span></span>
 <span id="L58"><span class="lineNum">      58</span>                 :             : </span>
 <span id="L59"><span class="lineNum">      59</span>                 :             : // Combine all parameters as if they were path elements but respects absolute path elements.</span>
 <span id="L60"><span class="lineNum">      60</span>                 :             : // Normalizes the result using `NormalizePath`.</span>
 <span id="L61"><span class="lineNum">      61</span>                 :             : // Any path component that is absolute will drop anything to its left..</span>
 <span id="L62"><span class="lineNum">      62</span>                 :             : template&lt;typename... T&gt;</span>
 <span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaGNC">          36 : inline std::filesystem::path JoinPathsRespectAbsolute(const std::filesystem::path&amp; first_path, const T&amp;... paths) {</span></span>
-<span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaGNC">         108 :   return NormalizePath([&amp;] {</span></span>
-<span id="L65"><span class="lineNum">      65</span>                 :             :     if constexpr (sizeof...(paths) == 0) {</span>
+<span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaGNC">          36 :   return NormalizePath([&amp;] {</span></span>
+<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">          36 :     if constexpr (sizeof...(paths) == 0) {</span></span>
 <span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">          10 :       return std::filesystem::path(first_path);</span></span>
-<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">          26 :     } else if (first_path.empty()) {</span></span>
-<span class="lineNum">        </span>   [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaGBC" title="branch 3 was taken 2 times"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 4 was taken 1 time"> + </span><span class="tlaUNC" title="branch 5 was not taken"> - </span><span class="tlaGBC" title="branch 6 was taken 1 time"> + </span><span class="tlaGBC" title="branch 7 was taken 1 time"> + </span><span class="tlaGBC" title="branch 8 was taken 1 time"> + </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 9 was taken 1 time"> + </span><span class="tlaGBC" title="branch 10 was taken 2 times"> + </span><span class="tlaGBC" title="branch 11 was taken 2 times"> + </span><span class="tlaGBC" title="branch 12 was taken 1 time"> + </span><span class="tlaGBC" title="branch 13 was taken 1 time"> + </span> 
-<span class="lineNum">        </span>    <span class="tlaGBC" title="branch 14 was taken 2 times"> + </span><span class="tlaGBC" title="branch 15 was taken 4 times"> + </span><span class="tlaGBC" title="branch 16 was taken 2 times"> + </span><span class="tlaGBC" title="branch 17 was taken 3 times"> + </span>]
+<span id="L67"><span class="lineNum">      67</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 16 times"> + </span>]:<span class="tlaGNC">          26 :     } else if (first_path.empty()) {</span></span>
 <span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">          10 :       return JoinPaths(paths...);</span></span>
-<span id="L69"><span class="lineNum">      69</span>                 :             :     } else {</span>
+<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">          16 :     } else {</span></span>
 <span id="L70"><span class="lineNum">      70</span>                 :             :       // In theory this is what `fs::path /=` should do. But then it does way more.</span>
 <span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaGNC">          16 :       auto joined = JoinPathsRespectAbsolute(paths...);</span></span>
-<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">          16 :       if (joined.is_absolute()) {</span></span>
-<span class="lineNum">        </span>   [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span><span class="tlaGBC" title="branch 2 was taken 2 times"> + </span><span class="tlaUNC" title="branch 3 was not taken"> - </span> 
-<span class="lineNum">        </span> <span class="tlaUNC" title="branch 4 was not taken"> - </span><span class="tlaUNC" title="branch 5 was not taken"> - </span><span class="tlaUNC" title="branch 6 was not taken"> - </span><span class="tlaGBC" title="branch 7 was taken 1 time"> + </span><span class="tlaUNC" title="branch 8 was not taken"> - </span> 
-<span class="lineNum">        </span> <span class="tlaGBC" title="branch 9 was taken 1 time"> + </span><span class="tlaUNC" title="branch 10 was not taken"> - </span><span class="tlaGBC" title="branch 11 was taken 2 times"> + </span><span class="tlaUNC" title="branch 12 was not taken"> - </span><span class="tlaGBC" title="branch 13 was taken 1 time"> + </span> 
-<span class="lineNum">        </span>    <span class="tlaUNC" title="branch 14 was not taken"> - </span><span class="tlaGBC" title="branch 15 was taken 4 times"> + </span><span class="tlaUNC" title="branch 16 was not taken"> - </span><span class="tlaGBC" title="branch 17 was taken 3 times"> + </span>]
+<span id="L72"><span class="lineNum">      72</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 12 times"> + </span>]:<span class="tlaGNC">          16 :       if (joined.is_absolute()) {</span></span>
 <span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC">           4 :         return joined;</span></span>
-<span id="L74"><span class="lineNum">      74</span>                 :             :       } else {</span>
+<span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">          12 :       } else {</span></span>
 <span id="L75"><span class="lineNum">      75</span>                 :<span class="tlaGNC">          12 :         return first_path / joined;</span></span>
-<span id="L76"><span class="lineNum">      76</span>                 :             :       }</span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">          12 :       }</span></span>
 <span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">          16 :     }</span></span>
 <span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">          36 :   }());</span></span>
-<span id="L79"><span class="lineNum">      79</span>                 :             : }</span>
+<span id="L79"><span class="lineNum">      79</span>                 :<span class="tlaGNC">          36 : }</span></span>
 <span id="L80"><span class="lineNum">      80</span>                 :             : </span>
 <span id="L81"><span class="lineNum">      81</span>                 :             : // Writes `content` to the file `file_name`, overwriting any existing content.</span>
 <span id="L82"><span class="lineNum">      82</span>                 :             : // Fails if directory does not exist.</span>
@@ -248,10 +228,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -262,10 +242,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

@@ -40,27 +40,27 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">96.4&nbsp;%</td>
-            <td class="headerCovTableEntry">28</td>
-            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryMed">84.6&nbsp;%</td>
+            <td class="headerCovTableEntry">52</td>
+            <td class="headerCovTableEntry">44</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">9</td>
-            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryMed">75.0&nbsp;%</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">15</td>
           </tr>
           <tr>
             <td></td>
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">66.7&nbsp;%</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">8</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -137,14 +137,14 @@
 <span id="L57"><span class="lineNum">      57</span>                 :             :   ~VoidStream() = default;</span>
 <span id="L58"><span class="lineNum">      58</span>                 :             :   VoidStream() = default;</span>
 <span id="L59"><span class="lineNum">      59</span>                 :             : </span>
-<span id="L60"><span class="lineNum">      60</span>                 :             :   VoidStream(const Voidifier&amp;) {}  // NOLINT(*-named-parameter,*-explicit-*)</span>
+<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaUNC">           0 :   VoidStream(const Voidifier&amp;) {}  // NOLINT(*-named-parameter,*-explicit-*)</span></span>
 <span id="L61"><span class="lineNum">      61</span>                 :             : </span>
 <span id="L62"><span class="lineNum">      62</span>                 :             :   VoidStream(const VoidStream&amp;) = default;</span>
 <span id="L63"><span class="lineNum">      63</span>                 :             :   VoidStream&amp; operator=(const VoidStream&amp;) = default;</span>
 <span id="L64"><span class="lineNum">      64</span>                 :             :   VoidStream(VoidStream&amp;&amp;) noexcept = default;</span>
 <span id="L65"><span class="lineNum">      65</span>                 :             :   VoidStream&amp; operator=(VoidStream&amp;&amp;) noexcept = default;</span>
 <span id="L66"><span class="lineNum">      66</span>                 :             : </span>
-<span id="L67"><span class="lineNum">      67</span>                 :             :   VoidStream&amp; operator=(const Voidifier&amp; /*unused*/) noexcept { return *this; }</span>
+<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaUNC">           0 :   VoidStream&amp; operator=(const Voidifier&amp; /*unused*/) noexcept { return *this; }</span></span>
 <span id="L68"><span class="lineNum">      68</span>                 :             : </span>
 <span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">           1 :   operator bool() const noexcept { return false; }  // NOLINT(*-explicit-*)</span></span>
 <span id="L70"><span class="lineNum">      70</span>                 :             : </span>
@@ -155,7 +155,7 @@
 <span id="L75"><span class="lineNum">      75</span>                 :             :   template&lt;typename T&gt;</span>
 <span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">           3 :   VoidStream&amp; operator&lt;&lt;(const T&amp;) noexcept {  // NOLINT(*-named-parameter)</span></span>
 <span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">           3 :     return *this;</span></span>
-<span id="L78"><span class="lineNum">      78</span>                 :             :   }</span>
+<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L79"><span class="lineNum">      79</span>                 :             : };</span>
 <span id="L80"><span class="lineNum">      80</span>                 :             : </span>
 <span id="L81"><span class="lineNum">      81</span>                 :             : static_assert(std::is_empty_v&lt;VoidStream&gt;);</span>
@@ -239,28 +239,28 @@
 <span id="L159"><span class="lineNum">     159</span>                 :             :   ScopedStream() = delete;</span>
 <span id="L160"><span class="lineNum">     160</span>                 :             : </span>
 <span id="L161"><span class="lineNum">     161</span>                 :             :   // LCOV_MERGE_FUNC_LINE: Count the shared class-template definition once.</span>
-<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">           6 :   explicit ScopedStream(const std::source_location&amp; loc, OStreamField out = std::cerr, const MessageField&amp; msg = {})</span></span>
+<span id="L162"><span class="lineNum">     162</span>                 :             :   explicit ScopedStream(const std::source_location&amp; loc, OStreamField out = std::cerr, const MessageField&amp; msg = {})</span>
 <span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">           6 :       : loc_(loc), out_(out), msg_(msg) {}</span></span>
 <span id="L164"><span class="lineNum">     164</span>                 :             : </span>
 <span id="L165"><span class="lineNum">     165</span>                 :             :   // LCOV_MERGE_FUNC_LINE: Count the shared class-template definition once.</span>
 <span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">           6 :   ~ScopedStream() {</span></span>
 <span id="L167"><span class="lineNum">     167</span>                 :             :     // Technically a compiler could optimize this for `VoidStream`, but we drop this explicitly.</span>
-<span id="L168"><span class="lineNum">     168</span>                 :             :     if constexpr (std::same_as&lt;OStreamT, Voidifier&gt;) {</span>
+<span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">           6 :     if constexpr (std::same_as&lt;OStreamT, Voidifier&gt;) {</span></span>
 <span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">           1 :       OutPrefix(std::cerr);</span></span>
-<span id="L170"><span class="lineNum">     170</span>                 :             :     } else if constexpr (!std::same_as&lt;OStreamT, VoidStream&gt;) {</span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           4 :     } else if constexpr (!std::same_as&lt;OStreamT, VoidStream&gt;) {</span></span>
 <span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">           4 :       OutPrefix(out_);</span></span>
-<span id="L172"><span class="lineNum">     172</span>                 :             :     }</span>
-<span id="L173"><span class="lineNum">     173</span>                 :             :     switch (kMode) {</span>
-<span id="L174"><span class="lineNum">     174</span>                 :<span class="tlaGNC">           6 :       case ScopedStreamMode::kContinue: break;</span></span>
-<span id="L175"><span class="lineNum">     175</span>                 :             :       case ScopedStreamMode::kQuickExit: {</span>
-<span id="L176"><span class="lineNum">     176</span>                 :             :         if constexpr (std::same_as&lt;OStreamT, Voidifier&gt;) {</span>
+<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L173"><span class="lineNum">     173</span>         [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>]:<span class="tlaGNC">           6 :     switch (kMode) {</span></span>
+<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">           6 :       case ScopedStreamMode::kContinue: break;</span></span>
+<span id="L175"><span class="lineNum">     175</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaUNC">           0 :       case ScopedStreamMode::kQuickExit: {</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaUNC">           0 :         if constexpr (std::same_as&lt;OStreamT, Voidifier&gt;) {</span></span>
 <span id="L177"><span class="lineNum">     177</span>                 :             :           OutFlush(std::cerr);  // LCOV_EXCL_LINE: quick_exit prevents the coverage runtime from flushing.</span>
-<span id="L178"><span class="lineNum">     178</span>                 :             :         } else if constexpr (!std::same_as&lt;OStreamT, VoidStream&gt;) {</span>
+<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaUNC">           0 :         } else if constexpr (!std::same_as&lt;OStreamT, VoidStream&gt;) {</span></span>
 <span id="L179"><span class="lineNum">     179</span>                 :             :           OutFlush(out_);  // LCOV_EXCL_LINE: quick_exit prevents the coverage runtime from flushing.</span>
-<span id="L180"><span class="lineNum">     180</span>                 :             :         }</span>
+<span id="L180"><span class="lineNum">     180</span>                 :<span class="tlaUNC">           0 :         }</span></span>
 <span id="L181"><span class="lineNum">     181</span>                 :             :         std::quick_exit(1);  // LCOV_EXCL_LINE: deliberately prevents normal process and coverage shutdown.</span>
-<span id="L182"><span class="lineNum">     182</span>                 :             :       }</span>
-<span id="L183"><span class="lineNum">     183</span>                 :             :     }</span>
+<span id="L182"><span class="lineNum">     182</span>                 :<span class="tlaUNC">           0 :       }</span></span>
+<span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">           6 :     }</span></span>
 <span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">           6 :   }</span></span>
 <span id="L185"><span class="lineNum">     185</span>                 :             : </span>
 <span id="L186"><span class="lineNum">     186</span>                 :             :   // It is important for these to be deleted since that ensures they cannot leave local scope.</span>
@@ -274,7 +274,7 @@
 <span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           5 :   StringStream&amp; operator&lt;&lt;(const T&amp; val) {</span></span>
 <span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">           5 :     str_ &lt;&lt; val;</span></span>
 <span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">           5 :     return str_;</span></span>
-<span id="L197"><span class="lineNum">     197</span>                 :             :   }</span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L198"><span class="lineNum">     198</span>                 :             : </span>
 <span id="L199"><span class="lineNum">     199</span>                 :             :   // LCOV_MERGE_FUNC_LINE: Count the shared class-template definition once.</span>
 <span id="L200"><span class="lineNum">     200</span>                 :             :   const StringStream&amp; Stream() const noexcept { return str_; }</span>
@@ -285,15 +285,14 @@
 <span id="L205"><span class="lineNum">     205</span>                 :             :   // LCOV_MERGE_FUNC_LINE: Count the shared class-template definition once.</span>
 <span id="L206"><span class="lineNum">     206</span>                 :<span class="tlaGNC">           5 :   void OutPrefix(std::ostream&amp; out) {</span></span>
 <span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">           5 :     out &lt;&lt; &quot;[&quot; &lt;&lt; loc_.file_name() &lt;&lt; &quot;:&quot; &lt;&lt; loc_.line() &lt;&lt; &quot;] @&quot; &lt;&lt; loc_.function_name();</span></span>
-<span id="L208"><span class="lineNum">     208</span>                 :             :     if constexpr (!std::same_as&lt;OStreamT, Voidifier&gt; &amp;&amp; !std::same_as&lt;MessageT, Voidifier&gt;) {</span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">           5 :     if constexpr (!std::same_as&lt;OStreamT, Voidifier&gt; &amp;&amp; !std::same_as&lt;MessageT, Voidifier&gt;) {</span></span>
 <span id="L209"><span class="lineNum">     209</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           4 :       if (!msg_.empty()) {</span></span>
 <span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">           1 :         out &lt;&lt; &quot; : &quot; &lt;&lt; msg_;</span></span>
-<span id="L211"><span class="lineNum">     211</span>                 :             :       }</span>
-<span id="L212"><span class="lineNum">     212</span>                 :             :     }</span>
-<span id="L213"><span class="lineNum">     213</span>   [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span><span class="tlaGBC" title="branch 2 was taken 3 times"> + </span><span class="tlaGBC" title="branch 3 was taken 1 time"> + </span> :<span class="tlaGNC">           5 :     if (str_ &amp;&amp; !str_.str().empty()) {</span></span>
-<span class="lineNum">        </span>    <span class="tlaGBC" title="branch 4 was taken 4 times"> + </span><span class="tlaGBC" title="branch 5 was taken 1 time"> + </span><span class="tlaGBC" title="branch 6 was taken 3 times"> + </span><span class="tlaGBC" title="branch 7 was taken 1 time"> + </span>]
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L213"><span class="lineNum">     213</span> [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 3 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">           5 :     if (str_ &amp;&amp; !str_.str().empty()) {</span></span>
 <span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">           3 :       out &lt;&lt; &quot; : &quot; &lt;&lt; str_.str();</span></span>
-<span id="L215"><span class="lineNum">     215</span>                 :             :     }</span>
+<span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">           3 :     }</span></span>
 <span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">           5 :     out &lt;&lt; &quot;\n&quot;;</span></span>
 <span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L218"><span class="lineNum">     218</span>                 :             : </span>
@@ -301,7 +300,7 @@
 <span id="L220"><span class="lineNum">     220</span>                 :<span class="tlaUNC">           0 :   void OutFlush(std::ostream&amp; out) { out &lt;&lt; std::flush; }</span></span>
 <span id="L221"><span class="lineNum">     221</span>                 :             : </span>
 <span id="L222"><span class="lineNum">     222</span>                 :             :   // LCOV_MERGE_FUNC_LINE: Count the shared class-template definition once.</span>
-<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">           9 :   std::string TestGetStr() const { return std::string{str_.str()}; }</span></span>
+<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">           5 :   std::string TestGetStr() const { return std::string{str_.str()}; }</span></span>
 <span id="L224"><span class="lineNum">     224</span>                 :             : </span>
 <span id="L225"><span class="lineNum">     225</span>                 :             :   const std::source_location loc_;  // Must be the actual value.</span>
 <span id="L226"><span class="lineNum">     226</span>                 :             :   [[no_unique_address]] StringStream str_;</span>
@@ -324,9 +323,9 @@
 <span id="L243"><span class="lineNum">     243</span>                 :             : // NOLINTEND(*-magic-numbers)</span>
 <span id="L244"><span class="lineNum">     244</span>                 :             : </span>
 <span id="L245"><span class="lineNum">     245</span>                 :             : template&lt;ScopedStreamMode kMode = ScopedStreamMode::kContinue&gt;</span>
-<span id="L246"><span class="lineNum">     246</span>                 :             : MBO_FORCE_INLINE auto ScopedStreamOut(const std::source_location&amp; loc = std::source_location::current()) {</span>
+<span id="L246"><span class="lineNum">     246</span>                 :<span class="tlaGNC">           1 : MBO_FORCE_INLINE auto ScopedStreamOut(const std::source_location&amp; loc = std::source_location::current()) {</span></span>
 <span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">           1 :   return ScopedStream&lt;kMode&gt;(loc, std::cout);</span></span>
-<span id="L248"><span class="lineNum">     248</span>                 :             : }</span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">           1 : }</span></span>
 <span id="L249"><span class="lineNum">     249</span>                 :             : </span>
 <span id="L250"><span class="lineNum">     250</span>                 :             : template&lt;typename Disallowed&gt;</span>
 <span id="L251"><span class="lineNum">     251</span>                 :             : void ScopedStreamOut(const Disallowed&amp;&amp;) {  // NOLINT(*-named-parameter)</span>
@@ -334,9 +333,9 @@
 <span id="L253"><span class="lineNum">     253</span>                 :             : }</span>
 <span id="L254"><span class="lineNum">     254</span>                 :             : </span>
 <span id="L255"><span class="lineNum">     255</span>                 :             : template&lt;ScopedStreamMode kMode = ScopedStreamMode::kContinue&gt;</span>
-<span id="L256"><span class="lineNum">     256</span>                 :             : MBO_FORCE_INLINE auto ScopedStreamErr(const std::source_location&amp; loc = std::source_location::current()) {</span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">           1 : MBO_FORCE_INLINE auto ScopedStreamErr(const std::source_location&amp; loc = std::source_location::current()) {</span></span>
 <span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">           1 :   return ScopedStream&lt;kMode, std::stringstream, Voidifier, Voidifier&gt;(loc);</span></span>
-<span id="L258"><span class="lineNum">     258</span>                 :             : }</span>
+<span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">           1 : }</span></span>
 <span id="L259"><span class="lineNum">     259</span>                 :             : </span>
 <span id="L260"><span class="lineNum">     260</span>                 :             : template&lt;typename Disallowed&gt;</span>
 <span id="L261"><span class="lineNum">     261</span>                 :             : void ScopedStreamErr(const Disallowed&amp;&amp;) {  // NOLINT(*-named-parameter)</span>
@@ -344,10 +343,10 @@
 <span id="L263"><span class="lineNum">     263</span>                 :             : }</span>
 <span id="L264"><span class="lineNum">     264</span>                 :             : </span>
 <span id="L265"><span class="lineNum">     265</span>                 :             : template&lt;ScopedStreamMode kMode = ScopedStreamMode::kContinue&gt;</span>
-<span id="L266"><span class="lineNum">     266</span>                 :             : MBO_FORCE_INLINE auto ScopedStreamVoid(const std::source_location&amp; loc = std::source_location::current()) {</span>
-<span id="L267"><span class="lineNum">     267</span>                 :             :   static const VoidStream kVoidStream;</span>
+<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">           1 : MBO_FORCE_INLINE auto ScopedStreamVoid(const std::source_location&amp; loc = std::source_location::current()) {</span></span>
+<span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">           1 :   static const VoidStream kVoidStream;</span></span>
 <span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">           1 :   return ScopedStream&lt;kMode, VoidStream, VoidStream&gt;(loc, kVoidStream);</span></span>
-<span id="L269"><span class="lineNum">     269</span>                 :             : }</span>
+<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">           1 : }</span></span>
 <span id="L270"><span class="lineNum">     270</span>                 :             : </span>
 <span id="L271"><span class="lineNum">     271</span>                 :             : template&lt;typename Disallowed&gt;</span>
 <span id="L272"><span class="lineNum">     272</span>                 :             : void ScopedStreamVoid(const Disallowed&amp;&amp;) {  // NOLINT(*-named-parameter)</span>
@@ -378,10 +377,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -392,10 +391,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -59,8 +59,8 @@
             <td></td>
             <td class="headerItem">Branches:</td>
             <td class="headerCovTableEntryLo">50.0&nbsp;%</td>
-            <td class="headerCovTableEntry">4</td>
             <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">1</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -106,7 +106,7 @@
 <span id="L26"><span class="lineNum">      26</span>                 :             :   std::string_view hex;</span>
 <span id="L27"><span class="lineNum">      27</span>                 :             :   std::string_view file_name;</span>
 <span id="L28"><span class="lineNum">      28</span>                 :             : </span>
-<span id="L29"><span class="lineNum">      29</span>   [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaGBC" title="branch 3 was taken 2 times"> + </span>]:<span class="tlaGNC">           2 :   friend bool operator==(const ChecksumLine&amp;, const ChecksumLine&amp;) = default;</span></span>
+<span id="L29"><span class="lineNum">      29</span>         [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          18 :   friend bool operator==(const ChecksumLine&amp;, const ChecksumLine&amp;) = default;</span></span>
 <span id="L30"><span class="lineNum">      30</span>                 :             : };</span>
 <span id="L31"><span class="lineNum">      31</span>                 :             : </span>
 <span id="L32"><span class="lineNum">      32</span>                 :             : // Parses the checksum format emitted by coreutils: either</span>
@@ -135,10 +135,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -149,10 +149,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

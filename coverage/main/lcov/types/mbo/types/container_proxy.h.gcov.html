@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">21</td>
-            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">23</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">98.4&nbsp;%</td>
@@ -141,12 +141,12 @@
 <span id="L70"><span class="lineNum">      70</span> <span class="tlaGNC">          39 :   constexpr auto&amp; Get() {</span></span>
 <span id="L71"><span class="lineNum">      71</span> <span class="tlaGNC">          39 :     T* self = static_cast&lt;T*&gt;(this);</span></span>
 <span id="L72"><span class="lineNum">      72</span> <span class="tlaGNC">          39 :     return (self-&gt;*GetMutable)();</span></span>
-<span id="L73"><span class="lineNum">      73</span>              :   }</span>
+<span id="L73"><span class="lineNum">      73</span> <span class="tlaGNC">          39 :   }</span></span>
 <span id="L74"><span class="lineNum">      74</span>              : </span>
 <span id="L75"><span class="lineNum">      75</span> <span class="tlaGNC">         108 :   constexpr const auto&amp; Get() const {</span></span>
 <span id="L76"><span class="lineNum">      76</span> <span class="tlaGNC">         108 :     const T* self = static_cast&lt;const T*&gt;(this);</span></span>
 <span id="L77"><span class="lineNum">      77</span> <span class="tlaGNC">         108 :     return (self-&gt;*GetConst)();</span></span>
-<span id="L78"><span class="lineNum">      78</span>              :   }</span>
+<span id="L78"><span class="lineNum">      78</span> <span class="tlaGNC">         108 :   }</span></span>
 <span id="L79"><span class="lineNum">      79</span>              : </span>
 <span id="L80"><span class="lineNum">      80</span>              :  public:</span>
 <span id="L81"><span class="lineNum">      81</span>              :   using size_type = C::size_type;</span>
@@ -188,8 +188,8 @@
 <span id="L117"><span class="lineNum">     117</span>              :     Get().push_back(arg);</span>
 <span id="L118"><span class="lineNum">     118</span>              :   }</span>
 <span id="L119"><span class="lineNum">     119</span>              : </span>
-<span id="L120"><span class="lineNum">     120</span> <span class="tlaGNC">          10 :   constexpr void push_back(value_type&amp;&amp; arg)</span></span>
-<span id="L121"><span class="lineNum">     121</span>              :   requires(requires(C&amp; v) { v.push_back(std::declval&lt;value_type&gt;()); }) {</span>
+<span id="L120"><span class="lineNum">     120</span>              :   constexpr void push_back(value_type&amp;&amp; arg)</span>
+<span id="L121"><span class="lineNum">     121</span> <span class="tlaGNC">          10 :   requires(requires(C&amp; v) { v.push_back(std::declval&lt;value_type&gt;()); }) {</span></span>
 <span id="L122"><span class="lineNum">     122</span> <span class="tlaGNC">          10 :     Get().push_back(std::move(arg));</span></span>
 <span id="L123"><span class="lineNum">     123</span> <span class="tlaGNC">          10 :   }</span></span>
 <span id="L124"><span class="lineNum">     124</span>              : </span>
@@ -283,10 +283,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -297,10 +297,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

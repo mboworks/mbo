@@ -41,17 +41,17 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">17</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">54</td>
-            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryHi">98.2&nbsp;%</td>
+            <td class="headerCovTableEntry">57</td>
+            <td class="headerCovTableEntry">56</td>
           </tr>
                   <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -118,7 +118,7 @@
 <span id="L47"><span class="lineNum">      47</span>              :   requires IsConstructibleWithEmptyBaseAndArgs&lt;Type, Args...&gt;</span>
 <span id="L48"><span class="lineNum">      48</span> <span class="tlaGNC">           5 :   static Type ConstructFromTuple(std::tuple&lt;Args...&gt;&amp;&amp; args) {  // NOLINT(*-param-not-moved)</span></span>
 <span id="L49"><span class="lineNum">      49</span> <span class="tlaGNC">           5 :     return std::apply(ConstructFromArgs&lt;Args...&gt;, std::forward&lt;std::tuple&lt;Args...&gt;&gt;(args));</span></span>
-<span id="L50"><span class="lineNum">      50</span>              :   }</span>
+<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">           5 :   }</span></span>
 <span id="L51"><span class="lineNum">      51</span>              : </span>
 <span id="L52"><span class="lineNum">      52</span>              :   // Construct from separate arguments.</span>
 <span id="L53"><span class="lineNum">      53</span>              :   // The arguments must match the field types or the field types must allow conversion.</span>
@@ -126,7 +126,7 @@
 <span id="L55"><span class="lineNum">      55</span>              :   requires IsConstructibleWithEmptyBaseAndArgs&lt;Type, Args...&gt;</span>
 <span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">           9 :   static Type ConstructFromArgs(Args&amp;&amp;... args) {</span></span>
 <span id="L57"><span class="lineNum">      57</span> <span class="tlaGNC">           9 :     return Type{{}, std::forward&lt;Args&gt;(args)...};</span></span>
-<span id="L58"><span class="lineNum">      58</span>              :   }</span>
+<span id="L58"><span class="lineNum">      58</span> <span class="tlaGNC">           9 :   }</span></span>
 <span id="L59"><span class="lineNum">      59</span>              : </span>
 <span id="L60"><span class="lineNum">      60</span>              :   // Construct from separate arguments that must be convertible (1:1 in order) to the field types.</span>
 <span id="L61"><span class="lineNum">      61</span>              :   // Effectively calling `T(FieldType&lt;N&gt;(args&lt;N&gt;)...)`.</span>
@@ -135,12 +135,12 @@
 <span id="L64"><span class="lineNum">      64</span>              :       std::tuple&lt;Args...&gt;,</span>
 <span id="L65"><span class="lineNum">      65</span>              :       decltype(std::declval&lt;const ExtendBase&lt;ActualType&gt;&amp;&gt;().ToTuple())&gt;</span>
 <span id="L66"><span class="lineNum">      66</span> <span class="tlaGNC">           1 :   static Type ConstructFromConversions(Args&amp;&amp;... args) {</span></span>
-<span id="L67"><span class="lineNum">      67</span>              :     return ConstructFromConversionsImpl(</span>
+<span id="L67"><span class="lineNum">      67</span> <span class="tlaGNC">           1 :     return ConstructFromConversionsImpl(</span></span>
 <span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">           1 :         std::make_index_sequence&lt;sizeof...(Args)&gt;{}, std::make_tuple(std::forward&lt;Args&gt;(args)...));</span></span>
-<span id="L69"><span class="lineNum">      69</span>              :   }</span>
+<span id="L69"><span class="lineNum">      69</span> <span class="tlaGNC">           1 :   }</span></span>
 <span id="L70"><span class="lineNum">      70</span>              : </span>
 <span id="L71"><span class="lineNum">      71</span>              :  protected:  // DO NOT expose anything publicly.</span>
-<span id="L72"><span class="lineNum">      72</span> <span class="tlaGNC">        2033 :   auto ToTuple() const &amp; { return StructToTuple(static_cast&lt;const ActualType&amp;&gt;(*this)); }</span></span>
+<span id="L72"><span class="lineNum">      72</span> <span class="tlaGNC">        2109 :   auto ToTuple() const &amp; { return StructToTuple(static_cast&lt;const ActualType&amp;&gt;(*this)); }</span></span>
 <span id="L73"><span class="lineNum">      73</span>              : </span>
 <span id="L74"><span class="lineNum">      74</span>              :   auto ToTuple() &amp;&amp; { return StructToTuple(std::move(*this)); }</span>
 <span id="L75"><span class="lineNum">      75</span>              : </span>
@@ -152,11 +152,11 @@
 <span id="L81"><span class="lineNum">      81</span>              :   template&lt;std::size_t... Idx, typename... Args&gt;</span>
 <span id="L82"><span class="lineNum">      82</span>              :   // NOLINTNEXTLINE(hicpp-named-parameter,readability-named-parameter,cppcoreguidelines-rvalue-reference-param-not-moved)</span>
 <span id="L83"><span class="lineNum">      83</span> <span class="tlaGNC">           1 :   static Type ConstructFromConversionsImpl(std::index_sequence&lt;Idx...&gt;, std::tuple&lt;Args...&gt;&amp;&amp; args) {</span></span>
-<span id="L84"><span class="lineNum">      84</span>              :     using FieldTypes = decltype(std::declval&lt;const ExtendBase&lt;ActualType&gt;&amp;&gt;().ToTuple());</span>
-<span id="L85"><span class="lineNum">      85</span>              :     using ArgTypes = std::tuple&lt;Args...&gt;;</span>
-<span id="L86"><span class="lineNum">      86</span> <span class="tlaGNC">           5 :     return ConstructFromArgs(std::remove_cvref_t&lt;std::tuple_element_t&lt;Idx, FieldTypes&gt;&gt;(</span></span>
-<span id="L87"><span class="lineNum">      87</span> <span class="tlaGNC">           3 :         std::forward&lt;std::tuple_element_t&lt;Idx, ArgTypes&gt;&gt;(std::get&lt;Idx&gt;(args)))...);</span></span>
-<span id="L88"><span class="lineNum">      88</span>              :   }</span>
+<span id="L84"><span class="lineNum">      84</span> <span class="tlaGNC">           1 :     using FieldTypes = decltype(std::declval&lt;const ExtendBase&lt;ActualType&gt;&amp;&gt;().ToTuple());</span></span>
+<span id="L85"><span class="lineNum">      85</span> <span class="tlaGNC">           1 :     using ArgTypes = std::tuple&lt;Args...&gt;;</span></span>
+<span id="L86"><span class="lineNum">      86</span> <span class="tlaGNC">           1 :     return ConstructFromArgs(std::remove_cvref_t&lt;std::tuple_element_t&lt;Idx, FieldTypes&gt;&gt;(</span></span>
+<span id="L87"><span class="lineNum">      87</span> <span class="tlaGNC">           1 :         std::forward&lt;std::tuple_element_t&lt;Idx, ArgTypes&gt;&gt;(std::get&lt;Idx&gt;(args)))...);</span></span>
+<span id="L88"><span class="lineNum">      88</span> <span class="tlaGNC">           1 :   }</span></span>
 <span id="L89"><span class="lineNum">      89</span>              : </span>
 <span id="L90"><span class="lineNum">      90</span>              :   template&lt;typename U, typename Extender&gt;</span>
 <span id="L91"><span class="lineNum">      91</span>              :   friend struct UseExtender;</span>
@@ -211,10 +211,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -225,10 +225,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

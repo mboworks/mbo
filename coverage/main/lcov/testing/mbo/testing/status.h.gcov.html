@@ -40,17 +40,17 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">185</td>
-            <td class="headerCovTableEntry">185</td>
+            <td class="headerCovTableEntryHi">99.2&nbsp;%</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntry">242</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">287</td>
+            <td class="headerCovTableEntryHi">99.3&nbsp;%</td>
+            <td class="headerCovTableEntry">289</td>
             <td class="headerCovTableEntry">287</td>
           </tr>
           <tr>
@@ -58,9 +58,9 @@
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">91.0&nbsp;%</td>
-            <td class="headerCovTableEntry">78</td>
-            <td class="headerCovTableEntry">71</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">64</td>
+            <td class="headerCovTableEntry">64</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -117,9 +117,9 @@
 <span id="L37"><span class="lineNum">      37</span>                 :<span class="tlaGNC">           9 :   std::string code = ::testing::PrintToString(status.code());</span></span>
 <span id="L38"><span class="lineNum">      38</span>         [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           9 :   if (status.message().empty()) {</span></span>
 <span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">           7 :     return code;</span></span>
-<span id="L40"><span class="lineNum">      40</span>                 :             :   } else {</span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">           7 :   } else {</span></span>
 <span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">           2 :     return absl::StrCat(code, &quot;: '&quot;, status.message(), &quot;'&quot;);</span></span>
-<span id="L42"><span class="lineNum">      42</span>                 :             :   }</span>
+<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">           9 : }</span></span>
 <span id="L44"><span class="lineNum">      44</span>                 :             : </span>
 <span id="L45"><span class="lineNum">      45</span>                 :             : // Monomorphic implementation of matcher IsOk() for a given type T.</span>
@@ -139,7 +139,7 @@
 <span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">         192 :     const absl::Status status = ::mbo::status::GetStatus(actual_value);</span></span>
 <span id="L60"><span class="lineNum">      60</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 187 times"> + </span>]:<span class="tlaGNC">         192 :     if (!status.ok()) {</span></span>
 <span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">           5 :       *result &lt;&lt; &quot;which has status &quot; &lt;&lt; DescribeStatus(status);</span></span>
-<span id="L62"><span class="lineNum">      62</span>                 :             :     }</span>
+<span id="L62"><span class="lineNum">      62</span>                 :<span class="tlaGNC">           5 :     }</span></span>
 <span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaGNC">         192 :     return status.ok();</span></span>
 <span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaGNC">         192 :   }</span></span>
 <span id="L65"><span class="lineNum">      65</span>                 :             : };</span>
@@ -152,7 +152,7 @@
 <span id="L72"><span class="lineNum">      72</span>                 :             :   template&lt;typename T&gt;</span>
 <span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC">         190 :   operator ::testing::Matcher&lt;T&gt;() const {  // NOLINT</span></span>
 <span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">         190 :     return ::testing::Matcher&lt;T&gt;(new MonoIsOkMatcherImpl&lt;T&gt;());</span></span>
-<span id="L75"><span class="lineNum">      75</span>                 :             :   }</span>
+<span id="L75"><span class="lineNum">      75</span>                 :<span class="tlaGNC">         190 :   }</span></span>
 <span id="L76"><span class="lineNum">      76</span>                 :             : };</span>
 <span id="L77"><span class="lineNum">      77</span>                 :             : </span>
 <span id="L78"><span class="lineNum">      78</span>                 :             : // Monomorphic implementation of matcher IsOkAndHolds(m).  StatusOrType is a</span>
@@ -164,7 +164,7 @@
 <span id="L84"><span class="lineNum">      84</span>                 :             :   using value_type = std::remove_reference_t&lt;StatusOrType&gt;::value_type;</span>
 <span id="L85"><span class="lineNum">      85</span>                 :             : </span>
 <span id="L86"><span class="lineNum">      86</span>                 :             :   template&lt;typename InnerMatcher&gt;</span>
-<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">         407 :   explicit IsOkAndHoldsMatcherImpl(InnerMatcher&amp;&amp; inner_matcher)</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :             :   explicit IsOkAndHoldsMatcherImpl(InnerMatcher&amp;&amp; inner_matcher)</span>
 <span id="L88"><span class="lineNum">      88</span>                 :             :   requires(!std::is_same_v&lt;InnerMatcher, IsOkAndHoldsMatcherImpl&gt;)</span>
 <span id="L89"><span class="lineNum">      89</span>                 :<span class="tlaGNC">         407 :       : inner_matcher_(::testing::SafeMatcherCast&lt;const value_type&amp;&gt;(std::forward&lt;InnerMatcher&gt;(inner_matcher))) {}</span></span>
 <span id="L90"><span class="lineNum">      90</span>                 :             : </span>
@@ -184,17 +184,17 @@
 <span id="L104"><span class="lineNum">     104</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 407 times"> + </span>]:<span class="tlaGNC">         411 :     if (!actual_value.ok()) {</span></span>
 <span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">           4 :       *result_listener &lt;&lt; &quot;which has status &quot; &lt;&lt; DescribeStatus(actual_value.status());</span></span>
 <span id="L106"><span class="lineNum">     106</span>                 :<span class="tlaGNC">           4 :       return false;</span></span>
-<span id="L107"><span class="lineNum">     107</span>                 :             :     }</span>
+<span id="L107"><span class="lineNum">     107</span>                 :<span class="tlaGNC">           4 :     }</span></span>
 <span id="L108"><span class="lineNum">     108</span>                 :             : </span>
 <span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">         407 :     ::testing::StringMatchResultListener inner;</span></span>
 <span id="L110"><span class="lineNum">     110</span>                 :<span class="tlaGNC">         407 :     const bool matches = inner_matcher_.MatchAndExplain(*actual_value, &amp;inner);</span></span>
 <span id="L111"><span class="lineNum">     111</span>         [<span class="tlaGBC" title="branch 0 was taken 145 times"> + </span><span class="tlaGBC" title="branch 1 was taken 262 times"> + </span>]:<span class="tlaGNC">         407 :     if (!inner.str().empty()) {</span></span>
 <span id="L112"><span class="lineNum">     112</span>                 :<span class="tlaGNC">         145 :       *result_listener &lt;&lt; &quot;which contains value &quot; &lt;&lt; ::testing::PrintToString(*actual_value) &lt;&lt; &quot;, &quot; &lt;&lt; inner.str();</span></span>
-<span id="L113"><span class="lineNum">     113</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 260 times"> + </span>]:<span class="tlaGNC">         262 :     } else if (!matches) {</span></span>
+<span id="L113"><span class="lineNum">     113</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 260 times"> + </span>]:<span class="tlaGNC">         341 :     } else if (!matches) {</span></span>
 <span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">           2 :       *result_listener &lt;&lt; &quot;which contains value &quot; &lt;&lt; ::testing::PrintToString(*actual_value);</span></span>
-<span id="L115"><span class="lineNum">     115</span>                 :             :     }</span>
+<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">           2 :     }</span></span>
 <span id="L116"><span class="lineNum">     116</span>                 :<span class="tlaGNC">         407 :     return matches;</span></span>
-<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">         407 :   }</span></span>
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">         411 :   }</span></span>
 <span id="L118"><span class="lineNum">     118</span>                 :             : </span>
 <span id="L119"><span class="lineNum">     119</span>                 :             :  private:</span>
 <span id="L120"><span class="lineNum">     120</span>                 :             :   const ::testing::Matcher&lt;const value_type&amp;&gt; inner_matcher_;</span>
@@ -217,7 +217,7 @@
 <span id="L137"><span class="lineNum">     137</span>                 :             :   template&lt;typename StatusOrType&gt;</span>
 <span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">         407 :   operator ::testing::Matcher&lt;StatusOrType&gt;() const {  // NOLINT</span></span>
 <span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">         407 :     return ::testing::Matcher&lt;StatusOrType&gt;(new IsOkAndHoldsMatcherImpl&lt;const StatusOrType&amp;&gt;(inner_matcher_));</span></span>
-<span id="L140"><span class="lineNum">     140</span>                 :             :   }</span>
+<span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">         407 :   }</span></span>
 <span id="L141"><span class="lineNum">     141</span>                 :             : </span>
 <span id="L142"><span class="lineNum">     142</span>                 :             :  private:</span>
 <span id="L143"><span class="lineNum">     143</span>                 :             :   const InnerMatcher inner_matcher_;</span>
@@ -229,11 +229,11 @@
 <span id="L149"><span class="lineNum">     149</span>                 :             : // Abseil's `absl::status_internal::StatusCode`.</span>
 <span id="L150"><span class="lineNum">     150</span>                 :             : class StatusCode {</span>
 <span id="L151"><span class="lineNum">     151</span>                 :             :  public:</span>
-<span id="L152"><span class="lineNum">     152</span>                 :             :   StatusCode(int code) : code_(static_cast&lt;absl::StatusCode&gt;(code)) {}  // NOLINT</span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaUNC">           0 :   StatusCode(int code) : code_(static_cast&lt;absl::StatusCode&gt;(code)) {}  // NOLINT</span></span>
 <span id="L153"><span class="lineNum">     153</span>                 :             : </span>
 <span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">         236 :   StatusCode(absl::StatusCode code) : code_(code) {}  // NOLINT</span></span>
 <span id="L155"><span class="lineNum">     155</span>                 :             : </span>
-<span id="L156"><span class="lineNum">     156</span>                 :             :   explicit operator int() const { return static_cast&lt;int&gt;(code_); }</span>
+<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaUNC">           0 :   explicit operator int() const { return static_cast&lt;int&gt;(code_); }</span></span>
 <span id="L157"><span class="lineNum">     157</span>                 :             : </span>
 <span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">         109 :   friend bool operator==(const StatusCode&amp; lhs, const StatusCode&amp; rhs) { return lhs.code_ == rhs.code_; }</span></span>
 <span id="L159"><span class="lineNum">     159</span>                 :             : </span>
@@ -255,7 +255,7 @@
 <span id="L175"><span class="lineNum">     175</span>                 :             : class StatusIsMatcher {</span>
 <span id="L176"><span class="lineNum">     176</span>                 :             :  public:</span>
 <span id="L177"><span class="lineNum">     177</span>                 :             :   template&lt;typename StatusCodeMatcher, typename MessageMatcher&gt;</span>
-<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">          98 :   StatusIsMatcher(StatusCodeMatcher&amp;&amp; code_matcher, MessageMatcher&amp;&amp; message_matcher)</span></span>
+<span id="L178"><span class="lineNum">     178</span>                 :             :   StatusIsMatcher(StatusCodeMatcher&amp;&amp; code_matcher, MessageMatcher&amp;&amp; message_matcher)</span>
 <span id="L179"><span class="lineNum">     179</span>                 :<span class="tlaGNC">          98 :       : code_matcher_(::testing::MatcherCast&lt;StatusCode&gt;(std::forward&lt;StatusCodeMatcher&gt;(code_matcher))),</span></span>
 <span id="L180"><span class="lineNum">     180</span>                 :<span class="tlaGNC">          98 :         message_matcher_(::testing::MatcherCast&lt;const std::string&amp;&gt;(std::forward&lt;MessageMatcher&gt;(message_matcher))) {}</span></span>
 <span id="L181"><span class="lineNum">     181</span>                 :             : </span>
@@ -276,15 +276,14 @@
 <span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">         114 :   bool MatchAndExplain(const StatusType&amp; actual, ::testing::MatchResultListener* listener) const {</span></span>
 <span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">         114 :     const absl::Status&amp; actual_status = ::mbo::status::GetStatus(actual);</span></span>
 <span id="L198"><span class="lineNum">     198</span>                 :<span class="tlaGNC">         114 :     const bool code_match = code_matcher_.Matches(StatusCode{actual_status.code()});</span></span>
-<span id="L199"><span class="lineNum">     199</span>   [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 106 times"> + </span><span class="tlaGBC" title="branch 2 was taken 5 times"> + </span><span class="tlaGBC" title="branch 3 was taken 3 times"> + </span> :<span class="tlaGNC">         114 :     if (actual_status.code() == absl::StatusCode::kOk &amp;&amp; code_match) {</span></span>
-<span class="lineNum">        </span>          <span class="tlaGBC" title="branch 4 was taken 5 times"> + </span><span class="tlaGBC" title="branch 5 was taken 109 times"> + </span>]
+<span id="L199"><span class="lineNum">     199</span> [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 106 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 5 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         114 :     if (actual_status.code() == absl::StatusCode::kOk &amp;&amp; code_match) {</span></span>
 <span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">           5 :       return true;  // An OK status carries no message; ignore the message matcher.</span></span>
-<span id="L201"><span class="lineNum">     201</span>                 :             :     }</span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">           5 :     }</span></span>
 <span id="L202"><span class="lineNum">     202</span>                 :<span class="tlaGNC">         109 :     ::testing::StringMatchResultListener inner;</span></span>
-<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">         218 :     const bool message_match = message_matcher_.MatchAndExplain(std::string{actual_status.message()}, &amp;inner);</span></span>
-<span id="L204"><span class="lineNum">     204</span>   [<span class="tlaGBC" title="branch 0 was taken 101 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span><span class="tlaGBC" title="branch 2 was taken 98 times"> + </span><span class="tlaGBC" title="branch 3 was taken 3 times"> + </span>]:<span class="tlaGNC">         109 :     if (code_match &amp;&amp; message_match) {</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">         109 :     const bool message_match = message_matcher_.MatchAndExplain(std::string{actual_status.message()}, &amp;inner);</span></span>
+<span id="L204"><span class="lineNum">     204</span> [<span class="tlaGBC" title="branch 0 was taken 101 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 98 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         109 :     if (code_match &amp;&amp; message_match) {</span></span>
 <span id="L205"><span class="lineNum">     205</span>                 :<span class="tlaGNC">          98 :       return true;</span></span>
-<span id="L206"><span class="lineNum">     206</span>                 :             :     }</span>
+<span id="L206"><span class="lineNum">     206</span>                 :<span class="tlaGNC">          98 :     }</span></span>
 <span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          11 :     *listener &lt;&lt; &quot;which has status code &quot; &lt;&lt; actual_status.code();</span></span>
 <span id="L208"><span class="lineNum">     208</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          11 :     if (actual_status.code() != absl::StatusCode::kOk) {</span></span>
 <span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">           8 :       *listener &lt;&lt; &quot; and &quot;;</span></span>
@@ -292,15 +291,15 @@
 <span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">           4 :         *listener &lt;&lt; &quot;a matching message&quot;;</span></span>
 <span id="L212"><span class="lineNum">     212</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           4 :       } else if (actual_status.message().empty()) {</span></span>
 <span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">           1 :         *listener &lt;&lt; &quot;an empty message&quot;;</span></span>
-<span id="L214"><span class="lineNum">     214</span>                 :             :       } else {</span>
+<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">           3 :       } else {</span></span>
 <span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">           3 :         *listener &lt;&lt; &quot;the message '&quot; &lt;&lt; actual_status.message() &lt;&lt; &quot;'&quot;;</span></span>
 <span id="L216"><span class="lineNum">     216</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :         if (!inner.str().empty()) {</span></span>
 <span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">           1 :           *listener &lt;&lt; &quot; (&quot; &lt;&lt; inner.str() &lt;&lt; &quot;)&quot;;</span></span>
-<span id="L218"><span class="lineNum">     218</span>                 :             :         }</span>
-<span id="L219"><span class="lineNum">     219</span>                 :             :       }</span>
-<span id="L220"><span class="lineNum">     220</span>                 :             :     }</span>
+<span id="L218"><span class="lineNum">     218</span>                 :<span class="tlaGNC">           1 :         }</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           3 :       }</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :<span class="tlaGNC">           8 :     }</span></span>
 <span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">          11 :     return false;</span></span>
-<span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaGNC">         114 :   }</span></span>
+<span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaGNC">         109 :   }</span></span>
 <span id="L223"><span class="lineNum">     223</span>                 :             : </span>
 <span id="L224"><span class="lineNum">     224</span>                 :             :  private:</span>
 <span id="L225"><span class="lineNum">     225</span>                 :             :   const ::testing::Matcher&lt;StatusCode&gt; code_matcher_;</span>
@@ -314,7 +313,7 @@
 <span id="L233"><span class="lineNum">     233</span>                 :             : </span>
 <span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">           4 :   explicit StatusHasPayload(std::string_view type_url) : type_url_(type_url), payload_matcher_(std::nullopt) {}</span></span>
 <span id="L235"><span class="lineNum">     235</span>                 :             : </span>
-<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          12 :   StatusHasPayload(std::string_view type_url, const ::testing::Matcher&lt;const std::string&amp;&gt;&amp; payload_matcher)</span></span>
+<span id="L236"><span class="lineNum">     236</span>                 :             :   StatusHasPayload(std::string_view type_url, const ::testing::Matcher&lt;const std::string&amp;&gt;&amp; payload_matcher)</span>
 <span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          12 :       : type_url_(type_url), payload_matcher_(payload_matcher) {}</span></span>
 <span id="L238"><span class="lineNum">     238</span>                 :             : </span>
 <span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">           5 :   void DescribeTo(std::ostream* os) const {</span></span>
@@ -323,10 +322,10 @@
 <span id="L242"><span class="lineNum">     242</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :       if (payload_matcher_.has_value()) {</span></span>
 <span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">           2 :         *os &lt;&lt; &quot; that &quot;;</span></span>
 <span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">           2 :         payload_matcher_-&gt;DescribeTo(os);</span></span>
-<span id="L245"><span class="lineNum">     245</span>                 :             :       }</span>
-<span id="L246"><span class="lineNum">     246</span>                 :             :     } else {</span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">           2 :       }</span></span>
+<span id="L246"><span class="lineNum">     246</span>                 :<span class="tlaGNC">           3 :     } else {</span></span>
 <span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;has any payload&quot;;</span></span>
-<span id="L248"><span class="lineNum">     248</span>                 :             :     }</span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">           2 :     }</span></span>
 <span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L250"><span class="lineNum">     250</span>                 :             : </span>
 <span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">           5 :   void DescribeNegationTo(std::ostream* os) const {</span></span>
@@ -334,12 +333,12 @@
 <span id="L253"><span class="lineNum">     253</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :       if (payload_matcher_.has_value()) {</span></span>
 <span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">           2 :         *os &lt;&lt; &quot;has no payload at url '&quot; &lt;&lt; *type_url_ &lt;&lt; &quot;' or one that &quot;;</span></span>
 <span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">           2 :         payload_matcher_-&gt;DescribeNegationTo(os);</span></span>
-<span id="L256"><span class="lineNum">     256</span>                 :             :       } else {</span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">           2 :       } else {</span></span>
 <span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">           1 :         *os &lt;&lt; &quot;has no payload at url '&quot; &lt;&lt; *type_url_ &lt;&lt; &quot;'&quot;;</span></span>
-<span id="L258"><span class="lineNum">     258</span>                 :             :       }</span>
-<span id="L259"><span class="lineNum">     259</span>                 :             :     } else {</span>
+<span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">           3 :     } else {</span></span>
 <span id="L260"><span class="lineNum">     260</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;has no payload&quot;;</span></span>
-<span id="L261"><span class="lineNum">     261</span>                 :             :     }</span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">           2 :     }</span></span>
 <span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L263"><span class="lineNum">     263</span>                 :             : </span>
 <span id="L264"><span class="lineNum">     264</span>                 :             :   template&lt;typename StatusType&gt;</span>
@@ -348,47 +347,47 @@
 <span id="L267"><span class="lineNum">     267</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 32 times"> + </span>]:<span class="tlaGNC">          38 :     if (actual_status.ok()) {</span></span>
 <span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">           6 :       *listener &lt;&lt; &quot;which has OK status (and no payload)&quot;;</span></span>
 <span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">           6 :       return false;</span></span>
-<span id="L270"><span class="lineNum">     270</span>                 :             :     }</span>
+<span id="L270"><span class="lineNum">     270</span>                 :<span class="tlaGNC">           6 :     }</span></span>
 <span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">          32 :     PayloadInfo info;</span></span>
-<span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">          67 :     actual_status.ForEachPayload([this, &amp;info, listener](std::string_view type_url, const absl::Cord&amp; payload) {</span></span>
+<span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">          36 :     actual_status.ForEachPayload([this, &amp;info, listener](std::string_view type_url, const absl::Cord&amp; payload) {</span></span>
 <span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">          36 :       ++info.count;</span></span>
-<span id="L274"><span class="lineNum">     274</span>   [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 31 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaGBC" title="branch 3 was taken 2 times"> + </span>]:<span class="tlaGNC">          36 :       if (info.messaged) {</span></span>
+<span id="L274"><span class="lineNum">     274</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 33 times"> + </span>]:<span class="tlaGNC">          36 :       if (info.messaged) {</span></span>
 <span id="L275"><span class="lineNum">     275</span>                 :<span class="tlaGNC">           3 :         return;</span></span>
-<span id="L276"><span class="lineNum">     276</span>                 :             :       }</span>
-<span id="L277"><span class="lineNum">     277</span>   [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 27 times"> + </span><span class="tlaGBC" title="branch 2 was taken 1 time"> + </span><span class="tlaGBC" title="branch 3 was taken 1 time"> + </span>]:<span class="tlaGNC">          33 :       if (!type_url_.has_value()) {</span></span>
+<span id="L276"><span class="lineNum">     276</span>                 :<span class="tlaGNC">           3 :       }</span></span>
+<span id="L277"><span class="lineNum">     277</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>]:<span class="tlaGNC">          33 :       if (!type_url_.has_value()) {</span></span>
 <span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">           5 :         info.match = true;</span></span>
-<span id="L279"><span class="lineNum">     279</span>   [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 11 times"> + </span><span class="tlaGBC" title="branch 2 was taken 1 time"> + </span><span class="tlaUNC" title="branch 3 was not taken"> - </span>]:<span class="tlaGNC">          28 :       } else if (*type_url_ == type_url) {</span></span>
-<span id="L280"><span class="lineNum">     280</span>   [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaGBC" title="branch 3 was taken 1 time"> + </span>]:<span class="tlaGNC">          17 :         if (payload_matcher_.has_value()) {</span></span>
+<span id="L279"><span class="lineNum">     279</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 11 times"> + </span>]:<span class="tlaGNC">          28 :       } else if (*type_url_ == type_url) {</span></span>
+<span id="L280"><span class="lineNum">     280</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          17 :         if (payload_matcher_.has_value()) {</span></span>
 <span id="L281"><span class="lineNum">     281</span>                 :<span class="tlaGNC">          13 :           ::testing::StringMatchResultListener inner;</span></span>
 <span id="L282"><span class="lineNum">     282</span>                 :<span class="tlaGNC">          13 :           info.match = payload_matcher_-&gt;MatchAndExplain(std::string{payload}, &amp;inner);</span></span>
 <span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">          13 :           info.messaged = true;</span></span>
-<span id="L284"><span class="lineNum">     284</span>   [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaUNC" title="branch 3 was not taken"> - </span>]:<span class="tlaGNC">          13 :           if (info.match) {</span></span>
+<span id="L284"><span class="lineNum">     284</span>         [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          13 :           if (info.match) {</span></span>
 <span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">           9 :             *listener &lt;&lt; &quot;which has a matching payload at url '&quot; &lt;&lt; type_url &lt;&lt; &quot;'&quot;;</span></span>
-<span id="L286"><span class="lineNum">     286</span>                 :             :           } else {</span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">           9 :           } else {</span></span>
 <span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">           4 :             *listener &lt;&lt; &quot;which has a non-matching payload at url '&quot; &lt;&lt; type_url &lt;&lt; &quot;'&quot;;</span></span>
-<span id="L288"><span class="lineNum">     288</span>                 :             :           }</span>
-<span id="L289"><span class="lineNum">     289</span>   [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 12 times"> + </span><span class="tlaUNC" title="branch 2 was not taken"> - </span><span class="tlaUNC" title="branch 3 was not taken"> - </span>]:<span class="tlaGNC">          13 :           if (!inner.str().empty()) {</span></span>
+<span id="L288"><span class="lineNum">     288</span>                 :<span class="tlaGNC">           4 :           }</span></span>
+<span id="L289"><span class="lineNum">     289</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 12 times"> + </span>]:<span class="tlaGNC">          13 :           if (!inner.str().empty()) {</span></span>
 <span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">           1 :             *listener &lt;&lt; &quot; that &quot; &lt;&lt; inner.str();</span></span>
-<span id="L291"><span class="lineNum">     291</span>                 :             :           }</span>
+<span id="L291"><span class="lineNum">     291</span>                 :<span class="tlaGNC">           1 :           }</span></span>
 <span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaGNC">          13 :         } else {</span></span>
 <span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaGNC">           4 :           info.match = true;</span></span>
 <span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaGNC">           4 :           info.messaged = true;</span></span>
 <span id="L295"><span class="lineNum">     295</span>                 :<span class="tlaGNC">           4 :           *listener &lt;&lt; &quot;which has a payload at url '&quot; &lt;&lt; type_url &lt;&lt; &quot;'&quot;;</span></span>
-<span id="L296"><span class="lineNum">     296</span>                 :             :         }</span>
-<span id="L297"><span class="lineNum">     297</span>                 :             :       }</span>
-<span id="L298"><span class="lineNum">     298</span>                 :             :     });</span>
+<span id="L296"><span class="lineNum">     296</span>                 :<span class="tlaGNC">           4 :         }</span></span>
+<span id="L297"><span class="lineNum">     297</span>                 :<span class="tlaGNC">          17 :       }</span></span>
+<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">          33 :     });</span></span>
 <span id="L299"><span class="lineNum">     299</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          32 :     if (info.messaged) {</span></span>
 <span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">          17 :       return info.match;</span></span>
-<span id="L301"><span class="lineNum">     301</span>                 :             :     }</span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          17 :     }</span></span>
 <span id="L302"><span class="lineNum">     302</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          15 :     if (info.count == 0) {</span></span>
 <span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">           6 :       *listener &lt;&lt; &quot;which has no payload&quot;;</span></span>
 <span id="L304"><span class="lineNum">     304</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           9 :     } else if (info.count == 1) {</span></span>
 <span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">           5 :       *listener &lt;&lt; &quot;which has &quot; &lt;&lt; info.count &lt;&lt; &quot; payload&quot;;</span></span>
-<span id="L306"><span class="lineNum">     306</span>                 :             :     } else {</span>
+<span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">           5 :     } else {</span></span>
 <span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">           4 :       *listener &lt;&lt; &quot;which has &quot; &lt;&lt; info.count &lt;&lt; &quot; payloads&quot;;</span></span>
-<span id="L308"><span class="lineNum">     308</span>                 :             :     }</span>
+<span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">           4 :     }</span></span>
 <span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">          15 :     return info.match;</span></span>
-<span id="L310"><span class="lineNum">     310</span>                 :<span class="tlaGNC">          38 :   }</span></span>
+<span id="L310"><span class="lineNum">     310</span>                 :<span class="tlaGNC">          32 :   }</span></span>
 <span id="L311"><span class="lineNum">     311</span>                 :             : </span>
 <span id="L312"><span class="lineNum">     312</span>                 :             :  private:</span>
 <span id="L313"><span class="lineNum">     313</span>                 :             :   struct PayloadInfo {</span>
@@ -404,7 +403,7 @@
 <span id="L323"><span class="lineNum">     323</span>                 :             : // Implementation of `StatusPayloads` matcher.</span>
 <span id="L324"><span class="lineNum">     324</span>                 :             : class StatusPayloads {</span>
 <span id="L325"><span class="lineNum">     325</span>                 :             :  public:</span>
-<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">          19 :   explicit StatusPayloads(const ::testing::Matcher&lt;const absl::btree_map&lt;std::string, std::string&gt;&amp;&gt;&amp; payload_matcher)</span></span>
+<span id="L326"><span class="lineNum">     326</span>                 :             :   explicit StatusPayloads(const ::testing::Matcher&lt;const absl::btree_map&lt;std::string, std::string&gt;&amp;&gt;&amp; payload_matcher)</span>
 <span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaGNC">          19 :       : payload_matcher_(payload_matcher) {}</span></span>
 <span id="L328"><span class="lineNum">     328</span>                 :             : </span>
 <span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">           2 :   void DescribeTo(std::ostream* os) const {</span></span>
@@ -421,31 +420,31 @@
 <span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">          27 :   bool MatchAndExplain(const StatusType&amp; actual, ::testing::MatchResultListener* listener) const {</span></span>
 <span id="L341"><span class="lineNum">     341</span>                 :<span class="tlaGNC">          27 :     const absl::Status&amp; actual_status = ::mbo::status::GetStatus(actual);</span></span>
 <span id="L342"><span class="lineNum">     342</span>                 :<span class="tlaGNC">          27 :     absl::btree_map&lt;std::string, std::string&gt; payload_map;</span></span>
-<span id="L343"><span class="lineNum">     343</span>                 :<span class="tlaGNC">          77 :     actual_status.ForEachPayload([&amp;payload_map](std::string_view type_url, const absl::Cord&amp; payload) {</span></span>
+<span id="L343"><span class="lineNum">     343</span>                 :<span class="tlaGNC">          27 :     actual_status.ForEachPayload([&amp;payload_map](std::string_view type_url, const absl::Cord&amp; payload) {</span></span>
 <span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">          25 :       payload_map.emplace(type_url, payload);</span></span>
-<span id="L345"><span class="lineNum">     345</span>                 :             :     });</span>
+<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">          25 :     });</span></span>
 <span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">          27 :     ::testing::StringMatchResultListener inner;</span></span>
 <span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">          27 :     const bool match = payload_matcher_.MatchAndExplain(payload_map, &amp;inner);</span></span>
 <span id="L348"><span class="lineNum">     348</span>         [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 16 times"> + </span>]:<span class="tlaGNC">          27 :     if (inner.str().empty()) {</span></span>
 <span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">          11 :       if (actual_status.ok()) {</span></span>
 <span id="L350"><span class="lineNum">     350</span>                 :<span class="tlaGNC">           4 :         *listener &lt;&lt; &quot;which has OK status (and no payload)&quot;;</span></span>
-<span id="L351"><span class="lineNum">     351</span>                 :             :       } else {</span>
+<span id="L351"><span class="lineNum">     351</span>                 :<span class="tlaGNC">           7 :       } else {</span></span>
 <span id="L352"><span class="lineNum">     352</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           7 :         if (payload_map.empty()) {</span></span>
 <span id="L353"><span class="lineNum">     353</span>                 :<span class="tlaGNC">           4 :           *listener &lt;&lt; &quot;which has no payload&quot;;</span></span>
-<span id="L354"><span class="lineNum">     354</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :         } else if (payload_map.size() == 1) {</span></span>
+<span id="L354"><span class="lineNum">     354</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           4 :         } else if (payload_map.size() == 1) {</span></span>
 <span id="L355"><span class="lineNum">     355</span>                 :<span class="tlaGNC">           1 :           *listener &lt;&lt; &quot;which has 1 payload&quot;;</span></span>
-<span id="L356"><span class="lineNum">     356</span>                 :             :         } else {</span>
+<span id="L356"><span class="lineNum">     356</span>                 :<span class="tlaGNC">           2 :         } else {</span></span>
 <span id="L357"><span class="lineNum">     357</span>                 :<span class="tlaGNC">           2 :           *listener &lt;&lt; &quot;which has &quot; &lt;&lt; payload_map.size() &lt;&lt; &quot; payloads&quot;;</span></span>
-<span id="L358"><span class="lineNum">     358</span>                 :             :         }</span>
-<span id="L359"><span class="lineNum">     359</span>                 :             :       }</span>
-<span id="L360"><span class="lineNum">     360</span>                 :             :     } else {</span>
+<span id="L358"><span class="lineNum">     358</span>                 :<span class="tlaGNC">           2 :         }</span></span>
+<span id="L359"><span class="lineNum">     359</span>                 :<span class="tlaGNC">           7 :       }</span></span>
+<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">          16 :     } else {</span></span>
 <span id="L361"><span class="lineNum">     361</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">          16 :       if (match) {</span></span>
 <span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">          10 :         *listener &lt;&lt; &quot;which has a matching payload map &quot; &lt;&lt; inner.str();</span></span>
-<span id="L363"><span class="lineNum">     363</span>                 :             :       } else {</span>
+<span id="L363"><span class="lineNum">     363</span>                 :<span class="tlaGNC">          10 :       } else {</span></span>
 <span id="L364"><span class="lineNum">     364</span>                 :<span class="tlaGNC">           6 :         *listener &lt;&lt; &quot;which has a non-matching payload map &quot; &lt;&lt; inner.str();</span></span>
-<span id="L365"><span class="lineNum">     365</span>                 :             :       }</span>
-<span id="L366"><span class="lineNum">     366</span>                 :             :     }</span>
-<span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">          54 :     return match;</span></span>
+<span id="L365"><span class="lineNum">     365</span>                 :<span class="tlaGNC">           6 :       }</span></span>
+<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">          16 :     }</span></span>
+<span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">          27 :     return match;</span></span>
 <span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          27 :   }</span></span>
 <span id="L369"><span class="lineNum">     369</span>                 :             : </span>
 <span id="L370"><span class="lineNum">     370</span>                 :             :  private:</span>
@@ -457,65 +456,65 @@
 <span id="L376"><span class="lineNum">     376</span>                 :             : // Returns a gMock matcher that matches a Status or StatusOr&lt;&gt; which is OK.</span>
 <span id="L377"><span class="lineNum">     377</span>                 :<span class="tlaGNC">         188 : inline testing_internal::IsOkMatcher IsOk() {</span></span>
 <span id="L378"><span class="lineNum">     378</span>                 :<span class="tlaGNC">         188 :   return {};</span></span>
-<span id="L379"><span class="lineNum">     379</span>                 :             : }</span>
+<span id="L379"><span class="lineNum">     379</span>                 :<span class="tlaGNC">         188 : }</span></span>
 <span id="L380"><span class="lineNum">     380</span>                 :             : </span>
 <span id="L381"><span class="lineNum">     381</span>                 :             : // Returns a gMock matcher that matches a StatusOr&lt;&gt; whose status is</span>
 <span id="L382"><span class="lineNum">     382</span>                 :             : // OK and whose value matches the inner matcher.</span>
 <span id="L383"><span class="lineNum">     383</span>                 :             : template&lt;typename InnerMatcher&gt;</span>
 <span id="L384"><span class="lineNum">     384</span>                 :<span class="tlaGNC">         406 : testing_internal::IsOkAndHoldsMatcher&lt;std::decay_t&lt;InnerMatcher&gt;&gt; IsOkAndHolds(InnerMatcher&amp;&amp; inner_matcher) {</span></span>
-<span id="L385"><span class="lineNum">     385</span>                 :<span class="tlaGNC">         603 :   return testing_internal::IsOkAndHoldsMatcher&lt;std::decay_t&lt;InnerMatcher&gt;&gt;(</span></span>
+<span id="L385"><span class="lineNum">     385</span>                 :<span class="tlaGNC">         406 :   return testing_internal::IsOkAndHoldsMatcher&lt;std::decay_t&lt;InnerMatcher&gt;&gt;(</span></span>
 <span id="L386"><span class="lineNum">     386</span>                 :             :       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)</span>
-<span id="L387"><span class="lineNum">     387</span>                 :<span class="tlaGNC">         673 :       std::forward&lt;InnerMatcher&gt;(inner_matcher));</span></span>
-<span id="L388"><span class="lineNum">     388</span>                 :             : }</span>
+<span id="L387"><span class="lineNum">     387</span>                 :<span class="tlaGNC">         406 :       std::forward&lt;InnerMatcher&gt;(inner_matcher));</span></span>
+<span id="L388"><span class="lineNum">     388</span>                 :<span class="tlaGNC">         406 : }</span></span>
 <span id="L389"><span class="lineNum">     389</span>                 :             : </span>
 <span id="L390"><span class="lineNum">     390</span>                 :             : // Status matcher that checks the status code against `code_matcher`, which may be</span>
 <span id="L391"><span class="lineNum">     391</span>                 :             : // a literal `absl::StatusCode` or a gMock matcher over status codes.</span>
 <span id="L392"><span class="lineNum">     392</span>                 :             : template&lt;typename StatusCodeMatcher&gt;</span>
 <span id="L393"><span class="lineNum">     393</span>                 :<span class="tlaGNC">          34 : ::testing::PolymorphicMatcher&lt;testing_internal::StatusIsMatcher&gt; StatusIs(StatusCodeMatcher&amp;&amp; code_matcher) {</span></span>
-<span id="L394"><span class="lineNum">     394</span>                 :             :   return ::testing::MakePolymorphicMatcher(</span>
+<span id="L394"><span class="lineNum">     394</span>                 :<span class="tlaGNC">          34 :   return ::testing::MakePolymorphicMatcher(</span></span>
 <span id="L395"><span class="lineNum">     395</span>                 :<span class="tlaGNC">          34 :       testing_internal::StatusIsMatcher(std::forward&lt;StatusCodeMatcher&gt;(code_matcher), ::testing::_));</span></span>
-<span id="L396"><span class="lineNum">     396</span>                 :             : }</span>
+<span id="L396"><span class="lineNum">     396</span>                 :<span class="tlaGNC">          34 : }</span></span>
 <span id="L397"><span class="lineNum">     397</span>                 :             : </span>
 <span id="L398"><span class="lineNum">     398</span>                 :             : // Status matcher that checks both the status code (literal or matcher) and the</span>
 <span id="L399"><span class="lineNum">     399</span>                 :             : // message against the given matchers.</span>
 <span id="L400"><span class="lineNum">     400</span>                 :             : template&lt;typename StatusCodeMatcher, typename MessageMatcher&gt;</span>
-<span id="L401"><span class="lineNum">     401</span>                 :<span class="tlaGNC">          58 : ::testing::PolymorphicMatcher&lt;testing_internal::StatusIsMatcher&gt; StatusIs(</span></span>
+<span id="L401"><span class="lineNum">     401</span>                 :             : ::testing::PolymorphicMatcher&lt;testing_internal::StatusIsMatcher&gt; StatusIs(</span>
 <span id="L402"><span class="lineNum">     402</span>                 :             :     StatusCodeMatcher&amp;&amp; code_matcher,</span>
-<span id="L403"><span class="lineNum">     403</span>                 :             :     MessageMatcher&amp;&amp; message_matcher) {</span>
-<span id="L404"><span class="lineNum">     404</span>                 :<span class="tlaGNC">         116 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusIsMatcher(</span></span>
+<span id="L403"><span class="lineNum">     403</span>                 :<span class="tlaGNC">          58 :     MessageMatcher&amp;&amp; message_matcher) {</span></span>
+<span id="L404"><span class="lineNum">     404</span>                 :<span class="tlaGNC">          58 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusIsMatcher(</span></span>
 <span id="L405"><span class="lineNum">     405</span>                 :<span class="tlaGNC">          58 :       std::forward&lt;StatusCodeMatcher&gt;(code_matcher), std::forward&lt;MessageMatcher&gt;(message_matcher)));</span></span>
-<span id="L406"><span class="lineNum">     406</span>                 :             : }</span>
+<span id="L406"><span class="lineNum">     406</span>                 :<span class="tlaGNC">          58 : }</span></span>
 <span id="L407"><span class="lineNum">     407</span>                 :             : </span>
 <span id="L408"><span class="lineNum">     408</span>                 :             : // Returns a gMock matcher that matches a Status/StatusOr&lt;&gt; whose status is NOT</span>
 <span id="L409"><span class="lineNum">     409</span>                 :             : // OK and that has at least one payload.</span>
 <span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">           8 : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusHasPayload&gt; StatusHasPayload() {</span></span>
 <span id="L411"><span class="lineNum">     411</span>                 :<span class="tlaGNC">           8 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusHasPayload());</span></span>
-<span id="L412"><span class="lineNum">     412</span>                 :             : }</span>
+<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">           8 : }</span></span>
 <span id="L413"><span class="lineNum">     413</span>                 :             : </span>
 <span id="L414"><span class="lineNum">     414</span>                 :             : // Returns a gMock matcher that matches a Status/StatusOr&lt;&gt; whose status is NOT</span>
 <span id="L415"><span class="lineNum">     415</span>                 :             : // OK and that has a payload at `type_url`.</span>
 <span id="L416"><span class="lineNum">     416</span>                 :<span class="tlaGNC">           4 : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusHasPayload&gt; StatusHasPayload(std::string_view type_url) {</span></span>
 <span id="L417"><span class="lineNum">     417</span>                 :<span class="tlaGNC">           4 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusHasPayload(type_url));</span></span>
-<span id="L418"><span class="lineNum">     418</span>                 :             : }</span>
+<span id="L418"><span class="lineNum">     418</span>                 :<span class="tlaGNC">           4 : }</span></span>
 <span id="L419"><span class="lineNum">     419</span>                 :             : </span>
 <span id="L420"><span class="lineNum">     420</span>                 :             : // Returns a gMock matcher that matches a Status/StatusOr&lt;&gt; whose status is NOT</span>
 <span id="L421"><span class="lineNum">     421</span>                 :             : // OK and that has a payload at `type_url` that matches `payload_matcher`.</span>
 <span id="L422"><span class="lineNum">     422</span>                 :             : template&lt;typename PayloadMatcher&gt;</span>
-<span id="L423"><span class="lineNum">     423</span>                 :<span class="tlaGNC">          12 : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusHasPayload&gt; StatusHasPayload(</span></span>
+<span id="L423"><span class="lineNum">     423</span>                 :             : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusHasPayload&gt; StatusHasPayload(</span>
 <span id="L424"><span class="lineNum">     424</span>                 :             :     std::string_view type_url,</span>
-<span id="L425"><span class="lineNum">     425</span>                 :             :     const PayloadMatcher&amp; payload_matcher) {</span>
-<span id="L426"><span class="lineNum">     426</span>                 :             :   return ::testing::MakePolymorphicMatcher(</span>
+<span id="L425"><span class="lineNum">     425</span>                 :<span class="tlaGNC">          12 :     const PayloadMatcher&amp; payload_matcher) {</span></span>
+<span id="L426"><span class="lineNum">     426</span>                 :<span class="tlaGNC">          12 :   return ::testing::MakePolymorphicMatcher(</span></span>
 <span id="L427"><span class="lineNum">     427</span>                 :<span class="tlaGNC">          12 :       testing_internal::StatusHasPayload(type_url, ::testing::MatcherCast&lt;const std::string&amp;&gt;(payload_matcher)));</span></span>
-<span id="L428"><span class="lineNum">     428</span>                 :             : }</span>
+<span id="L428"><span class="lineNum">     428</span>                 :<span class="tlaGNC">          12 : }</span></span>
 <span id="L429"><span class="lineNum">     429</span>                 :             : </span>
 <span id="L430"><span class="lineNum">     430</span>                 :             : // Returns gMock matcher that matches against Status/StatusOr&lt;&gt; payload maps.</span>
 <span id="L431"><span class="lineNum">     431</span>                 :             : // Unlike `StatusHasPayload` here we compare the whole mapping of urls to content.</span>
 <span id="L432"><span class="lineNum">     432</span>                 :             : template&lt;typename PayloadMatcher&gt;</span>
-<span id="L433"><span class="lineNum">     433</span>                 :<span class="tlaGNC">          19 : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusPayloads&gt; StatusPayloads(</span></span>
-<span id="L434"><span class="lineNum">     434</span>                 :             :     const PayloadMatcher&amp; payload_matcher) {</span>
-<span id="L435"><span class="lineNum">     435</span>                 :<span class="tlaGNC">          38 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusPayloads(</span></span>
-<span id="L436"><span class="lineNum">     436</span>                 :<span class="tlaGNC">          57 :       ::testing::MatcherCast&lt;const absl::btree_map&lt;std::string, std::string&gt;&amp;&gt;(payload_matcher)));</span></span>
-<span id="L437"><span class="lineNum">     437</span>                 :             : }</span>
+<span id="L433"><span class="lineNum">     433</span>                 :             : inline ::testing::PolymorphicMatcher&lt;testing_internal::StatusPayloads&gt; StatusPayloads(</span>
+<span id="L434"><span class="lineNum">     434</span>                 :<span class="tlaGNC">          19 :     const PayloadMatcher&amp; payload_matcher) {</span></span>
+<span id="L435"><span class="lineNum">     435</span>                 :<span class="tlaGNC">          19 :   return ::testing::MakePolymorphicMatcher(testing_internal::StatusPayloads(</span></span>
+<span id="L436"><span class="lineNum">     436</span>                 :<span class="tlaGNC">          19 :       ::testing::MatcherCast&lt;const absl::btree_map&lt;std::string, std::string&gt;&amp;&gt;(payload_matcher)));</span></span>
+<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">          19 : }</span></span>
 <span id="L438"><span class="lineNum">     438</span>                 :             : </span>
 <span id="L439"><span class="lineNum">     439</span>                 :             : // NOLINTBEGIN(cppcoreguidelines-macro-usage)</span>
 <span id="L440"><span class="lineNum">     440</span>                 :             : // NOLINTBEGIN(bugprone-macro-parentheses)</span>
@@ -529,19 +528,19 @@
 <span id="L448"><span class="lineNum">     448</span>                 :             : // Macros for testing the results of functions that return absl::Status or</span>
 <span id="L449"><span class="lineNum">     449</span>                 :             : // absl::StatusOr&lt;T&gt; (for any type T).</span>
 <span id="L450"><span class="lineNum">     450</span>                 :             : #undef MBO_EXPECT_OK</span>
-<span id="L451"><span class="lineNum">     451</span>                 :             : #define MBO_EXPECT_OK(expression) EXPECT_THAT(expression, ::mbo::testing::IsOk())</span>
+<span id="L451"><span class="lineNum">     451</span>                 :<span class="tlaGNC">          10 : #define MBO_EXPECT_OK(expression) EXPECT_THAT(expression, ::mbo::testing::IsOk())</span></span>
 <span id="L452"><span class="lineNum">     452</span>                 :             : </span>
 <span id="L453"><span class="lineNum">     453</span>                 :             : #if !defined(EXPECT_OK)</span>
-<span id="L454"><span class="lineNum">     454</span>                 :             : # define EXPECT_OK(expr) MBO_EXPECT_OK(expr)</span>
+<span id="L454"><span class="lineNum">     454</span>                 :<span class="tlaGNC">          10 : # define EXPECT_OK(expr) MBO_EXPECT_OK(expr)</span></span>
 <span id="L455"><span class="lineNum">     455</span>                 :             : #elif __cplusplus &gt;= (20L * 100 + 23) * 100 + 2</span>
 <span id="L456"><span class="lineNum">     456</span>                 :             : # warning &quot;EXPECT_OK already defined&quot;</span>
 <span id="L457"><span class="lineNum">     457</span>                 :             : #endif  // !defined(EXPECT_OK)</span>
 <span id="L458"><span class="lineNum">     458</span>                 :             : </span>
 <span id="L459"><span class="lineNum">     459</span>                 :             : #undef MBO_ASSERT_OK</span>
-<span id="L460"><span class="lineNum">     460</span>                 :             : #define MBO_ASSERT_OK(expression) ASSERT_THAT(expression, ::mbo::testing::IsOk())</span>
+<span id="L460"><span class="lineNum">     460</span>                 :<span class="tlaGNC">         140 : #define MBO_ASSERT_OK(expression) ASSERT_THAT(expression, ::mbo::testing::IsOk())</span></span>
 <span id="L461"><span class="lineNum">     461</span>                 :             : </span>
 <span id="L462"><span class="lineNum">     462</span>                 :             : #if !defined(ASSERT_OK)</span>
-<span id="L463"><span class="lineNum">     463</span>                 :             : # define ASSERT_OK(expr) MBO_ASSERT_OK(expr)</span>
+<span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">         140 : # define ASSERT_OK(expr) MBO_ASSERT_OK(expr)</span></span>
 <span id="L464"><span class="lineNum">     464</span>                 :             : #elif __cplusplus &gt;= (20L * 100 + 23) * 100 + 2</span>
 <span id="L465"><span class="lineNum">     465</span>                 :             : # warning &quot;ASSERT_OK already defined&quot;</span>
 <span id="L466"><span class="lineNum">     466</span>                 :             : #endif  // !defined(ASSERT_OK)</span>
@@ -552,9 +551,9 @@
 <span id="L471"><span class="lineNum">     471</span>                 :             : </span>
 <span id="L472"><span class="lineNum">     472</span>                 :             : // PRIVATE macro, do not use.</span>
 <span id="L473"><span class="lineNum">     473</span>                 :             : #define MBO_PRIVATE_TESTING_STATUS_ASSERT_OK_AND_ASSIGN_(statusor, expression, ...) \</span>
-<span id="L474"><span class="lineNum">     474</span>                 :             :   auto statusor = (expression);                                                     \</span>
-<span id="L475"><span class="lineNum">     475</span>                 :             :   ASSERT_OK(statusor);                                                              \</span>
-<span id="L476"><span class="lineNum">     476</span>                 :             :   __VA_ARGS__ = std::move(statusor).value()</span>
+<span id="L474"><span class="lineNum">     474</span>                 :<span class="tlaGNC">         132 :   auto statusor = (expression);                                                     \</span></span>
+<span id="L475"><span class="lineNum">     475</span>                 :<span class="tlaGNC">         132 :   ASSERT_OK(statusor);                                                              \</span></span>
+<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">         132 :   __VA_ARGS__ = std::move(statusor).value()</span></span>
 <span id="L477"><span class="lineNum">     477</span>                 :             : </span>
 <span id="L478"><span class="lineNum">     478</span>                 :             : // Macro that verifies `expression` is OK and assigns its `value` by move to `targets`, where target</span>
 <span id="L479"><span class="lineNum">     479</span>                 :             : // can be a declaration. Example:</span>
@@ -562,8 +561,8 @@
 <span id="L481"><span class="lineNum">     481</span>                 :             : // MBO_ASSERT_OK_AND_ASSIGN(const std::string result, StringOrStatus());</span>
 <span id="L482"><span class="lineNum">     482</span>                 :             : // ```</span>
 <span id="L483"><span class="lineNum">     483</span>                 :             : #define MBO_ASSERT_OK_AND_ASSIGN(target, expression) \</span>
-<span id="L484"><span class="lineNum">     484</span>                 :             :   MBO_PRIVATE_TESTING_STATUS_ASSERT_OK_AND_ASSIGN_(  \</span>
-<span id="L485"><span class="lineNum">     485</span>                 :             :       MBO_PRIVATE_TESTING_STATUS_CONCAT_(_status_or_value, __LINE__), expression, target)</span>
+<span id="L484"><span class="lineNum">     484</span>                 :<span class="tlaGNC">          53 :   MBO_PRIVATE_TESTING_STATUS_ASSERT_OK_AND_ASSIGN_(  \</span></span>
+<span id="L485"><span class="lineNum">     485</span>                 :<span class="tlaGNC">          53 :       MBO_PRIVATE_TESTING_STATUS_CONCAT_(_status_or_value, __LINE__), expression, target)</span></span>
 <span id="L486"><span class="lineNum">     486</span>                 :             : </span>
 <span id="L487"><span class="lineNum">     487</span>                 :             : // Variant of `MBO_ASSERT_OK_AND_ASSIGN` that allows to assign to complex types, in particular to</span>
 <span id="L488"><span class="lineNum">     488</span>                 :             : // structured bindings. Example:</span>
@@ -571,8 +570,8 @@
 <span id="L490"><span class="lineNum">     490</span>                 :             : // MBO_ASSERT_OK_AND_MOVE_TO(PairOrStatus(), const auto [first, second]);</span>
 <span id="L491"><span class="lineNum">     491</span>                 :             : // ```</span>
 <span id="L492"><span class="lineNum">     492</span>                 :             : #define MBO_ASSERT_OK_AND_MOVE_TO(expression, ...)  \</span>
-<span id="L493"><span class="lineNum">     493</span>                 :             :   MBO_PRIVATE_TESTING_STATUS_ASSERT_OK_AND_ASSIGN_( \</span>
-<span id="L494"><span class="lineNum">     494</span>                 :             :       MBO_PRIVATE_TESTING_STATUS_CONCAT_(_status_or_value, __LINE__), expression, __VA_ARGS__)</span>
+<span id="L493"><span class="lineNum">     493</span>                 :<span class="tlaGNC">          79 :   MBO_PRIVATE_TESTING_STATUS_ASSERT_OK_AND_ASSIGN_( \</span></span>
+<span id="L494"><span class="lineNum">     494</span>                 :<span class="tlaGNC">          79 :       MBO_PRIVATE_TESTING_STATUS_CONCAT_(_status_or_value, __LINE__), expression, __VA_ARGS__)</span></span>
 <span id="L495"><span class="lineNum">     495</span>                 :             : </span>
 <span id="L496"><span class="lineNum">     496</span>                 :             : #if !defined(ASSERT_OK_AND_ASSIGN)</span>
 <span id="L497"><span class="lineNum">     497</span>                 :             : # define ASSERT_OK_AND_ASSIGN(target, expression) MBO_ASSERT_OK_AND_ASSIGN(target, expression)</span>
@@ -605,10 +604,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -619,10 +618,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">18</td>
-            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">26</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -108,33 +108,33 @@
 <span id="L28"><span class="lineNum">      28</span>                 :<span class="tlaGNC">           7 : [[nodiscard]] inline bool ConsumePrefix(std::string&amp; text, std::string_view prefix) {</span></span>
 <span id="L29"><span class="lineNum">      29</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           7 :   if (!text.starts_with(prefix)) {</span></span>
 <span id="L30"><span class="lineNum">      30</span>                 :<span class="tlaGNC">           3 :     return false;</span></span>
-<span id="L31"><span class="lineNum">      31</span>                 :             :   }</span>
+<span id="L31"><span class="lineNum">      31</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L32"><span class="lineNum">      32</span>                 :<span class="tlaGNC">           4 :   text.erase(0, prefix.size());</span></span>
 <span id="L33"><span class="lineNum">      33</span>                 :<span class="tlaGNC">           4 :   return true;</span></span>
-<span id="L34"><span class="lineNum">      34</span>                 :             : }</span>
+<span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">           7 : }</span></span>
 <span id="L35"><span class="lineNum">      35</span>                 :             : </span>
 <span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">           7 : [[nodiscard]] inline std::string StripPrefix(std::string&amp;&amp; text, std::string_view prefix) {</span></span>
 <span id="L37"><span class="lineNum">      37</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           7 :   if (text.starts_with(prefix)) {</span></span>
 <span id="L38"><span class="lineNum">      38</span>                 :<span class="tlaGNC">           4 :     text.erase(0, prefix.size());</span></span>
-<span id="L39"><span class="lineNum">      39</span>                 :             :   }</span>
+<span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">           4 :   }</span></span>
 <span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">           7 :   return std::move(text);</span></span>
-<span id="L41"><span class="lineNum">      41</span>                 :             : }</span>
+<span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">           7 : }</span></span>
 <span id="L42"><span class="lineNum">      42</span>                 :             : </span>
 <span id="L43"><span class="lineNum">      43</span>                 :             : // Like `absl::ConsumeSuffix` but works for `std::string`.</span>
 <span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">           7 : [[nodiscard]] inline bool ConsumeSuffix(std::string&amp; text, std::string_view suffix) {</span></span>
 <span id="L45"><span class="lineNum">      45</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           7 :   if (!text.ends_with(suffix)) {</span></span>
 <span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">           3 :     return false;</span></span>
-<span id="L47"><span class="lineNum">      47</span>                 :             :   }</span>
+<span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">           4 :   text.resize(text.size() - suffix.size());</span></span>
 <span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">           4 :   return true;</span></span>
-<span id="L50"><span class="lineNum">      50</span>                 :             : }</span>
+<span id="L50"><span class="lineNum">      50</span>                 :<span class="tlaGNC">           7 : }</span></span>
 <span id="L51"><span class="lineNum">      51</span>                 :             : </span>
 <span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">           7 : [[nodiscard]] inline std::string StripSuffix(std::string&amp;&amp; text, std::string_view suffix) {</span></span>
 <span id="L53"><span class="lineNum">      53</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           7 :   if (text.ends_with(suffix)) {</span></span>
 <span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">           4 :     text.resize(text.size() - suffix.size());</span></span>
-<span id="L55"><span class="lineNum">      55</span>                 :             :   }</span>
+<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">           4 :   }</span></span>
 <span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">           7 :   return std::move(text);</span></span>
-<span id="L57"><span class="lineNum">      57</span>                 :             : }</span>
+<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">           7 : }</span></span>
 <span id="L58"><span class="lineNum">      58</span>                 :             : </span>
 <span id="L59"><span class="lineNum">      59</span>                 :             : // Splits the given `input` into multiple lines and then per line removes anything starting from</span>
 <span id="L60"><span class="lineNum">      60</span>                 :             : // `comment_start` to the end of the line.</span>
@@ -208,10 +208,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -222,10 +222,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

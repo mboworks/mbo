@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">15</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -117,17 +117,17 @@
 <span id="L37"><span class="lineNum">      37</span>                 :<span class="tlaGNC">           7 :   std::string out;</span></span>
 <span id="L38"><span class="lineNum">      38</span>                 :<span class="tlaGNC">           7 :   int status = 0;</span></span>
 <span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">           7 :   char* demangled = nullptr;</span></span>
-<span id="L40"><span class="lineNum">      40</span>                 :             : #if MBO_LOG_HAS_CXA_DEMANGLE</span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">           7 : #if MBO_LOG_HAS_CXA_DEMANGLE</span></span>
 <span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">           7 :   demangled = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &amp;status);</span></span>
-<span id="L42"><span class="lineNum">      42</span>                 :             : #endif</span>
-<span id="L43"><span class="lineNum">      43</span>   [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span><span class="tlaGBC" title="branch 2 was taken 6 times"> + </span><span class="tlaUNC" title="branch 3 was not taken"> - </span>]:<span class="tlaGNC">           7 :   if (status == 0 &amp;&amp; demangled != nullptr) {</span></span>
+<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">           7 : #endif</span></span>
+<span id="L43"><span class="lineNum">      43</span> [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 6 times"> + </span><span class="tlaUNC" title="branch &quot;3&quot; was not taken"> - </span>]:<span class="tlaGNC">           7 :   if (status == 0 &amp;&amp; demangled != nullptr) {</span></span>
 <span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">           6 :     out.append(demangled);</span></span>
 <span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">           6 :     free(demangled);  // NOLINT(*-no-malloc,*-owning-memory)</span></span>
-<span id="L46"><span class="lineNum">      46</span>                 :             :   } else {</span>
+<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">           6 :   } else {</span></span>
 <span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaGNC">           1 :     out.append(mangled_name);</span></span>
-<span id="L48"><span class="lineNum">      48</span>                 :             :   }</span>
+<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">           7 :   return out;</span></span>
-<span id="L50"><span class="lineNum">      50</span>                 :             : }</span>
+<span id="L50"><span class="lineNum">      50</span>                 :<span class="tlaGNC">           7 : }</span></span>
 <span id="L51"><span class="lineNum">      51</span>                 :             : </span>
 <span id="L52"><span class="lineNum">      52</span>                 :             : }  // namespace mbo::log</span>
         </pre>
@@ -149,10 +149,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -163,10 +163,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

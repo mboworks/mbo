@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">35</td>
-            <td class="headerCovTableEntry">35</td>
+            <td class="headerCovTableEntry">46</td>
+            <td class="headerCovTableEntry">46</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -59,8 +59,8 @@
             <td></td>
             <td class="headerItem">Branches:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">16</td>
-            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">14</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -114,48 +114,48 @@
 <span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">          18 :     line = line.substr(0, pos);</span></span>
 <span id="L35"><span class="lineNum">      35</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          18 :     if (args.strip_trailing_whitespace) {</span></span>
 <span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">          14 :       line = absl::StripTrailingAsciiWhitespace(line);</span></span>
-<span id="L37"><span class="lineNum">      37</span>                 :             :     }</span>
-<span id="L38"><span class="lineNum">      38</span>                 :             :   }</span>
+<span id="L37"><span class="lineNum">      37</span>                 :<span class="tlaGNC">          14 :     }</span></span>
+<span id="L38"><span class="lineNum">      38</span>                 :<span class="tlaGNC">          18 :   }</span></span>
 <span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">          32 :   return line;</span></span>
-<span id="L40"><span class="lineNum">      40</span>                 :             : }</span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">          32 : }</span></span>
 <span id="L41"><span class="lineNum">      41</span>                 :             : </span>
 <span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">           8 : std::string StripComments(std::string_view input, const StripCommentArgs&amp; args) {</span></span>
-<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">           8 :   return absl::StrJoin(absl::StrSplit(input, '\n'), &quot;\n&quot;, [&amp;](std::string* out, std::string_view line) {</span></span>
+<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">          16 :   return absl::StrJoin(absl::StrSplit(input, '\n'), &quot;\n&quot;, [&amp;](std::string* out, std::string_view line) {</span></span>
 <span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">          16 :     absl::StrAppend(out, StripLineComments(line, args));</span></span>
-<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">           8 :   });</span></span>
-<span id="L46"><span class="lineNum">      46</span>                 :             : }</span>
+<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">          16 :   });</span></span>
+<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">           8 : }</span></span>
 <span id="L47"><span class="lineNum">      47</span>                 :             : </span>
 <span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">          22 : absl::StatusOr&lt;std::string&gt; StripParsedLineComments(std::string_view line, const StripParsedCommentArgs&amp; args) {</span></span>
 <span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">          22 :   auto line_or = ParseString(args.parse, line);</span></span>
 <span id="L50"><span class="lineNum">      50</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 20 times"> + </span>]:<span class="tlaGNC">          22 :   if (!line_or.ok()) {</span></span>
 <span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">           2 :     return absl::InvalidArgumentError(absl::StrCat(&quot;Cannot parse input.&quot;));</span></span>
-<span id="L52"><span class="lineNum">      52</span>                 :             :   }</span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">          20 :   line = *line_or;</span></span>
 <span id="L54"><span class="lineNum">      54</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">          20 :   if (args.strip_trailing_whitespace) {</span></span>
 <span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          14 :     line = absl::StripTrailingAsciiWhitespace(line);</span></span>
-<span id="L56"><span class="lineNum">      56</span>                 :             :   }</span>
-<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">          40 :   return std::string(line);</span></span>
+<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          14 :   }</span></span>
+<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">          20 :   return std::string(line);</span></span>
 <span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          22 : }</span></span>
 <span id="L59"><span class="lineNum">      59</span>                 :             : </span>
 <span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">           8 : absl::StatusOr&lt;std::string&gt; StripParsedComments(std::string_view input, const StripParsedCommentArgs&amp; args) {</span></span>
 <span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">           8 :   absl::Status error = absl::OkStatus();</span></span>
-<span id="L62"><span class="lineNum">      62</span>                 :             :   std::string result_str =</span>
-<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaGNC">           8 :       absl::StrJoin(absl::StrSplit(input, '\n'), &quot;\n&quot;, [&amp;](std::string* out, std::string_view line) {</span></span>
+<span id="L62"><span class="lineNum">      62</span>                 :<span class="tlaGNC">           8 :   std::string result_str =</span></span>
+<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaGNC">          18 :       absl::StrJoin(absl::StrSplit(input, '\n'), &quot;\n&quot;, [&amp;](std::string* out, std::string_view line) {</span></span>
 <span id="L64"><span class="lineNum">      64</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span>]:<span class="tlaGNC">          18 :         if (!error.ok()) {</span></span>
-<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">           2 :           return;</span></span>
-<span id="L66"><span class="lineNum">      66</span>                 :             :         }</span>
+<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">           1 :           return;</span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">           1 :         }</span></span>
 <span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">          17 :         auto line_or = StripParsedLineComments(line, args);</span></span>
 <span id="L68"><span class="lineNum">      68</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 16 times"> + </span>]:<span class="tlaGNC">          17 :         if (!line_or.ok()) {</span></span>
 <span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">           1 :           error = line_or.status();</span></span>
 <span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">           1 :           return;</span></span>
-<span id="L71"><span class="lineNum">      71</span>                 :             :         }</span>
+<span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaGNC">           1 :         }</span></span>
 <span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">          16 :         absl::StrAppend(out, *line_or);</span></span>
-<span id="L73"><span class="lineNum">      73</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          25 :       });</span></span>
+<span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC">          16 :       });</span></span>
 <span id="L74"><span class="lineNum">      74</span>         [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           8 :   if (error.ok()) {</span></span>
 <span id="L75"><span class="lineNum">      75</span>                 :<span class="tlaGNC">           7 :     return result_str;</span></span>
-<span id="L76"><span class="lineNum">      76</span>                 :             :   } else {</span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">           7 :   } else {</span></span>
 <span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">           1 :     return error;</span></span>
-<span id="L78"><span class="lineNum">      78</span>                 :             :   }</span>
+<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L79"><span class="lineNum">      79</span>                 :<span class="tlaGNC">           8 : }</span></span>
 <span id="L80"><span class="lineNum">      80</span>                 :             : </span>
 <span id="L81"><span class="lineNum">      81</span>                 :             : }  // namespace mbo::strings</span>
@@ -178,10 +178,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -192,10 +192,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

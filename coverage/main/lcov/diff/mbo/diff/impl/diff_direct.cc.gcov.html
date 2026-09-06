@@ -41,12 +41,12 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">12</td>
-            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">17</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -102,27 +102,27 @@
 <span id="L22"><span class="lineNum">      22</span>                 :             : </span>
 <span id="L23"><span class="lineNum">      23</span>                 :             : namespace mbo::diff {</span>
 <span id="L24"><span class="lineNum">      24</span>                 :             : </span>
-<span id="L25"><span class="lineNum">      25</span>                 :<span class="tlaGNC">          23 : absl::StatusOr&lt;std::string&gt; DiffDirect::FileDiff(</span></span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : absl::StatusOr&lt;std::string&gt; DiffDirect::FileDiff(</span>
 <span id="L26"><span class="lineNum">      26</span>                 :             :     const file::Artefact&amp; lhs,</span>
 <span id="L27"><span class="lineNum">      27</span>                 :             :     const file::Artefact&amp; rhs,</span>
-<span id="L28"><span class="lineNum">      28</span>                 :             :     const DiffOptions&amp; options) {</span>
+<span id="L28"><span class="lineNum">      28</span>                 :<span class="tlaGNC">          23 :     const DiffOptions&amp; options) {</span></span>
 <span id="L29"><span class="lineNum">      29</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          23 :   if (lhs.data == rhs.data) {</span></span>
 <span id="L30"><span class="lineNum">      30</span>                 :<span class="tlaGNC">           5 :     return std::string();</span></span>
-<span id="L31"><span class="lineNum">      31</span>                 :             :   }</span>
+<span id="L31"><span class="lineNum">      31</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L32"><span class="lineNum">      32</span>                 :<span class="tlaGNC">          18 :   DiffDirect diff(lhs, rhs, options);</span></span>
 <span id="L33"><span class="lineNum">      33</span>                 :<span class="tlaGNC">          18 :   return diff.Compute();</span></span>
-<span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">          18 : }</span></span>
+<span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">          23 : }</span></span>
 <span id="L35"><span class="lineNum">      35</span>                 :             : </span>
 <span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">          18 : absl::StatusOr&lt;std::string&gt; DiffDirect::Compute() {</span></span>
 <span id="L37"><span class="lineNum">      37</span>         [<span class="tlaGBC" title="branch 0 was taken 55 times"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          73 :   while (More()) {</span></span>
 <span id="L38"><span class="lineNum">      38</span>         [<span class="tlaGBC" title="branch 0 was taken 27 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>]:<span class="tlaGNC">          55 :     if (CompareEq(0, 0)) {</span></span>
 <span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">          27 :       PushEqual();</span></span>
-<span id="L40"><span class="lineNum">      40</span>                 :             :     } else {</span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">          43 :     } else {</span></span>
 <span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">          28 :       PushDiff();</span></span>
-<span id="L42"><span class="lineNum">      42</span>                 :             :     }</span>
-<span id="L43"><span class="lineNum">      43</span>                 :             :   }</span>
+<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">          28 :     }</span></span>
+<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">          55 :   }</span></span>
 <span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">          18 :   return Finalize();</span></span>
-<span id="L45"><span class="lineNum">      45</span>                 :             : }</span>
+<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">          18 : }</span></span>
 <span id="L46"><span class="lineNum">      46</span>                 :             : </span>
 <span id="L47"><span class="lineNum">      47</span>                 :             : }  // namespace mbo::diff</span>
         </pre>
@@ -144,10 +144,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -158,10 +158,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

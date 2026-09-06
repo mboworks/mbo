@@ -40,17 +40,17 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">93.8&nbsp;%</td>
-            <td class="headerCovTableEntry">16</td>
-            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">38.3&nbsp;%</td>
+            <td class="headerCovTableEntry">47</td>
+            <td class="headerCovTableEntry">18</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">95.2&nbsp;%</td>
-            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryLo">31.2&nbsp;%</td>
+            <td class="headerCovTableEntry">64</td>
             <td class="headerCovTableEntry">20</td>
           </tr>
           <tr>
@@ -195,24 +195,24 @@
 <span id="L115"><span class="lineNum">     115</span>                 :             :   static constexpr bool kSeeded = true;</span>
 <span id="L116"><span class="lineNum">     116</span>                 :             : </span>
 <span id="L117"><span class="lineNum">     117</span>                 :             :  private:</span>
-<span id="L118"><span class="lineNum">     118</span>                 :             :   static constexpr std::string ToStr(std::size_t num) {</span>
-<span id="L119"><span class="lineNum">     119</span>                 :             :     std::string str;</span>
-<span id="L120"><span class="lineNum">     120</span>                 :             :     do {                                                // NOLINT(*-avoid-do-while)</span>
-<span id="L121"><span class="lineNum">     121</span>                 :             :       str.push_back('0' + static_cast&lt;int&gt;(num % 10));  // NOLINT(*-magic-numbers,*-narrowing-conversions)</span>
-<span id="L122"><span class="lineNum">     122</span>                 :             :       num /= 10;                                        // NOLINT(*-magic-numbers)</span>
-<span id="L123"><span class="lineNum">     123</span>                 :             :     } while (num &gt; 0);</span>
-<span id="L124"><span class="lineNum">     124</span>                 :             :     std::ranges::reverse(str);</span>
-<span id="L125"><span class="lineNum">     125</span>                 :             :     return str;</span>
-<span id="L126"><span class="lineNum">     126</span>                 :             :   }</span>
+<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaUNC">           0 :   static constexpr std::string ToStr(std::size_t num) {</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaUNC">           0 :     std::string str;</span></span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaUNC">           0 :     do {                                                // NOLINT(*-avoid-do-while)</span></span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaUNC">           0 :       str.push_back('0' + static_cast&lt;int&gt;(num % 10));  // NOLINT(*-magic-numbers,*-narrowing-conversions)</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaUNC">           0 :       num /= 10;                                        // NOLINT(*-magic-numbers)</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaUNC">           0 :     } while (num &gt; 0);</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaUNC">           0 :     std::ranges::reverse(str);</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaUNC">           0 :     return str;</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaUNC">           0 :   }</span></span>
 <span id="L127"><span class="lineNum">     127</span>                 :             : </span>
-<span id="L128"><span class="lineNum">     128</span>                 :             :   static constexpr std::string GetName() {</span>
-<span id="L129"><span class="lineNum">     129</span>                 :             :     std::string name = &quot;tembo_&quot;;</span>
-<span id="L130"><span class="lineNum">     130</span>                 :             :     name += ToStr(kNumLanes) + &quot;_&quot; + ToStr(kNumConsts);</span>
-<span id="L131"><span class="lineNum">     131</span>                 :             :     if (kSecretLoopInit) {</span>
-<span id="L132"><span class="lineNum">     132</span>                 :             :       name += &quot;_I&quot;;</span>
-<span id="L133"><span class="lineNum">     133</span>                 :             :     }</span>
-<span id="L134"><span class="lineNum">     134</span>                 :             :     return name;</span>
-<span id="L135"><span class="lineNum">     135</span>                 :             :   }</span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaUNC">           0 :   static constexpr std::string GetName() {</span></span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaUNC">           0 :     std::string name = &quot;tembo_&quot;;</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :<span class="tlaUNC">           0 :     name += ToStr(kNumLanes) + &quot;_&quot; + ToStr(kNumConsts);</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaUNC">           0 :     if (kSecretLoopInit) {</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaUNC">           0 :       name += &quot;_I&quot;;</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaUNC">           0 :     }</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaUNC">           0 :     return name;</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaUNC">           0 :   }</span></span>
 <span id="L136"><span class="lineNum">     136</span>                 :             : </span>
 <span id="L137"><span class="lineNum">     137</span>                 :             :  public:</span>
 <span id="L138"><span class="lineNum">     138</span>                 :             :   static constexpr std::string kName = GetName();</span>
@@ -254,29 +254,29 @@
 <span id="L174"><span class="lineNum">     174</span>                 :             : </span>
 <span id="L175"><span class="lineNum">     175</span>                 :             : // Pseudo-random byte string of `length` bytes (shared by tests and benchmarks).</span>
 <span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">    41280024 : inline std::string RandomString(std::mt19937_64&amp; rng, std::size_t length) {</span></span>
-<span id="L177"><span class="lineNum">     177</span>                 :             :   static constexpr int kMaxByte = 255;</span>
+<span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaGNC">    41280024 :   static constexpr int kMaxByte = 255;</span></span>
 <span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">    41280024 :   std::string result(length, '\0');</span></span>
 <span id="L179"><span class="lineNum">     179</span>                 :<span class="tlaGNC">    41280024 :   std::uniform_int_distribution&lt;int&gt; dist(0, kMaxByte);</span></span>
 <span id="L180"><span class="lineNum">     180</span>         [<span class="tlaGBC" title="branch 0 was taken 1333121626 times"> + </span><span class="tlaGBC" title="branch 1 was taken 41280024 times"> + </span>]:<span class="tlaGNC">  1374401650 :   for (std::size_t i = 0; i &lt; length; ++i) {</span></span>
 <span id="L181"><span class="lineNum">     181</span>                 :<span class="tlaGNC">  1333121626 :     result.at(i) = static_cast&lt;char&gt;(dist(rng));</span></span>
-<span id="L182"><span class="lineNum">     182</span>                 :             :   }</span>
+<span id="L182"><span class="lineNum">     182</span>                 :<span class="tlaGNC">  1333121626 :   }</span></span>
 <span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">    41280024 :   return result;</span></span>
-<span id="L184"><span class="lineNum">     184</span>                 :             : }</span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">    41280024 : }</span></span>
 <span id="L185"><span class="lineNum">     185</span>                 :             : </span>
 <span id="L186"><span class="lineNum">     186</span>                 :             : template&lt;std::size_t algo&gt;</span>
 <span id="L187"><span class="lineNum">     187</span>                 :             : requires(algo &lt; std::tuple_size_v&lt;AllAlgorithms&gt;)</span>
-<span id="L188"><span class="lineNum">     188</span>                 :             : inline constexpr void FillAlgoName(std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt;&amp; names) {</span>
-<span id="L189"><span class="lineNum">     189</span>                 :             :   std::get&lt;algo&gt;(names) = std::tuple_element_t&lt;algo, AllAlgorithms&gt;::Name();</span>
-<span id="L190"><span class="lineNum">     190</span>                 :             :   if constexpr (algo &gt; 0) {</span>
-<span id="L191"><span class="lineNum">     191</span>                 :             :     FillAlgoName&lt;algo - 1&gt;(names);</span>
-<span id="L192"><span class="lineNum">     192</span>                 :             :   }</span>
-<span id="L193"><span class="lineNum">     193</span>                 :             : }</span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaUNC">           0 : inline constexpr void FillAlgoName(std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt;&amp; names) {</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaUNC">           0 :   std::get&lt;algo&gt;(names) = std::tuple_element_t&lt;algo, AllAlgorithms&gt;::Name();</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaUNC">           0 :   if constexpr (algo &gt; 0) {</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaUNC">           0 :     FillAlgoName&lt;algo - 1&gt;(names);</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaUNC">           0 : }</span></span>
 <span id="L194"><span class="lineNum">     194</span>                 :             : </span>
-<span id="L195"><span class="lineNum">     195</span>                 :             : inline constexpr std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt; GetAlgoNames() {</span>
-<span id="L196"><span class="lineNum">     196</span>                 :             :   std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt; result;</span>
-<span id="L197"><span class="lineNum">     197</span>                 :             :   FillAlgoName&lt;std::tuple_size_v&lt;AllAlgorithms&gt; - 1&gt;(result);</span>
-<span id="L198"><span class="lineNum">     198</span>                 :             :   return result;</span>
-<span id="L199"><span class="lineNum">     199</span>                 :             : }</span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaUNC">           0 : inline constexpr std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt; GetAlgoNames() {</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaUNC">           0 :   std::array&lt;std::string_view, std::tuple_size_v&lt;AllAlgorithms&gt;&gt; result;</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaUNC">           0 :   FillAlgoName&lt;std::tuple_size_v&lt;AllAlgorithms&gt; - 1&gt;(result);</span></span>
+<span id="L198"><span class="lineNum">     198</span>                 :<span class="tlaUNC">           0 :   return result;</span></span>
+<span id="L199"><span class="lineNum">     199</span>                 :<span class="tlaUNC">           0 : }</span></span>
 <span id="L200"><span class="lineNum">     200</span>                 :             : </span>
 <span id="L201"><span class="lineNum">     201</span>                 :             : }  // namespace mbo::hash::algo</span>
 <span id="L202"><span class="lineNum">     202</span>                 :             : </span>
@@ -300,10 +300,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -314,10 +314,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

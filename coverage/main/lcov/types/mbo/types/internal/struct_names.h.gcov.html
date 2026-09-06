@@ -41,17 +41,17 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">2</td>
-            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">42</td>
-            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryMed">86.8&nbsp;%</td>
+            <td class="headerCovTableEntry">53</td>
+            <td class="headerCovTableEntry">46</td>
           </tr>
                   <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -105,32 +105,52 @@
 <span id="L34"><span class="lineNum">      34</span>              : concept SupportsFieldNamesConstexpr = clang::SupportsFieldNamesConstexpr&lt;T&gt;;</span>
 <span id="L35"><span class="lineNum">      35</span>              : </span>
 <span id="L36"><span class="lineNum">      36</span>              : template&lt;typename T&gt;</span>
-<span id="L37"><span class="lineNum">      37</span>              : inline constexpr absl::Span&lt;const std::string_view&gt; GetFieldNames() {</span>
-<span id="L38"><span class="lineNum">      38</span>              :   return clang::StructMeta&lt;T&gt;::GetFieldNames();</span>
-<span id="L39"><span class="lineNum">      39</span>              : }</span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">         150 : inline constexpr absl::Span&lt;const std::string_view&gt; GetFieldNames() {</span></span>
+<span id="L38"><span class="lineNum">      38</span> <span class="tlaGNC">         150 :   return clang::StructMeta&lt;T&gt;::GetFieldNames();</span></span>
+<span id="L39"><span class="lineNum">      39</span> <span class="tlaGNC">         150 : }</span></span>
 <span id="L40"><span class="lineNum">      40</span>              : </span>
 <span id="L41"><span class="lineNum">      41</span>              : }  // namespace mbo::types::types_internal</span>
 <span id="L42"><span class="lineNum">      42</span>              : </span>
-<span id="L43"><span class="lineNum">      43</span>              : #else  // __clang__</span>
+<span id="L43"><span class="lineNum">      43</span>              : #elif defined(__GNUC__) &amp;&amp; !defined(__clang__)</span>
 <span id="L44"><span class="lineNum">      44</span>              : </span>
-<span id="L45"><span class="lineNum">      45</span>              : namespace mbo::types::types_internal {</span>
+<span id="L45"><span class="lineNum">      45</span>              : # include &quot;mbo/types/internal/struct_names_gcc.h&quot;  // IWYU pragma: keep</span>
 <span id="L46"><span class="lineNum">      46</span>              : </span>
-<span id="L47"><span class="lineNum">      47</span>              : static const bool kStructNameSupport = false;</span>
+<span id="L47"><span class="lineNum">      47</span>              : namespace mbo::types::types_internal {</span>
 <span id="L48"><span class="lineNum">      48</span>              : </span>
-<span id="L49"><span class="lineNum">      49</span>              : template&lt;typename T&gt;</span>
-<span id="L50"><span class="lineNum">      50</span>              : concept SupportsFieldNames = false;</span>
+<span id="L49"><span class="lineNum">      49</span>              : static constexpr bool kStructNameSupport = true;</span>
+<span id="L50"><span class="lineNum">      50</span>              : </span>
 <span id="L51"><span class="lineNum">      51</span>              : template&lt;typename T&gt;</span>
-<span id="L52"><span class="lineNum">      52</span>              : concept SupportsFieldNamesConstexpr = false;</span>
-<span id="L53"><span class="lineNum">      53</span>              : </span>
-<span id="L54"><span class="lineNum">      54</span>              : template&lt;typename T&gt;</span>
-<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">         126 : inline constexpr absl::Span&lt;const std::string_view&gt; GetFieldNames() {</span></span>
-<span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">         126 :   return {};</span></span>
-<span id="L57"><span class="lineNum">      57</span>              : }</span>
-<span id="L58"><span class="lineNum">      58</span>              : </span>
-<span id="L59"><span class="lineNum">      59</span>              : }  // namespace mbo::types::types_internal</span>
+<span id="L52"><span class="lineNum">      52</span>              : concept SupportsFieldNames = gcc::SupportsFieldNames&lt;T&gt;;</span>
+<span id="L53"><span class="lineNum">      53</span>              : template&lt;typename T&gt;</span>
+<span id="L54"><span class="lineNum">      54</span>              : concept SupportsFieldNamesConstexpr = gcc::SupportsFieldNamesConstexpr&lt;T&gt;;</span>
+<span id="L55"><span class="lineNum">      55</span>              : </span>
+<span id="L56"><span class="lineNum">      56</span>              : template&lt;typename T&gt;</span>
+<span id="L57"><span class="lineNum">      57</span>              : inline constexpr absl::Span&lt;const std::string_view&gt; GetFieldNames() {</span>
+<span id="L58"><span class="lineNum">      58</span>              :   return gcc::StructMeta&lt;T&gt;::GetFieldNames();</span>
+<span id="L59"><span class="lineNum">      59</span>              : }</span>
 <span id="L60"><span class="lineNum">      60</span>              : </span>
-<span id="L61"><span class="lineNum">      61</span>              : #endif  // __clang__</span>
-<span id="L62"><span class="lineNum">      62</span>              : #endif  // MBO_TYPES_INTERNAL_STRUCT_NAMES_H_</span>
+<span id="L61"><span class="lineNum">      61</span>              : }  // namespace mbo::types::types_internal</span>
+<span id="L62"><span class="lineNum">      62</span>              : </span>
+<span id="L63"><span class="lineNum">      63</span>              : #else  // __clang__</span>
+<span id="L64"><span class="lineNum">      64</span>              : </span>
+<span id="L65"><span class="lineNum">      65</span>              : namespace mbo::types::types_internal {</span>
+<span id="L66"><span class="lineNum">      66</span>              : </span>
+<span id="L67"><span class="lineNum">      67</span>              : static const bool kStructNameSupport = false;</span>
+<span id="L68"><span class="lineNum">      68</span>              : </span>
+<span id="L69"><span class="lineNum">      69</span>              : template&lt;typename T&gt;</span>
+<span id="L70"><span class="lineNum">      70</span>              : concept SupportsFieldNames = false;</span>
+<span id="L71"><span class="lineNum">      71</span>              : template&lt;typename T&gt;</span>
+<span id="L72"><span class="lineNum">      72</span>              : concept SupportsFieldNamesConstexpr = false;</span>
+<span id="L73"><span class="lineNum">      73</span>              : </span>
+<span id="L74"><span class="lineNum">      74</span>              : template&lt;typename T&gt;</span>
+<span id="L75"><span class="lineNum">      75</span>              : inline constexpr absl::Span&lt;const std::string_view&gt; GetFieldNames() {</span>
+<span id="L76"><span class="lineNum">      76</span>              :   return {};</span>
+<span id="L77"><span class="lineNum">      77</span>              : }</span>
+<span id="L78"><span class="lineNum">      78</span>              : </span>
+<span id="L79"><span class="lineNum">      79</span>              : }  // namespace mbo::types::types_internal</span>
+<span id="L80"><span class="lineNum">      80</span>              : </span>
+<span id="L81"><span class="lineNum">      81</span>              : #endif  // __clang__</span>
+<span id="L82"><span class="lineNum">      82</span>              : #endif  // MBO_TYPES_INTERNAL_STRUCT_NAMES_H_</span>
         </pre>
               </td>
             </tr>
@@ -150,10 +170,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -164,10 +184,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

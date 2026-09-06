@@ -40,18 +40,18 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">31</td>
-            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntryMed">92.3&nbsp;%</td>
+            <td class="headerCovTableEntry">39</td>
+            <td class="headerCovTableEntry">36</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-05 16:42:58</td>
+            <td class="headerValue">2026-09-06 10:21:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">97.5&nbsp;%</td>
-            <td class="headerCovTableEntry">119</td>
-            <td class="headerCovTableEntry">116</td>
+            <td class="headerCovTableEntryMed">92.3&nbsp;%</td>
+            <td class="headerCovTableEntry">130</td>
+            <td class="headerCovTableEntry">120</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -193,7 +193,7 @@
 <span id="L122"><span class="lineNum">     122</span>              : struct MakeExtender {</span>
 <span id="L123"><span class="lineNum">     123</span>              :   using RequiredExtender = RequiredExtenderT;</span>
 <span id="L124"><span class="lineNum">     124</span>              : </span>
-<span id="L125"><span class="lineNum">     125</span>              :   static constexpr std::string_view GetExtenderName() { return decltype(ExtenderNameT)::str(); }</span>
+<span id="L125"><span class="lineNum">     125</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(ExtenderNameT)::str(); }</span></span>
 <span id="L126"><span class="lineNum">     126</span>              : </span>
 <span id="L127"><span class="lineNum">     127</span>              :  private:</span>
 <span id="L128"><span class="lineNum">     128</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>
@@ -223,13 +223,13 @@
 <span id="L152"><span class="lineNum">     152</span>              : </span>
 <span id="L153"><span class="lineNum">     153</span>              :  protected:</span>
 <span id="L154"><span class="lineNum">     154</span>              :   // Stream the type to `os` with control via `field_options`.</span>
-<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         108 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
-<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         108 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
-<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         108 :   }</span></span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         114 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         114 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         114 :   }</span></span>
 <span id="L158"><span class="lineNum">     158</span>              : </span>
-<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         108 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
-<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         108 :     Stringify(default_options).Stream(os, value);</span></span>
-<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         108 :   }</span></span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         114 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         114 :     Stringify(default_options).Stream(os, value);</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         114 :   }</span></span>
 <span id="L162"><span class="lineNum">     162</span>              : };</span>
 <span id="L163"><span class="lineNum">     163</span>              : </span>
 <span id="L164"><span class="lineNum">     164</span>              : template&lt;typename ExtenderBase&gt;</span>
@@ -241,7 +241,7 @@
 <span id="L170"><span class="lineNum">     170</span>              :   template&lt;typename H&gt;</span>
 <span id="L171"><span class="lineNum">     171</span> <span class="tlaGNC">          32 :   friend H AbslHashValue(H hash, const T&amp; obj) noexcept {</span></span>
 <span id="L172"><span class="lineNum">     172</span> <span class="tlaGNC">          32 :     return H::combine(std::move(hash), obj.ToTuple());</span></span>
-<span id="L173"><span class="lineNum">     173</span>              :   }</span>
+<span id="L173"><span class="lineNum">     173</span> <span class="tlaGNC">          32 :   }</span></span>
 <span id="L174"><span class="lineNum">     174</span>              : };</span>
 <span id="L175"><span class="lineNum">     175</span>              : </span>
 <span id="L176"><span class="lineNum">     176</span>              : template&lt;typename ExtenderBase&gt;</span>
@@ -262,17 +262,17 @@
 <span id="L191"><span class="lineNum">     191</span>              :   // The core problem stems from synthesized operators interfering with finding</span>
 <span id="L192"><span class="lineNum">     192</span>              :   // the best candidate. Also see:</span>
 <span id="L193"><span class="lineNum">     193</span>              :   // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2468r2.html</span>
-<span id="L194"><span class="lineNum">     194</span> <span class="tlaGNC">         462 :   friend auto operator&lt;=&gt;(const T&amp; lhs, const T&amp; rhs) { return lhs.ToTuple() &lt;=&gt; rhs.ToTuple(); }</span></span>
+<span id="L194"><span class="lineNum">     194</span> <span class="tlaGNC">         478 :   friend auto operator&lt;=&gt;(const T&amp; lhs, const T&amp; rhs) { return lhs.ToTuple() &lt;=&gt; rhs.ToTuple(); }</span></span>
 <span id="L195"><span class="lineNum">     195</span>              : </span>
 <span id="L196"><span class="lineNum">     196</span> <span class="tlaGNC">          26 :   friend bool operator==(const T&amp; lhs, const T&amp; rhs) { return lhs.ToTuple() == rhs.ToTuple(); }</span></span>
 <span id="L197"><span class="lineNum">     197</span>              : </span>
-<span id="L198"><span class="lineNum">     198</span> <span class="tlaGNC">         438 :   friend bool operator&lt;(const T&amp; lhs, const T&amp; rhs) { return lhs.ToTuple() &lt; rhs.ToTuple(); }</span></span>
+<span id="L198"><span class="lineNum">     198</span> <span class="tlaGNC">         454 :   friend bool operator&lt;(const T&amp; lhs, const T&amp; rhs) { return lhs.ToTuple() &lt; rhs.ToTuple(); }</span></span>
 <span id="L199"><span class="lineNum">     199</span>              : </span>
 <span id="L200"><span class="lineNum">     200</span>              :   // Define operator `&lt;=&gt;` on `const T&amp;` and another type.</span>
 <span id="L201"><span class="lineNum">     201</span>              :   template&lt;typename Other, typename = decltype(StructToTuple(std::declval&lt;const Other&amp;&gt;()))&gt;</span>
 <span id="L202"><span class="lineNum">     202</span> <span class="tlaGNC">          16 :   auto operator&lt;=&gt;(const Other&amp; other) const {</span></span>
 <span id="L203"><span class="lineNum">     203</span> <span class="tlaGNC">          16 :     return this-&gt;ToTuple() &lt;=&gt; StructToTuple(other);</span></span>
-<span id="L204"><span class="lineNum">     204</span>              :   }</span>
+<span id="L204"><span class="lineNum">     204</span> <span class="tlaGNC">          16 :   }</span></span>
 <span id="L205"><span class="lineNum">     205</span>              : </span>
 <span id="L206"><span class="lineNum">     206</span>              :   template&lt;IsTuple Other&gt;</span>
 <span id="L207"><span class="lineNum">     207</span>              :   auto operator&lt;=&gt;(const Other&amp; other) const {</span>
@@ -282,7 +282,7 @@
 <span id="L211"><span class="lineNum">     211</span>              :   template&lt;typename Other, typename = decltype(StructToTuple(std::declval&lt;const Other&amp;&gt;()))&gt;</span>
 <span id="L212"><span class="lineNum">     212</span> <span class="tlaGNC">          10 :   bool operator==(const Other&amp; other) const {</span></span>
 <span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">          10 :     return this-&gt;ToTuple() == StructToTuple(other);</span></span>
-<span id="L214"><span class="lineNum">     214</span>              :   }</span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">          10 :   }</span></span>
 <span id="L215"><span class="lineNum">     215</span>              : </span>
 <span id="L216"><span class="lineNum">     216</span>              :   template&lt;IsTuple Other&gt;</span>
 <span id="L217"><span class="lineNum">     217</span>              :   bool operator==(const Other&amp; other) const {</span>
@@ -292,7 +292,7 @@
 <span id="L221"><span class="lineNum">     221</span>              :   template&lt;typename Other, typename = decltype(StructToTuple(std::declval&lt;const Other&amp;&gt;()))&gt;</span>
 <span id="L222"><span class="lineNum">     222</span> <span class="tlaGNC">           4 :   bool operator&lt;(const Other&amp; other) const {</span></span>
 <span id="L223"><span class="lineNum">     223</span> <span class="tlaGNC">           4 :     return this-&gt;ToTuple() &lt; StructToTuple(other);</span></span>
-<span id="L224"><span class="lineNum">     224</span>              :   }</span>
+<span id="L224"><span class="lineNum">     224</span> <span class="tlaGNC">           4 :   }</span></span>
 <span id="L225"><span class="lineNum">     225</span>              : </span>
 <span id="L226"><span class="lineNum">     226</span>              :   template&lt;IsTuple Other&gt;</span>
 <span id="L227"><span class="lineNum">     227</span>              :   bool operator&lt;(const Other&amp; other) const {</span>
@@ -310,13 +310,13 @@
 <span id="L239"><span class="lineNum">     239</span>              :   // Parameter `field_options` must be an instance of `StringifyOptions` or</span>
 <span id="L240"><span class="lineNum">     240</span>              :   // something that can produce those. It defaults to `MboTypesStringifyOptions`</span>
 <span id="L241"><span class="lineNum">     241</span>              :   // if available and otherwise the default `StringifyOptions` will be used.</span>
-<span id="L242"><span class="lineNum">     242</span> <span class="tlaGNC">          48 :   std::string ToString(const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
-<span id="L243"><span class="lineNum">     243</span> <span class="tlaGNC">          48 :     std::ostringstream os;</span></span>
-<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">          48 :     this-&gt;OStreamFields(os, default_options);</span></span>
-<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          48 :     return os.str();</span></span>
-<span id="L246"><span class="lineNum">     246</span> <span class="tlaGNC">          48 :   }</span></span>
+<span id="L242"><span class="lineNum">     242</span> <span class="tlaGNC">          54 :   std::string ToString(const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
+<span id="L243"><span class="lineNum">     243</span> <span class="tlaGNC">          54 :     std::ostringstream os;</span></span>
+<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">          54 :     this-&gt;OStreamFields(os, default_options);</span></span>
+<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          54 :     return os.str();</span></span>
+<span id="L246"><span class="lineNum">     246</span> <span class="tlaGNC">          54 :   }</span></span>
 <span id="L247"><span class="lineNum">     247</span>              : </span>
-<span id="L248"><span class="lineNum">     248</span> <span class="tlaGNC">           1 :   std::string ToJsonString() const { return ToString(Stringify::OptionsJson()); }</span></span>
+<span id="L248"><span class="lineNum">     248</span> <span class="tlaGNC">           2 :   std::string ToJsonString() const { return ToString(Stringify::OptionsJson()); }</span></span>
 <span id="L249"><span class="lineNum">     249</span>              : };</span>
 <span id="L250"><span class="lineNum">     250</span>              : </span>
 <span id="L251"><span class="lineNum">     251</span>              : template&lt;typename ExtenderBase&gt;</span>
@@ -325,7 +325,7 @@
 <span id="L254"><span class="lineNum">     254</span> <span class="tlaGNC">           2 :   friend std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, const ExtenderBase::Type&amp; v) {</span></span>
 <span id="L255"><span class="lineNum">     255</span> <span class="tlaGNC">           2 :     v.OStreamFields(os);</span></span>
 <span id="L256"><span class="lineNum">     256</span> <span class="tlaGNC">           2 :     return os;</span></span>
-<span id="L257"><span class="lineNum">     257</span>              :   }</span>
+<span id="L257"><span class="lineNum">     257</span> <span class="tlaGNC">           2 :   }</span></span>
 <span id="L258"><span class="lineNum">     258</span>              : };</span>
 <span id="L259"><span class="lineNum">     259</span>              : </span>
 <span id="L260"><span class="lineNum">     260</span>              : namespace extender {</span>
@@ -482,7 +482,7 @@
 <span id="L411"><span class="lineNum">     411</span>              :   using RequiredExtender = void;</span>
 <span id="L412"><span class="lineNum">     412</span>              :   using ExtenderTuple = std::tuple&lt;AbslHashable, AbslStringify, Comparable, Printable, Streamable&gt;;</span>
 <span id="L413"><span class="lineNum">     413</span>              : </span>
-<span id="L414"><span class="lineNum">     414</span>              :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;Default&quot;_ts)::str(); }</span>
+<span id="L414"><span class="lineNum">     414</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;Default&quot;_ts)::str(); }</span></span>
 <span id="L415"><span class="lineNum">     415</span>              : </span>
 <span id="L416"><span class="lineNum">     416</span>              :  private:</span>
 <span id="L417"><span class="lineNum">     417</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>
@@ -516,7 +516,7 @@
 <span id="L445"><span class="lineNum">     445</span>              :   using RequiredExtender = void;</span>
 <span id="L446"><span class="lineNum">     446</span>              :   using ExtenderTuple = std::tuple&lt;AbslHashable, AbslStringify, Comparable&gt;;</span>
 <span id="L447"><span class="lineNum">     447</span>              : </span>
-<span id="L448"><span class="lineNum">     448</span>              :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;NoPrint&quot;_ts)::str(); }</span>
+<span id="L448"><span class="lineNum">     448</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;NoPrint&quot;_ts)::str(); }</span></span>
 <span id="L449"><span class="lineNum">     449</span>              : </span>
 <span id="L450"><span class="lineNum">     450</span>              :  private:</span>
 <span id="L451"><span class="lineNum">     451</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>
@@ -563,10 +563,10 @@
             <tbody>
             <tr>
               <th scope="row">Lines</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             <tr>
               <th scope="row">Branches</th>
@@ -577,10 +577,10 @@
             </tr>
             <tr>
               <th scope="row">Functions</th>
-              <td class="headerValueLegL">&lt; 90%</td>
-              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
               <td class="headerValueLegH">&ge; 95%</td>
-              <td class="headerValueLegH">High</td>
+              <td class="headerValueLegM">Medium</td>
             </tr>
             </tbody>
           </table>

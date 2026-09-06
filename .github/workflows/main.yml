@@ -352,7 +352,9 @@ jobs:
       bazel_version: ${{ matrix.bazel_version }}
 
   test-clang:
-    needs: [trunk, pre-commit, test-gcc, test-bcr]
+    # The Clang sanitizer cells and the BCR compatibility matrix are independent.
+    # Start both after the fast gates and GCC tests instead of serializing them.
+    needs: [trunk, pre-commit, test-gcc]
     secrets: inherit
     strategy:
       matrix:

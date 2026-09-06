@@ -1577,7 +1577,7 @@ inline constexpr auto StringifyWithFieldNames(
     if constexpr (types_internal::SupportsFieldNames<T>) {
       if (name_handling == StringifyNameHandling::kVerify) {
         ABSL_CHECK_EQ(field.name, field_name)  // LCOV_EXCL_BR_LINE: fatal mismatch cannot flush coverage.
-            << "Bad field_name injection for field #" << field.idx;
+            << "Bad field_name injection for field #" << field.idx;  // LCOV_EXCL_LINE: fatal mismatch.
       }
     }
     return options;

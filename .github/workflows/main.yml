@@ -307,8 +307,8 @@ jobs:
     with:
       continue-on-error: false
       os: ubuntu-latest
-      compiler: gcc
-      gcc_version: 14
+      compiler: clang
+      llvm_version: 22.1.8
       bazel_config: coverage
 
   test-bcr:

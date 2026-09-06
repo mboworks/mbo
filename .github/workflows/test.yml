@@ -188,6 +188,13 @@ jobs:
             fi
           elif [ "${{inputs.bazel_config}}" == "coverage" ]; then
             BAZEL_ARGS+=("-c" "dbg")
+            if [ "${{inputs.compiler}}" == "clang" ]; then
+              BAZEL_ARGS+=(
+                "--experimental_use_llvm_covmap"
+                "--experimental_generate_llvm_lcov"
+                "--copt=-fcoverage-compilation-dir=."
+              )
+            fi
           elif [ "${{inputs.bazel_config}}" == "fastbuild" ]; then
             BAZEL_ARGS+=("-c" "fastbuild")
           elif [ "${{inputs.bazel_config}}" == "opt" ]; then

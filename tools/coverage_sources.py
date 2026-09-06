@@ -34,19 +34,19 @@ def _function_markers(source_lines: list[str]) -> tuple[set[int], dict[int, int]
     return excluded, merged
 
 
-def _branch_merge_markers(source_lines: list[str]) -> dict[int, int]:
-    """Maps instrumented lines to their logical branch width."""
-    result: dict[int, int] = {}
+def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]:
+    """Maps instrumented lines to acceptable logical branch widths."""
+    result: dict[int, tuple[int, ...]] = {}
     for index, source_line in enumerate(source_lines):
-        match = re.search(r"LCOV_MERGE_BR_LINE\s+(\d+)", source_line)
+        match = re.search(r"LCOV_MERGE_BR_LINE\s+(\d+(?:\s*,\s*\d+)*)", source_line)
         if not match:
             continue
-        width = int(match.group(1))
-        result[index + 1] = width
+        widths = tuple(int(value.strip()) for value in match.group(1).split(","))
+        result[index + 1] = widths
         if not source_line.lstrip().startswith("//"):
             continue
         for continuation in range(index + 1, len(source_lines)):
-            result[continuation + 1] = width
+            result[continuation + 1] = widths
             if "{" in source_lines[continuation]:
                 break
     return result
@@ -121,10 +121,19 @@ def _normalize_record(record: str, source: Path) -> str:
         else:
             ordinary_branches.append((line, block, branch, taken))
     for line, taken_values in sorted(branch_groups.items()):
-        width = merged_branches[line]
-        if width <= 0 or len(taken_values) % width:
+        widths = merged_branches[line]
+        width = next(
+            (
+                candidate
+                for candidate in sorted(widths, reverse=True)
+                if candidate > 0 and len(taken_values) % candidate == 0
+            ),
+            None,
+        )
+        if width is None:
             raise ValueError(
-                f"{source}:{line}: LCOV_MERGE_BR_LINE {width} cannot merge "
+                f"{source}:{line}: LCOV_MERGE_BR_LINE "
+                f"{','.join(str(candidate) for candidate in widths)} cannot merge "
                 f"{len(taken_values)} branch records"
             )
         for index in range(width):

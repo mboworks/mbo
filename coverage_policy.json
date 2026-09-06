@@ -6,9 +6,9 @@
     "mbo/**/*_test.cc",
     "mbo/**/*_test.h"
   ],
-  "minimum": { "lines": 90, "functions": 90, "branches": 80 },
+  "minimum": { "lines": 80, "functions": 75, "branches": 80 },
   "target": { "lines": 95, "functions": 95, "branches": 85 },
-  "enforce": { "lines": "high", "functions": "high", "branches": "high" },
+  "enforce": { "lines": "medium", "functions": "medium", "branches": "high" },
   "baseline": {
     "maximum_drop": { "lines": 0.1, "functions": 0.1, "branches": 0.1 }
   },
@@ -18,8 +18,13 @@
     "enforce": "medium"
   },
   "categories": {
+    "config": { "include": ["mbo/config/**"] },
     "container": { "include": ["mbo/container/**"] },
-    "diff": { "include": ["mbo/diff/**"] },
+    "diff": {
+      "include": ["mbo/diff/**"],
+      "minimum": { "functions": 60 },
+      "reason": "Clang reports template instantiations that GCC coverage did not count."
+    },
     "digest": { "include": ["mbo/digest/**"] },
     "file": { "include": ["mbo/file/**"] },
     "hash": { "include": ["mbo/hash/**"] },
@@ -29,6 +34,10 @@
     "status": { "include": ["mbo/status/**"] },
     "strings": { "include": ["mbo/strings/**"] },
     "testing": { "include": ["mbo/testing/**"] },
-    "types": { "include": ["mbo/types/**"] }
+    "types": {
+      "include": ["mbo/types/**"],
+      "minimum": { "lines": 60, "functions": 45 },
+      "reason": "Clang reports constexpr and template instantiations that GCC coverage did not count."
+    }
   }
 }

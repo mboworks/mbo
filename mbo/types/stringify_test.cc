@@ -169,6 +169,11 @@ TEST_F(StringifyTest, PublicOptionHelpers) {
   EXPECT_THAT(
       modes.str(), EqualsText("KeyMode::kNone,KeyMode::kNormal,KeyMode::kNumericFallback\n"
                               "EscapeMode::kNone,EscapeMode::kCEscape,EscapeMode::kCHexEscape"));
+  std::ostringstream invalid_modes;
+  // Verify the stream operators' defensive fallback for unnamed values.
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+  invalid_modes << static_cast<StringifyOptions::KeyMode>(3) << ',' << static_cast<StringifyOptions::EscapeMode>(3);
+  EXPECT_THAT(invalid_modes.str(), Eq("KeyMode::kNone,EscapeMode::kNone"));
 
   StringifyOptions partial;
   partial.format.as_data().message_prefix = "custom";

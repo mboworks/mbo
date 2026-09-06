@@ -723,6 +723,7 @@ TEST_F(LimitedVectorTest, RuntimeConvenienceOperations) {
   const std::array middle{2, 3};
   inserted.insert(inserted.begin() + 1, middle.begin(), middle.end());
   inserted.insert(inserted.end(), 2, 5);
+  inserted.insert(inserted.begin(), 0, 9);
   EXPECT_THAT(inserted, ElementsAre(1, 2, 3, 4, 5, 5));
 
   LimitedVector<int, LimitedOptions<6>{}> options_vector;

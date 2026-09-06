@@ -16,6 +16,26 @@ def _matches(path: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
 
 
+def _excluded_range_lines(source_lines: list[str]) -> set[int]:
+    """Returns lines inside explicit source coverage exclusion ranges."""
+    result: set[int] = set()
+    start: int | None = None
+    for number, line in enumerate(source_lines, start=1):
+        if "LCOV_EXCL_START" in line:
+            if start is not None:
+                raise ValueError(f"nested LCOV_EXCL_START at line {number}")
+            start = number
+        if start is not None:
+            result.add(number)
+        if "LCOV_EXCL_STOP" in line:
+            if start is None:
+                raise ValueError(f"LCOV_EXCL_STOP without LCOV_EXCL_START at line {number}")
+            start = None
+    if start is not None:
+        raise ValueError(f"LCOV_EXCL_START at line {start} has no LCOV_EXCL_STOP")
+    return result
+
+
 def _function_markers(source_lines: list[str]) -> tuple[set[int], dict[int, int]]:
     excluded: set[int] = set()
     merged: dict[int, int] = {}
@@ -55,7 +75,8 @@ def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]
 def _normalize_record(record: str, source: Path) -> str:
     """Applies source coverage directives to one raw LCOV record."""
     source_lines = source.read_text(encoding="utf-8").splitlines()
-    excluded_lines = {
+    excluded_ranges = _excluded_range_lines(source_lines)
+    excluded_lines = excluded_ranges | {
         number
         for number, line in enumerate(source_lines, start=1)
         if "LCOV_EXCL_LINE" in line
@@ -66,6 +87,7 @@ def _normalize_record(record: str, source: Path) -> str:
         if "LCOV_EXCL_BR_LINE" in line
     }
     excluded_functions, merged_functions = _function_markers(source_lines)
+    excluded_functions |= excluded_ranges
     merged_branches = _branch_merge_markers(source_lines)
 
     raw_lines = record.splitlines()

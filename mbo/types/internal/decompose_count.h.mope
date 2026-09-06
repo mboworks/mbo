@@ -43,6 +43,7 @@ constexpr std::size_t kNotDecomposableValue = NotDecomposableImpl::value;
 
 inline constexpr std::size_t kMaxSupportedFieldCount = 50;
 
+// LCOV_EXCL_START: This recursive probe is evaluated only during compilation.
 template<typename T, std::size_t MaxArgs, typename... Args>
 constexpr std::size_t StructCtorArgCountMaxFunc() {
   if constexpr (sizeof...(Args) > MaxArgs) {  // NOLINT(bugprone-branch-clone)
@@ -58,6 +59,7 @@ constexpr std::size_t StructCtorArgCountMaxFunc() {
     }
   }
 }
+// LCOV_EXCL_STOP
 
 template<typename T>
 struct StructCtorArgCountMaxImpl
@@ -104,6 +106,7 @@ constexpr bool kMboTypesDecomposeCountUseOverloadSet = true;
 // For the GCC issue refer to: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=92402
 // For the basic mechanism see: https://godbolt.org/z/Ejada5YEE
 
+// LCOV_EXCL_START: These overload probes are used only in unevaluated contexts.
 template<typename... Ts>
 struct OverloadSet : Ts... {
     explicit OverloadSet(Ts&&... v) : Ts(std::move(v))... {}
@@ -138,6 +141,7 @@ auto DecomposeCountFunc(T&& v) {
         return std::integral_constant<std::size_t, kNotDecomposableValue>{};
     }
 };
+// LCOV_EXCL_STOP
 
 template<typename T>
 struct DecomposeCountImpl: decltype(DecomposeCountFunc(std::declval<T>())) /**/ {};
@@ -158,6 +162,7 @@ struct DecomposeInfo final {
   static constexpr std::size_t kDecomposeCount = DecomposeCountImpl<Type>::value;
   static constexpr bool kDecomposable = (kIsAggregate && !kIsEmpty) && (kDecomposeCount != kNotDecomposableValue);
 
+  // LCOV_MERGE_FUNC_LINE: repeated for every aggregate type.
   static std::string Debug(std::string_view separator = ", ") {
     std::string str;
     std::string_view sep;
@@ -607,6 +612,7 @@ struct DecomposeHelper final {
   }
 
   template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
+  // LCOV_MERGE_FUNC_LINE: repeated for every aggregate type.
   static constexpr auto ToTuple(U&& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
@@ -625,6 +631,7 @@ struct DecomposeHelper final {
   }
 
   template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
+  // LCOV_MERGE_FUNC_LINE: repeated for every aggregate type.
   static constexpr auto ToTuple(U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
@@ -643,6 +650,7 @@ struct DecomposeHelper final {
   }
 
   template<std::size_t kForcedNumFields = kNotDecomposableValue, typename U>
+  // LCOV_MERGE_FUNC_LINE: repeated for every aggregate type.
   static constexpr auto ToTuple(const U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;

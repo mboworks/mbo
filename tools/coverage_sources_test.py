@@ -115,6 +115,44 @@ class CoverageSourcesTest(unittest.TestCase):
             self.assertIn("BRDA:3,0,0,2\nBRDA:3,0,1,4\nBRF:2\nBRH:2", actual)
             self.assertIn("DA:2,3\nDA:3,3\nLF:2\nLH:2", actual)
 
+    def test_excludes_explicit_ranges_from_all_metrics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/file/file.h"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "// LCOV_EXCL_START: compile-time-only implementation.\n"
+                "constexpr int probe() { return 1; }\n"
+                "// LCOV_EXCL_STOP\n"
+                "int runtime() { return 2; }\n",
+                encoding="utf-8",
+            )
+            report = (
+                "SF:mbo/file/file.h\n"
+                "FN:2,probe\nFN:4,runtime\nFNDA:0,probe\nFNDA:1,runtime\n"
+                "BRDA:2,0,0,0\nBRDA:4,0,0,1\n"
+                "DA:2,0\nDA:4,1\nend_of_record\n"
+            )
+
+            actual = coverage_sources.normalized(report, workspace)
+
+            self.assertNotIn("probe", actual)
+            self.assertIn("FN:4,runtime\nFNDA:1,runtime", actual)
+            self.assertIn("BRDA:4,0,0,1\nBRF:1\nBRH:1", actual)
+            self.assertIn("DA:4,1\nLF:1\nLH:1", actual)
+
+    def test_rejects_unbalanced_exclusion_ranges(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/file/file.h"
+            source.parent.mkdir(parents=True)
+            source.write_text("// LCOV_EXCL_STOP\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "without LCOV_EXCL_START"):
+                coverage_sources.normalized(
+                    "SF:mbo/file/file.h\nDA:1,0\nend_of_record\n", workspace
+                )
+
     def test_rejects_an_invalid_branch_merge_width(self):
         policy = {"categories": {"file": {"include": ["mbo/file/**"]}}}
         with tempfile.TemporaryDirectory() as directory:

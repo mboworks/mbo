@@ -51,6 +51,26 @@ def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]
     return result
 
 
+def _excluded_range_lines(source_lines: list[str]) -> set[int]:
+    """Returns lines inside explicit source coverage exclusion ranges."""
+    result: set[int] = set()
+    start: int | None = None
+    for number, line in enumerate(source_lines, start=1):
+        if "LCOV_EXCL_START" in line:
+            if start is not None:
+                raise ValueError(f"nested LCOV_EXCL_START at line {number}")
+            start = number
+        if start is not None:
+            result.add(number)
+        if "LCOV_EXCL_STOP" in line:
+            if start is None:
+                raise ValueError(f"LCOV_EXCL_STOP without LCOV_EXCL_START at line {number}")
+            start = None
+    if start is not None:
+        raise ValueError(f"LCOV_EXCL_START at line {start} has no LCOV_EXCL_STOP")
+    return result
+
+
 def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCoverage]:
     result: dict[str, FileCoverage] = {}
     current: FileCoverage | None = None
@@ -79,7 +99,8 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
         if not source.is_file():
             continue
         source_lines = source.read_text(encoding="utf-8").splitlines()
-        excluded_lines = {
+        excluded_ranges = _excluded_range_lines(source_lines)
+        excluded_lines = excluded_ranges | {
             number
             for number, line in enumerate(source_lines, start=1)
             if "LCOV_EXCL_LINE" in line
@@ -89,7 +110,7 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
             for number, line in enumerate(source_lines, start=1)
             if "LCOV_EXCL_BR_LINE" in line
         }
-        excluded_functions: set[int] = set()
+        excluded_functions: set[int] = set(excluded_ranges)
         merged_function_groups: dict[int, int] = {}
         merged_branch_groups = _branch_merge_markers(source_lines)
         for index, line in enumerate(source_lines):

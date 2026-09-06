@@ -40,27 +40,27 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryLo">74.9&nbsp;%</td>
-            <td class="headerCovTableEntry">175</td>
-            <td class="headerCovTableEntry">131</td>
+            <td class="headerCovTableEntryMed">88.4&nbsp;%</td>
+            <td class="headerCovTableEntry">172</td>
+            <td class="headerCovTableEntry">152</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-06 21:21:28</td>
+            <td class="headerValue">2026-09-06 23:02:44</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryMed">78.6&nbsp;%</td>
+            <td class="headerCovTableEntryMed">83.3&nbsp;%</td>
             <td class="headerCovTableEntry">42</td>
-            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntry">35</td>
           </tr>
           <tr>
             <td></td>
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">88.5&nbsp;%</td>
-            <td class="headerCovTableEntry">26</td>
-            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryHi">89.5&nbsp;%</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntry">34</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -375,14 +375,14 @@
 <span id="L295"><span class="lineNum">     295</span>                 :<span class="tlaGNC">           2 :     return npos;</span></span>
 <span id="L296"><span class="lineNum">     296</span>                 :<span class="tlaGNC">           6 :   }</span></span>
 <span id="L297"><span class="lineNum">     297</span>                 :             : </span>
-<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaUNC">           0 :   static constexpr size_type find_first_of(std::string_view charset, size_type pos = 0) noexcept {</span></span>
-<span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaUNC">           0 :     for (; pos &lt; num_chars; ++pos) {</span></span>
-<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaUNC">           0 :       if (mbo::strings::Contains(charset, data[pos])) {</span></span>
-<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaUNC">           0 :         return pos;</span></span>
-<span id="L302"><span class="lineNum">     302</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaUNC">           0 :     return npos;</span></span>
-<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">           2 :   static constexpr size_type find_first_of(std::string_view charset, size_type pos = 0) noexcept {</span></span>
+<span id="L299"><span class="lineNum">     299</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           9 :     for (; pos &lt; num_chars; ++pos) {</span></span>
+<span id="L300"><span class="lineNum">     300</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">           8 :       if (mbo::strings::Contains(charset, data[pos])) {</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">           1 :         return pos;</span></span>
+<span id="L302"><span class="lineNum">     302</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">           8 :     }</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">           1 :     return npos;</span></span>
+<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L306"><span class="lineNum">     306</span>                 :             : </span>
 <span id="L307"><span class="lineNum">     307</span>                 :             :   // Check for presence of one character of a character-set from the back.</span>
 <span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">           4 :   static constexpr size_type find_last_of(char chr, size_type pos = npos) noexcept {</span></span>
@@ -403,23 +403,23 @@
 <span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaUNC">           0 :     return npos;</span></span>
 <span id="L324"><span class="lineNum">     324</span>                 :<span class="tlaGNC">           4 :   }</span></span>
 <span id="L325"><span class="lineNum">     325</span>                 :             : </span>
-<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaUNC">           0 :   static constexpr size_type find_last_of(std::string_view charset, size_type pos = npos) noexcept {</span></span>
-<span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaUNC">           0 :     if constexpr (num_chars == 0) {</span></span>
-<span id="L328"><span class="lineNum">     328</span>                 :<span class="tlaUNC">           0 :       return npos;</span></span>
-<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L330"><span class="lineNum">     330</span>                 :<span class="tlaUNC">           0 :     if (pos &gt;= num_chars) {</span></span>
-<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaUNC">           0 :       pos = num_chars - 1;</span></span>
-<span id="L332"><span class="lineNum">     332</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L333"><span class="lineNum">     333</span>                 :<span class="tlaUNC">           0 :     while (true) {</span></span>
-<span id="L334"><span class="lineNum">     334</span>                 :<span class="tlaUNC">           0 :       if (mbo::strings::Contains(charset, data[pos])) {</span></span>
-<span id="L335"><span class="lineNum">     335</span>                 :<span class="tlaUNC">           0 :         return pos;</span></span>
-<span id="L336"><span class="lineNum">     336</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L337"><span class="lineNum">     337</span>                 :<span class="tlaUNC">           0 :       if (pos-- == 0) {</span></span>
-<span id="L338"><span class="lineNum">     338</span>                 :<span class="tlaUNC">           0 :         return npos;</span></span>
-<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaUNC">           0 :     }</span></span>
+<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">           3 :   static constexpr size_type find_last_of(std::string_view charset, size_type pos = npos) noexcept {</span></span>
+<span id="L327"><span class="lineNum">     327</span>                 :             :     if constexpr (num_chars == 0) {</span>
+<span id="L328"><span class="lineNum">     328</span>                 :             :       return npos;</span>
+<span id="L329"><span class="lineNum">     329</span>                 :             :     }</span>
+<span id="L330"><span class="lineNum">     330</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :     if (pos &gt;= num_chars) {</span></span>
+<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">           2 :       pos = num_chars - 1;</span></span>
+<span id="L332"><span class="lineNum">     332</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L333"><span class="lineNum">     333</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          10 :     while (true) {</span></span>
+<span id="L334"><span class="lineNum">     334</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          10 :       if (mbo::strings::Contains(charset, data[pos])) {</span></span>
+<span id="L335"><span class="lineNum">     335</span>                 :<span class="tlaGNC">           2 :         return pos;</span></span>
+<span id="L336"><span class="lineNum">     336</span>                 :<span class="tlaGNC">           2 :       }</span></span>
+<span id="L337"><span class="lineNum">     337</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">           8 :       if (pos-- == 0) {</span></span>
+<span id="L338"><span class="lineNum">     338</span>                 :<span class="tlaGNC">           1 :         return npos;</span></span>
+<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">           8 :     }</span></span>
 <span id="L341"><span class="lineNum">     341</span>                 :<span class="tlaUNC">           0 :     return npos;</span></span>
-<span id="L342"><span class="lineNum">     342</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L342"><span class="lineNum">     342</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L343"><span class="lineNum">     343</span>                 :             : </span>
 <span id="L344"><span class="lineNum">     344</span>                 :             :   // Only the default constructor is offered - no other constructor is useful.</span>
 <span id="L345"><span class="lineNum">     345</span>                 :             :   constexpr tstring() noexcept = default;</span>

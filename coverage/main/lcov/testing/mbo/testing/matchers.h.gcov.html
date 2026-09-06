@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-06 21:21:28</td>
+            <td class="headerValue">2026-09-06 23:02:44</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -481,16 +481,16 @@
 <span id="L401"><span class="lineNum">     401</span>                 :             : </span>
 <span id="L402"><span class="lineNum">     402</span>                 :             : class EqualsTextMatcher : public ::testing::MatcherInterface&lt;std::string_view&gt; {</span>
 <span id="L403"><span class="lineNum">     403</span>                 :             :  public:</span>
-<span id="L404"><span class="lineNum">     404</span>                 :<span class="tlaGNC">          43 :   explicit EqualsTextMatcher(std::string_view text) : text_(text) {}</span></span>
+<span id="L404"><span class="lineNum">     404</span>                 :<span class="tlaGNC">          44 :   explicit EqualsTextMatcher(std::string_view text) : text_(text) {}</span></span>
 <span id="L405"><span class="lineNum">     405</span>                 :             : </span>
 <span id="L406"><span class="lineNum">     406</span>                 :<span class="tlaGNC">           1 :   void DescribeTo(::std::ostream* os) const override { *os &lt;&lt; &quot;matches text&quot;; }</span></span>
 <span id="L407"><span class="lineNum">     407</span>                 :             : </span>
 <span id="L408"><span class="lineNum">     408</span>                 :<span class="tlaGNC">           1 :   void DescribeNegationTo(::std::ostream* os) const override { *os &lt;&lt; &quot;does not match text&quot;; }</span></span>
 <span id="L409"><span class="lineNum">     409</span>                 :             : </span>
-<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">          41 :   bool MatchAndExplain(std::string_view other, ::testing::MatchResultListener* listener) const override {</span></span>
-<span id="L411"><span class="lineNum">     411</span> [<span class="tlaGBC" title="branch 0 was taken 40 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 36 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 4 times"> + </span>]:<span class="tlaGNC">          41 :     if (!options_.drop_indent &amp;&amp; text_ == other) {</span></span>
-<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          36 :       return true;</span></span>
-<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          36 :     }</span></span>
+<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">          42 :   bool MatchAndExplain(std::string_view other, ::testing::MatchResultListener* listener) const override {</span></span>
+<span id="L411"><span class="lineNum">     411</span> [<span class="tlaGBC" title="branch 0 was taken 41 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 37 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 4 times"> + </span>]:<span class="tlaGNC">          42 :     if (!options_.drop_indent &amp;&amp; text_ == other) {</span></span>
+<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          37 :       return true;</span></span>
+<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          37 :     }</span></span>
 <span id="L414"><span class="lineNum">     414</span>                 :<span class="tlaGNC">           5 :     const auto wants_lines = [&amp;]() -&gt; std::vector&lt;std::string&gt; {</span></span>
 <span id="L415"><span class="lineNum">     415</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           5 :       if (options_.drop_indent) {</span></span>
 <span id="L416"><span class="lineNum">     416</span>                 :<span class="tlaGNC">           1 :         *listener &lt;&lt; &quot;[&quot; &lt;&lt; mbo::strings::DropIndent(text_) &lt;&lt; &quot;]\n&quot;;</span></span>
@@ -524,9 +524,9 @@
 <span id="L444"><span class="lineNum">     444</span>                 :             : </span>
 <span id="L445"><span class="lineNum">     445</span>                 :             : // Matcher that compares text line by line using unified diff.</span>
 <span id="L446"><span class="lineNum">     446</span>                 :             : // Can be wrapped with `WithDropIndent`.</span>
-<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">          43 : inline PolymorphicEqualsTextMatcher EqualsText(std::string_view text) {</span></span>
-<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">          43 :   return ::testing::MakePolymorphicMatcher(testing_internal::EqualsTextMatcher(text));</span></span>
-<span id="L449"><span class="lineNum">     449</span>                 :<span class="tlaGNC">          43 : }</span></span>
+<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">          44 : inline PolymorphicEqualsTextMatcher EqualsText(std::string_view text) {</span></span>
+<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">          44 :   return ::testing::MakePolymorphicMatcher(testing_internal::EqualsTextMatcher(text));</span></span>
+<span id="L449"><span class="lineNum">     449</span>                 :<span class="tlaGNC">          44 : }</span></span>
 <span id="L450"><span class="lineNum">     450</span>                 :             : </span>
 <span id="L451"><span class="lineNum">     451</span>                 :             : // Matcher that compares text line by line using unified diff.</span>
 <span id="L452"><span class="lineNum">     452</span>                 :             : // Can be wrapped with `WithDropIndent`.</span>

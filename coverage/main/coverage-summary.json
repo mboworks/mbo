@@ -3,19 +3,19 @@
   "measurements": {
     "overall": {
       "lines": {
-        "covered": 9341,
-        "total": 10697,
-        "percent": 87.32
+        "covered": 10210,
+        "total": 11029,
+        "percent": 92.57
       },
       "functions": {
-        "covered": 1320,
+        "covered": 1345,
         "total": 1445,
-        "percent": 91.35
+        "percent": 93.08
       },
       "branches": {
-        "covered": 3214,
-        "total": 3496,
-        "percent": 91.93
+        "covered": 3257,
+        "total": 3540,
+        "percent": 92.01
       }
     },
     "config": {
@@ -37,19 +37,19 @@
     },
     "container": {
       "lines": {
-        "covered": 1002,
+        "covered": 1035,
         "total": 1075,
-        "percent": 93.21
+        "percent": 96.28
       },
       "functions": {
-        "covered": 233,
+        "covered": 238,
         "total": 250,
-        "percent": 93.2
+        "percent": 95.2
       },
       "branches": {
-        "covered": 290,
-        "total": 302,
-        "percent": 96.03
+        "covered": 304,
+        "total": 316,
+        "percent": 96.2
       }
     },
     "diff": {
@@ -71,14 +71,14 @@
     },
     "digest": {
       "lines": {
-        "covered": 1092,
+        "covered": 1122,
         "total": 1221,
-        "percent": 89.43
+        "percent": 91.89
       },
       "functions": {
-        "covered": 110,
+        "covered": 120,
         "total": 133,
-        "percent": 82.71
+        "percent": 90.23
       },
       "branches": {
         "covered": 330,
@@ -224,19 +224,19 @@
     },
     "types": {
       "lines": {
-        "covered": 1499,
-        "total": 2045,
-        "percent": 73.3
+        "covered": 2305,
+        "total": 2377,
+        "percent": 96.97
       },
       "functions": {
-        "covered": 341,
+        "covered": 351,
         "total": 369,
-        "percent": 92.41
+        "percent": 95.12
       },
       "branches": {
-        "covered": 373,
-        "total": 410,
-        "percent": 90.98
+        "covered": 402,
+        "total": 440,
+        "percent": 91.36
       }
     }
   },

@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-06 21:21:28</td>
+            <td class="headerValue">2026-09-06 23:02:44</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -128,10 +128,10 @@
 <span id="L48"><span class="lineNum">      48</span>                 :             :   using reference = RefT&amp;;</span>
 <span id="L49"><span class="lineNum">      49</span>                 :             :   using const_reference = const RefT&amp;;</span>
 <span id="L50"><span class="lineNum">      50</span>                 :             : </span>
-<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">         456 :   constexpr ~OptionalDataOrRef() = default;</span></span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">         458 :   constexpr ~OptionalDataOrRef() = default;</span></span>
 <span id="L52"><span class="lineNum">      52</span>                 :             : </span>
 <span id="L53"><span class="lineNum">      53</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
-<span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">         125 :   constexpr OptionalDataOrRef() noexcept = default;</span></span>
+<span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">         132 :   constexpr OptionalDataOrRef() noexcept = default;</span></span>
 <span id="L55"><span class="lineNum">      55</span>                 :             : </span>
 <span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          10 :   constexpr OptionalDataOrRef(std::nullopt_t /* unused */) noexcept {}  // NOLINT(*-explicit-*)</span></span>
 <span id="L57"><span class="lineNum">      57</span>                 :             : </span>
@@ -170,9 +170,9 @@
 <span id="L90"><span class="lineNum">      90</span>                 :             : </span>
 <span id="L91"><span class="lineNum">      91</span>                 :             :   constexpr OptionalDataOrRef(OptionalDataOrRef&amp;&amp; other) noexcept(std::is_nothrow_move_constructible_v&lt;T&gt;)</span>
 <span id="L92"><span class="lineNum">      92</span>                 :             :   requires std::move_constructible&lt;T&gt;</span>
-<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">        1977 :   {</span></span>
-<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">        1977 :     MoveFrom(other);</span></span>
-<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">        1977 :   }</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">        1984 :   {</span></span>
+<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">        1984 :     MoveFrom(other);</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">        1984 :   }</span></span>
 <span id="L96"><span class="lineNum">      96</span>                 :             : </span>
 <span id="L97"><span class="lineNum">      97</span>                 :             :   constexpr OptionalDataOrRef&amp; operator=(OptionalDataOrRef&amp;&amp; other) noexcept(std::is_nothrow_move_constructible_v&lt;T&gt;)</span>
 <span id="L98"><span class="lineNum">      98</span>                 :             :   requires std::move_constructible&lt;T&gt;</span>
@@ -211,10 +211,10 @@
 <span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">           5 :     return *this;</span></span>
 <span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L133"><span class="lineNum">     133</span>                 :             : </span>
-<span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaGNC">        3973 :   constexpr OptionalDataOrRef&amp; reset() noexcept {</span></span>
-<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">        3973 :     data_.template emplace&lt;kNullIndex&gt;();</span></span>
-<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">        3973 :     return *this;</span></span>
-<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">        3973 :   }</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaGNC">        3994 :   constexpr OptionalDataOrRef&amp; reset() noexcept {</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">        3994 :     data_.template emplace&lt;kNullIndex&gt;();</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">        3994 :     return *this;</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">        3994 :   }</span></span>
 <span id="L138"><span class="lineNum">     138</span>                 :             : </span>
 <span id="L139"><span class="lineNum">     139</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
 <span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">         368 :   constexpr OptionalDataOrRef&amp; set_ref(reference v) noexcept {</span></span>
@@ -226,23 +226,23 @@
 <span id="L146"><span class="lineNum">     146</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
 <span id="L147"><span class="lineNum">     147</span>                 :             :   constexpr OptionalDataOrRef&amp; emplace(Args&amp;&amp;... args) noexcept(std::is_nothrow_constructible_v&lt;T, Args...&gt;)</span>
 <span id="L148"><span class="lineNum">     148</span>                 :             :   requires(ConstructibleFrom&lt;T, Args...&gt;)</span>
-<span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">        2092 :   {</span></span>
+<span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">        2106 :   {</span></span>
 <span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaUNC">           0 :     // Make the public state empty before construction so a throwing replacement</span></span>
 <span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaUNC">           0 :     // cannot leave the previous alternative's lifetime ambiguous.</span></span>
-<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">        2092 :     reset();</span></span>
-<span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">        2092 :     data_.template emplace&lt;kDataIndex&gt;(std::forward&lt;Args&gt;(args)...);</span></span>
-<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">        2092 :     return *this;</span></span>
-<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">        2092 :   }</span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">        2106 :     reset();</span></span>
+<span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">        2106 :     data_.template emplace&lt;kDataIndex&gt;(std::forward&lt;Args&gt;(args)...);</span></span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">        2106 :     return *this;</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">        2106 :   }</span></span>
 <span id="L156"><span class="lineNum">     156</span>                 :             : </span>
-<span id="L157"><span class="lineNum">     157</span>                 :<span class="tlaGNC">        4101 :   constexpr explicit operator bool() const noexcept { return has_value(); }</span></span>
+<span id="L157"><span class="lineNum">     157</span>                 :<span class="tlaGNC">        4143 :   constexpr explicit operator bool() const noexcept { return has_value(); }</span></span>
 <span id="L158"><span class="lineNum">     158</span>                 :             : </span>
-<span id="L159"><span class="lineNum">     159</span> [<span class="tlaGBC" title="branch 0 was taken 12158 times"> + </span><span class="tlaGBC" title="branch 1 was taken 592 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 314 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 278 times"> + </span>]:<span class="tlaGNC">       12750 :   constexpr bool has_value() const noexcept { return HoldsData() || HoldsReference(); }</span></span>
+<span id="L159"><span class="lineNum">     159</span> [<span class="tlaGBC" title="branch 0 was taken 12215 times"> + </span><span class="tlaGBC" title="branch 1 was taken 592 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 314 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 278 times"> + </span>]:<span class="tlaGNC">       12807 :   constexpr bool has_value() const noexcept { return HoldsData() || HoldsReference(); }</span></span>
 <span id="L160"><span class="lineNum">     160</span>                 :             : </span>
-<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">       22702 :   constexpr bool HoldsData() const noexcept { return data_.index() == kDataIndex; }</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">       22782 :   constexpr bool HoldsData() const noexcept { return data_.index() == kDataIndex; }</span></span>
 <span id="L162"><span class="lineNum">     162</span>                 :             : </span>
 <span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">          32 :   constexpr bool HoldsNullopt() const noexcept { return !has_value(); }</span></span>
 <span id="L164"><span class="lineNum">     164</span>                 :             : </span>
-<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">        1541 :   constexpr bool HoldsReference() const noexcept { return data_.index() == kRefIndex; }</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">        1548 :   constexpr bool HoldsReference() const noexcept { return data_.index() == kRefIndex; }</span></span>
 <span id="L166"><span class="lineNum">     166</span>                 :             : </span>
 <span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">           8 :   constexpr reference value() noexcept {</span></span>
 <span id="L168"><span class="lineNum">     168</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          17 :     MBO_CONFIG_REQUIRE(has_value(), &quot;No value set for: &quot;) &lt;&lt; mbo::log::DemangleV(*this);</span></span>
@@ -250,10 +250,10 @@
 <span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           8 :   }</span></span>
 <span id="L171"><span class="lineNum">     171</span>                 :             : </span>
 <span id="L172"><span class="lineNum">     172</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
-<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">        6709 :   constexpr const_reference value() const noexcept {</span></span>
-<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 13418 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6709 times"> + </span>]:<span class="tlaGNC">       13418 :     MBO_CONFIG_REQUIRE(has_value(), &quot;No value set for: &quot;) &lt;&lt; mbo::log::DemangleV(*this);</span></span>
-<span id="L175"><span class="lineNum">     175</span>         [<span class="tlaGBC" title="branch 0 was taken 6618 times"> + </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">        6709 :     return HoldsData() ? Data() : Reference();</span></span>
-<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">        6709 :   }</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">        6717 :   constexpr const_reference value() const noexcept {</span></span>
+<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 13434 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6717 times"> + </span>]:<span class="tlaGNC">       13434 :     MBO_CONFIG_REQUIRE(has_value(), &quot;No value set for: &quot;) &lt;&lt; mbo::log::DemangleV(*this);</span></span>
+<span id="L175"><span class="lineNum">     175</span>         [<span class="tlaGBC" title="branch 0 was taken 6626 times"> + </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">        6717 :     return HoldsData() ? Data() : Reference();</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">        6717 :   }</span></span>
 <span id="L177"><span class="lineNum">     177</span>                 :             : </span>
 <span id="L178"><span class="lineNum">     178</span>                 :             : #if __cplusplus &gt;= (20L * 100 + 23) * 100 + 2</span>
 <span id="L179"><span class="lineNum">     179</span>                 :             :   // Returns `value()` if `holds_value()` is true, a reference to static defaults otherwise.</span>
@@ -271,7 +271,7 @@
 <span id="L191"><span class="lineNum">     191</span>                 :             :   // must sit on the line immediately above the declaration - a rationale placed</span>
 <span id="L192"><span class="lineNum">     192</span>                 :             :   // between it and the declaration would bind it to the comment instead.</span>
 <span id="L193"><span class="lineNum">     193</span>                 :             :   // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)</span>
-<span id="L194"><span class="lineNum">     194</span>         [<span class="tlaGBC" title="branch 0 was taken 771 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         771 :   constexpr const_reference get(const T&amp; defaults) const noexcept { return has_value() ? value() : defaults; }</span></span>
+<span id="L194"><span class="lineNum">     194</span>         [<span class="tlaGBC" title="branch 0 was taken 778 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         778 :   constexpr const_reference get(const T&amp; defaults) const noexcept { return has_value() ? value() : defaults; }</span></span>
 <span id="L195"><span class="lineNum">     195</span>                 :             : </span>
 <span id="L196"><span class="lineNum">     196</span>                 :             :   // Returns a reference to existing data or created data. If the object:</span>
 <span id="L197"><span class="lineNum">     197</span>                 :             :   // * is `std::nullopt`, then a default value will be emplace and is reference returned.</span>
@@ -281,16 +281,16 @@
 <span id="L201"><span class="lineNum">     201</span>                 :             :   constexpr value_type&amp; as_data(Args&amp;&amp;... args) noexcept(</span>
 <span id="L202"><span class="lineNum">     202</span>                 :             :       std::is_nothrow_constructible_v&lt;T, reference&gt; &amp;&amp; std::is_nothrow_constructible_v&lt;T, Args...&gt;)</span>
 <span id="L203"><span class="lineNum">     203</span>                 :             :   requires(ConstructibleFrom&lt;T, reference&gt; &amp;&amp; ConstructibleFrom&lt;T, Args...&gt;)</span>
-<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">         204 :   {</span></span>
-<span id="L205"><span class="lineNum">     205</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 200 times"> + </span>]:<span class="tlaGNC">         204 :     if (!HoldsData()) {</span></span>
-<span id="L206"><span class="lineNum">     206</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           4 :       if (HoldsReference()) {</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">         212 :   {</span></span>
+<span id="L205"><span class="lineNum">     205</span>         [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 201 times"> + </span>]:<span class="tlaGNC">         212 :     if (!HoldsData()) {</span></span>
+<span id="L206"><span class="lineNum">     206</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          11 :       if (HoldsReference()) {</span></span>
 <span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">           2 :         emplace(Reference());</span></span>
-<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">           3 :       } else {</span></span>
-<span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">           2 :         emplace(std::forward&lt;Args&gt;(args)...);</span></span>
-<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">           2 :       }</span></span>
-<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">           4 :     }</span></span>
-<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">         204 :     return Data();</span></span>
-<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">         204 :   }</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">          10 :       } else {</span></span>
+<span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">           9 :         emplace(std::forward&lt;Args&gt;(args)...);</span></span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">           9 :       }</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">          11 :     }</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">         212 :     return Data();</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">         212 :   }</span></span>
 <span id="L214"><span class="lineNum">     214</span>                 :             : </span>
 <span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">           2 :   constexpr reference operator*() noexcept { return value(); }</span></span>
 <span id="L216"><span class="lineNum">     216</span>                 :             : </span>
@@ -298,7 +298,7 @@
 <span id="L218"><span class="lineNum">     218</span>                 :             : </span>
 <span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           1 :   constexpr pointer operator-&gt;() noexcept { return &amp;value(); }</span></span>
 <span id="L220"><span class="lineNum">     220</span>                 :             : </span>
-<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">        4173 :   constexpr const_pointer operator-&gt;() const noexcept { return &amp;value(); }</span></span>
+<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">        4174 :   constexpr const_pointer operator-&gt;() const noexcept { return &amp;value(); }</span></span>
 <span id="L222"><span class="lineNum">     222</span>                 :             : </span>
 <span id="L223"><span class="lineNum">     223</span>                 :             :   template&lt;std::equality_comparable_with&lt;T&gt; U = T, typename RefU = U&gt;</span>
 <span id="L224"><span class="lineNum">     224</span>                 :             :   constexpr bool operator==(const OptionalDataOrRef&lt;U, RefU&gt;&amp; rhs) const</span>
@@ -400,10 +400,10 @@
 <span id="L320"><span class="lineNum">     320</span>                 :             :   static constexpr std::size_t kDataIndex = 1;</span>
 <span id="L321"><span class="lineNum">     321</span>                 :             :   static constexpr std::size_t kRefIndex = 2;</span>
 <span id="L322"><span class="lineNum">     322</span>                 :             : </span>
-<span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">        1352 :   constexpr T&amp; Data() noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
+<span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">        1367 :   constexpr T&amp; Data() noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
 <span id="L324"><span class="lineNum">     324</span>                 :             : </span>
 <span id="L325"><span class="lineNum">     325</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
-<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">        7557 :   constexpr const T&amp; Data() const noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
+<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">        7565 :   constexpr const T&amp; Data() const noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
 <span id="L327"><span class="lineNum">     327</span>                 :             : </span>
 <span id="L328"><span class="lineNum">     328</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
 <span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">         279 :   constexpr reference Reference() const noexcept { return std::get&lt;kRefIndex&gt;(data_).get(); }</span></span>
@@ -422,16 +422,16 @@
 <span id="L342"><span class="lineNum">     342</span>                 :             : </span>
 <span id="L343"><span class="lineNum">     343</span>                 :             :   constexpr void MoveFrom(OptionalDataOrRef&amp; other) noexcept(std::is_nothrow_move_constructible_v&lt;T&gt;)</span>
 <span id="L344"><span class="lineNum">     344</span>                 :             :   requires std::move_constructible&lt;T&gt;</span>
-<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">        1979 :   {</span></span>
-<span id="L346"><span class="lineNum">     346</span>         [<span class="tlaGBC" title="branch 0 was taken 1141 times"> + </span><span class="tlaGBC" title="branch 1 was taken 838 times"> + </span>]:<span class="tlaGNC">        1979 :     if (other.HoldsData()) {</span></span>
-<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">        1141 :       emplace(std::move(other.Data()));</span></span>
-<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">        1141 :       other.reset();</span></span>
-<span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="branch 0 was taken 182 times"> + </span><span class="tlaGBC" title="branch 1 was taken 656 times"> + </span>]:<span class="tlaGNC">        1149 :     } else if (other.HoldsReference()) {</span></span>
+<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">        1986 :   {</span></span>
+<span id="L346"><span class="lineNum">     346</span>         [<span class="tlaGBC" title="branch 0 was taken 1148 times"> + </span><span class="tlaGBC" title="branch 1 was taken 838 times"> + </span>]:<span class="tlaGNC">        1986 :     if (other.HoldsData()) {</span></span>
+<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">        1148 :       emplace(std::move(other.Data()));</span></span>
+<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">        1148 :       other.reset();</span></span>
+<span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="branch 0 was taken 182 times"> + </span><span class="tlaGBC" title="branch 1 was taken 656 times"> + </span>]:<span class="tlaGNC">        1156 :     } else if (other.HoldsReference()) {</span></span>
 <span id="L350"><span class="lineNum">     350</span>                 :<span class="tlaGNC">         182 :       set_ref(other.Reference());</span></span>
 <span id="L351"><span class="lineNum">     351</span>                 :<span class="tlaGNC">         656 :     } else {</span></span>
 <span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">         656 :       reset();</span></span>
 <span id="L353"><span class="lineNum">     353</span>                 :<span class="tlaGNC">         656 :     }</span></span>
-<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">        1979 :   }</span></span>
+<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">        1986 :   }</span></span>
 <span id="L355"><span class="lineNum">     355</span>                 :             : </span>
 <span id="L356"><span class="lineNum">     356</span>                 :             :   std::variant&lt;std::monostate, T, std::reference_wrapper&lt;RefT&gt;&gt; data_;</span>
 <span id="L357"><span class="lineNum">     357</span>                 :             : };</span>

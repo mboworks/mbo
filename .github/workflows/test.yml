@@ -359,7 +359,7 @@ jobs:
           python3 tools/coverage_html.py coverage-html/lcov coverage_policy.json "${coverage_page}"
 
           python3 -m unittest tools/coverage_test.py tools/coverage_merge_test.py \
-            tools/coverage_sources_test.py \
+            tools/coverage_sources_test.py tools/coverage_integrity_test.py \
             tools/coverage_html_test.py tools/coverage_index_test.py tools/coverage_lcovrc_test.py \
             tools/coverage_policy_test.py
           BASE_ARGS=()

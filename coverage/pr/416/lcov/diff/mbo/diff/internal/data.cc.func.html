@@ -1,0 +1,209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - diff/mbo/diff/internal/data.cc - functions</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+  <style>
+    .mboNavigation { padding: .35rem 0; text-align: center; }
+    .mboHeaderSummary { margin: 0 auto; width: 80%; }
+    .mboPolicy { border-collapse: collapse; margin: .75rem auto 1rem; width: auto; }
+    .mboPolicy th { padding: .2rem .75rem; text-align: left; }
+    .mboPolicy td { font-size: 100%; padding: .2rem .75rem; text-align: center; }
+  </style>
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="mboNavigation"><a href="../../../../../index.html">Report overview</a> &middot; <a href="../../../../../../../index.html">All coverage reports</a></td></tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table class="mboHeaderSummary" cellpadding=1 border=0>
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../../index.html" title="Click to go to top-level">top level</a> - <a href="../../../index.html" title="Click to go to directory diff">diff</a>/<a href="../../index.html" title="Click to go to directory mbo">mbo</a>/<a href="../index.html" title="Click to go to directory diff">diff</a>/<a href="index.html" title="Click to go to directory internal">internal</a> - data.cc<span style="font-size: 80%;"> (<a href="data.cc.gcov.html" title="Click to go to source detail">source</a> / functions)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">94</td>
+            <td class="headerCovTableEntry">94</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-06 10:46:07</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">10</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">92.5&nbsp;%</td>
+            <td class="headerCovTableEntry">40</td>
+            <td class="headerCovTableEntry">37</td>
+          </tr>
+                  <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <center>
+          <table cellpadding=1 cellspacing=1 border=0>
+            <tr><td><br></td></tr>
+            <tr>
+              <td class="tableHead">Function Name <span  title="Click to sort table by function name" class="tableHeadSort"><img src="../../../../glass.png" width=10 height=14 alt="Sort by function name" title="Click to sort table by function name" border=0></span></td>
+              
+              <td class="tableHead">Hit count <span  title="Click to sort table by function hit count" class="tableHeadSort"><a href="data.cc.func-c.html"><img src="../../../../updown.png" width=10 height=14 alt="Sort by function hit count" title="Click to sort table by function hit count" border=0></a></span></td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L44">data.cc:mbo::diff::diff_internal::(anonymous namespace)::Select&lt;mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_0, mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_1, mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_2&gt;::Select(mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_0, mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_1, mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_2)</a></td>
+              
+              <td class="coverFnHi">5486</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L143">data.cc:mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_0::operator()(mbo::diff::DiffOptions::NoCommentStripping) const</a></td>
+              
+              <td class="coverFnHi">5466</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L144">data.cc:mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_1::operator()(mbo::strings::StripCommentArgs const&amp;) const</a></td>
+              
+              <td class="coverFnHi">16</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L148">data.cc:mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_2::operator()(mbo::strings::StripParsedCommentArgs const&amp;) const</a></td>
+              
+              <td class="coverFnHi">4</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L120">data.cc:mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_3::operator()(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;&amp;&amp;) const</a></td>
+              
+              <td class="coverFnHi">39</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L85">data.cc:mbo::diff::diff_internal::Data::SplitAndAdaptLastLine(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, bool, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)::$_0::operator()(char) const</a></td>
+              
+              <td class="coverFnHi">23823</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L54">mbo::diff::diff_internal::Data::Data(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;)</a></td>
+              
+              <td class="coverFnHi">351</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L60">mbo::diff::diff_internal::Data::LastLineIfNoNewLine(std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, bool)</a></td>
+              
+              <td class="coverFnHi">351</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L112">mbo::diff::diff_internal::Data::Process(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)</a></td>
+              
+              <td class="coverFnHi">5486</td>
+              
+              
+              
+            </tr>
+            <tr>
+              <td class="coverFn"><a href="data.cc.gcov.html#L79">mbo::diff::diff_internal::Data::SplitAndAdaptLastLine(mbo::diff::DiffOptions const&amp;, std::__1::optional&lt;mbo::diff::DiffOptions::RegexReplace&gt; const&amp;, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, bool, std::__1::basic_string_view&lt;char, std::__1::char_traits&lt;char&gt; &gt;, std::__1::deque&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;&amp;)</a></td>
+              
+              <td class="coverFnHi">351</td>
+              
+              
+              
+            </tr>
+          </table>
+          <br>
+          </center>
+          <table class="mboPolicy">
+            <thead>
+              <tr>
+                <th scope="col">Global coverage policy</th>
+                <th scope="col">Low</th>
+                <th scope="col">Medium</th>
+                <th scope="col">High</th>
+                <th scope="col">Enforced</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row">Lines</th>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegM">Medium</td>
+            </tr>
+            <tr>
+              <th scope="row">Branches</th>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 85%</td>
+              <td class="headerValueLegH">&ge; 85%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Functions</th>
+              <td class="headerValueLegL">&lt; 75%</td>
+              <td class="headerValueLegM">&ge; 75% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegM">Medium</td>
+            </tr>
+            </tbody>
+          </table>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

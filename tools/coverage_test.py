@@ -322,6 +322,24 @@ class CoverageTest(unittest.TestCase):
             ),
         )
 
+    def test_policies_with_data_omits_unrepresented_metrics(self):
+        policies = coverage_tool.coverage_policy.resolve(
+            {
+                "minimum": {"lines": 90, "functions": 90, "branches": 80},
+                "target": {"lines": 95, "functions": 95, "branches": 85},
+            }
+        )
+        metrics = {
+            "lines": {"covered": 11, "total": 11, "percent": 100.0},
+            "functions": {"covered": 0, "total": 0, "percent": None},
+            "branches": {"covered": 0, "total": 0, "percent": None},
+        }
+
+        self.assertEqual(
+            {"lines": policies["lines"]},
+            coverage_tool.policies_with_data(metrics, policies),
+        )
+
     def test_category_minimum_and_target_are_independently_composable(self):
         policy = {
             "minimum": {"lines": 85.0, "functions": 90.0, "branches": 57.0},

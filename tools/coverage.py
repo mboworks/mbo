@@ -439,12 +439,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.baseline and args.write_baseline:
         baseline = {
             "schema": 2,
-            "description": "Bazel LCOV with GCC 14; scope and exclusions are defined by coverage_policy.json",
+            "description": (
+                "Bazel LCOV with the primary hermetic Clang toolchain; scope and "
+                "exclusions are defined by coverage_policy.json"
+            ),
             "scope": baseline_scope(policy),
             "measurements": measured,
         }
         args.baseline.write_text(json.dumps(baseline, indent=2) + "\n", encoding="utf-8")
-    effective = coverage_policy.policies(policy)
+    effective = {
+        category: policies_with_data(measured[category], values)
+        for category, values in coverage_policy.policies(policy).items()
+    }
     text = markdown(measured, effective)
     patch_failures: list[str] = []
     patch: dict | None = None

@@ -43,6 +43,22 @@ class CoverageIndexTest(unittest.TestCase):
         rendered = coverage_index.render_report(summary, "pr/42")
         self.assertIn('<td class="status-bad">BAD: F</td>', rendered)
 
+    def test_report_supports_category_metrics_without_coverage_data(self):
+        summary = _summary(95.0)
+        summary["measurements"]["config"] = {
+            "lines": {"covered": 11, "total": 11, "percent": 100.0},
+            "functions": {"covered": 0, "total": 0, "percent": None},
+            "branches": {"covered": 0, "total": 0, "percent": None},
+        }
+        for name in ("minimums", "targets", "enforcement"):
+            summary[name]["config"] = {"lines": summary[name]["overall"]["lines"]}
+
+        rendered = coverage_index.render_report(summary, "pr/42")
+
+        self.assertIn("<td>n/a</td><td>0</td><td>0</td>", rendered)
+        self.assertIn('<td class="policyCell">n/a</td>', rendered)
+        self.assertIn('<td class="status-good">GOOD</td>', rendered)
+
     def test_high_enforcement_rejects_a_medium_rating(self):
         summary = _summary(85.0)
         summary["enforcement"]["overall"]["branches"] = "high"

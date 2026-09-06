@@ -442,6 +442,16 @@ TEST_F(TStringTest, MakeTString) {
   EXPECT_THAT((std::is_same_v<decltype(kTsA2), decltype(kTsC2)>), true);
 }
 
+TEST_F(TStringTest, MakeTStringHelpersRunAtRuntime) {
+  const auto helper = types_internal::MakeTstringHelper<kGsv4>::tstr();
+  const auto made = make_tstring<kGsv5>();
+  const auto macro = MBO_MAKE_TSTRING("runtime");
+
+  EXPECT_THAT(helper.str(), StrEq("gsv4"));
+  EXPECT_THAT(made.str(), StrEq("gsv_5"));
+  EXPECT_THAT(macro.str(), StrEq("runtime"));
+}
+
 using MyTypes = ::testing::Types<
     TestInfo<""_ts, 0>,
     TestInfo<"1"_ts, 1>,

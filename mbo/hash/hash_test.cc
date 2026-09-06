@@ -726,6 +726,14 @@ static_assert(
     tembo::GetHash64<7, 8, true>(std::string_view(kTemboKatPattern.data(), kTemboKatPattern.size()), 42)
     == 0xd2713e2ba0fdce94);
 
+TEST_F(KnownAnswerTest, TemboMixesAllSupportedLargeLaneCountsAtRuntime) {
+  const std::string data = PatternBuffer(256);
+  EXPECT_THAT((tembo::GetHash64<10, 8, true>(data, 42)), Ne(tembo::GetHash64<10, 8, true>(data, 43)));
+  EXPECT_THAT((tembo::GetHash64<11, 8, true>(data, 42)), Ne(tembo::GetHash64<11, 8, true>(data, 43)));
+  EXPECT_THAT((tembo::GetHash64<14, 8, true>(data, 42)), Ne(tembo::GetHash64<14, 8, true>(data, 43)));
+  EXPECT_THAT((tembo::GetHash64<15, 8, true>(data, 42)), Ne(tembo::GetHash64<15, 8, true>(data, 43)));
+}
+
 // NOLINTEND(*-magic-numbers)
 
 // Every vector is re-derived from the LIVE algorithm and compared to the value

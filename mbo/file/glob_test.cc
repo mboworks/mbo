@@ -53,6 +53,7 @@ using ::mbo::testing::IsOk;
 using ::mbo::testing::IsOkAndHolds;
 using ::mbo::testing::StatusIs;
 using ::testing::AnyOf;
+using ::testing::Contains;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
 using ::testing::NotNull;
@@ -413,6 +414,11 @@ TEST_F(GlobTest, GlobSplitPartsWithRanges) {
   EXPECT_THAT(GlobSplitParts("a/b[0-1]c"), IsOkAndHolds(HasParts("a", "b[0-1]c", false)));
 }
 
+TEST_F(GlobTest, GlobSplitPartsCanLeaveRangesUnparsed) {
+  const Glob2Re2Options options{.allow_ranges = false};
+  EXPECT_THAT(GlobSplitParts("a/[x]/", options), IsOkAndHolds(HasParts("a", "[x]", false)));
+}
+
 MATCHER_P2(HasSplit, root_matcher, pattern_matcher, "") {
   using ::testing::AllOf;
   using ::testing::Field;
@@ -505,6 +511,37 @@ TEST_F(GlobFileTest, StatusOrOverloadsPropagateInputFailures) {
       StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
+TEST_F(GlobFileTest, GlobReportsMissingRootsAndInvalidRegularExpressions) {
+  const auto callback = [](const GlobEntry&) { return GlobEntryAction::kContinue; };
+  EXPECT_THAT(Glob(root_glob_test / "missing", "*", {}, {}, callback), StatusIs(absl::StatusCode::kNotFound));
+  EXPECT_THAT(
+      GlobRe2(RootAndPattern{.root = root_glob_test, .pattern = "["}, {}, callback),
+      StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(GlobFileTest, GlobCanPruneRecursiveDirectories) {
+  std::vector<std::string> found;
+  bool requested_pruning = false;
+  ASSERT_OK(Glob(root_glob_test, "**", {}, {}, [&](const GlobEntry& entry) -> GlobEntryAction {
+    const std::filesystem::path relative = entry.entry.path().lexically_relative(root_glob_test);
+    found.push_back(relative);
+    if (entry.entry.path().filename() == "sub") {
+      requested_pruning = true;
+      return GlobEntryAction::kDoNotRecurse;
+    }
+    return GlobEntryAction::kContinue;
+  }));
+  EXPECT_THAT(requested_pruning, IsTrue());
+  EXPECT_THAT(found, Contains("sub"));
+}
+
+TEST_F(GlobFileTest, GlobCanResolveCurrentAndRelativeRoots) {
+  const RE2 match_all("");
+  const auto stop = [](const GlobEntry&) { return GlobEntryAction::kStop; };
+  ASSERT_OK(GlobRe2(".", match_all, {}, stop));
+  ASSERT_OK(GlobRe2(root_glob_test.lexically_relative(std::filesystem::current_path()), match_all, {}, stop));
+}
+
 TEST_F(GlobFileTest, GlobEntryReportsItsSelectedPathAndRegularFileSize) {
   const std::filesystem::path file = root_glob_test / ".sized";
   std::ofstream output(file, std::ios::binary);
@@ -518,6 +555,7 @@ TEST_F(GlobFileTest, GlobEntryReportsItsSelectedPathAndRegularFileSize) {
       .depth = 0,
   };
   EXPECT_THAT(absolute.MaybeRelativePath(), file);
+  EXPECT_THAT(GlobEntry::MboTypesStringifyConvert(absolute, absolute.entry), file.native());
   EXPECT_THAT(absolute.FileSize(), 3);
 
   const GlobEntry relative{
@@ -526,6 +564,7 @@ TEST_F(GlobFileTest, GlobEntryReportsItsSelectedPathAndRegularFileSize) {
       .depth = 1,
   };
   EXPECT_THAT(relative.MaybeRelativePath(), std::filesystem::path(".sized"));
+  EXPECT_THAT(GlobEntry::MboTypesStringifyConvert(relative, relative.entry), ".sized");
   EXPECT_THAT(relative.FileSize(), 0);
   EXPECT_THAT(std::filesystem::remove(file), IsTrue());
 }

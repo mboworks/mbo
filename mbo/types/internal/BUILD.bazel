@@ -139,6 +139,12 @@ cc_test(
     name = "decompose_count_coverage_test",
     size = "small",
     srcs = ["decompose_count_coverage_test.cc"],
+    # This synthetic all-arities test needs more than GCC's default template
+    # depth, but does not benefit from optimizing its very large instantiations.
+    copts = [
+        "-O0",
+        "-ftemplate-depth=5000",
+    ],
     deps = [
         "//mbo/types:tuple_extras_cc",
         "@googletest//:gtest",

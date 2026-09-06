@@ -261,6 +261,45 @@ class CoverageTest(unittest.TestCase):
             self.assertEqual({1: 1, 3: 1}, files["mbo/a.cc"].lines)
             self.assertEqual([(3, False), (3, True)], files["mbo/a.cc"].branches)
 
+    def test_parse_excludes_explicit_ranges_from_all_metrics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mbo/a.h"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "// LCOV_EXCL_START: compile-time-only implementation.\n"
+                "constexpr int probe() { return 1; }\n"
+                "// LCOV_EXCL_STOP\n"
+                "int runtime() { return 2; }\n",
+                encoding="utf-8",
+            )
+            report = root / "coverage.lcov"
+            report.write_text(
+                "SF:mbo/a.h\n"
+                "FN:2,probe\nFN:4,runtime\nFNDA:0,probe\nFNDA:1,runtime\n"
+                "DA:2,0\nDA:4,1\n"
+                "BRDA:2,0,0,0\nBRDA:4,0,0,1\nend_of_record\n",
+                encoding="utf-8",
+            )
+
+            data = coverage_tool.parse_lcov(report, root)["mbo/a.h"]
+
+            self.assertEqual({4: 1}, data.lines)
+            self.assertEqual([(4, 1)], data.functions)
+            self.assertEqual([(4, True)], data.branches)
+
+    def test_parse_rejects_unbalanced_exclusion_ranges(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mbo/a.h"
+            source.parent.mkdir(parents=True)
+            source.write_text("// LCOV_EXCL_START\nint value;\n", encoding="utf-8")
+            report = root / "coverage.lcov"
+            report.write_text("SF:mbo/a.h\nDA:2,0\nend_of_record\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "has no LCOV_EXCL_STOP"):
+                coverage_tool.parse_lcov(report, root)
+
     def test_parse_excludes_functions_at_marked_source_lines(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -308,6 +347,25 @@ class CoverageTest(unittest.TestCase):
                 {"covered": 1, "total": 2, "percent": 50.0},
                 coverage_tool.counts(files)["functions"],
             )
+
+    def test_parse_merges_function_instances_on_the_same_source_line(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mbo/a.cc"
+            source.parent.mkdir(parents=True)
+            source.write_text("template<typename T> void shared(T value) {}\n", encoding="utf-8")
+            report = root / "coverage.lcov"
+            report.write_text(
+                "SF:mbo/a.cc\n"
+                "FN:1,SharedInt\nFN:1,SharedLong\n"
+                "FNDA:0,SharedInt\nFNDA:2,SharedLong\n"
+                "end_of_record\n",
+                encoding="utf-8",
+            )
+
+            files = coverage_tool.parse_lcov(report, root)
+
+            self.assertEqual([(1, 2)], files["mbo/a.cc"].functions)
 
     def test_parse_merges_repeated_template_branches_at_marked_source_lines(self):
         with tempfile.TemporaryDirectory() as directory:

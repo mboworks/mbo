@@ -16,6 +16,26 @@ def _matches(path: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
 
 
+def _excluded_range_lines(source_lines: list[str]) -> set[int]:
+    """Returns lines inside explicit source coverage exclusion ranges."""
+    result: set[int] = set()
+    start: int | None = None
+    for number, line in enumerate(source_lines, start=1):
+        if "LCOV_EXCL_START" in line:
+            if start is not None:
+                raise ValueError(f"nested LCOV_EXCL_START at line {number}")
+            start = number
+        if start is not None:
+            result.add(number)
+        if "LCOV_EXCL_STOP" in line:
+            if start is None:
+                raise ValueError(f"LCOV_EXCL_STOP without LCOV_EXCL_START at line {number}")
+            start = None
+    if start is not None:
+        raise ValueError(f"LCOV_EXCL_START at line {start} has no LCOV_EXCL_STOP")
+    return result
+
+
 def _function_markers(source_lines: list[str]) -> tuple[set[int], dict[int, int]]:
     excluded: set[int] = set()
     merged: dict[int, int] = {}
@@ -55,7 +75,8 @@ def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]
 def _normalize_record(record: str, source: Path) -> str:
     """Applies source coverage directives to one raw LCOV record."""
     source_lines = source.read_text(encoding="utf-8").splitlines()
-    excluded_lines = {
+    excluded_ranges = _excluded_range_lines(source_lines)
+    excluded_lines = excluded_ranges | {
         number
         for number, line in enumerate(source_lines, start=1)
         if "LCOV_EXCL_LINE" in line
@@ -66,6 +87,7 @@ def _normalize_record(record: str, source: Path) -> str:
         if "LCOV_EXCL_BR_LINE" in line
     }
     excluded_functions, merged_functions = _function_markers(source_lines)
+    excluded_functions |= excluded_ranges
     merged_branches = _branch_merge_markers(source_lines)
 
     raw_lines = record.splitlines()
@@ -96,6 +118,7 @@ def _normalize_record(record: str, source: Path) -> str:
 
     functions: list[tuple[int, str, int]] = []
     function_groups: dict[int, list[tuple[int, str, int]]] = defaultdict(list)
+    explicit_function_groups = set(merged_functions.values())
     for line, name in definitions:
         if line in excluded_functions:
             continue
@@ -103,15 +126,18 @@ def _normalize_record(record: str, source: Path) -> str:
         if line in merged_functions:
             function_groups[merged_functions[line]].append(value)
         else:
-            functions.append(value)
+            function_groups[line].append(value)
     for group, values in sorted(function_groups.items()):
-        functions.append(
-            (
-                min(line for line, _, _ in values),
-                f"__mbo_lcov_merged_function_at_line_{group}",
-                max(hits for _, _, hits in values),
+        if len(values) == 1 and values[0][0] == group and group not in explicit_function_groups:
+            functions.append(values[0])
+        else:
+            functions.append(
+                (
+                    min(line for line, _, _ in values),
+                    f"__mbo_lcov_merged_function_at_line_{group}",
+                    max(hits for _, _, hits in values),
+                )
             )
-        )
 
     ordinary_branches: list[tuple[int, str, str, str]] = []
     branch_groups: dict[int, list[str]] = defaultdict(list)

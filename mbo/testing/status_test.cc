@@ -40,6 +40,7 @@ using ::mbo::testing::testing_internal::StatusIsMatcher;
 using ::testing::_;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
+using ::testing::Eq;
 using ::testing::Ge;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
@@ -72,6 +73,11 @@ class StatusMatcherTest : public ::testing::Test {
     return {result, os.str()};
   }
 };
+
+TEST_F(StatusMatcherTest, StatusCodeAcceptsAndReturnsIntegralCodes) {
+  const testing_internal::StatusCode code(7);
+  EXPECT_THAT(static_cast<int>(code), Eq(7));
+}
 
 TEST_F(StatusMatcherTest, IsOk) {
   EXPECT_THAT(absl::OkStatus(), IsOk());

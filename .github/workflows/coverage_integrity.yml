@@ -35,5 +35,7 @@ jobs:
           python3 base/tools/coverage_integrity.py \
             --base-policy base/coverage_policy.json \
             --base-baseline base/coverage_baseline.json \
+            --base-source base/mbo \
             --candidate-policy candidate/coverage_policy.json \
-            --candidate-baseline candidate/coverage_baseline.json
+            --candidate-baseline candidate/coverage_baseline.json \
+            --candidate-source candidate/mbo

@@ -51,6 +51,26 @@ def _branch_merge_markers(source_lines: list[str]) -> dict[int, tuple[int, ...]]
     return result
 
 
+def _excluded_range_lines(source_lines: list[str]) -> set[int]:
+    """Returns lines inside explicit source coverage exclusion ranges."""
+    result: set[int] = set()
+    start: int | None = None
+    for number, line in enumerate(source_lines, start=1):
+        if "LCOV_EXCL_START" in line:
+            if start is not None:
+                raise ValueError(f"nested LCOV_EXCL_START at line {number}")
+            start = number
+        if start is not None:
+            result.add(number)
+        if "LCOV_EXCL_STOP" in line:
+            if start is None:
+                raise ValueError(f"LCOV_EXCL_STOP without LCOV_EXCL_START at line {number}")
+            start = None
+    if start is not None:
+        raise ValueError(f"LCOV_EXCL_START at line {start} has no LCOV_EXCL_STOP")
+    return result
+
+
 def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCoverage]:
     result: dict[str, FileCoverage] = {}
     current: FileCoverage | None = None
@@ -79,7 +99,8 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
         if not source.is_file():
             continue
         source_lines = source.read_text(encoding="utf-8").splitlines()
-        excluded_lines = {
+        excluded_ranges = _excluded_range_lines(source_lines)
+        excluded_lines = excluded_ranges | {
             number
             for number, line in enumerate(source_lines, start=1)
             if "LCOV_EXCL_LINE" in line
@@ -89,7 +110,7 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
             for number, line in enumerate(source_lines, start=1)
             if "LCOV_EXCL_BR_LINE" in line
         }
-        excluded_functions: set[int] = set()
+        excluded_functions: set[int] = set(excluded_ranges)
         merged_function_groups: dict[int, int] = {}
         merged_branch_groups = _branch_merge_markers(source_lines)
         for index, line in enumerate(source_lines):
@@ -107,14 +128,14 @@ def parse_lcov(path: Path, source_root: Path = Path(".")) -> dict[str, FileCover
         data.lines = {line: hits for line, hits in data.lines.items() if line not in excluded_lines}
         data.functions = [function for function in data.functions if function[0] not in excluded_functions]
         merged_hits: dict[int, int] = {}
-        ordinary_functions: list[tuple[int, int]] = []
+        ordinary_hits: dict[int, int] = {}
         for line, hits in data.functions:
             if line in merged_function_groups:
                 group = merged_function_groups[line]
                 merged_hits[group] = max(merged_hits.get(group, 0), hits)
             else:
-                ordinary_functions.append((line, hits))
-        data.functions = ordinary_functions + sorted(merged_hits.items())
+                ordinary_hits[line] = max(ordinary_hits.get(line, 0), hits)
+        data.functions = list(ordinary_hits.items()) + sorted(merged_hits.items())
         ordinary_branches: list[tuple[int, bool]] = []
         branches_by_line: dict[int, list[bool]] = defaultdict(list)
         for line, taken in data.branches:

@@ -160,6 +160,27 @@ TEST_F(StringifyTest, AllDataSet) {
   EXPECT_THAT(missing.AllDataSet(), IsFalse());
 }
 
+TEST_F(StringifyTest, PublicOptionHelpers) {
+  std::ostringstream modes;
+  modes << StringifyOptions::KeyMode::kNone << ',' << StringifyOptions::KeyMode::kNormal << ','
+        << StringifyOptions::KeyMode::kNumericFallback << '\n'
+        << StringifyOptions::EscapeMode::kNone << ',' << StringifyOptions::EscapeMode::kCEscape << ','
+        << StringifyOptions::EscapeMode::kCHexEscape;
+  EXPECT_THAT(
+      modes.str(), EqualsText("KeyMode::kNone,KeyMode::kNormal,KeyMode::kNumericFallback\n"
+                              "EscapeMode::kNone,EscapeMode::kCEscape,EscapeMode::kCHexEscape"));
+
+  StringifyOptions partial;
+  partial.format.as_data().message_prefix = "custom";
+  const StringifyOptions completed = StringifyOptions::WithAllData(std::move(partial), Stringify::OptionsDefault());
+  EXPECT_THAT(static_cast<bool>(completed), IsTrue());
+  EXPECT_THAT(completed.format->message_prefix, Eq("custom"));
+
+  const Stringify pretty = Stringify::AsCppPretty();
+  EXPECT_THAT(pretty.DebugDefaultRootOptions().root_prefix, IsEmpty());
+  EXPECT_THAT(static_cast<bool>(pretty.DebugDefaultFieldOptions()), IsTrue());
+}
+
 TEST_F(StringifyTest, ApplyAllStopsAtEachFailedOption) {
   for (int stop = 1; stop <= 8; ++stop) {
     StringifyOptions options = Stringify::OptionsDefault();

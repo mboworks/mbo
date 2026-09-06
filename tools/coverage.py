@@ -266,6 +266,80 @@ def baseline_failures(measured: dict, baseline: dict, policy: dict) -> list[str]
     return result
 
 
+def policy_regressions(candidate: dict, base: dict) -> list[str]:
+    """Reports coverage enforcement weakened relative to the base branch."""
+    candidate_policies = coverage_policy.policies(candidate)
+    base_policies = coverage_policy.policies(base)
+    result = []
+    for category, base_metrics in base_policies.items():
+        candidate_metrics = candidate_policies.get(category)
+        if candidate_metrics is None:
+            result.append(f"{category}: category was removed from the coverage policy")
+            continue
+        for metric, base_value in base_metrics.items():
+            candidate_value = candidate_metrics[metric]
+            base_boundary = (
+                base_value.minimum if base_value.enforce == "medium" else base_value.target
+            )
+            candidate_boundary = (
+                candidate_value.minimum
+                if candidate_value.enforce == "medium"
+                else candidate_value.target
+            )
+            if candidate_boundary < base_boundary:
+                result.append(
+                    f"{category} {metric}: enforced boundary was lowered from "
+                    f"{base_boundary:g}% to {candidate_boundary:g}%"
+                )
+    candidate_tolerances = coverage_policy.baseline_tolerances(candidate)
+    for metric, base_tolerance in coverage_policy.baseline_tolerances(base).items():
+        candidate_tolerance = candidate_tolerances[metric]
+        if candidate_tolerance > base_tolerance:
+            result.append(
+                f"{metric}: baseline tolerance was raised from {base_tolerance:g} to "
+                f"{candidate_tolerance:g} percentage points"
+            )
+    return result
+
+
+def baseline_regressions(candidate: dict, base: dict) -> list[str]:
+    """Reports stored baseline percentages lowered relative to the base branch."""
+    candidate_measurements = candidate.get("measurements", {})
+    result = []
+    for category, base_metrics in base.get("measurements", {}).items():
+        candidate_metrics = candidate_measurements.get(category)
+        if not isinstance(candidate_metrics, dict):
+            result.append(f"{category}: category was removed from the coverage baseline")
+            continue
+        for metric, base_value in base_metrics.items():
+            candidate_value = candidate_metrics.get(metric)
+            if not isinstance(candidate_value, dict) or "percent" not in candidate_value:
+                result.append(f"{category} {metric}: metric was removed from the coverage baseline")
+                continue
+            base_percent = base_value.get("percent")
+            candidate_percent = candidate_value["percent"]
+            if base_percent is None:
+                continue
+            if candidate_percent is None or candidate_percent < base_percent:
+                rendered = "no data" if candidate_percent is None else f"{candidate_percent:.2f}%"
+                result.append(
+                    f"{category} {metric}: stored baseline was lowered from "
+                    f"{base_percent:.2f}% to {rendered}"
+                )
+    return result
+
+
+def json_at_ref(ref: str, path: Path) -> dict:
+    """Reads a repository JSON file from a Git revision."""
+    content = subprocess.run(
+        ["git", "show", f"{ref}:{path.as_posix()}"],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    ).stdout
+    return json.loads(content)
+
+
 def thresholds(policy: dict) -> tuple[dict, dict]:
     """Returns effective medium and high boundaries for every report row."""
     resolved = coverage_policy.policies(policy)
@@ -431,7 +505,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_baseline and not args.baseline:
         parser.error("--write-baseline requires --baseline")
     policy = json.loads(args.policy.read_text(encoding="utf-8"))
-    files = select_files(parse_lcov(args.lcov), policy)
+    report = parse_lcov(args.lcov)
+    files = select_files(report, policy)
     measured = measurements(files, policy)
     if not files:
         print("coverage report contains no files selected by policy", file=sys.stderr)
@@ -482,16 +557,36 @@ def main(argv: list[str] | None = None) -> int:
     if args.baseline and not args.write_baseline:
         baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
         baseline_errors = baseline_failures(measured, baseline, policy)
+    base_errors = []
+    if args.base_ref and args.baseline:
+        base_policy = json_at_ref(args.base_ref, args.policy)
+        base_baseline = json_at_ref(args.base_ref, args.baseline)
+        base_files = select_files(report, base_policy)
+        base_measured = measurements(base_files, base_policy)
+        base_effective = {
+            category: policies_with_data(base_measured[category], values)
+            for category, values in coverage_policy.policies(base_policy).items()
+        }
+        base_errors = (
+            policy_regressions(policy, base_policy)
+            + baseline_regressions(
+                json.loads(args.baseline.read_text(encoding="utf-8")), base_baseline
+            )
+            + failures(base_measured, base_effective)
+            + baseline_failures(base_measured, base_baseline, base_policy)
+        )
     errors = failures(measured, effective) + patch_failures
     for error in errors:
         print(f"coverage threshold failed: {error}", file=sys.stderr)
     for error in baseline_errors:
         print(f"coverage baseline failed: {error}", file=sys.stderr)
+    for error in base_errors:
+        print(f"coverage base-branch guard failed: {error}", file=sys.stderr)
     for location in uncovered_lines:
         print(f"uncovered patch line: {location}", file=sys.stderr)
     for location in uncovered_branches:
         print(f"uncovered patch branch: {location}", file=sys.stderr)
-    return bool(errors or baseline_errors)
+    return bool(errors or baseline_errors or base_errors)
 
 
 if __name__ == "__main__":

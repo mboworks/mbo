@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for tools/coverage.py."""
 
+from __future__ import annotations
+
 import sys
 import tempfile
 import unittest
@@ -11,6 +13,95 @@ import coverage as coverage_tool  # noqa: E402
 
 
 class CoverageTest(unittest.TestCase):
+    def test_policy_regressions_reject_lower_enforcement_and_larger_tolerance(self):
+        base = {
+            "minimum": {"lines": 90, "functions": 90, "branches": 80},
+            "target": {"lines": 95, "functions": 95, "branches": 85},
+            "enforce": "high",
+            "baseline": {
+                "maximum_drop": {"lines": 0.1, "functions": 0.1, "branches": 0.1}
+            },
+            "categories": {"types": {"include": ["mbo/types/**"]}},
+        }
+        candidate = {
+            "minimum": {"lines": 80, "functions": 75, "branches": 80},
+            "target": {"lines": 95, "functions": 95, "branches": 85},
+            "enforce": {"lines": "medium", "functions": "medium", "branches": "high"},
+            "baseline": {
+                "maximum_drop": {"lines": 0.2, "functions": 0.1, "branches": 0.1}
+            },
+            "categories": {},
+        }
+
+        self.assertEqual(
+            [
+                "overall lines: enforced boundary was lowered from 95% to 80%",
+                "overall functions: enforced boundary was lowered from 95% to 75%",
+                "types: category was removed from the coverage policy",
+                "lines: baseline tolerance was raised from 0.1 to 0.2 percentage points",
+            ],
+            coverage_tool.policy_regressions(candidate, base),
+        )
+
+    def test_policy_regressions_allow_stronger_policy(self):
+        base = {
+            "minimum": {"lines": 80, "functions": 75, "branches": 80},
+            "target": {"lines": 95, "functions": 95, "branches": 85},
+            "enforce": "medium",
+            "baseline": {
+                "maximum_drop": {"lines": 0.1, "functions": 0.1, "branches": 0.1}
+            },
+            "categories": {},
+        }
+        candidate = {
+            **base,
+            "minimum": {"lines": 90, "functions": 90, "branches": 80},
+            "enforce": "high",
+        }
+
+        self.assertEqual([], coverage_tool.policy_regressions(candidate, base))
+
+    def test_baseline_regressions_reject_lowered_and_removed_measurements(self):
+        metric = lambda percent: {  # noqa: E731
+            "covered": 1,
+            "total": 1,
+            "percent": percent,
+        }
+        base = {
+            "measurements": {
+                "overall": {
+                    "lines": metric(95.0),
+                    "functions": metric(94.0),
+                    "branches": metric(None),
+                },
+                "types": {"lines": metric(96.0)},
+            }
+        }
+        candidate = {
+            "measurements": {
+                "overall": {
+                    "lines": metric(85.0),
+                    "functions": metric(None),
+                    "branches": metric(90.0),
+                }
+            }
+        }
+
+        self.assertEqual(
+            [
+                "overall lines: stored baseline was lowered from 95.00% to 85.00%",
+                "overall functions: stored baseline was lowered from 94.00% to no data",
+                "types: category was removed from the coverage baseline",
+            ],
+            coverage_tool.baseline_regressions(candidate, base),
+        )
+
+    def test_baseline_regressions_allow_equal_or_higher_measurements(self):
+        base = {"measurements": {"overall": {"lines": {"percent": 95.0}}}}
+        candidate = {"measurements": {"overall": {"lines": {"percent": 95.1}}}}
+
+        self.assertEqual([], coverage_tool.baseline_regressions(candidate, base))
+
     def test_baseline_rejects_regressions_beyond_tolerance(self):
         metric = lambda percent: {  # noqa: E731
             "covered": 1,

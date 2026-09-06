@@ -1,0 +1,39 @@
+name: Coverage integrity
+
+on:
+  pull_request_target: {}
+
+concurrency:
+  group: coverage-integrity-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# This workflow executes only tooling checked out from the protected base
+# branch. Candidate files are treated as data and are never executed.
+permissions:
+  contents: read
+
+jobs:
+  coverage-integrity:
+    name: coverage-integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@v7
+        with:
+          path: base
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Checkout candidate as data
+        uses: actions/checkout@v7
+        with:
+          path: candidate
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: Reject weakened coverage enforcement
+        run: |
+          python3 base/tools/coverage_integrity.py \
+            --base-policy base/coverage_policy.json \
+            --base-baseline base/coverage_baseline.json \
+            --candidate-policy candidate/coverage_policy.json \
+            --candidate-baseline candidate/coverage_baseline.json

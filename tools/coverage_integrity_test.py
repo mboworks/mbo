@@ -40,7 +40,7 @@ class CoverageIntegrityTest(unittest.TestCase):
 
         self.assertEqual([], coverage_integrity.scope_regressions(candidate, base))
 
-    def test_source_directive_regressions_rejects_added_or_changed_directives(self):
+    def test_source_exclusion_regressions_rejects_added_or_changed_exclusions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base = root / "base"
@@ -54,23 +54,23 @@ class CoverageIntegrityTest(unittest.TestCase):
             (candidate / "a.h").write_text(
                 "int old();  // LCOV_EXCL_LINE: changed reason.\n"
                 "int stable();\n"
-                "int added();  // LCOV_MERGE_FUNC_LINE: template.\n",
+                "int added();  // LCOV_EXCL_FUNC_LINE: generated.\n",
                 encoding="utf-8",
             )
 
             self.assertEqual(
                 [
-                    "source coverage directive was added or changed: "
+                    "source coverage exclusion was added or changed: "
                     "mbo/a.h:1: LCOV_EXCL_LINE",
-                    "source coverage directive was added or changed: "
-                    "mbo/a.h:3: LCOV_MERGE_FUNC_LINE",
+                    "source coverage exclusion was added or changed: "
+                    "mbo/a.h:3: LCOV_EXCL_FUNC_LINE",
                 ],
-                coverage_integrity.source_directive_regressions(
+                coverage_integrity.source_exclusion_regressions(
                     candidate, base, {"include": ["mbo/**"]}
                 ),
             )
 
-    def test_source_directive_regressions_allows_removal_and_ignores_excluded_files(self):
+    def test_source_exclusion_regressions_allows_safe_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base = root / "base"
@@ -81,6 +81,9 @@ class CoverageIntegrityTest(unittest.TestCase):
                 "int old();  // LCOV_EXCL_LINE: unreachable.\n", encoding="utf-8"
             )
             (candidate / "a.h").write_text("int old();\n", encoding="utf-8")
+            (candidate / "merged.h").write_text(
+                "int value();  // LCOV_MERGE_FUNC_LINE\n", encoding="utf-8"
+            )
             (candidate / "a_test.cc").write_text(
                 "int test();  // LCOV_EXCL_LINE\n", encoding="utf-8"
             )
@@ -88,7 +91,7 @@ class CoverageIntegrityTest(unittest.TestCase):
 
             self.assertEqual(
                 [],
-                coverage_integrity.source_directive_regressions(
+                coverage_integrity.source_exclusion_regressions(
                     candidate,
                     base,
                     {"include": ["mbo/**"], "exclude": ["mbo/*_test.cc"]},

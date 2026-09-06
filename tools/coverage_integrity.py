@@ -13,7 +13,7 @@ from pathlib import Path
 import coverage as coverage_tool
 
 
-_COVERAGE_DIRECTIVE = re.compile(r"\bLCOV_(?:EXCL|MERGE)_[A-Z_]+")
+_COVERAGE_EXCLUSION = re.compile(r"\bLCOV_EXCL_[A-Z_]+")
 _SOURCE_SUFFIXES = frozenset(
     {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".mope"}
 )
@@ -26,10 +26,10 @@ def scope_regressions(candidate: dict, base: dict) -> list[str]:
     return [] if candidate_scope == base_scope else ["coverage measurement scope was changed"]
 
 
-def source_directive_regressions(
+def source_exclusion_regressions(
     candidate_root: Path, base_root: Path, policy: dict
 ) -> list[str]:
-    """Reports added or modified source-owned coverage directives."""
+    """Reports added or modified source-owned coverage exclusions."""
     includes = policy.get("include", ["mbo/**"])
     excludes = policy.get("exclude", [])
     result = []
@@ -51,10 +51,10 @@ def source_directive_regressions(
             if operation == "equal" or operation == "delete":
                 continue
             for index in range(candidate_start, candidate_end):
-                match = _COVERAGE_DIRECTIVE.search(candidate_lines[index])
+                match = _COVERAGE_EXCLUSION.search(candidate_lines[index])
                 if match:
                     result.append(
-                        f"source coverage directive was added or changed: "
+                        f"source coverage exclusion was added or changed: "
                         f"{logical}:{index + 1}: {match.group()}"
                     )
     return result
@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
 
     errors = (
         scope_regressions(candidate_policy, base_policy)
-        + source_directive_regressions(args.candidate_source, args.base_source, base_policy)
+        + source_exclusion_regressions(args.candidate_source, args.base_source, base_policy)
         + coverage_tool.policy_regressions(candidate_policy, base_policy)
         + coverage_tool.baseline_regressions(candidate_baseline, base_baseline)
     )

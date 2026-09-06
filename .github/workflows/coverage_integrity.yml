@@ -1,7 +1,7 @@
 name: Coverage integrity
 
 on:
-  pull_request_target:
+  pull_request_target: {}
 
 concurrency:
   group: coverage-integrity-${{ github.event.pull_request.number }}

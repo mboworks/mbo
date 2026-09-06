@@ -127,6 +127,25 @@ mope_test(
     clang_format = True,
 )
 
+mope_test(
+    name = "decompose_count_coverage_generated_test",
+    srcs = ["decompose_count_coverage_test.cc.mope"],
+    outs = ["decompose_count_coverage_test.cc"],
+    args = ["--set=:max_fields=40"],
+    clang_format = True,
+)
+
+cc_test(
+    name = "decompose_count_coverage_test",
+    size = "small",
+    srcs = ["decompose_count_coverage_test.cc"],
+    deps = [
+        "//mbo/types:tuple_extras_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "extend_internal_test",
     size = "small",

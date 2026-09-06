@@ -1,5 +1,9 @@
 # 0.15.0
 
+- Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang
+  backend while preserving mbo's per-type name overrides and per-field formatting, conversion,
+  suppression, and redaction controls. Added a comprehensive `mbo/types` guide plus reflection
+  implementation notes with the support matrix, limitations, and comparison with other libraries.
 - Added reproducible ordered-container microbenchmarks for exact lookup and both bounds across
   container kinds, capacities, key positions, ascending/descending order, and comparator types.
 - Restored the empty-input guards in log timing's reverse parsers, added direct regression tests,
@@ -8,6 +12,9 @@
   Bazel release to 9.2 while retaining Bazel 8 compatibility.
 - Switched the bundled LLVM setup from its temporary prerelease override to the published
   `toolchains_llvm@1.9.0` Bazel Central Registry module.
+- Updated Abseil to 20260817.0 and the associated dependency selections and compatibility patches.
+- Made the primary Clang toolchain authoritative for coverage while retaining GCC 14 and the
+  supported Bazel/compiler combinations in the CI matrix.
 
 # 0.14.0
 

@@ -534,6 +534,22 @@ TYPED_TEST(DigestTest, MillionA) {
   EXPECT_THAT(ToHexString(TypeParam::Digest(input)), Traits::kMillionAHex);
 }
 
+struct DigestConvenienceTest : ::testing::Test {};
+
+TEST_F(DigestConvenienceTest, NamespaceFunctionsDelegateToAlgorithms) {
+  const std::string input = "abc";
+  EXPECT_THAT(sha512::Digest(input), ElementsAreArray(sha512::Algorithm::Digest(input)));
+  EXPECT_THAT(sha384::Digest(input), ElementsAreArray(sha384::Algorithm::Digest(input)));
+  EXPECT_THAT(sha512_224::Digest(input), ElementsAreArray(sha512_224::Algorithm::Digest(input)));
+  EXPECT_THAT(sha512_256::Digest(input), ElementsAreArray(sha512_256::Algorithm::Digest(input)));
+  EXPECT_THAT(sha3_224::Digest(input), ElementsAreArray(sha3_224::Algorithm::Digest(input)));
+  EXPECT_THAT(sha3_256::Digest(input), ElementsAreArray(sha3_256::Algorithm::Digest(input)));
+  EXPECT_THAT(sha3_384::Digest(input), ElementsAreArray(sha3_384::Algorithm::Digest(input)));
+  EXPECT_THAT(sha3_512::Digest(input), ElementsAreArray(sha3_512::Algorithm::Digest(input)));
+  EXPECT_THAT(blake2b::Digest(input), ElementsAreArray(blake2b::Algorithm::Digest(input)));
+  EXPECT_THAT(blake2b_256::Digest(input), ElementsAreArray(blake2b_256::Algorithm::Digest(input)));
+}
+
 // BLAKE3 official test-vector suite (BLAKE3-team/BLAKE3
 // test_vectors/test_vectors.json): input is the repeating byte pattern
 // 0..250; the lengths exercise every tree shape (block/chunk boundaries,

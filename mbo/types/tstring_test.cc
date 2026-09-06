@@ -642,6 +642,10 @@ TEST_F(TStringTest, FindFirstLast) {
     static constexpr std::size_t kPos3 = kTestA1.find_first_of("astx", 3);  // Verify `constexpr`
     EXPECT_THAT(kPos3, 4);
   }
+  const std::string runtime_first_chars = "astx";
+  EXPECT_THAT(kTestA1.find_first_of(std::string_view(runtime_first_chars), 3), 4);
+  const std::string runtime_missing_chars = "qz";
+  EXPECT_THAT(kTestA1.find_first_of(std::string_view(runtime_missing_chars)), tstring<>::npos);
   EXPECT_THAT(kTestA1.find_first_of('e', 3), 3);
   EXPECT_THAT(kTestA1.find_first_of('e', 4), tstring<>::npos);
   EXPECT_THAT(kTestA1.find_first_of('t'), 2);
@@ -662,6 +666,10 @@ TEST_F(TStringTest, FindFirstLast) {
     static constexpr std::size_t kPos3 = kTestA1.find_last_of("atx", 4);  // Verify `constexpr`
     EXPECT_THAT(kPos3, 2);
   }
+  const std::string runtime_last_chars = "atx";
+  EXPECT_THAT(kTestA1.find_last_of(std::string_view(runtime_last_chars)), 5);
+  EXPECT_THAT(kTestA1.find_last_of(std::string_view(runtime_last_chars), 4), 2);
+  EXPECT_THAT(kTestA1.find_last_of(std::string_view(runtime_missing_chars)), tstring<>::npos);
   EXPECT_THAT(kTestA1.find_last_of('t'), 5);  // not 3 which would be first
   EXPECT_THAT(kTestA1.find_last_of('t', 5), 5);
   EXPECT_THAT(kTestA1.find_last_of('t', 4), 2);

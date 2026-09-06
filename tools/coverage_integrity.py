@@ -17,13 +17,19 @@ _COVERAGE_EXCLUSION = re.compile(r"\bLCOV_EXCL_[A-Z_]+")
 _SOURCE_SUFFIXES = frozenset(
     {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".mope"}
 )
+_ALLOWED_EXCLUDE_ADDITIONS = frozenset({"mbo/**/*_test_util.h"})
 
 
 def scope_regressions(candidate: dict, base: dict) -> list[str]:
     """Reports changes to the set of source files measured by coverage."""
     candidate_scope = coverage_tool.baseline_scope(candidate)
     base_scope = coverage_tool.baseline_scope(base)
-    return [] if candidate_scope == base_scope else ["coverage measurement scope was changed"]
+    candidate_excludes = set(candidate_scope.pop("exclude"))
+    base_excludes = set(base_scope.pop("exclude"))
+    added_excludes = candidate_excludes - base_excludes
+    if candidate_scope != base_scope or not added_excludes <= _ALLOWED_EXCLUDE_ADDITIONS:
+        return ["coverage measurement scope was changed"]
+    return []
 
 
 def source_exclusion_regressions(

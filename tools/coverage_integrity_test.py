@@ -40,6 +40,19 @@ class CoverageIntegrityTest(unittest.TestCase):
 
         self.assertEqual([], coverage_integrity.scope_regressions(candidate, base))
 
+    def test_scope_regressions_accepts_test_utility_header_exclusion(self):
+        base = {
+            "include": ["mbo/**"],
+            "exclude": ["mbo/**/*_test.cc"],
+            "categories": {"types": {"include": ["mbo/types/**"]}},
+        }
+        candidate = {
+            **base,
+            "exclude": [*base["exclude"], "mbo/**/*_test_util.h"],
+        }
+
+        self.assertEqual([], coverage_integrity.scope_regressions(candidate, base))
+
     def test_source_exclusion_regressions_rejects_added_or_changed_exclusions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

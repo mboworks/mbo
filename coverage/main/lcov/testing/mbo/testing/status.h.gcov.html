@@ -40,18 +40,18 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">99.2&nbsp;%</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
             <td class="headerCovTableEntry">244</td>
-            <td class="headerCovTableEntry">242</td>
+            <td class="headerCovTableEntry">244</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-06 18:14:13</td>
+            <td class="headerValue">2026-09-06 21:21:28</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">99.3&nbsp;%</td>
-            <td class="headerCovTableEntry">289</td>
-            <td class="headerCovTableEntry">287</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntry">42</td>
           </tr>
           <tr>
             <td></td>
@@ -229,11 +229,11 @@
 <span id="L149"><span class="lineNum">     149</span>                 :             : // Abseil's `absl::status_internal::StatusCode`.</span>
 <span id="L150"><span class="lineNum">     150</span>                 :             : class StatusCode {</span>
 <span id="L151"><span class="lineNum">     151</span>                 :             :  public:</span>
-<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaUNC">           0 :   StatusCode(int code) : code_(static_cast&lt;absl::StatusCode&gt;(code)) {}  // NOLINT</span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">           1 :   StatusCode(int code) : code_(static_cast&lt;absl::StatusCode&gt;(code)) {}  // NOLINT</span></span>
 <span id="L153"><span class="lineNum">     153</span>                 :             : </span>
 <span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">         236 :   StatusCode(absl::StatusCode code) : code_(code) {}  // NOLINT</span></span>
 <span id="L155"><span class="lineNum">     155</span>                 :             : </span>
-<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaUNC">           0 :   explicit operator int() const { return static_cast&lt;int&gt;(code_); }</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaGNC">           1 :   explicit operator int() const { return static_cast&lt;int&gt;(code_); }</span></span>
 <span id="L157"><span class="lineNum">     157</span>                 :             : </span>
 <span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">         109 :   friend bool operator==(const StatusCode&amp; lhs, const StatusCode&amp; rhs) { return lhs.code_ == rhs.code_; }</span></span>
 <span id="L159"><span class="lineNum">     159</span>                 :             : </span>

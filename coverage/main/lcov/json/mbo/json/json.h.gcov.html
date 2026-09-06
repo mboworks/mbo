@@ -40,27 +40,27 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">89.2&nbsp;%</td>
+            <td class="headerCovTableEntryMed">93.9&nbsp;%</td>
             <td class="headerCovTableEntry">491</td>
-            <td class="headerCovTableEntry">438</td>
+            <td class="headerCovTableEntry">461</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-06 18:14:13</td>
+            <td class="headerValue">2026-09-06 21:21:28</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryHi">96.2&nbsp;%</td>
-            <td class="headerCovTableEntry">264</td>
-            <td class="headerCovTableEntry">254</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">128</td>
+            <td class="headerCovTableEntry">128</td>
           </tr>
           <tr>
             <td></td>
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">90.8&nbsp;%</td>
-            <td class="headerCovTableEntry">130</td>
-            <td class="headerCovTableEntry">118</td>
+            <td class="headerCovTableEntryHi">92.9&nbsp;%</td>
+            <td class="headerCovTableEntry">154</td>
+            <td class="headerCovTableEntry">143</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -210,9 +210,9 @@
 <span id="L130"><span class="lineNum">     130</span>                 :             :     ~value_iterator_t() noexcept = default;</span>
 <span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">           5 :     value_iterator_t() noexcept = default;  // Sadly needed for `std::forward_iterator`</span></span>
 <span id="L132"><span class="lineNum">     132</span>                 :             : </span>
-<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">           8 :     explicit value_iterator_t(array_iterator arr_it) noexcept : it_(arr_it) {}</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">          16 :     explicit value_iterator_t(array_iterator arr_it) noexcept : it_(arr_it) {}</span></span>
 <span id="L134"><span class="lineNum">     134</span>                 :             : </span>
-<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">           2 :     explicit value_iterator_t(object_iterator obj_it) noexcept : it_(obj_it) {}</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">          10 :     explicit value_iterator_t(object_iterator obj_it) noexcept : it_(obj_it) {}</span></span>
 <span id="L136"><span class="lineNum">     136</span>                 :             : </span>
 <span id="L137"><span class="lineNum">     137</span>                 :             :     value_iterator_t(const value_iterator_t&amp;) noexcept = default;</span>
 <span id="L138"><span class="lineNum">     138</span>                 :             :     value_iterator_t&amp; operator=(const value_iterator_t&amp;) noexcept = default;</span>
@@ -236,9 +236,9 @@
 <span id="L156"><span class="lineNum">     156</span>                 :             : </span>
 <span id="L157"><span class="lineNum">     157</span>                 :             :     value_iterator_t(mutable_iterator&amp;&amp; other) noexcept</span>
 <span id="L158"><span class="lineNum">     158</span>                 :             :     requires std::same_as&lt;value_iterator_t, const_iterator&gt;</span>
-<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">           2 :     {</span></span>
-<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           2 :       std::visit([this](auto&amp;&amp; iterator) { it_ = std::forward&lt;decltype(iterator)&gt;(iterator); }, std::move(other.it_));</span></span>
-<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">           8 :     {</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           8 :       std::visit([this](auto&amp;&amp; iterator) { it_ = std::forward&lt;decltype(iterator)&gt;(iterator); }, std::move(other.it_));</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">           8 :     }</span></span>
 <span id="L162"><span class="lineNum">     162</span>                 :             : </span>
 <span id="L163"><span class="lineNum">     163</span>                 :             :     value_iterator_t&amp; operator=(mutable_iterator&amp;&amp; other) noexcept</span>
 <span id="L164"><span class="lineNum">     164</span>                 :             :     requires std::same_as&lt;value_iterator_t, const_iterator&gt;</span>
@@ -247,9 +247,9 @@
 <span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">           1 :       return *this;</span></span>
 <span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">           1 :     }</span></span>
 <span id="L169"><span class="lineNum">     169</span>                 :             : </span>
-<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaUNC">           0 :     operator array_iterator() noexcept { return std::get&lt;array_iterator&gt;(it_); }</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           3 :     operator array_iterator() noexcept { return std::get&lt;array_iterator&gt;(it_); }</span></span>
 <span id="L171"><span class="lineNum">     171</span>                 :             : </span>
-<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaUNC">           0 :     operator object_iterator() noexcept { return std::get&lt;object_iterator&gt;(it_); }</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">           4 :     operator object_iterator() noexcept { return std::get&lt;object_iterator&gt;(it_); }</span></span>
 <span id="L173"><span class="lineNum">     173</span>                 :             : </span>
 <span id="L174"><span class="lineNum">     174</span>                 :             :     operator const_array_iterator() const noexcept { return std::get&lt;array_iterator&gt;(it_); }</span>
 <span id="L175"><span class="lineNum">     175</span>                 :             : </span>
@@ -257,22 +257,22 @@
 <span id="L177"><span class="lineNum">     177</span>                 :             : </span>
 <span id="L178"><span class="lineNum">     178</span>                 :             :     // NOLINTEND(cppcoreguidelines-rvalue-reference-param-not-moved,*explicit-*)</span>
 <span id="L179"><span class="lineNum">     179</span>                 :             : </span>
-<span id="L180"><span class="lineNum">     180</span>                 :<span class="tlaGNC">          21 :     reference operator*() const noexcept {</span></span>
-<span id="L181"><span class="lineNum">     181</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          21 :       return IsArray() ? *std::get&lt;array_iterator&gt;(it_) : *std::get&lt;object_iterator&gt;(it_)-&gt;second;</span></span>
-<span id="L182"><span class="lineNum">     182</span>                 :<span class="tlaGNC">          21 :     }</span></span>
+<span id="L180"><span class="lineNum">     180</span>                 :<span class="tlaGNC">          22 :     reference operator*() const noexcept {</span></span>
+<span id="L181"><span class="lineNum">     181</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          22 :       return IsArray() ? *std::get&lt;array_iterator&gt;(it_) : *std::get&lt;object_iterator&gt;(it_)-&gt;second;</span></span>
+<span id="L182"><span class="lineNum">     182</span>                 :<span class="tlaGNC">          22 :     }</span></span>
 <span id="L183"><span class="lineNum">     183</span>                 :             : </span>
 <span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">           1 :     pointer operator-&gt;() const noexcept { return &amp;**this; }</span></span>
 <span id="L185"><span class="lineNum">     185</span>                 :             : </span>
 <span id="L186"><span class="lineNum">     186</span>                 :             :     explicit operator reference() const noexcept { return **this; }</span>
 <span id="L187"><span class="lineNum">     187</span>                 :             : </span>
-<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">           6 :     value_iterator_t&amp; operator++() noexcept {</span></span>
-<span id="L189"><span class="lineNum">     189</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">           6 :       if (IsArray()) {</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">           7 :     value_iterator_t&amp; operator++() noexcept {</span></span>
+<span id="L189"><span class="lineNum">     189</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           7 :       if (IsArray()) {</span></span>
 <span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">           6 :         ++std::get&lt;array_iterator&gt;(it_);</span></span>
 <span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">           6 :       } else {</span></span>
-<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaUNC">           0 :         ++std::get&lt;object_iterator&gt;(it_);</span></span>
-<span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           6 :       return *this;</span></span>
-<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">           6 :     }</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">           1 :         ++std::get&lt;object_iterator&gt;(it_);</span></span>
+<span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           7 :       return *this;</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">           7 :     }</span></span>
 <span id="L196"><span class="lineNum">     196</span>                 :             : </span>
 <span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">           2 :     value_iterator_t operator++(int) noexcept {  // NOLINT(cert-dcl21-cpp)</span></span>
 <span id="L198"><span class="lineNum">     198</span>                 :<span class="tlaGNC">           2 :       value_iterator_t result = *this;</span></span>
@@ -284,12 +284,12 @@
 <span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">           2 :       return result;</span></span>
 <span id="L205"><span class="lineNum">     205</span>                 :<span class="tlaGNC">           2 :     }</span></span>
 <span id="L206"><span class="lineNum">     206</span>                 :             : </span>
-<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          11 :     friend bool operator==(const value_iterator_t&lt;IsConst&gt;&amp; lhs, const value_iterator_t&lt;IsConst&gt;&amp; rhs) noexcept {</span></span>
-<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">          11 :       return lhs.it_ == rhs.it_;</span></span>
-<span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">          11 :     }</span></span>
+<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          13 :     friend bool operator==(const value_iterator_t&lt;IsConst&gt;&amp; lhs, const value_iterator_t&lt;IsConst&gt;&amp; rhs) noexcept {</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">          13 :       return lhs.it_ == rhs.it_;</span></span>
+<span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">          13 :     }</span></span>
 <span id="L210"><span class="lineNum">     210</span>                 :             : </span>
 <span id="L211"><span class="lineNum">     211</span>                 :             :    private:</span>
-<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">          29 :     bool IsArray() const noexcept { return std::holds_alternative&lt;array_iterator&gt;(it_); }</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">          31 :     bool IsArray() const noexcept { return std::holds_alternative&lt;array_iterator&gt;(it_); }</span></span>
 <span id="L213"><span class="lineNum">     213</span>                 :             : </span>
 <span id="L214"><span class="lineNum">     214</span>                 :             :     std::variant&lt;array_iterator, object_iterator&gt; it_{};</span>
 <span id="L215"><span class="lineNum">     215</span>                 :             :   };</span>
@@ -310,13 +310,13 @@
 <span id="L230"><span class="lineNum">     230</span>                 :             : </span>
 <span id="L231"><span class="lineNum">     231</span>                 :             :     ValuesViewT() = delete;</span>
 <span id="L232"><span class="lineNum">     232</span>                 :             : </span>
-<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           4 :     ValuesViewT(const Json&amp; json, array_iterator begin, array_iterator end) : json_(json), begin_(begin), end_(end) {}</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           7 :     ValuesViewT(const Json&amp; json, array_iterator begin, array_iterator end) : json_(json), begin_(begin), end_(end) {}</span></span>
 <span id="L234"><span class="lineNum">     234</span>                 :             : </span>
-<span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaGNC">           1 :     ValuesViewT(const Json&amp; json, object_iterator begin, object_iterator end) : json_(json), begin_(begin), end_(end) {}</span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaGNC">           4 :     ValuesViewT(const Json&amp; json, object_iterator begin, object_iterator end) : json_(json), begin_(begin), end_(end) {}</span></span>
 <span id="L236"><span class="lineNum">     236</span>                 :             : </span>
-<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">           8 :     value_iterator begin() const noexcept { return begin_; }</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          12 :     value_iterator begin() const noexcept { return begin_; }</span></span>
 <span id="L238"><span class="lineNum">     238</span>                 :             : </span>
-<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">          11 :     value_iterator end() const noexcept { return end_; }</span></span>
+<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">          15 :     value_iterator end() const noexcept { return end_; }</span></span>
 <span id="L240"><span class="lineNum">     240</span>                 :             : </span>
 <span id="L241"><span class="lineNum">     241</span>                 :             :     // Add `empty` and `size`, so that GoogleTest works.</span>
 <span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">           1 :     bool empty() const noexcept { return json_.empty(); }</span></span>
@@ -376,13 +376,13 @@
 <span id="L296"><span class="lineNum">     296</span>                 :             :       types::IfElse&lt;void&gt;&gt;;</span>
 <span id="L297"><span class="lineNum">     297</span>                 :             : </span>
 <span id="L298"><span class="lineNum">     298</span>                 :             :   template&lt;typename Value&gt;</span>
-<span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaGNC">          68 :   static Kind GetKind(Value&amp;&amp; /*unused*/) {  // NOLINT(*-missing-std-forward)</span></span>
-<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">          68 :     return ToKind&lt;Value&gt;::value;</span></span>
-<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          68 :   }</span></span>
+<span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaGNC">          71 :   static Kind GetKind(Value&amp;&amp; /*unused*/) {  // NOLINT(*-missing-std-forward)</span></span>
+<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">          71 :     return ToKind&lt;Value&gt;::value;</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          71 :   }</span></span>
 <span id="L302"><span class="lineNum">     302</span>                 :             : </span>
-<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">         393 :   ~Json() noexcept = default;</span></span>
+<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">         410 :   ~Json() noexcept = default;</span></span>
 <span id="L304"><span class="lineNum">     304</span>                 :             : </span>
-<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">         262 :   Json() noexcept : data_{std::nullopt} {}</span></span>
+<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">         269 :   Json() noexcept : data_{std::nullopt} {}</span></span>
 <span id="L306"><span class="lineNum">     306</span>                 :             : </span>
 <span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">         197 :   Json(const Json&amp; other) : Json() {</span></span>
 <span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">         197 :     std::visit(</span></span>
@@ -400,15 +400,15 @@
 <span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">           2 :     return *this;</span></span>
 <span id="L321"><span class="lineNum">     321</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L322"><span class="lineNum">     322</span>                 :             : </span>
-<span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">          62 :   Json(Json&amp;&amp;) noexcept = default;</span></span>
-<span id="L324"><span class="lineNum">     324</span>                 :<span class="tlaGNC">          21 :   Json&amp; operator=(Json&amp;&amp;) noexcept = default;</span></span>
+<span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">          65 :   Json(Json&amp;&amp;) noexcept = default;</span></span>
+<span id="L324"><span class="lineNum">     324</span>                 :<span class="tlaGNC">          23 :   Json&amp; operator=(Json&amp;&amp;) noexcept = default;</span></span>
 <span id="L325"><span class="lineNum">     325</span>                 :             : </span>
 <span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">           2 :   explicit Json(std::nullopt_t /*value*/) noexcept : data_{std::nullopt} {}</span></span>
 <span id="L327"><span class="lineNum">     327</span>                 :             : </span>
 <span id="L328"><span class="lineNum">     328</span>                 :             :   template&lt;ConvertibleToJson Value&gt;</span>
-<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">          66 :   explicit Json(Value&amp;&amp; value) : data_{std::nullopt} {</span></span>
-<span id="L330"><span class="lineNum">     330</span>                 :<span class="tlaGNC">          66 :     *this = std::forward&lt;Value&gt;(value);</span></span>
-<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          66 :   }</span></span>
+<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">          73 :   explicit Json(Value&amp;&amp; value) : data_{std::nullopt} {</span></span>
+<span id="L330"><span class="lineNum">     330</span>                 :<span class="tlaGNC">          73 :     *this = std::forward&lt;Value&gt;(value);</span></span>
+<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          73 :   }</span></span>
 <span id="L332"><span class="lineNum">     332</span>                 :             : </span>
 <span id="L333"><span class="lineNum">     333</span>                 :<span class="tlaGNC">          21 :   Json&amp; operator=(const std::unique_ptr&lt;Json&gt;&amp; other) {  // NOLINT(misc-no-recursion)</span></span>
 <span id="L334"><span class="lineNum">     334</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 20 times"> + </span>]:<span class="tlaGNC">          21 :     if (other == nullptr) {</span></span>
@@ -420,54 +420,54 @@
 <span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">          21 :   }</span></span>
 <span id="L341"><span class="lineNum">     341</span>                 :             : </span>
 <span id="L342"><span class="lineNum">     342</span>                 :             :   template&lt;typename Value, typename = ToKind&lt;Value&gt;&gt;</span>
-<span id="L343"><span class="lineNum">     343</span>                 :<span class="tlaGNC">         263 :   Json&amp; operator=(Value&amp;&amp; value) {  // NOLINT(misc-unconventional-assign-operator,*-signature): See above.</span></span>
-<span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">         263 :     CopyFrom(std::forward&lt;Value&gt;(value));</span></span>
-<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">         263 :     return *this;</span></span>
-<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">         263 :   }</span></span>
+<span id="L343"><span class="lineNum">     343</span>                 :<span class="tlaGNC">         273 :   Json&amp; operator=(Value&amp;&amp; value) {  // NOLINT(misc-unconventional-assign-operator,*-signature): See above.</span></span>
+<span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">         273 :     CopyFrom(std::forward&lt;Value&gt;(value));</span></span>
+<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">         273 :     return *this;</span></span>
+<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">         273 :   }</span></span>
 <span id="L347"><span class="lineNum">     347</span>                 :             : </span>
 <span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">           1 :   explicit Json(std::string_view value) : data_{std::nullopt} { data_.emplace&lt;std::string&gt;(value); }</span></span>
 <span id="L349"><span class="lineNum">     349</span>                 :             : </span>
 <span id="L350"><span class="lineNum">     350</span>                 :<span class="tlaGNC">           1 :   explicit operator bool() const noexcept { return !IsNull(); }</span></span>
 <span id="L351"><span class="lineNum">     351</span>                 :             : </span>
-<span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">         200 :   bool IsNull() const noexcept { return std::holds_alternative&lt;std::nullopt_t&gt;(data_); }</span></span>
+<span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">         205 :   bool IsNull() const noexcept { return std::holds_alternative&lt;std::nullopt_t&gt;(data_); }</span></span>
 <span id="L353"><span class="lineNum">     353</span>                 :             : </span>
-<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">         137 :   bool IsBool() const noexcept { return std::holds_alternative&lt;bool&gt;(data_); }</span></span>
+<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">         146 :   bool IsBool() const noexcept { return std::holds_alternative&lt;bool&gt;(data_); }</span></span>
 <span id="L355"><span class="lineNum">     355</span>                 :             : </span>
-<span id="L356"><span class="lineNum">     356</span>                 :<span class="tlaUNC">           0 :   bool IsFalse() const noexcept { return IsBool() &amp;&amp; !std::get&lt;bool&gt;(data_); }</span></span>
+<span id="L356"><span class="lineNum">     356</span> [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :   bool IsFalse() const noexcept { return IsBool() &amp;&amp; !std::get&lt;bool&gt;(data_); }</span></span>
 <span id="L357"><span class="lineNum">     357</span>                 :             : </span>
-<span id="L358"><span class="lineNum">     358</span>                 :<span class="tlaUNC">           0 :   bool IsTrue() const noexcept { return IsBool() &amp;&amp; std::get&lt;bool&gt;(data_); }</span></span>
+<span id="L358"><span class="lineNum">     358</span> [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :   bool IsTrue() const noexcept { return IsBool() &amp;&amp; std::get&lt;bool&gt;(data_); }</span></span>
 <span id="L359"><span class="lineNum">     359</span>                 :             : </span>
-<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">         114 :   bool IsSignedInt() const noexcept { return std::holds_alternative&lt;SignedInt&gt;(data_); }</span></span>
+<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">         117 :   bool IsSignedInt() const noexcept { return std::holds_alternative&lt;SignedInt&gt;(data_); }</span></span>
 <span id="L361"><span class="lineNum">     361</span>                 :             : </span>
-<span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">          61 :   bool IsUnsignedInt() const noexcept { return std::holds_alternative&lt;UnsignedInt&gt;(data_); }</span></span>
+<span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">          62 :   bool IsUnsignedInt() const noexcept { return std::holds_alternative&lt;UnsignedInt&gt;(data_); }</span></span>
 <span id="L363"><span class="lineNum">     363</span>                 :             : </span>
-<span id="L364"><span class="lineNum">     364</span> [<span class="tlaGBC" title="branch 0 was taken 53 times"> + </span><span class="tlaGBC" title="branch 1 was taken 61 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 7 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 54 times"> + </span>]:<span class="tlaGNC">         114 :   bool IsInteger() const noexcept { return IsSignedInt() || IsUnsignedInt(); }</span></span>
+<span id="L364"><span class="lineNum">     364</span> [<span class="tlaGBC" title="branch 0 was taken 55 times"> + </span><span class="tlaGBC" title="branch 1 was taken 62 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 7 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 55 times"> + </span>]:<span class="tlaGNC">         117 :   bool IsInteger() const noexcept { return IsSignedInt() || IsUnsignedInt(); }</span></span>
 <span id="L365"><span class="lineNum">     365</span>                 :             : </span>
-<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">          54 :   bool IsFloat() const noexcept { return std::holds_alternative&lt;Float&gt;(data_); }</span></span>
+<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">          55 :   bool IsFloat() const noexcept { return std::holds_alternative&lt;Float&gt;(data_); }</span></span>
 <span id="L367"><span class="lineNum">     367</span>                 :             : </span>
-<span id="L368"><span class="lineNum">     368</span> [<span class="tlaGBC" title="branch 0 was taken 60 times"> + </span><span class="tlaGBC" title="branch 1 was taken 54 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 18 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 36 times"> + </span>]:<span class="tlaGNC">         114 :   bool IsNumber() const noexcept { return IsInteger() || IsFloat(); }</span></span>
+<span id="L368"><span class="lineNum">     368</span> [<span class="tlaGBC" title="branch 0 was taken 62 times"> + </span><span class="tlaGBC" title="branch 1 was taken 55 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 19 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 36 times"> + </span>]:<span class="tlaGNC">         117 :   bool IsNumber() const noexcept { return IsInteger() || IsFloat(); }</span></span>
 <span id="L369"><span class="lineNum">     369</span>                 :             : </span>
 <span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">          30 :   bool IsString() const noexcept { return std::holds_alternative&lt;std::string&gt;(data_); }</span></span>
 <span id="L371"><span class="lineNum">     371</span>                 :             : </span>
-<span id="L372"><span class="lineNum">     372</span>                 :<span class="tlaGNC">         233 :   bool IsArray() const noexcept { return std::holds_alternative&lt;Array&gt;(data_); }</span></span>
+<span id="L372"><span class="lineNum">     372</span>                 :<span class="tlaGNC">         250 :   bool IsArray() const noexcept { return std::holds_alternative&lt;Array&gt;(data_); }</span></span>
 <span id="L373"><span class="lineNum">     373</span>                 :             : </span>
-<span id="L374"><span class="lineNum">     374</span>                 :<span class="tlaGNC">          87 :   bool IsObject() const noexcept { return std::holds_alternative&lt;Object&gt;(data_); }</span></span>
+<span id="L374"><span class="lineNum">     374</span>                 :<span class="tlaGNC">          95 :   bool IsObject() const noexcept { return std::holds_alternative&lt;Object&gt;(data_); }</span></span>
 <span id="L375"><span class="lineNum">     375</span>                 :             : </span>
-<span id="L376"><span class="lineNum">     376</span>                 :<span class="tlaGNC">         152 :   Kind GetKind() const noexcept {</span></span>
-<span id="L377"><span class="lineNum">     377</span>         [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 141 times"> + </span>]:<span class="tlaGNC">         152 :     if (IsNull()) {</span></span>
+<span id="L376"><span class="lineNum">     376</span>                 :<span class="tlaGNC">         155 :   Kind GetKind() const noexcept {</span></span>
+<span id="L377"><span class="lineNum">     377</span>         [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 144 times"> + </span>]:<span class="tlaGNC">         155 :     if (IsNull()) {</span></span>
 <span id="L378"><span class="lineNum">     378</span>                 :<span class="tlaGNC">          11 :       return Kind::kNull;</span></span>
-<span id="L379"><span class="lineNum">     379</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 137 times"> + </span>]:<span class="tlaGNC">         141 :     } else if (IsArray()) {</span></span>
+<span id="L379"><span class="lineNum">     379</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 140 times"> + </span>]:<span class="tlaGNC">         144 :     } else if (IsArray()) {</span></span>
 <span id="L380"><span class="lineNum">     380</span>                 :<span class="tlaGNC">           4 :       return Kind::kArray;</span></span>
-<span id="L381"><span class="lineNum">     381</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 113 times"> + </span>]:<span class="tlaGNC">         137 :     } else if (IsBool()) {</span></span>
+<span id="L381"><span class="lineNum">     381</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 116 times"> + </span>]:<span class="tlaGNC">         140 :     } else if (IsBool()) {</span></span>
 <span id="L382"><span class="lineNum">     382</span>                 :<span class="tlaGNC">          24 :       return Kind::kBool;</span></span>
-<span id="L383"><span class="lineNum">     383</span>         [<span class="tlaGBC" title="branch 0 was taken 77 times"> + </span><span class="tlaGBC" title="branch 1 was taken 36 times"> + </span>]:<span class="tlaGNC">         113 :     } else if (IsNumber()) {</span></span>
-<span id="L384"><span class="lineNum">     384</span>                 :<span class="tlaGNC">          77 :       return Kind::kNumber;</span></span>
-<span id="L385"><span class="lineNum">     385</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>]:<span class="tlaGNC">          77 :     } else if (IsObject()) {</span></span>
+<span id="L383"><span class="lineNum">     383</span>         [<span class="tlaGBC" title="branch 0 was taken 80 times"> + </span><span class="tlaGBC" title="branch 1 was taken 36 times"> + </span>]:<span class="tlaGNC">         116 :     } else if (IsNumber()) {</span></span>
+<span id="L384"><span class="lineNum">     384</span>                 :<span class="tlaGNC">          80 :       return Kind::kNumber;</span></span>
+<span id="L385"><span class="lineNum">     385</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>]:<span class="tlaGNC">          80 :     } else if (IsObject()) {</span></span>
 <span id="L386"><span class="lineNum">     386</span>                 :<span class="tlaGNC">           8 :       return Kind::kObject;</span></span>
 <span id="L387"><span class="lineNum">     387</span>         [<span class="tlaGBC" title="branch 0 was taken 28 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          28 :     } else if (IsString()) {</span></span>
 <span id="L388"><span class="lineNum">     388</span>                 :<span class="tlaGNC">          28 :       return Kind::kString;</span></span>
 <span id="L389"><span class="lineNum">     389</span>                 :<span class="tlaGNC">          28 :     }</span></span>
-<span id="L390"><span class="lineNum">     390</span>         [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>]:<span class="tlaGNC">         152 :     MBO_CONFIG_REQUIRE(false, &quot;Bad type&quot;);</span></span>
+<span id="L390"><span class="lineNum">     390</span>         [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>]:<span class="tlaGNC">         155 :     MBO_CONFIG_REQUIRE(false, &quot;Bad type&quot;);</span></span>
 <span id="L391"><span class="lineNum">     391</span>                 :<span class="tlaUNC">           0 :     return Kind::kNull;</span></span>
 <span id="L392"><span class="lineNum">     392</span>                 :<span class="tlaUNC">           0 :   }</span></span>
 <span id="L393"><span class="lineNum">     393</span>                 :             : </span>
@@ -502,30 +502,30 @@
 <span id="L422"><span class="lineNum">     422</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L423"><span class="lineNum">     423</span>                 :             : </span>
 <span id="L424"><span class="lineNum">     424</span>                 :             :   // Change value to an `Array`.</span>
-<span id="L425"><span class="lineNum">     425</span>                 :<span class="tlaGNC">          31 :   Json&amp; MakeArray() { return MakeType(std::make_unique&lt;Array::element_type&gt;()); }</span></span>
+<span id="L425"><span class="lineNum">     425</span>                 :<span class="tlaGNC">          34 :   Json&amp; MakeArray() { return MakeType(std::make_unique&lt;Array::element_type&gt;()); }</span></span>
 <span id="L426"><span class="lineNum">     426</span>                 :             : </span>
 <span id="L427"><span class="lineNum">     427</span>                 :             :   // Change value to an `Object`</span>
-<span id="L428"><span class="lineNum">     428</span>                 :<span class="tlaGNC">          55 :   Json&amp; MakeObject() { return MakeType(Object{}); }</span></span>
+<span id="L428"><span class="lineNum">     428</span>                 :<span class="tlaGNC">          58 :   Json&amp; MakeObject() { return MakeType(Object{}); }</span></span>
 <span id="L429"><span class="lineNum">     429</span>                 :             : </span>
 <span id="L430"><span class="lineNum">     430</span>                 :             :   template&lt;types::ConstructibleInto&lt;std::string&gt; Str&gt;</span>
 <span id="L431"><span class="lineNum">     431</span>                 :<span class="tlaGNC">           2 :   Json&amp; MakeString(Str&amp;&amp; str = {}) {</span></span>
 <span id="L432"><span class="lineNum">     432</span>                 :<span class="tlaGNC">           2 :     return MakeType(std::forward&lt;Str&gt;(str));</span></span>
 <span id="L433"><span class="lineNum">     433</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L434"><span class="lineNum">     434</span>                 :             : </span>
-<span id="L435"><span class="lineNum">     435</span>                 :<span class="tlaGNC">          12 :   bool empty() const noexcept {</span></span>
-<span id="L436"><span class="lineNum">     436</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          12 :     if (IsArray()) {</span></span>
-<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">           3 :       return std::get&lt;Array&gt;(data_)-&gt;empty();</span></span>
-<span id="L438"><span class="lineNum">     438</span>                 :<span class="tlaGNC">           3 :     }</span></span>
-<span id="L439"><span class="lineNum">     439</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">           9 :     if (IsObject()) {</span></span>
-<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">           4 :       return std::get&lt;Object&gt;(data_).empty();</span></span>
-<span id="L441"><span class="lineNum">     441</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L435"><span class="lineNum">     435</span>                 :<span class="tlaGNC">          14 :   bool empty() const noexcept {</span></span>
+<span id="L436"><span class="lineNum">     436</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          14 :     if (IsArray()) {</span></span>
+<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">           4 :       return std::get&lt;Array&gt;(data_)-&gt;empty();</span></span>
+<span id="L438"><span class="lineNum">     438</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L439"><span class="lineNum">     439</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          10 :     if (IsObject()) {</span></span>
+<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">           5 :       return std::get&lt;Object&gt;(data_).empty();</span></span>
+<span id="L441"><span class="lineNum">     441</span>                 :<span class="tlaGNC">           5 :     }</span></span>
 <span id="L442"><span class="lineNum">     442</span>                 :<span class="tlaGNC">           5 :     return true;</span></span>
-<span id="L443"><span class="lineNum">     443</span>                 :<span class="tlaGNC">           9 :   }</span></span>
+<span id="L443"><span class="lineNum">     443</span>                 :<span class="tlaGNC">          10 :   }</span></span>
 <span id="L444"><span class="lineNum">     444</span>                 :             : </span>
-<span id="L445"><span class="lineNum">     445</span>                 :<span class="tlaGNC">          15 :   std::size_t size() const noexcept {</span></span>
-<span id="L446"><span class="lineNum">     446</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">          15 :     if (IsArray()) {</span></span>
-<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">          13 :       return std::get&lt;Array&gt;(data_)-&gt;size();</span></span>
-<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">          13 :     }</span></span>
+<span id="L445"><span class="lineNum">     445</span>                 :<span class="tlaGNC">          16 :   std::size_t size() const noexcept {</span></span>
+<span id="L446"><span class="lineNum">     446</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">          16 :     if (IsArray()) {</span></span>
+<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">          14 :       return std::get&lt;Array&gt;(data_)-&gt;size();</span></span>
+<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">          14 :     }</span></span>
 <span id="L449"><span class="lineNum">     449</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">           2 :     if (IsObject()) {</span></span>
 <span id="L450"><span class="lineNum">     450</span>                 :<span class="tlaGNC">           2 :       return std::get&lt;Object&gt;(data_).size();</span></span>
 <span id="L451"><span class="lineNum">     451</span>                 :<span class="tlaGNC">           2 :     }</span></span>
@@ -542,18 +542,18 @@
 <span id="L462"><span class="lineNum">     462</span>                 :<span class="tlaGNC">           1 :     }</span></span>
 <span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L464"><span class="lineNum">     464</span>                 :             : </span>
-<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">           6 :   bool contains(std::string_view property) const noexcept {</span></span>
-<span id="L466"><span class="lineNum">     466</span> [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 4 times"> + </span>]:<span class="tlaGNC">           6 :     return IsObject() &amp;&amp; std::get&lt;Object&gt;(data_).contains(property);</span></span>
-<span id="L467"><span class="lineNum">     467</span>                 :<span class="tlaGNC">           6 :   }</span></span>
+<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">           7 :   bool contains(std::string_view property) const noexcept {</span></span>
+<span id="L466"><span class="lineNum">     466</span> [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 3 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 4 times"> + </span>]:<span class="tlaGNC">           7 :     return IsObject() &amp;&amp; std::get&lt;Object&gt;(data_).contains(property);</span></span>
+<span id="L467"><span class="lineNum">     467</span>                 :<span class="tlaGNC">           7 :   }</span></span>
 <span id="L468"><span class="lineNum">     468</span>                 :             : </span>
 <span id="L469"><span class="lineNum">     469</span>                 :             :   template&lt;typename Arg&gt;</span>
 <span id="L470"><span class="lineNum">     470</span>                 :             :   requires(types::ConstructibleFrom&lt;Json, Arg&gt;)</span>
-<span id="L471"><span class="lineNum">     471</span>                 :<span class="tlaGNC">          12 :   Json&amp; emplace_back(Arg&amp;&amp; arg) {</span></span>
-<span id="L472"><span class="lineNum">     472</span>                 :<span class="tlaGNC">          12 :     MakeArray();</span></span>
-<span id="L473"><span class="lineNum">     473</span>                 :<span class="tlaGNC">          12 :     auto&amp; values = std::get&lt;Array&gt;(data_);</span></span>
-<span id="L474"><span class="lineNum">     474</span>                 :<span class="tlaGNC">          12 :     values-&gt;emplace_back(std::forward&lt;Arg&gt;(arg));</span></span>
-<span id="L475"><span class="lineNum">     475</span>                 :<span class="tlaGNC">          12 :     return values-&gt;back();</span></span>
-<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">          12 :   }</span></span>
+<span id="L471"><span class="lineNum">     471</span>                 :<span class="tlaGNC">          15 :   Json&amp; emplace_back(Arg&amp;&amp; arg) {</span></span>
+<span id="L472"><span class="lineNum">     472</span>                 :<span class="tlaGNC">          15 :     MakeArray();</span></span>
+<span id="L473"><span class="lineNum">     473</span>                 :<span class="tlaGNC">          15 :     auto&amp; values = std::get&lt;Array&gt;(data_);</span></span>
+<span id="L474"><span class="lineNum">     474</span>                 :<span class="tlaGNC">          15 :     values-&gt;emplace_back(std::forward&lt;Arg&gt;(arg));</span></span>
+<span id="L475"><span class="lineNum">     475</span>                 :<span class="tlaGNC">          15 :     return values-&gt;back();</span></span>
+<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">          15 :   }</span></span>
 <span id="L477"><span class="lineNum">     477</span>                 :             : </span>
 <span id="L478"><span class="lineNum">     478</span>                 :             :   template&lt;typename Arg&gt;</span>
 <span id="L479"><span class="lineNum">     479</span>                 :             :   requires(types::ConstructibleFrom&lt;Json, Arg&gt;)</span>
@@ -589,30 +589,30 @@
 <span id="L509"><span class="lineNum">     509</span>                 :<span class="tlaGNC">           8 :     return (*std::get&lt;Array&gt;(data_))[index];</span></span>
 <span id="L510"><span class="lineNum">     510</span>                 :<span class="tlaGNC">           9 :   }</span></span>
 <span id="L511"><span class="lineNum">     511</span>                 :             : </span>
-<span id="L512"><span class="lineNum">     512</span>                 :<span class="tlaGNC">           2 :   const Json&amp; operator[](std::size_t index) const {</span></span>
-<span id="L513"><span class="lineNum">     513</span>                 :<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(IsArray(), &quot;Is not an Array.&quot;);</span></span>
-<span id="L514"><span class="lineNum">     514</span>                 :<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(index &lt; size(), &quot;Out of range.&quot;);</span></span>
-<span id="L515"><span class="lineNum">     515</span>                 :<span class="tlaGNC">           1 :     return (*std::get&lt;Array&gt;(data_))[index];</span></span>
-<span id="L516"><span class="lineNum">     516</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L512"><span class="lineNum">     512</span>                 :<span class="tlaGNC">           3 :   const Json&amp; operator[](std::size_t index) const {</span></span>
+<span id="L513"><span class="lineNum">     513</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     MBO_CONFIG_REQUIRE(IsArray(), &quot;Is not an Array.&quot;);</span></span>
+<span id="L514"><span class="lineNum">     514</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     MBO_CONFIG_REQUIRE(index &lt; size(), &quot;Out of range.&quot;);</span></span>
+<span id="L515"><span class="lineNum">     515</span>                 :<span class="tlaGNC">           2 :     return (*std::get&lt;Array&gt;(data_))[index];</span></span>
+<span id="L516"><span class="lineNum">     516</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L517"><span class="lineNum">     517</span>                 :             : </span>
-<span id="L518"><span class="lineNum">     518</span>                 :<span class="tlaGNC">          49 :   Json&amp; operator[](std::string_view property) {</span></span>
-<span id="L519"><span class="lineNum">     519</span>                 :<span class="tlaGNC">          49 :     MakeObject();</span></span>
-<span id="L520"><span class="lineNum">     520</span>                 :<span class="tlaGNC">          49 :     auto [it, inserted] = std::get&lt;Object&gt;(data_).emplace(property, nullptr);</span></span>
-<span id="L521"><span class="lineNum">     521</span>         [<span class="tlaGBC" title="branch 0 was taken 19 times"> + </span><span class="tlaGBC" title="branch 1 was taken 30 times"> + </span>]:<span class="tlaGNC">          49 :     if (inserted) {</span></span>
-<span id="L522"><span class="lineNum">     522</span>                 :<span class="tlaGNC">          19 :       it-&gt;second = std::make_unique&lt;Json&gt;();</span></span>
-<span id="L523"><span class="lineNum">     523</span>                 :<span class="tlaGNC">          19 :     }</span></span>
-<span id="L524"><span class="lineNum">     524</span>                 :<span class="tlaGNC">          49 :     return *it-&gt;second;</span></span>
-<span id="L525"><span class="lineNum">     525</span>                 :<span class="tlaGNC">          49 :   }</span></span>
+<span id="L518"><span class="lineNum">     518</span>                 :<span class="tlaGNC">          52 :   Json&amp; operator[](std::string_view property) {</span></span>
+<span id="L519"><span class="lineNum">     519</span>                 :<span class="tlaGNC">          52 :     MakeObject();</span></span>
+<span id="L520"><span class="lineNum">     520</span>                 :<span class="tlaGNC">          52 :     auto [it, inserted] = std::get&lt;Object&gt;(data_).emplace(property, nullptr);</span></span>
+<span id="L521"><span class="lineNum">     521</span>         [<span class="tlaGBC" title="branch 0 was taken 22 times"> + </span><span class="tlaGBC" title="branch 1 was taken 30 times"> + </span>]:<span class="tlaGNC">          52 :     if (inserted) {</span></span>
+<span id="L522"><span class="lineNum">     522</span>                 :<span class="tlaGNC">          22 :       it-&gt;second = std::make_unique&lt;Json&gt;();</span></span>
+<span id="L523"><span class="lineNum">     523</span>                 :<span class="tlaGNC">          22 :     }</span></span>
+<span id="L524"><span class="lineNum">     524</span>                 :<span class="tlaGNC">          52 :     return *it-&gt;second;</span></span>
+<span id="L525"><span class="lineNum">     525</span>                 :<span class="tlaGNC">          52 :   }</span></span>
 <span id="L526"><span class="lineNum">     526</span>                 :             : </span>
-<span id="L527"><span class="lineNum">     527</span>                 :<span class="tlaGNC">           2 :   const Json&amp; operator[](std::string_view property) const {</span></span>
-<span id="L528"><span class="lineNum">     528</span>                 :<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is not an Object.&quot;);</span></span>
-<span id="L529"><span class="lineNum">     529</span>                 :<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(contains(property), &quot;Property not present:&quot;) &lt;&lt; &quot;'&quot; &lt;&lt; property &lt;&lt; &quot;'.&quot;;</span></span>
-<span id="L530"><span class="lineNum">     530</span>                 :<span class="tlaGNC">           1 :     return *(std::get&lt;Object&gt;(data_)).at(property);</span></span>
-<span id="L531"><span class="lineNum">     531</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L527"><span class="lineNum">     527</span>                 :<span class="tlaGNC">           3 :   const Json&amp; operator[](std::string_view property) const {</span></span>
+<span id="L528"><span class="lineNum">     528</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is not an Object.&quot;);</span></span>
+<span id="L529"><span class="lineNum">     529</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           4 :     MBO_CONFIG_REQUIRE(contains(property), &quot;Property not present:&quot;) &lt;&lt; &quot;'&quot; &lt;&lt; property &lt;&lt; &quot;'.&quot;;</span></span>
+<span id="L530"><span class="lineNum">     530</span>                 :<span class="tlaGNC">           2 :     return *(std::get&lt;Object&gt;(data_)).at(property);</span></span>
+<span id="L531"><span class="lineNum">     531</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L532"><span class="lineNum">     532</span>                 :             : </span>
 <span id="L533"><span class="lineNum">     533</span>                 :<span class="tlaGNC">           2 :   Json&amp; at(std::size_t index) { return (*this)[index]; }</span></span>
 <span id="L534"><span class="lineNum">     534</span>                 :             : </span>
-<span id="L535"><span class="lineNum">     535</span>                 :<span class="tlaUNC">           0 :   const Json&amp; at(std::size_t index) const { return (*this)[index]; }</span></span>
+<span id="L535"><span class="lineNum">     535</span>                 :<span class="tlaGNC">           1 :   const Json&amp; at(std::size_t index) const { return (*this)[index]; }</span></span>
 <span id="L536"><span class="lineNum">     536</span>                 :             : </span>
 <span id="L537"><span class="lineNum">     537</span>                 :<span class="tlaGNC">           3 :   Json&amp; at(std::string_view property) {</span></span>
 <span id="L538"><span class="lineNum">     538</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is not an Object.&quot;);</span></span>
@@ -620,7 +620,7 @@
 <span id="L540"><span class="lineNum">     540</span>                 :<span class="tlaGNC">           2 :     return *std::get&lt;Object&gt;(data_).at(property);</span></span>
 <span id="L541"><span class="lineNum">     541</span>                 :<span class="tlaGNC">           3 :   }</span></span>
 <span id="L542"><span class="lineNum">     542</span>                 :             : </span>
-<span id="L543"><span class="lineNum">     543</span>                 :<span class="tlaUNC">           0 :   const Json&amp; at(std::string_view property) const { return (*this)[property]; }</span></span>
+<span id="L543"><span class="lineNum">     543</span>                 :<span class="tlaGNC">           1 :   const Json&amp; at(std::string_view property) const { return (*this)[property]; }</span></span>
 <span id="L544"><span class="lineNum">     544</span>                 :             : </span>
 <span id="L545"><span class="lineNum">     545</span>                 :             :   // NOLINTEND(*-avoid-unchecked-container-access)</span>
 <span id="L546"><span class="lineNum">     546</span>                 :             : </span>
@@ -634,22 +634,22 @@
 <span id="L554"><span class="lineNum">     554</span>                 :<span class="tlaGNC">           1 :     return std::get&lt;Array&gt;(data_)-&gt;erase(first, last);</span></span>
 <span id="L555"><span class="lineNum">     555</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L556"><span class="lineNum">     556</span>                 :             : </span>
-<span id="L557"><span class="lineNum">     557</span>                 :<span class="tlaUNC">           0 :   value_iterator erase(const_value_iterator pos) {</span></span>
-<span id="L558"><span class="lineNum">     558</span>                 :<span class="tlaUNC">           0 :     if (IsArray()) {</span></span>
-<span id="L559"><span class="lineNum">     559</span>                 :<span class="tlaUNC">           0 :       return value_iterator{std::get&lt;Array&gt;(data_)-&gt;erase(pos)};</span></span>
-<span id="L560"><span class="lineNum">     560</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L561"><span class="lineNum">     561</span>                 :<span class="tlaUNC">           0 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
-<span id="L562"><span class="lineNum">     562</span>                 :<span class="tlaUNC">           0 :     const_value_iterator end(pos);</span></span>
-<span id="L563"><span class="lineNum">     563</span>                 :<span class="tlaUNC">           0 :     return value_iterator{std::get&lt;Object&gt;(data_).erase(pos, ++end)};</span></span>
-<span id="L564"><span class="lineNum">     564</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L557"><span class="lineNum">     557</span>                 :<span class="tlaGNC">           2 :   value_iterator erase(const_value_iterator pos) {</span></span>
+<span id="L558"><span class="lineNum">     558</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     if (IsArray()) {</span></span>
+<span id="L559"><span class="lineNum">     559</span>                 :<span class="tlaGNC">           1 :       return value_iterator{std::get&lt;Array&gt;(data_)-&gt;erase(pos)};</span></span>
+<span id="L560"><span class="lineNum">     560</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L561"><span class="lineNum">     561</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
+<span id="L562"><span class="lineNum">     562</span>                 :<span class="tlaGNC">           1 :     const_value_iterator end(pos);</span></span>
+<span id="L563"><span class="lineNum">     563</span>                 :<span class="tlaGNC">           1 :     return value_iterator{std::get&lt;Object&gt;(data_).erase(pos, ++end)};</span></span>
+<span id="L564"><span class="lineNum">     564</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L565"><span class="lineNum">     565</span>                 :             : </span>
-<span id="L566"><span class="lineNum">     566</span>                 :<span class="tlaUNC">           0 :   value_iterator erase(const_value_iterator first, const_value_iterator last) {</span></span>
-<span id="L567"><span class="lineNum">     567</span>                 :<span class="tlaUNC">           0 :     if (IsArray()) {</span></span>
-<span id="L568"><span class="lineNum">     568</span>                 :<span class="tlaUNC">           0 :       return value_iterator{std::get&lt;Array&gt;(data_)-&gt;erase(first, last)};</span></span>
-<span id="L569"><span class="lineNum">     569</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L570"><span class="lineNum">     570</span>                 :<span class="tlaUNC">           0 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
-<span id="L571"><span class="lineNum">     571</span>                 :<span class="tlaUNC">           0 :     return value_iterator{std::get&lt;Object&gt;(data_).erase(first, last)};</span></span>
-<span id="L572"><span class="lineNum">     572</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L566"><span class="lineNum">     566</span>                 :<span class="tlaGNC">           2 :   value_iterator erase(const_value_iterator first, const_value_iterator last) {</span></span>
+<span id="L567"><span class="lineNum">     567</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     if (IsArray()) {</span></span>
+<span id="L568"><span class="lineNum">     568</span>                 :<span class="tlaGNC">           1 :       return value_iterator{std::get&lt;Array&gt;(data_)-&gt;erase(first, last)};</span></span>
+<span id="L569"><span class="lineNum">     569</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L570"><span class="lineNum">     570</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
+<span id="L571"><span class="lineNum">     571</span>                 :<span class="tlaGNC">           1 :     return value_iterator{std::get&lt;Object&gt;(data_).erase(first, last)};</span></span>
+<span id="L572"><span class="lineNum">     572</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L573"><span class="lineNum">     573</span>                 :             : </span>
 <span id="L574"><span class="lineNum">     574</span>                 :<span class="tlaGNC">           4 :   size_type erase(std::string_view property) {</span></span>
 <span id="L575"><span class="lineNum">     575</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           4 :     if (IsObject()) {</span></span>
@@ -729,18 +729,18 @@
 <span id="L649"><span class="lineNum">     649</span>                 :<span class="tlaUNC">           0 :     return std::get&lt;Array&gt;(data_)-&gt;crend();</span></span>
 <span id="L650"><span class="lineNum">     650</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L651"><span class="lineNum">     651</span>                 :             : </span>
-<span id="L652"><span class="lineNum">     652</span>                 :<span class="tlaGNC">           6 :   auto values() -&gt; values_view {</span></span>
-<span id="L653"><span class="lineNum">     653</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           6 :     if (IsArray()) {</span></span>
-<span id="L654"><span class="lineNum">     654</span>                 :<span class="tlaGNC">           4 :       auto&amp; array = std::get&lt;Array&gt;(data_);</span></span>
-<span id="L655"><span class="lineNum">     655</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           4 :       MBO_CONFIG_REQUIRE_DEBUG(array != nullptr, &quot;May not be nulltr.&quot;);</span></span>
-<span id="L656"><span class="lineNum">     656</span>                 :<span class="tlaGNC">           4 :       std::cout &lt;&lt; &quot;Array Size: &quot; &lt;&lt; array-&gt;size() &lt;&lt; &quot;\n&quot; &lt;&lt; std::flush;</span></span>
-<span id="L657"><span class="lineNum">     657</span>                 :<span class="tlaGNC">           4 :       return {*this, array-&gt;begin(), array-&gt;end()};</span></span>
-<span id="L658"><span class="lineNum">     658</span>                 :<span class="tlaGNC">           4 :     }</span></span>
-<span id="L659"><span class="lineNum">     659</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           6 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
-<span id="L660"><span class="lineNum">     660</span>                 :<span class="tlaGNC">           1 :     auto&amp; object = std::get&lt;Object&gt;(data_);</span></span>
-<span id="L661"><span class="lineNum">     661</span>                 :<span class="tlaGNC">           2 :     std::cout &lt;&lt; &quot;Object Size: &quot; &lt;&lt; object.size() &lt;&lt; &quot;\n&quot; &lt;&lt; std::flush;</span></span>
-<span id="L662"><span class="lineNum">     662</span>                 :<span class="tlaGNC">           2 :     return {*this, object.begin(), object.end()};</span></span>
-<span id="L663"><span class="lineNum">     663</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L652"><span class="lineNum">     652</span>                 :<span class="tlaGNC">          12 :   auto values() -&gt; values_view {</span></span>
+<span id="L653"><span class="lineNum">     653</span>         [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          12 :     if (IsArray()) {</span></span>
+<span id="L654"><span class="lineNum">     654</span>                 :<span class="tlaGNC">           7 :       auto&amp; array = std::get&lt;Array&gt;(data_);</span></span>
+<span id="L655"><span class="lineNum">     655</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">           7 :       MBO_CONFIG_REQUIRE_DEBUG(array != nullptr, &quot;May not be nulltr.&quot;);</span></span>
+<span id="L656"><span class="lineNum">     656</span>                 :<span class="tlaGNC">           7 :       std::cout &lt;&lt; &quot;Array Size: &quot; &lt;&lt; array-&gt;size() &lt;&lt; &quot;\n&quot; &lt;&lt; std::flush;</span></span>
+<span id="L657"><span class="lineNum">     657</span>                 :<span class="tlaGNC">           7 :       return {*this, array-&gt;begin(), array-&gt;end()};</span></span>
+<span id="L658"><span class="lineNum">     658</span>                 :<span class="tlaGNC">           7 :     }</span></span>
+<span id="L659"><span class="lineNum">     659</span>         [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          12 :     MBO_CONFIG_REQUIRE(IsObject(), &quot;Is neither Array nor Object.&quot;);</span></span>
+<span id="L660"><span class="lineNum">     660</span>                 :<span class="tlaGNC">           4 :     auto&amp; object = std::get&lt;Object&gt;(data_);</span></span>
+<span id="L661"><span class="lineNum">     661</span>                 :<span class="tlaGNC">           5 :     std::cout &lt;&lt; &quot;Object Size: &quot; &lt;&lt; object.size() &lt;&lt; &quot;\n&quot; &lt;&lt; std::flush;</span></span>
+<span id="L662"><span class="lineNum">     662</span>                 :<span class="tlaGNC">           5 :     return {*this, object.begin(), object.end()};</span></span>
+<span id="L663"><span class="lineNum">     663</span>                 :<span class="tlaGNC">           5 :   }</span></span>
 <span id="L664"><span class="lineNum">     664</span>                 :             : </span>
 <span id="L665"><span class="lineNum">     665</span>                 :<span class="tlaGNC">           1 :   auto values() const -&gt; const_values_view {</span></span>
 <span id="L666"><span class="lineNum">     666</span>                 :<span class="tlaGNC">           1 :     if (IsArray()) {</span></span>
@@ -806,9 +806,9 @@
 <span id="L726"><span class="lineNum">     726</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L727"><span class="lineNum">     727</span>                 :             : </span>
 <span id="L728"><span class="lineNum">     728</span>                 :             :   template&lt;ConvertibleToJson Value&gt;</span>
-<span id="L729"><span class="lineNum">     729</span>                 :<span class="tlaGNC">          64 :   bool operator==(const Value&amp; other) const noexcept {</span></span>
-<span id="L730"><span class="lineNum">     730</span>                 :<span class="tlaGNC">          64 :     return Compare(other) == std::strong_ordering::equal;</span></span>
-<span id="L731"><span class="lineNum">     731</span>                 :<span class="tlaGNC">          64 :   }</span></span>
+<span id="L729"><span class="lineNum">     729</span>                 :<span class="tlaGNC">          67 :   bool operator==(const Value&amp; other) const noexcept {</span></span>
+<span id="L730"><span class="lineNum">     730</span>                 :<span class="tlaGNC">          67 :     return Compare(other) == std::strong_ordering::equal;</span></span>
+<span id="L731"><span class="lineNum">     731</span>                 :<span class="tlaGNC">          67 :   }</span></span>
 <span id="L732"><span class="lineNum">     732</span>                 :             : </span>
 <span id="L733"><span class="lineNum">     733</span>                 :             :   template&lt;ConvertibleToJson Value&gt;</span>
 <span id="L734"><span class="lineNum">     734</span>                 :<span class="tlaGNC">           3 :   bool operator&lt;(const Value&amp; other) const noexcept {</span></span>
@@ -823,24 +823,24 @@
 <span id="L743"><span class="lineNum">     743</span>                 :             : </span>
 <span id="L744"><span class="lineNum">     744</span>                 :             :  private:</span>
 <span id="L745"><span class="lineNum">     745</span>                 :             :   template&lt;typename T&gt;</span>
-<span id="L746"><span class="lineNum">     746</span>                 :<span class="tlaGNC">          86 :   bool IsType() const noexcept {</span></span>
-<span id="L747"><span class="lineNum">     747</span>                 :<span class="tlaGNC">          86 :     return std::holds_alternative&lt;T&gt;(data_);</span></span>
-<span id="L748"><span class="lineNum">     748</span>                 :<span class="tlaGNC">          86 :   }</span></span>
+<span id="L746"><span class="lineNum">     746</span>                 :<span class="tlaGNC">          92 :   bool IsType() const noexcept {</span></span>
+<span id="L747"><span class="lineNum">     747</span>                 :<span class="tlaGNC">          92 :     return std::holds_alternative&lt;T&gt;(data_);</span></span>
+<span id="L748"><span class="lineNum">     748</span>                 :<span class="tlaGNC">          92 :   }</span></span>
 <span id="L749"><span class="lineNum">     749</span>                 :             : </span>
 <span id="L750"><span class="lineNum">     750</span>                 :             :   template&lt;typename T&gt;</span>
 <span id="L751"><span class="lineNum">     751</span>                 :             :   inline Json&amp; MakeType(T&amp;&amp; value);</span>
 <span id="L752"><span class="lineNum">     752</span>                 :             : </span>
 <span id="L753"><span class="lineNum">     753</span>                 :             :   template&lt;typename Value, typename = ToKind&lt;Value&gt;&gt;</span>
-<span id="L754"><span class="lineNum">     754</span>                 :<span class="tlaGNC">         263 :   void CopyFrom(Value&amp;&amp; value) {</span></span>
-<span id="L755"><span class="lineNum">     755</span>                 :<span class="tlaGNC">         263 :     if constexpr (JsonUseNull&lt;Value&gt;) {</span></span>
+<span id="L754"><span class="lineNum">     754</span>                 :<span class="tlaGNC">         273 :   void CopyFrom(Value&amp;&amp; value) {</span></span>
+<span id="L755"><span class="lineNum">     755</span>                 :<span class="tlaGNC">         273 :     if constexpr (JsonUseNull&lt;Value&gt;) {</span></span>
 <span id="L756"><span class="lineNum">     756</span>                 :<span class="tlaGNC">          23 :       data_.emplace&lt;std::nullopt_t&gt;(std::nullopt);</span></span>
-<span id="L757"><span class="lineNum">     757</span>                 :<span class="tlaGNC">          58 :     } else if constexpr (JsonUseBool&lt;Value&gt;) {</span></span>
-<span id="L758"><span class="lineNum">     758</span>                 :<span class="tlaGNC">          58 :       data_.emplace&lt;bool&gt;(value);</span></span>
+<span id="L757"><span class="lineNum">     757</span>                 :<span class="tlaGNC">          62 :     } else if constexpr (JsonUseBool&lt;Value&gt;) {</span></span>
+<span id="L758"><span class="lineNum">     758</span>                 :<span class="tlaGNC">          62 :       data_.emplace&lt;bool&gt;(value);</span></span>
 <span id="L759"><span class="lineNum">     759</span>                 :<span class="tlaGNC">          67 :     } else if constexpr (JsonUseString&lt;Value&gt;) {</span></span>
 <span id="L760"><span class="lineNum">     760</span>                 :<span class="tlaGNC">          67 :       data_.emplace&lt;std::string&gt;(std::forward&lt;Value&gt;(value));</span></span>
 <span id="L761"><span class="lineNum">     761</span>                 :<span class="tlaGNC">          71 :     } else if constexpr (json_internal::JsonUseSignedInt&lt;Value&gt;) {</span></span>
-<span id="L762"><span class="lineNum">     762</span>                 :<span class="tlaGNC">          43 :       data_.emplace&lt;SignedInt&gt;(value);</span></span>
-<span id="L763"><span class="lineNum">     763</span>                 :<span class="tlaGNC">          39 :     } else if constexpr (json_internal::JsonUseUnsignedInt&lt;Value&gt;) {</span></span>
+<span id="L762"><span class="lineNum">     762</span>                 :<span class="tlaGNC">          49 :       data_.emplace&lt;SignedInt&gt;(value);</span></span>
+<span id="L763"><span class="lineNum">     763</span>                 :<span class="tlaGNC">          45 :     } else if constexpr (json_internal::JsonUseUnsignedInt&lt;Value&gt;) {</span></span>
 <span id="L764"><span class="lineNum">     764</span>                 :<span class="tlaGNC">           8 :       data_.emplace&lt;UnsignedInt&gt;(value);</span></span>
 <span id="L765"><span class="lineNum">     765</span>                 :<span class="tlaGNC">          56 :     } else if constexpr (json_internal::JsonUseFloat&lt;Value&gt;) {</span></span>
 <span id="L766"><span class="lineNum">     766</span>                 :<span class="tlaGNC">          56 :       data_.emplace&lt;Float&gt;(value);</span></span>
@@ -851,7 +851,7 @@
 <span id="L771"><span class="lineNum">     771</span>                 :             :     } else {</span>
 <span id="L772"><span class="lineNum">     772</span>                 :             :       MBO_CONFIG_REQUIRE(false, &quot;Bad type: &quot;) &lt;&lt; log::DemangleV(value);</span>
 <span id="L773"><span class="lineNum">     773</span>                 :             :     }</span>
-<span id="L774"><span class="lineNum">     774</span>                 :<span class="tlaGNC">         263 :   }</span></span>
+<span id="L774"><span class="lineNum">     774</span>                 :<span class="tlaGNC">         273 :   }</span></span>
 <span id="L775"><span class="lineNum">     775</span>                 :             : </span>
 <span id="L776"><span class="lineNum">     776</span>                 :<span class="tlaGNC">          17 :   void CopyObject(const Json&amp; other) {         // NOLINT(misc-no-recursion)</span></span>
 <span id="L777"><span class="lineNum">     777</span>                 :<span class="tlaGNC">          17 :     Object&amp; object = data_.emplace&lt;Object&gt;();  // NOLINT(*-auto)</span></span>
@@ -902,11 +902,11 @@
 <span id="L822"><span class="lineNum">     822</span>                 :<span class="tlaGNC">           5 :     [](const std::nullopt_t /*unused*/, const std::nullopt_t /*unused*/) { return std::strong_ordering::equal; },</span></span>
 <span id="L823"><span class="lineNum">     823</span>                 :<span class="tlaGNC">          13 :     [](bool lhs, bool rhs) -&gt; std::strong_ordering { return lhs &lt;=&gt; rhs; },</span></span>
 <span id="L824"><span class="lineNum">     824</span>                 :             :     // LCOV_MERGE_FUNC_LINE: repeated for every compatible arithmetic right-hand type.</span>
-<span id="L825"><span class="lineNum">     825</span>                 :<span class="tlaGNC">          49 :     [](SignedInt lhs, types::IsArithmetic auto rhs) { return types::CompareArithmetic(lhs, rhs); },</span></span>
+<span id="L825"><span class="lineNum">     825</span>                 :<span class="tlaGNC">          51 :     [](SignedInt lhs, types::IsArithmetic auto rhs) { return types::CompareArithmetic(lhs, rhs); },</span></span>
 <span id="L826"><span class="lineNum">     826</span>                 :             :     // LCOV_MERGE_FUNC_LINE: repeated for every compatible arithmetic right-hand type.</span>
 <span id="L827"><span class="lineNum">     827</span>                 :<span class="tlaGNC">           7 :     [](UnsignedInt lhs, types::IsArithmetic auto rhs) { return types::CompareArithmetic(lhs, rhs); },</span></span>
 <span id="L828"><span class="lineNum">     828</span>                 :             :     // LCOV_MERGE_FUNC_LINE: repeated for every compatible arithmetic right-hand type.</span>
-<span id="L829"><span class="lineNum">     829</span>                 :<span class="tlaGNC">           8 :     [](Float lhs, types::IsArithmetic auto rhs) { return types::CompareArithmetic(lhs, rhs); },</span></span>
+<span id="L829"><span class="lineNum">     829</span>                 :<span class="tlaGNC">           9 :     [](Float lhs, types::IsArithmetic auto rhs) { return types::CompareArithmetic(lhs, rhs); },</span></span>
 <span id="L830"><span class="lineNum">     830</span>                 :<span class="tlaGNC">          18 :     [](const std::string&amp; lhs, const JsonUseString auto&amp; rhs) {</span></span>
 <span id="L831"><span class="lineNum">     831</span>                 :<span class="tlaGNC">          18 :       return types::WeakToStrong(std::string_view(lhs) &lt;=&gt; std::string_view(rhs));</span></span>
 <span id="L832"><span class="lineNum">     832</span>                 :<span class="tlaGNC">          18 :     },</span></span>
@@ -943,23 +943,23 @@
 <span id="L863"><span class="lineNum">     863</span>                 :             : }  // namespace json_internal</span>
 <span id="L864"><span class="lineNum">     864</span>                 :             : </span>
 <span id="L865"><span class="lineNum">     865</span>                 :             : template&lt;typename T&gt;</span>
-<span id="L866"><span class="lineNum">     866</span>                 :<span class="tlaGNC">          88 : inline Json&amp; Json::MakeType(T&amp;&amp; value) {  // NOLINT(*-function-cognitive-complexity)</span></span>
-<span id="L867"><span class="lineNum">     867</span>                 :<span class="tlaGNC">          88 :   if constexpr (types::ConstructibleFrom&lt;std::string, T&gt;) {</span></span>
+<span id="L866"><span class="lineNum">     866</span>                 :<span class="tlaGNC">          94 : inline Json&amp; Json::MakeType(T&amp;&amp; value) {  // NOLINT(*-function-cognitive-complexity)</span></span>
+<span id="L867"><span class="lineNum">     867</span>                 :<span class="tlaGNC">          94 :   if constexpr (types::ConstructibleFrom&lt;std::string, T&gt;) {</span></span>
 <span id="L868"><span class="lineNum">     868</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           2 :     if (IsString()) {</span></span>
 <span id="L869"><span class="lineNum">     869</span>                 :<span class="tlaUNC">           0 :       return *this;</span></span>
 <span id="L870"><span class="lineNum">     870</span>                 :<span class="tlaUNC">           0 :     }</span></span>
 <span id="L871"><span class="lineNum">     871</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an std::string or Null.&quot;);</span></span>
 <span id="L872"><span class="lineNum">     872</span>                 :<span class="tlaGNC">           1 :     data_.emplace&lt;std::string&gt;(std::forward&lt;T&gt;(value));</span></span>
-<span id="L873"><span class="lineNum">     873</span>                 :<span class="tlaGNC">          86 :   } else {</span></span>
-<span id="L874"><span class="lineNum">     874</span>         [<span class="tlaGBC" title="branch 0 was taken 62 times"> + </span><span class="tlaGBC" title="branch 1 was taken 24 times"> + </span>]:<span class="tlaGNC">          86 :     if (IsType&lt;T&gt;()) {</span></span>
-<span id="L875"><span class="lineNum">     875</span>                 :<span class="tlaGNC">          62 :       return *this;</span></span>
-<span id="L876"><span class="lineNum">     876</span>                 :<span class="tlaGNC">          62 :     }</span></span>
-<span id="L877"><span class="lineNum">     877</span>                 :<span class="tlaGNC">          24 :     using RawT = std::remove_cvref_t&lt;T&gt;;</span></span>
+<span id="L873"><span class="lineNum">     873</span>                 :<span class="tlaGNC">          92 :   } else {</span></span>
+<span id="L874"><span class="lineNum">     874</span>         [<span class="tlaGBC" title="branch 0 was taken 66 times"> + </span><span class="tlaGBC" title="branch 1 was taken 26 times"> + </span>]:<span class="tlaGNC">          92 :     if (IsType&lt;T&gt;()) {</span></span>
+<span id="L875"><span class="lineNum">     875</span>                 :<span class="tlaGNC">          66 :       return *this;</span></span>
+<span id="L876"><span class="lineNum">     876</span>                 :<span class="tlaGNC">          66 :     }</span></span>
+<span id="L877"><span class="lineNum">     877</span>                 :<span class="tlaGNC">          26 :     using RawT = std::remove_cvref_t&lt;T&gt;;</span></span>
 <span id="L878"><span class="lineNum">     878</span>                 :             :     if constexpr (std::same_as&lt;RawT, std::nullopt_t&gt;) {</span>
 <span id="L879"><span class="lineNum">     879</span>                 :             :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not Null.&quot;);</span>
-<span id="L880"><span class="lineNum">     880</span>                 :<span class="tlaGNC">          10 :     } else if constexpr (std::same_as&lt;RawT, Array&gt;) {</span></span>
-<span id="L881"><span class="lineNum">     881</span>         [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          10 :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an Array or Null.&quot;);</span></span>
-<span id="L882"><span class="lineNum">     882</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          10 :       MBO_CONFIG_REQUIRE(value != nullptr, &quot;May not be a nullptr.&quot;);</span></span>
+<span id="L880"><span class="lineNum">     880</span>                 :<span class="tlaGNC">          11 :     } else if constexpr (std::same_as&lt;RawT, Array&gt;) {</span></span>
+<span id="L881"><span class="lineNum">     881</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          11 :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an Array or Null.&quot;);</span></span>
+<span id="L882"><span class="lineNum">     882</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 11 times"> + </span>]:<span class="tlaGNC">          11 :       MBO_CONFIG_REQUIRE(value != nullptr, &quot;May not be a nullptr.&quot;);</span></span>
 <span id="L883"><span class="lineNum">     883</span>                 :             :     } else if constexpr (std::same_as&lt;RawT, bool&gt;) {</span>
 <span id="L884"><span class="lineNum">     884</span>                 :             :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not a bool or Null.&quot;);</span>
 <span id="L885"><span class="lineNum">     885</span>                 :             :     } else if constexpr (std::same_as&lt;RawT, Float&gt;) {</span>
@@ -968,13 +968,13 @@
 <span id="L888"><span class="lineNum">     888</span>                 :             :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an SignedInt or Null.&quot;);</span>
 <span id="L889"><span class="lineNum">     889</span>                 :             :     } else if constexpr (std::same_as&lt;RawT, UnsignedInt&gt;) {</span>
 <span id="L890"><span class="lineNum">     890</span>                 :             :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an UnsignedInt or Null.&quot;);</span>
-<span id="L891"><span class="lineNum">     891</span>                 :<span class="tlaGNC">          14 :     } else if constexpr (std::same_as&lt;RawT, Object&gt;) {</span></span>
-<span id="L892"><span class="lineNum">     892</span>         [<span class="tlaGBC" title="branch 0 was taken 25 times"> + </span><span class="tlaGBC" title="branch 1 was taken 13 times"> + </span>]:<span class="tlaGNC">          14 :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an Object or Null.&quot;);</span></span>
-<span id="L893"><span class="lineNum">     893</span>                 :<span class="tlaGNC">          14 :     }</span></span>
-<span id="L894"><span class="lineNum">     894</span>                 :<span class="tlaGNC">          23 :     data_.emplace&lt;RawT&gt;(std::forward&lt;T&gt;(value));</span></span>
-<span id="L895"><span class="lineNum">     895</span>                 :<span class="tlaGNC">          24 :   }</span></span>
+<span id="L891"><span class="lineNum">     891</span>                 :<span class="tlaGNC">          15 :     } else if constexpr (std::same_as&lt;RawT, Object&gt;) {</span></span>
+<span id="L892"><span class="lineNum">     892</span>         [<span class="tlaGBC" title="branch 0 was taken 27 times"> + </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          15 :       MBO_CONFIG_REQUIRE(IsNull(), &quot;Is not an Object or Null.&quot;);</span></span>
+<span id="L893"><span class="lineNum">     893</span>                 :<span class="tlaGNC">          15 :     }</span></span>
+<span id="L894"><span class="lineNum">     894</span>                 :<span class="tlaGNC">          25 :     data_.emplace&lt;RawT&gt;(std::forward&lt;T&gt;(value));</span></span>
+<span id="L895"><span class="lineNum">     895</span>                 :<span class="tlaGNC">          26 :   }</span></span>
 <span id="L896"><span class="lineNum">     896</span>                 :<span class="tlaUNC">           0 :   return *this;</span></span>
-<span id="L897"><span class="lineNum">     897</span>                 :<span class="tlaGNC">          88 : }</span></span>
+<span id="L897"><span class="lineNum">     897</span>                 :<span class="tlaGNC">          94 : }</span></span>
 <span id="L898"><span class="lineNum">     898</span>                 :             : </span>
 <span id="L899"><span class="lineNum">     899</span>                 :<span class="tlaGNC">          42 : inline std::strong_ordering Json::Compare(const Json&amp; other) const noexcept {</span></span>
 <span id="L900"><span class="lineNum">     900</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          42 :   if (auto comp = GetKind() &lt;=&gt; other.GetKind(); comp != std::strong_ordering::equal) {</span></span>
@@ -984,15 +984,15 @@
 <span id="L904"><span class="lineNum">     904</span>                 :<span class="tlaGNC">          42 : }</span></span>
 <span id="L905"><span class="lineNum">     905</span>                 :             : </span>
 <span id="L906"><span class="lineNum">     906</span>                 :             : template&lt;ConvertibleToJson Value&gt;</span>
-<span id="L907"><span class="lineNum">     907</span>                 :<span class="tlaGNC">          68 : inline std::strong_ordering Json::Compare(const Value&amp; other) const noexcept {</span></span>
-<span id="L908"><span class="lineNum">     908</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 67 times"> + </span>]:<span class="tlaGNC">          68 :   if (const auto comp = GetKind() &lt;=&gt; Json::GetKind(other); comp != std::strong_ordering::equal) {</span></span>
+<span id="L907"><span class="lineNum">     907</span>                 :<span class="tlaGNC">          71 : inline std::strong_ordering Json::Compare(const Value&amp; other) const noexcept {</span></span>
+<span id="L908"><span class="lineNum">     908</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 70 times"> + </span>]:<span class="tlaGNC">          71 :   if (const auto comp = GetKind() &lt;=&gt; Json::GetKind(other); comp != std::strong_ordering::equal) {</span></span>
 <span id="L909"><span class="lineNum">     909</span>                 :<span class="tlaGNC">           1 :     return comp;</span></span>
 <span id="L910"><span class="lineNum">     910</span>                 :<span class="tlaGNC">           1 :   }</span></span>
-<span id="L911"><span class="lineNum">     911</span>                 :<span class="tlaGNC">          67 :   return std::visit(</span></span>
-<span id="L912"><span class="lineNum">     912</span>                 :<span class="tlaGNC">          67 :       [&amp;other]&lt;typename Lhs&gt;(  // LCOV_EXCL_FUNC_LINE: unreachable variant alternatives for this value type.</span></span>
-<span id="L913"><span class="lineNum">     913</span>                 :<span class="tlaGNC">          67 :           const Lhs&amp; lhs) { return json_internal::kJsonComparator(lhs, other); },</span></span>
-<span id="L914"><span class="lineNum">     914</span>                 :<span class="tlaGNC">          67 :       data_);</span></span>
-<span id="L915"><span class="lineNum">     915</span>                 :<span class="tlaGNC">          68 : }</span></span>
+<span id="L911"><span class="lineNum">     911</span>                 :<span class="tlaGNC">          70 :   return std::visit(</span></span>
+<span id="L912"><span class="lineNum">     912</span>                 :<span class="tlaGNC">          70 :       [&amp;other]&lt;typename Lhs&gt;(  // LCOV_EXCL_FUNC_LINE: unreachable variant alternatives for this value type.</span></span>
+<span id="L913"><span class="lineNum">     913</span>                 :<span class="tlaGNC">          70 :           const Lhs&amp; lhs) { return json_internal::kJsonComparator(lhs, other); },</span></span>
+<span id="L914"><span class="lineNum">     914</span>                 :<span class="tlaGNC">          70 :       data_);</span></span>
+<span id="L915"><span class="lineNum">     915</span>                 :<span class="tlaGNC">          71 : }</span></span>
 <span id="L916"><span class="lineNum">     916</span>                 :             : </span>
 <span id="L917"><span class="lineNum">     917</span>                 :             : static_assert(types::HasMboTypesStringifyValueAccess&lt;Json&gt;);</span>
 <span id="L918"><span class="lineNum">     918</span>                 :             : static_assert(!types::HasMboTypesStringifyValueAccess&lt;Json::Variant&gt;);</span>

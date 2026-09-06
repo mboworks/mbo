@@ -182,6 +182,8 @@ TEST_F(JsonTest, ContainerModifiersAndAccessors) {
   EXPECT_THAT(array, SizeIs(2));
   EXPECT_THAT(array.at(0), 7);
   EXPECT_THAT(array.at(1), 7);
+  const Json& const_array = array;
+  EXPECT_THAT(const_array.at(0), 7);
   array.pop_back();
   array.push_back(8);
   array.emplace_back(9);
@@ -199,6 +201,8 @@ TEST_F(JsonTest, ContainerModifiersAndAccessors) {
   object.emplace("two", 2);
   EXPECT_THAT(object.contains("one"), true);
   EXPECT_THAT(object.at("one"), 1);
+  const Json& const_object = object;
+  EXPECT_THAT(const_object.at("one"), 1);
   EXPECT_DEATH(static_cast<void>(object.at("missing")), "Property not present");
   EXPECT_THAT(object.contains("missing"), false);
   EXPECT_THAT(object, SizeIs(2));
@@ -218,6 +222,31 @@ TEST_F(JsonTest, ContainerModifiersAndAccessors) {
   EXPECT_THAT(scalar.erase("none"), 0);
   scalar.clear();
   EXPECT_THAT(scalar.IsNull(), true);
+}
+
+TEST_F(JsonTest, ValueIteratorErase) {
+  Json array;
+  array.emplace_back(1);
+  array.emplace_back(2);
+  const Json::const_value_iterator array_pos{array.values().begin()};
+  EXPECT_THAT(*array.erase(array_pos), 2);
+  EXPECT_THAT(array, ElementsAre(2));
+
+  Json object;
+  object["one"] = 1;
+  object["two"] = 2;
+  const auto values = object.values();
+  const Json::const_value_iterator first{values.begin()};
+  const Json::const_value_iterator last{values.end()};
+  EXPECT_THAT(object.erase(first, last), object.values().end());
+  EXPECT_THAT(object, IsEmpty());
+}
+
+TEST_F(JsonTest, BooleanPredicates) {
+  EXPECT_THAT(Json{false}.IsFalse(), true);
+  EXPECT_THAT(Json{false}.IsTrue(), false);
+  EXPECT_THAT(Json{true}.IsFalse(), false);
+  EXPECT_THAT(Json{true}.IsTrue(), true);
 }
 
 TEST_F(JsonTest, BasicsAndSerialize) {

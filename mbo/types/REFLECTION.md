@@ -1,4 +1,4 @@
-# Aggregate reflection and field metadata
+# Aggregate reflection implementation and field metadata
 
 This document describes mbo's aggregate-introspection facilities, how field names feed the rest of
 the library, and the compiler backends that provide field names. It also records the relevant
@@ -32,9 +32,9 @@ all manual extension points and reports unsupported field shapes through the exi
 
 ### Structural decomposition
 
-[`mbo/types/internal/decompose_count.h`](mbo/types/internal/decompose_count.h) determines whether a
+[`internal/decompose_count.h`](internal/decompose_count.h) determines whether a
 type is decomposable and generates structured-binding implementations for supported arities.
-[`mbo/types/tuple_extras.h`](mbo/types/tuple_extras.h) exposes `StructToTuple`, whose result contains
+[`tuple_extras.h`](tuple_extras.h) exposes `StructToTuple`, whose result contains
 references to the aggregate fields.
 
 This is useful without names. Positional field access is enough to implement:
@@ -51,12 +51,12 @@ an addressable non-type template argument.
 
 ### Clang field-name discovery
 
-[`mbo/types/internal/struct_names_clang.h`](mbo/types/internal/struct_names_clang.h) uses
+[`internal/struct_names_clang.h`](internal/struct_names_clang.h) uses
 `__builtin_dump_struct` with a replacement callback. The callback receives the format string and
 arguments that Clang would normally print and records top-level field names instead.
 
 The public internal facade in
-[`mbo/types/internal/struct_names.h`](mbo/types/internal/struct_names.h) exposes:
+[`internal/struct_names.h`](internal/struct_names.h) exposes:
 
 - `kStructNameSupport`;
 - `SupportsFieldNames<T>`;
@@ -69,7 +69,7 @@ default constructor. Types containing union members are currently excluded.
 
 ### GCC field-name discovery
 
-[`mbo/types/internal/struct_names_gcc.h`](mbo/types/internal/struct_names_gcc.h) uses the address of
+[`internal/struct_names_gcc.h`](internal/struct_names_gcc.h) uses the address of
 each member of an undefined external object as a non-type template argument. GCC includes that
 address expression in `__PRETTY_FUNCTION__`, from which the backend extracts and stores the member
 identifier entirely at compile time. No `T` object is constructed and no field value is read.
@@ -81,7 +81,7 @@ reference members and bit-fields, do not satisfy `SupportsFieldNames`.
 ### Field names are metadata, not the printing policy
 
 Automatic or manually supplied names become inputs to
-[`mbo/types/stringify.h`](mbo/types/stringify.h). They do not determine by themselves whether a
+[`stringify.h`](stringify.h). They do not determine by themselves whether a
 field is printed, how it is named in the output, or how its value is rendered.
 
 The effective name source has this precedence:

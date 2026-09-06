@@ -773,9 +773,10 @@ struct DecomposeHelper final {
   static constexpr auto ToAddressTuple(U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
-                                           ? kForcedNumFields
-                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    constexpr std::size_t kNumFields =
+        kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.
+            ? kForcedNumFields
+            : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);  // LCOV_EXCL_BR_LINE: constexpr.
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -2119,9 +2120,10 @@ struct DecomposeHelper final {
   static constexpr auto ToTuple(U&& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
-                                           ? kForcedNumFields
-                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    constexpr std::size_t kNumFields =
+        kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.
+            ? kForcedNumFields
+            : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);  // LCOV_EXCL_BR_LINE: constexpr.
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -2559,9 +2561,10 @@ struct DecomposeHelper final {
   static constexpr auto ToTuple(U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
-                                           ? kForcedNumFields
-                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    constexpr std::size_t kNumFields =
+        kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.
+            ? kForcedNumFields
+            : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);  // LCOV_EXCL_BR_LINE: constexpr.
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();
@@ -2747,9 +2750,10 @@ struct DecomposeHelper final {
   static constexpr auto ToTuple(const U& data) noexcept {
     using UR = std::remove_cvref_t<U>;
     constexpr bool kIsEmptyAggregate = IsAggregate<UR> && IsEmptyType<UR>;
-    constexpr std::size_t kNumFields = kForcedNumFields != kNotDecomposableValue
-                                           ? kForcedNumFields
-                                           : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);
+    constexpr std::size_t kNumFields =
+        kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.
+            ? kForcedNumFields
+            : (kIsEmptyAggregate ? 0 : DecomposeCountImpl<UR>::value);  // LCOV_EXCL_BR_LINE: constexpr.
     static_assert(kNumFields != kNotDecomposableValue);
     if constexpr (kNumFields == 0) {
       return std::make_tuple();

@@ -4,7 +4,8 @@
     "mbo/**/*_benchmark.cc",
     "mbo/**/*_fuzz_test.cc",
     "mbo/**/*_test.cc",
-    "mbo/**/*_test.h"
+    "mbo/**/*_test.h",
+    "mbo/**/*_test_util.h"
   ],
   "minimum": { "lines": 80, "functions": 75, "branches": 80 },
   "target": { "lines": 95, "functions": 95, "branches": 85 },

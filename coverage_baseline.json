@@ -7,7 +7,8 @@
       "mbo/**/*_benchmark.cc",
       "mbo/**/*_fuzz_test.cc",
       "mbo/**/*_test.cc",
-      "mbo/**/*_test.h"
+      "mbo/**/*_test.h",
+      "mbo/**/*_test_util.h"
     ],
     "categories": {
       "config": {
@@ -54,19 +55,19 @@
   "measurements": {
     "overall": {
       "lines": {
-        "covered": 9313,
-        "total": 10917,
-        "percent": 85.31
+        "covered": 10192,
+        "total": 10982,
+        "percent": 92.81
       },
       "functions": {
-        "covered": 13567,
-        "total": 17245,
-        "percent": 78.67
+        "covered": 1335,
+        "total": 1430,
+        "percent": 93.36
       },
       "branches": {
-        "covered": 3189,
-        "total": 3472,
-        "percent": 91.85
+        "covered": 3255,
+        "total": 3538,
+        "percent": 92.0
       }
     },
     "config": {
@@ -88,19 +89,19 @@
     },
     "container": {
       "lines": {
-        "covered": 1002,
+        "covered": 1035,
         "total": 1075,
-        "percent": 93.21
+        "percent": 96.28
       },
       "functions": {
-        "covered": 9596,
-        "total": 10787,
-        "percent": 88.96
+        "covered": 238,
+        "total": 250,
+        "percent": 95.2
       },
       "branches": {
-        "covered": 290,
-        "total": 302,
-        "percent": 96.03
+        "covered": 304,
+        "total": 316,
+        "percent": 96.2
       }
     },
     "diff": {
@@ -110,9 +111,9 @@
         "percent": 84.76
       },
       "functions": {
-        "covered": 108,
-        "total": 170,
-        "percent": 63.53
+        "covered": 107,
+        "total": 131,
+        "percent": 81.68
       },
       "branches": {
         "covered": 473,
@@ -122,14 +123,14 @@
     },
     "digest": {
       "lines": {
-        "covered": 1092,
+        "covered": 1122,
         "total": 1221,
-        "percent": 89.43
+        "percent": 91.89
       },
       "functions": {
-        "covered": 256,
-        "total": 333,
-        "percent": 76.88
+        "covered": 120,
+        "total": 133,
+        "percent": 90.23
       },
       "branches": {
         "covered": 330,
@@ -144,9 +145,9 @@
         "percent": 91.27
       },
       "functions": {
-        "covered": 146,
-        "total": 186,
-        "percent": 78.49
+        "covered": 84,
+        "total": 99,
+        "percent": 84.85
       },
       "branches": {
         "covered": 664,
@@ -156,36 +157,36 @@
     },
     "hash": {
       "lines": {
-        "covered": 1514,
-        "total": 1703,
-        "percent": 88.9
+        "covered": 1496,
+        "total": 1656,
+        "percent": 90.34
       },
       "functions": {
-        "covered": 266,
-        "total": 331,
-        "percent": 80.36
+        "covered": 115,
+        "total": 120,
+        "percent": 95.83
       },
       "branches": {
-        "covered": 281,
-        "total": 286,
+        "covered": 279,
+        "total": 284,
         "percent": 98.25
       }
     },
     "json": {
       "lines": {
-        "covered": 438,
+        "covered": 461,
         "total": 491,
-        "percent": 89.21
+        "percent": 93.89
       },
       "functions": {
-        "covered": 254,
-        "total": 264,
-        "percent": 96.21
+        "covered": 128,
+        "total": 128,
+        "percent": 100.0
       },
       "branches": {
-        "covered": 118,
-        "total": 130,
-        "percent": 90.77
+        "covered": 143,
+        "total": 154,
+        "percent": 92.86
       }
     },
     "log": {
@@ -195,9 +196,9 @@
         "percent": 81.6
       },
       "functions": {
-        "covered": 35,
-        "total": 46,
-        "percent": 76.09
+        "covered": 32,
+        "total": 38,
+        "percent": 84.21
       },
       "branches": {
         "covered": 74,
@@ -229,9 +230,9 @@
         "percent": 98.94
       },
       "functions": {
-        "covered": 40,
-        "total": 42,
-        "percent": 95.24
+        "covered": 24,
+        "total": 25,
+        "percent": 96.0
       },
       "branches": {
         "covered": 19,
@@ -246,8 +247,8 @@
         "percent": 99.52
       },
       "functions": {
-        "covered": 42,
-        "total": 42,
+        "covered": 28,
+        "total": 28,
         "percent": 100.0
       },
       "branches": {
@@ -258,14 +259,14 @@
     },
     "testing": {
       "lines": {
-        "covered": 459,
+        "covered": 461,
         "total": 472,
-        "percent": 97.25
+        "percent": 97.67
       },
       "functions": {
-        "covered": 625,
-        "total": 627,
-        "percent": 99.68
+        "covered": 82,
+        "total": 82,
+        "percent": 100.0
       },
       "branches": {
         "covered": 120,
@@ -275,19 +276,19 @@
     },
     "types": {
       "lines": {
-        "covered": 1496,
-        "total": 2265,
-        "percent": 66.05
+        "covered": 2305,
+        "total": 2377,
+        "percent": 96.97
       },
       "functions": {
-        "covered": 2173,
-        "total": 4390,
-        "percent": 49.5
+        "covered": 351,
+        "total": 369,
+        "percent": 95.12
       },
       "branches": {
-        "covered": 373,
-        "total": 410,
-        "percent": 90.98
+        "covered": 402,
+        "total": 440,
+        "percent": 91.36
       }
     }
   }

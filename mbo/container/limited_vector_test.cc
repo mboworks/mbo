@@ -713,6 +713,27 @@ TEST_F(LimitedVectorTest, Insert3) {
   }
 }
 
+TEST_F(LimitedVectorTest, RuntimeConvenienceOperations) {
+  LimitedVector<int, 4> assigned{1, 2, 3, 4};
+  const std::initializer_list<int> replacement{5, 6};
+  assigned.assign(replacement);
+  EXPECT_THAT(assigned, ElementsAre(5, 6));
+
+  LimitedVector<int, 10> inserted{1, 4};
+  const std::array middle{2, 3};
+  inserted.insert(inserted.begin() + 1, middle.begin(), middle.end());
+  inserted.insert(inserted.end(), 2, 5);
+  EXPECT_THAT(inserted, ElementsAre(1, 2, 3, 4, 5, 5));
+
+  LimitedVector<int, LimitedOptions<6>{}> options_vector;
+  options_vector.push_back(7);
+  EXPECT_THAT(options_vector, ElementsAre(7));
+  EXPECT_THAT(options_vector.capacity(), 6);
+
+  const auto empty = MakeLimitedVector<int, 7>();
+  EXPECT_THAT(empty, IsEmpty());
+}
+
 // NOLINTEND(*-magic-numbers)
 
 }  // namespace

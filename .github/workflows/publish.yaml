@@ -24,12 +24,12 @@ jobs:
   publish:
     permissions:
       contents: write
-    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@v1.4.1
+    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@v1.5.0
     with:
       tag_name: ${{ inputs.tag_name || github.ref_name }}
       registry_fork: mboworks/bazel-central-registry
-      # Open a draft PR because GitHub forbids authors from approving their own
-      # pull requests. A maintainer promotes it after inspecting the generated metadata.
+      # Personal-account PAT: open a draft PR so the author can click "Ready for
+      # review" to approve it (GitHub forbids reviewing your own PR).
       draft: true
       # Our release flow emits no SLSA attestations and uploads no workflow
       # artifact, so compute integrity by downloading the tarball from the URL

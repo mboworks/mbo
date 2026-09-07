@@ -9,6 +9,7 @@ on:
 # on the same branch revision would otherwise discard whichever report was pushed first.
 concurrency:
   group: coverage-pages
+  queue: max
   cancel-in-progress: false
 
 # The publishing job below declares its exact elevated scopes. Default to no
@@ -154,7 +155,7 @@ jobs:
             git -C site push
           fi
           mkdir -p public
-          rsync --archive site/coverage/ public/coverage/
+          rsync --archive --exclude='.git' site/ public/
       - uses: actions/upload-pages-artifact@v5
         if: steps.target.outputs.publish == 'true'
         with:

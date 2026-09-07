@@ -1,5 +1,7 @@
 # MBO, a C++23 library
 
+[Release website](https://mboworks.github.io/mbo/)
+
 This C++23 library provides some general useful building blocks and integrates
 with [Google's Abseil library](https://abseil.io/).
 
@@ -398,3 +400,58 @@ distribution that includes code from `//mbo/hash:hash_extra_cc` - directly or
 transitively - must retain [NOTICE](NOTICE); the default `//mbo/hash:hash_cc`
 and `//mbo/digest:digest_cc` carry no compliance obligation (the digest
 library's only NOTICE entry is courtesy).
+
+## Release website
+
+The [website](https://mboworks.github.io/mbo/) forwards to the latest published
+stable release at `site/tag/<tag>/`, preserving the exact Git tag name.
+Each release keeps its converted HTML, images, and configured files. Retrying
+publication leaves an existing snapshot unchanged; a different commit cannot
+replace it. Older versions remain directly accessible.
+
+[`release-site.json`](release-site.json) defines the layout. Source names are
+relative to the repository root; destinations are relative to that release's
+site directory. For example:
+
+```json
+{
+  "pages": {
+    "README.md": "index.html",
+    "docs/guide.md": "guide/index.html"
+  },
+  "files": {
+    "schema/example.json": "schema/v1.json"
+  },
+  "links": [
+    {
+      "label": "Release",
+      "href": "https://github.com/{owner}/{repo}/releases/tag/{tag}"
+    }
+  ]
+}
+```
+
+Use existing source files in the actual configuration. `pages` converts Markdown;
+optional `files` copies other files unchanged. `README.md` must map to `index.html`.
+The generated `documents.html`, `release.json`, and `assets/` paths are reserved.
+Navigation links support `{owner}`, `{repo}`, `{tag}`, `{version}`, and `{commit}`.
+`{version}` omits a leading `v` for compatibility with coverage report paths.
+The configuration and content come from the release tag. Links to configured
+pages follow their destination mappings; other local source links use the exact
+release commit. Embedded images are copied, including remote badges. Markdown
+conversion uses the [GitHub Markdown API](https://docs.github.com/en/rest/markdown/markdown)
+at publication time; browsing the result requires no Markdown renderer or CDN.
+
+After the Release workflow succeeds, `Publish release site` retains the snapshot
+on `coverage-pages` and deploys the complete Pages tree. Coverage and site
+publication share a concurrency group to preserve both trees. GitHub's latest
+stable release selects the root redirect; backfilling an older release does not
+make it latest. The workflow can also be dispatched with a published tag to retry
+publication (the tag must contain `release-site.json`). Enable GitHub Pages with
+**GitHub Actions** as its source, and set the repository's About website to
+`https://mboworks.github.io/mbo/`.
+
+Local regression tests: `python3 -m unittest discover -s tools -p release_site_test.py`.
+
+Release coverage links select `https://mboworks.github.io/mbo/coverage/tag/<version>/`,
+matching the coverage publisher rather than the moving main-branch report.

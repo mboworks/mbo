@@ -55,14 +55,14 @@
   "measurements": {
     "overall": {
       "lines": {
-        "covered": 10192,
-        "total": 10982,
-        "percent": 92.81
+        "covered": 10189,
+        "total": 10601,
+        "percent": 96.11
       },
       "functions": {
         "covered": 1335,
-        "total": 1430,
-        "percent": 93.36
+        "total": 1381,
+        "percent": 96.67
       },
       "branches": {
         "covered": 3255,
@@ -106,14 +106,14 @@
     },
     "diff": {
       "lines": {
-        "covered": 1051,
-        "total": 1240,
-        "percent": 84.76
+        "covered": 1050,
+        "total": 1080,
+        "percent": 97.22
       },
       "functions": {
         "covered": 107,
-        "total": 131,
-        "percent": 81.68
+        "total": 108,
+        "percent": 99.07
       },
       "branches": {
         "covered": 473,
@@ -123,14 +123,14 @@
     },
     "digest": {
       "lines": {
-        "covered": 1122,
-        "total": 1221,
-        "percent": 91.89
+        "covered": 1120,
+        "total": 1142,
+        "percent": 98.07
       },
       "functions": {
         "covered": 120,
-        "total": 133,
-        "percent": 90.23
+        "total": 121,
+        "percent": 99.17
       },
       "branches": {
         "covered": 330,
@@ -141,13 +141,13 @@
     "file": {
       "lines": {
         "covered": 1139,
-        "total": 1248,
-        "percent": 91.27
+        "total": 1226,
+        "percent": 92.9
       },
       "functions": {
         "covered": 84,
-        "total": 99,
-        "percent": 84.85
+        "total": 87,
+        "percent": 96.55
       },
       "branches": {
         "covered": 664,
@@ -158,8 +158,8 @@
     "hash": {
       "lines": {
         "covered": 1496,
-        "total": 1656,
-        "percent": 90.34
+        "total": 1555,
+        "percent": 96.21
       },
       "functions": {
         "covered": 115,
@@ -192,13 +192,13 @@
     "log": {
       "lines": {
         "covered": 204,
-        "total": 250,
-        "percent": 81.6
+        "total": 235,
+        "percent": 86.81
       },
       "functions": {
         "covered": 32,
-        "total": 38,
-        "percent": 84.21
+        "total": 36,
+        "percent": 88.89
       },
       "branches": {
         "covered": 74,
@@ -277,8 +277,8 @@
     "types": {
       "lines": {
         "covered": 2305,
-        "total": 2377,
-        "percent": 96.97
+        "total": 2373,
+        "percent": 97.13
       },
       "functions": {
         "covered": 351,

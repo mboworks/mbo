@@ -70,7 +70,7 @@ jobs:
         # committed data bundles for the SMHasher3 quality tables; actions/checkout
         # leaves them as LFS pointers, so materialize just those (each is small).
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
-      - uses: bazelbuild/setup-bazelisk@v3
+      - uses: bazel-contrib/setup-bazel@0.19.0
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |

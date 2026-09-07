@@ -11,12 +11,14 @@ import os
 import sys
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cache_cleanup  # noqa: E402
 
 
 _PREFIX = "ubuntu-latest-bzlmod_gcc_14__opt_bazel9.2.0-refs/heads/main"
+_ROOT = Path(__file__).resolve().parents[1]
 _CACHES = [
     {"id": 3, "key": f"{_PREFIX}-new", "createdAt": "2026-08-16T12:00:00Z"},
     {"id": 1, "key": f"{_PREFIX}-old", "createdAt": "2026-08-14T12:00:00Z"},
@@ -50,6 +52,15 @@ class MainTest(unittest.TestCase):
         finally:
             sys.stdin = original_stdin
         self.assertEqual(output.getvalue(), "1\n4\n")
+
+
+class WorkflowCachePolicyTest(unittest.TestCase):
+    def test_uses_setup_bazel_without_legacy_cache(self):
+        for path in (".github/workflows/main.yml", ".github/workflows/test.yml"):
+            with self.subTest(path=path):
+                workflow = (_ROOT / path).read_text(encoding="utf-8")
+                self.assertIn("uses: bazel-contrib/setup-bazel@0.19.0", workflow)
+                self.assertNotIn("uses: bazelbuild/setup-bazelisk", workflow)
 
 
 if __name__ == "__main__":

@@ -88,7 +88,7 @@ jobs:
           # Full history so the branch can be diffed against `main` to pick the
           # changed sources below.
           fetch-depth: 0
-      - uses: bazelbuild/setup-bazelisk@v3
+      - uses: bazel-contrib/setup-bazel@0.19.0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"

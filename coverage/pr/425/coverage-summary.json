@@ -1,0 +1,457 @@
+{
+  "schema": 2,
+  "measurements": {
+    "overall": {
+      "lines": {
+        "covered": 10192,
+        "total": 10982,
+        "percent": 92.81
+      },
+      "functions": {
+        "covered": 1335,
+        "total": 1430,
+        "percent": 93.36
+      },
+      "branches": {
+        "covered": 3255,
+        "total": 3538,
+        "percent": 92.0
+      }
+    },
+    "config": {
+      "lines": {
+        "covered": 11,
+        "total": 11,
+        "percent": 100.0
+      },
+      "functions": {
+        "covered": 0,
+        "total": 0,
+        "percent": null
+      },
+      "branches": {
+        "covered": 0,
+        "total": 0,
+        "percent": null
+      }
+    },
+    "container": {
+      "lines": {
+        "covered": 1035,
+        "total": 1075,
+        "percent": 96.28
+      },
+      "functions": {
+        "covered": 238,
+        "total": 250,
+        "percent": 95.2
+      },
+      "branches": {
+        "covered": 304,
+        "total": 316,
+        "percent": 96.2
+      }
+    },
+    "diff": {
+      "lines": {
+        "covered": 1051,
+        "total": 1240,
+        "percent": 84.76
+      },
+      "functions": {
+        "covered": 107,
+        "total": 131,
+        "percent": 81.68
+      },
+      "branches": {
+        "covered": 473,
+        "total": 514,
+        "percent": 92.02
+      }
+    },
+    "digest": {
+      "lines": {
+        "covered": 1122,
+        "total": 1221,
+        "percent": 91.89
+      },
+      "functions": {
+        "covered": 120,
+        "total": 133,
+        "percent": 90.23
+      },
+      "branches": {
+        "covered": 330,
+        "total": 344,
+        "percent": 95.93
+      }
+    },
+    "file": {
+      "lines": {
+        "covered": 1139,
+        "total": 1248,
+        "percent": 91.27
+      },
+      "functions": {
+        "covered": 84,
+        "total": 99,
+        "percent": 84.85
+      },
+      "branches": {
+        "covered": 664,
+        "total": 746,
+        "percent": 89.01
+      }
+    },
+    "hash": {
+      "lines": {
+        "covered": 1496,
+        "total": 1656,
+        "percent": 90.34
+      },
+      "functions": {
+        "covered": 115,
+        "total": 120,
+        "percent": 95.83
+      },
+      "branches": {
+        "covered": 279,
+        "total": 284,
+        "percent": 98.24
+      }
+    },
+    "json": {
+      "lines": {
+        "covered": 461,
+        "total": 491,
+        "percent": 93.89
+      },
+      "functions": {
+        "covered": 128,
+        "total": 128,
+        "percent": 100.0
+      },
+      "branches": {
+        "covered": 143,
+        "total": 154,
+        "percent": 92.86
+      }
+    },
+    "log": {
+      "lines": {
+        "covered": 204,
+        "total": 250,
+        "percent": 81.6
+      },
+      "functions": {
+        "covered": 32,
+        "total": 38,
+        "percent": 84.21
+      },
+      "branches": {
+        "covered": 74,
+        "total": 82,
+        "percent": 90.24
+      }
+    },
+    "mope": {
+      "lines": {
+        "covered": 395,
+        "total": 426,
+        "percent": 92.72
+      },
+      "functions": {
+        "covered": 26,
+        "total": 27,
+        "percent": 96.3
+      },
+      "branches": {
+        "covered": 220,
+        "total": 258,
+        "percent": 85.27
+      }
+    },
+    "status": {
+      "lines": {
+        "covered": 93,
+        "total": 94,
+        "percent": 98.94
+      },
+      "functions": {
+        "covered": 24,
+        "total": 25,
+        "percent": 96.0
+      },
+      "branches": {
+        "covered": 19,
+        "total": 22,
+        "percent": 86.36
+      }
+    },
+    "strings": {
+      "lines": {
+        "covered": 419,
+        "total": 421,
+        "percent": 99.52
+      },
+      "functions": {
+        "covered": 28,
+        "total": 28,
+        "percent": 100.0
+      },
+      "branches": {
+        "covered": 227,
+        "total": 248,
+        "percent": 91.53
+      }
+    },
+    "testing": {
+      "lines": {
+        "covered": 461,
+        "total": 472,
+        "percent": 97.67
+      },
+      "functions": {
+        "covered": 82,
+        "total": 82,
+        "percent": 100.0
+      },
+      "branches": {
+        "covered": 120,
+        "total": 130,
+        "percent": 92.31
+      }
+    },
+    "types": {
+      "lines": {
+        "covered": 2305,
+        "total": 2377,
+        "percent": 96.97
+      },
+      "functions": {
+        "covered": 351,
+        "total": 369,
+        "percent": 95.12
+      },
+      "branches": {
+        "covered": 402,
+        "total": 440,
+        "percent": 91.36
+      }
+    }
+  },
+  "minimums": {
+    "overall": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "config": {
+      "lines": 80.0
+    },
+    "container": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "diff": {
+      "lines": 80.0,
+      "functions": 60.0,
+      "branches": 80.0
+    },
+    "digest": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "file": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "hash": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "json": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "log": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "mope": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "status": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "strings": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "testing": {
+      "lines": 80.0,
+      "functions": 75.0,
+      "branches": 80.0
+    },
+    "types": {
+      "lines": 60.0,
+      "functions": 45.0,
+      "branches": 80.0
+    }
+  },
+  "targets": {
+    "overall": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "config": {
+      "lines": 95.0
+    },
+    "container": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "diff": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "digest": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "file": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "hash": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "json": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "log": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "mope": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "status": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "strings": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "testing": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    },
+    "types": {
+      "lines": 95.0,
+      "functions": 95.0,
+      "branches": 85.0
+    }
+  },
+  "enforcement": {
+    "overall": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "config": {
+      "lines": "medium"
+    },
+    "container": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "diff": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "digest": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "file": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "hash": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "json": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "log": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "mope": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "status": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "strings": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "testing": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    },
+    "types": {
+      "lines": "medium",
+      "functions": "medium",
+      "branches": "high"
+    }
+  },
+  "reasons": {
+    "diff": "Clang reports template instantiations that GCC coverage did not count.",
+    "types": "Clang reports constexpr and template instantiations that GCC coverage did not count."
+  }
+}

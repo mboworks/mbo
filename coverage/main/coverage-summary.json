@@ -242,71 +242,71 @@
   },
   "minimums": {
     "overall": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "config": {
-      "lines": 80.0
+      "lines": 90.0
     },
     "container": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "diff": {
-      "lines": 80.0,
-      "functions": 60.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "digest": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "file": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "hash": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "json": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "log": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "mope": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "status": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "strings": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "testing": {
-      "lines": 80.0,
-      "functions": 75.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     },
     "types": {
-      "lines": 60.0,
-      "functions": 45.0,
+      "lines": 90.0,
+      "functions": 90.0,
       "branches": 80.0
     }
   },
@@ -314,7 +314,7 @@
     "overall": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "config": {
       "lines": 95.0
@@ -322,136 +322,133 @@
     "container": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "diff": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "digest": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "file": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "hash": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "json": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "log": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "mope": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "status": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "strings": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "testing": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     },
     "types": {
       "lines": 95.0,
       "functions": 95.0,
-      "branches": 85.0
+      "branches": 90.0
     }
   },
   "enforcement": {
     "overall": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "config": {
-      "lines": "medium"
+      "lines": "high"
     },
     "container": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "diff": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "digest": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "file": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "hash": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "json": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "log": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "mope": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "status": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "strings": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "testing": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     },
     "types": {
-      "lines": "medium",
-      "functions": "medium",
+      "lines": "high",
+      "functions": "high",
       "branches": "high"
     }
   },
-  "reasons": {
-    "diff": "Clang reports template instantiations that GCC coverage did not count.",
-    "types": "Clang reports constexpr and template instantiations that GCC coverage did not count."
-  }
+  "reasons": {}
 }

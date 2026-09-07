@@ -18,6 +18,7 @@
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -32,6 +33,66 @@
 // what SetValue/AddSection/Expand and ReadIniToTemlate do, one behaviour each.
 
 namespace mbo::mope {
+
+struct MopeTest : ::testing::Test {
+  static std::string StreamSectionData() {
+    return StreamData(Template::TagData<Template::Section>{.tag = {}, .data = {}});
+  }
+
+  static std::string StreamRangeData() { return StreamData(Template::TagData<Template::Range>{.tag = {}, .data = {}}); }
+
+  static std::string StreamStringData() {
+    return StreamData(Template::TagData<std::string>{.tag = {}, .data = "value"});
+  }
+
+  static absl::Status ExpandZeroStepRange() {
+    const Template tpl;
+    Template::Range range{.step = 0};
+    Template::Context context;
+    std::string output;
+    return tpl.ExpandRangeTag({}, range, context, output);
+  }
+
+  static absl::Status ExpandDuplicateActiveRange() {
+    const Template tpl;
+    const Template::TagInfo tag{.name = "index", .type = Template::TagType::kSection};
+    const Template::RangeData range{.start = "1", .end = "1"};
+    Template::Context context;
+    context.data.emplace("index", Template::TagData<std::string>{.tag = {}, .data = "active"});
+    std::string output;
+    return tpl.ExpandRangeData(tag, range, context, output);
+  }
+
+  static bool ExistsOnlyInContext() {
+    const Template tpl;
+    Template::Context context;
+    context.data.emplace("external", Template::TagData<std::string>{.tag = {}, .data = "value"});
+    return tpl.Exists("external", context);
+  }
+
+  static absl::Status LookupQuotedLiteral(std::string_view input) {
+    const Template tpl;
+    const Template::TagInfo tag{.name = "value"};
+    const Template::Context context;
+    std::string output;
+    return tpl.MaybeLookup(tag, input, context, output);
+  }
+
+  static absl::Status ExpandEmptyInternal() {
+    const Template tpl;
+    Template::Context context;
+    std::string output;
+    return tpl.ExpandInternal(context, output);
+  }
+
+ private:
+  static std::string StreamData(const Template::Data& data) {
+    std::ostringstream out;
+    out << data;
+    return std::move(out).str();
+  }
+};
+
 namespace {
 
 using ::testing::IsFalse;
@@ -39,7 +100,20 @@ using ::testing::IsTrue;
 
 namespace fs = std::filesystem;
 
-struct MopeTest : ::testing::Test {};
+TEST_F(MopeTest, DiagnosticDataStreamingCoversEveryAlternative) {
+  EXPECT_THAT(StreamSectionData(), "Section");
+  EXPECT_THAT(StreamRangeData(), "Range");
+  EXPECT_THAT(StreamStringData(), "String: 'value'");
+}
+
+TEST_F(MopeTest, InternalDefensesAndContextPaths) {
+  EXPECT_THAT(ExpandZeroStepRange().code(), absl::StatusCode::kInternal);
+  EXPECT_THAT(ExpandDuplicateActiveRange().code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(ExistsOnlyInContext(), IsTrue());
+  EXPECT_THAT(LookupQuotedLiteral(R"("literal")"), absl::OkStatus());
+  EXPECT_THAT(LookupQuotedLiteral(R"('literal')"), absl::OkStatus());
+  EXPECT_THAT(ExpandEmptyInternal(), absl::OkStatus());
+}
 
 TEST_F(MopeTest, ExpandReplacesASetValue) {
   constexpr std::string_view kInput = "x {{foo}} y";
@@ -255,6 +329,20 @@ TEST_F(MopeTest, RangeRejectsMissingOperandsAndDuplicateActiveNames) {
   EXPECT_THAT(tpl.Expand(duplicate).code(), absl::StatusCode::kInvalidArgument);
 }
 
+TEST_F(MopeTest, RangeRejectsEachMissingOptionalOperand) {
+  Template tpl;
+  ASSERT_THAT(tpl.SetValue("one", "1"), absl::OkStatus());
+
+  std::string missing_end("{{#index=one;missing}}{{index}}{{/index}}");
+  EXPECT_THAT(tpl.Expand(missing_end).code(), absl::StatusCode::kNotFound);
+
+  std::string missing_step("{{#index=one;2;missing}}{{index}}{{/index}}");
+  EXPECT_THAT(tpl.Expand(missing_step).code(), absl::StatusCode::kNotFound);
+
+  std::string missing_join("{{#index=one;2;1;missing}}{{index}}{{/index}}");
+  EXPECT_THAT(tpl.Expand(missing_join).code(), absl::StatusCode::kNotFound);
+}
+
 TEST_F(MopeTest, ConfiguredListExpandsValuesAndAJoiner) {
   constexpr std::string_view kInput = R"({{#item=["one","two"];" / "}}{{item}}{{/item}})";
   const Template tpl;
@@ -303,6 +391,15 @@ TEST_F(MopeTest, ConfiguredListRejectsMalformedJoinersAndMissingReferences) {
 
   std::string missing("{{#item=[one,two];missing}}{{item}}{{/item}}");
   EXPECT_THAT(tpl.Expand(missing).code(), absl::StatusCode::kNotFound);
+}
+
+TEST_F(MopeTest, ConfiguredListRejectsMalformedValuesAndNestedTemplates) {
+  const Template tpl;
+  std::string malformed_value(R"({{#item=["unterminated]}}{{item}}{{/item}})");
+  EXPECT_THAT(tpl.Expand(malformed_value).code(), absl::StatusCode::kInvalidArgument);
+
+  std::string nested_error("{{#item=[one]}}{{#bad}}{{/item}}");
+  EXPECT_THAT(tpl.Expand(nested_error).code(), absl::StatusCode::kInvalidArgument);
 }
 
 TEST_F(MopeTest, EmptyAndUnknownSectionConfigurations) {
@@ -374,6 +471,17 @@ TEST_F(MopeTest, ReadIniToTemlateRejectsInvalidSectionNames) {
   {
     std::ofstream out(ini_path);
     out << "[not valid]\nkey=value\n";
+  }
+  Template tpl;
+  EXPECT_THAT(ReadIniToTemlate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);
+  fs::remove(ini_path);
+}
+
+TEST_F(MopeTest, ReadIniToTemlateRejectsInvalidValueNames) {
+  const fs::path ini_path = fs::temp_directory_path() / "mope_test_invalid_value.ini";
+  {
+    std::ofstream out(ini_path);
+    out << "not valid=value\n";
   }
   Template tpl;
   EXPECT_THAT(ReadIniToTemlate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);

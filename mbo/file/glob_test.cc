@@ -417,6 +417,7 @@ TEST_F(GlobTest, GlobSplitPartsWithRanges) {
 TEST_F(GlobTest, GlobSplitPartsCanLeaveRangesUnparsed) {
   const Glob2Re2Options options{.allow_ranges = false};
   EXPECT_THAT(GlobSplitParts("a/[x]/", options), IsOkAndHolds(HasParts("a", "[x]", false)));
+  EXPECT_THAT(GlobSplitParts("a/\\*/b", options), IsOkAndHolds(HasParts("a/\\*", "b", false)));
 }
 
 MATCHER_P2(HasSplit, root_matcher, pattern_matcher, "") {
@@ -451,6 +452,7 @@ TEST_F(GlobTest, GlobSplit) {
   EXPECT_THAT(GlobSplit("a/b/x?y/c"), IsOkAndHolds(HasSplit("a/b", "x?y/c")));
   EXPECT_THAT(GlobSplit("a/x*y/c"), IsOkAndHolds(HasSplit("a", "x*y/c")));
   EXPECT_THAT(GlobSplit("a/b/x*y/c"), IsOkAndHolds(HasSplit("a/b", "x*y/c")));
+  EXPECT_THAT(GlobSplit("/*"), IsOkAndHolds(HasSplit("/", "*")));
 }
 
 template<typename C = std::initializer_list<std::string_view>>

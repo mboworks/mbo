@@ -38,11 +38,13 @@ namespace mbo::log {
 // *** Only use for depnstration purpose! ***
 namespace log_internal {
 
+using FatalScopedStream = ScopedStream<ScopedStreamMode::kQuickExit, std::stringstream, std::ostream, std::string_view>;
+
 // *** Only use for depnstration purpose! ***
 using ScopedStreamVariants = std::variant<
     std::ostream,
     ScopedStream<ScopedStreamMode::kContinue, std::stringstream, std::ostream, std::string_view>,
-    ScopedStream<ScopedStreamMode::kQuickExit, std::stringstream, std::ostream, std::string_view>,
+    FatalScopedStream,
     ScopedStream<ScopedStreamMode::kContinue, VoidStream, std::ostream, std::string_view>,
     ScopedStream<ScopedStreamMode::kQuickExit, VoidStream, std::ostream, std::string_view>,
     ScopedStream<ScopedStreamMode::kContinue, std::stringstream, VoidStream, std::string_view>,

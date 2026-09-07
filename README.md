@@ -395,11 +395,15 @@ Everything else is original MBO Works code. In particular, all algorithms
 implemented from public standards carry no upstream code and need no notices:
 SHA-1/SHA-2/SHA-3/SHAKE (FIPS 180-4 / FIPS 202), MD5 (RFC 1321), BLAKE2b
 (RFC 7693), and HMAC (RFC 2104), and the default hash algorithms (the
-in-house mumbo/jumbo family) are original code. Practical rule: only a
-distribution that includes code from `//mbo/hash:hash_extra_cc` - directly or
-transitively - must retain [NOTICE](NOTICE); the default `//mbo/hash:hash_cc`
-and `//mbo/digest:digest_cc` carry no compliance obligation (the digest
-library's only NOTICE entry is courtesy).
+in-house mumbo/jumbo family) are original code.
+
+mbo is licensed under Apache-2.0. The default `//mbo/hash:hash_cc` and
+`//mbo/digest:digest_cc` libraries introduce no additional third-party
+licensing or attribution requirements: users need only comply with mbo's own
+[Apache-2.0 license terms](LICENSE), including the applicable notice and
+redistribution requirements. A distribution that includes code from the
+optional `//mbo/hash:hash_extra_cc` library - directly or transitively - must
+additionally retain the MIT and BSD-2-Clause notices listed in [NOTICE](NOTICE).
 
 ## Release website
 

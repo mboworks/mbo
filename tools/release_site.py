@@ -65,6 +65,8 @@ def configuration(source, override=None):
             raise ValueError("Page mappings must convert .md sources to .html destinations")
         if dst in destinations or dst == "documents.html" or dst.startswith("assets/"):
             raise ValueError(f"Duplicate or reserved destination: {dst}")
+        if any(part.startswith(".") for part in Path(dst).parts):
+            raise ValueError(f"Pages excludes hidden destinations: {dst}")
         destinations.add(dst)
     for src, dst in config.get("files", {}).items():
         if src in pages:
@@ -78,6 +80,8 @@ def configuration(source, override=None):
                 raise ValueError(f"Unsafe asset path: {path!r}")
         if dst in destinations or dst in ("documents.html", "release.json", "release-site.json") or dst.startswith("assets/"):
             raise ValueError(f"Duplicate or reserved destination: {dst}")
+        if any(part.startswith(".") for part in Path(dst).parts):
+            raise ValueError(f"Pages excludes hidden destinations: {dst}")
         destinations.add(dst)
     return config, data
 

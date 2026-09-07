@@ -246,6 +246,19 @@ class ReleaseSiteTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "reserved destination"):
             self.build()
 
+    def test_pages_packaging_exclusions_are_rejected_before_rendering(self):
+        for destination in (".github/guide.html", "guide/.hidden.html", ".hidden/guide.html"):
+            with self.subTest(destination=destination):
+                self.config["pages"]["docs/guide.md"] = destination
+                self.write("release-site.json", json.dumps(self.config))
+                with self.assertRaisesRegex(ValueError, "excludes hidden"):
+                    self.build(renderer=mock.Mock(side_effect=AssertionError("must not render")))
+        self.config["pages"]["docs/guide.md"] = "guide.html"
+        self.config["files"] = {"image.svg": "assets-custom/.hidden.svg"}
+        self.write("release-site.json", json.dumps(self.config))
+        with self.assertRaisesRegex(ValueError, "excludes hidden"):
+            self.build()
+
     def test_invalid_tag_cannot_escape_site_directory(self):
         for tag in ("../bad", "v1.2.3/evil", "1.2.3\nextra", "main"):
             with self.subTest(tag=tag), self.assertRaises(ValueError):

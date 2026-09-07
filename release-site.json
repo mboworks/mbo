@@ -11,7 +11,7 @@
     "mbo/hash/README.md": "mbo/hash/README.html",
     "mbo/hash/measurements/README.md": "mbo/hash/measurements/README.html",
     "mbo/types/README.md": "mbo/types/README.html",
-    ".github/workflows/README.md": ".github/workflows/README.html",
+    ".github/workflows/README.md": "workflows/index.html",
     "AGENTS.md": "AGENTS.html",
     "CLAUDE.md": "CLAUDE.html",
     "CODE_OF_CONDUCT.md": "CODE_OF_CONDUCT.html",

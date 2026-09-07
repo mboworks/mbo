@@ -434,7 +434,10 @@ site directory. For example:
 Use existing source files in the actual configuration. `pages` converts Markdown;
 optional `files` copies other files unchanged. `README.md` must map to `index.html`.
 The generated `documents.html`, `release.json`, `release-site.json`, and `assets/`
-paths are reserved.
+paths are reserved. Destination paths cannot have hidden components (names starting
+with a dot), because the Pages artifact uploader excludes them. Hidden source
+paths remain valid; for example, `.github/workflows/README.md` maps to
+`workflows/index.html`.
 Navigation links support `{owner}`, `{repo}`, `{tag}`, `{version}`, and `{commit}`.
 `{version}` omits a leading `v` for compatibility with coverage report paths.
 By default, the configuration and content come from the release tag. Every linked

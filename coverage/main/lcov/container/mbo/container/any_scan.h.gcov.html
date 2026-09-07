@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 04:29:30</td>
+            <td class="headerValue">2026-09-07 10:21:56</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -330,7 +330,7 @@
 <span id="L250"><span class="lineNum">     250</span>                 :             : </span>
 <span id="L251"><span class="lineNum">     251</span>                 :             :   MakeAnyScanData() = delete;</span>
 <span id="L252"><span class="lineNum">     252</span>                 :             : </span>
-<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">          29 :   constexpr explicit MakeAnyScanData(const Container&amp; container) noexcept : container_(container) {}</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">          32 :   constexpr explicit MakeAnyScanData(const Container&amp; container) noexcept : container_(container) {}</span></span>
 <span id="L254"><span class="lineNum">     254</span>                 :             : </span>
 <span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">          25 :   constexpr bool empty() const noexcept { return std::empty(container_); }</span></span>
 <span id="L256"><span class="lineNum">     256</span>                 :             : </span>
@@ -437,9 +437,9 @@
 <span id="L357"><span class="lineNum">     357</span>                 :             :   template&lt;AcceptableContainer Container&gt;</span>
 <span id="L358"><span class="lineNum">     358</span>                 :             :   requires kAccessByRef</span>
 <span id="L359"><span class="lineNum">     359</span>                 :             :   explicit AnyScanImpl(const MakeAnyScanData&lt;Container, kScanMode&gt;&amp; data)</span>
-<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">          57 :       : funcs_{</span></span>
-<span id="L361"><span class="lineNum">     361</span>                 :<span class="tlaGNC">          57 :             .iter =</span></span>
-<span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">          59 :                 [data = data] {</span></span>
+<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">          60 :       : funcs_{</span></span>
+<span id="L361"><span class="lineNum">     361</span>                 :<span class="tlaGNC">          60 :             .iter =</span></span>
+<span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">          60 :                 [data = data] {</span></span>
 <span id="L363"><span class="lineNum">     363</span>                 :<span class="tlaGNC">          59 :                   auto pos = MakeSharedIterator(data.container());</span></span>
 <span id="L364"><span class="lineNum">     364</span>                 :<span class="tlaGNC">          59 :                   return IterFuncs{</span></span>
 <span id="L365"><span class="lineNum">     365</span>                 :<span class="tlaGNC">         310 :                       .more = [data = data, pos = pos]() -&gt; bool { return *pos != data.container().end(); },</span></span>
@@ -447,9 +447,9 @@
 <span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">         126 :                       .next = [&amp;it = *pos] { ++it; },</span></span>
 <span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          59 :                   };</span></span>
 <span id="L369"><span class="lineNum">     369</span>                 :<span class="tlaGNC">          59 :                 },</span></span>
-<span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">          57 :             .empty = [data = data] { return data.empty(); },</span></span>
-<span id="L371"><span class="lineNum">     371</span>                 :<span class="tlaGNC">          57 :             .size = [data = data] { return data.size(); },</span></span>
-<span id="L372"><span class="lineNum">     372</span>                 :<span class="tlaGNC">          57 :         } {}</span></span>
+<span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">          60 :             .empty = [data = data] { return data.empty(); },</span></span>
+<span id="L371"><span class="lineNum">     371</span>                 :<span class="tlaGNC">          60 :             .size = [data = data] { return data.size(); },</span></span>
+<span id="L372"><span class="lineNum">     372</span>                 :<span class="tlaGNC">          60 :         } {}</span></span>
 <span id="L373"><span class="lineNum">     373</span>                 :             : </span>
 <span id="L374"><span class="lineNum">     374</span>                 :             :   // For MakConvertingScan</span>
 <span id="L375"><span class="lineNum">     375</span>                 :             :   template&lt;AcceptableContainer Container&gt;</span>
@@ -476,216 +476,229 @@
 <span id="L396"><span class="lineNum">     396</span>                 :             :   // NOLINTEND(bugprone-forwarding-reference-overload)</span>
 <span id="L397"><span class="lineNum">     397</span>                 :             : </span>
 <span id="L398"><span class="lineNum">     398</span>                 :             :  public:</span>
-<span id="L399"><span class="lineNum">     399</span>                 :             :   template&lt;typename ItElementType, typename ItValueType, typename ItPointer, typename ItReference&gt;</span>
-<span id="L400"><span class="lineNum">     400</span>                 :             :   class iterator_impl {</span>
-<span id="L401"><span class="lineNum">     401</span>                 :             :    public:</span>
-<span id="L402"><span class="lineNum">     402</span>                 :             :     using iterator_category = std::input_iterator_tag;</span>
-<span id="L403"><span class="lineNum">     403</span>                 :             :     using difference_type = AnyScanImpl::difference_type;</span>
-<span id="L404"><span class="lineNum">     404</span>                 :             :     using element_type = ItElementType;</span>
-<span id="L405"><span class="lineNum">     405</span>                 :             :     using value_type = ItValueType;</span>
-<span id="L406"><span class="lineNum">     406</span>                 :             :     using pointer = ItPointer;</span>
-<span id="L407"><span class="lineNum">     407</span>                 :             :     using reference = ItReference;</span>
-<span id="L408"><span class="lineNum">     408</span>                 :             : </span>
-<span id="L409"><span class="lineNum">     409</span>                 :             :     iterator_impl()</span>
-<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">          83 :         : funcs_{</span></span>
-<span id="L411"><span class="lineNum">     411</span>                 :<span class="tlaGNC">         255 :               .more = [] { return false; },</span></span>
-<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          83 :               .curr = nullptr,</span></span>
-<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          83 :               .next = [] {},</span></span>
-<span id="L414"><span class="lineNum">     414</span>                 :<span class="tlaGNC">          83 :           } {}</span></span>
-<span id="L415"><span class="lineNum">     415</span>                 :             : </span>
-<span id="L416"><span class="lineNum">     416</span>                 :<span class="tlaGNC">          84 :     explicit iterator_impl(const AccessFuncs&amp; funcs) : funcs_(funcs.iter()) {}</span></span>
-<span id="L417"><span class="lineNum">     417</span>                 :             : </span>
-<span id="L418"><span class="lineNum">     418</span>                 :             :     reference operator*() const noexcept</span>
-<span id="L419"><span class="lineNum">     419</span>                 :             :     requires kAccessByRef</span>
-<span id="L420"><span class="lineNum">     420</span>                 :<span class="tlaGNC">         125 :     {</span></span>
-<span id="L421"><span class="lineNum">     421</span>                 :             :       // We check both the presence of `funcs_` as well as calling the actual `more` function.</span>
-<span id="L422"><span class="lineNum">     422</span>                 :             :       // That means we bypass any protection an iterator may have, but we can make this function</span>
-<span id="L423"><span class="lineNum">     423</span>                 :             :       // `noexcept` assuming the iterator is noexcept for access. On the other hand we expect that</span>
-<span id="L424"><span class="lineNum">     424</span>                 :             :       // out of bounds access may actually raise. So we effectively side step such exceptions.</span>
-<span id="L425"><span class="lineNum">     425</span>                 :             :       // CHECK failures abort before GCC can flush coverage counters, so only the successful guard</span>
-<span id="L426"><span class="lineNum">     426</span>                 :             :       // path can appear in LCOV. The existing iterator tests exercise that path.</span>
-<span id="L427"><span class="lineNum">     427</span>                 :<span class="tlaGNC">         125 :       ABSL_CHECK_NE(funcs_.curr, nullptr);  // NOLINT(*-missing-default-case) LCOV_EXCL_BR_LINE</span></span>
-<span id="L428"><span class="lineNum">     428</span>                 :<span class="tlaGNC">         125 :       ABSL_CHECK(funcs_.more());            // LCOV_EXCL_BR_LINE</span></span>
-<span id="L429"><span class="lineNum">     429</span>                 :<span class="tlaGNC">         125 :       return funcs_.curr();</span></span>
-<span id="L430"><span class="lineNum">     430</span>                 :<span class="tlaGNC">         125 :     }</span></span>
-<span id="L431"><span class="lineNum">     431</span>                 :             : </span>
-<span id="L432"><span class="lineNum">     432</span>                 :             :     value_type operator*() const noexcept</span>
-<span id="L433"><span class="lineNum">     433</span>                 :             :     requires(!kAccessByRef)</span>
-<span id="L434"><span class="lineNum">     434</span>                 :<span class="tlaGNC">          50 :     {</span></span>
-<span id="L435"><span class="lineNum">     435</span>                 :             :       // CHECK failures abort before GCC can flush coverage counters, so only the successful guard</span>
-<span id="L436"><span class="lineNum">     436</span>                 :             :       // path can appear in LCOV. The existing iterator tests exercise that path.</span>
-<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">          50 :       ABSL_CHECK_NE(funcs_.curr, nullptr);  // NOLINT(*-missing-default-case) LCOV_EXCL_BR_LINE</span></span>
-<span id="L438"><span class="lineNum">     438</span>                 :<span class="tlaGNC">          50 :       ABSL_CHECK(funcs_.more());            // LCOV_EXCL_BR_LINE</span></span>
-<span id="L439"><span class="lineNum">     439</span>                 :<span class="tlaGNC">          50 :       return value_type(funcs_.curr());</span></span>
-<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">          50 :     }</span></span>
-<span id="L441"><span class="lineNum">     441</span>                 :             : </span>
-<span id="L442"><span class="lineNum">     442</span>                 :             :     const_pointer operator-&gt;() const noexcept</span>
-<span id="L443"><span class="lineNum">     443</span>                 :             :     requires kAccessByRef</span>
-<span id="L444"><span class="lineNum">     444</span>                 :             :     {</span>
-<span id="L445"><span class="lineNum">     445</span>                 :             :       return funcs_.curr != nullptr &amp;&amp; funcs_.more() ? &amp;funcs_.curr() : nullptr;</span>
-<span id="L446"><span class="lineNum">     446</span>                 :             :     }</span>
-<span id="L447"><span class="lineNum">     447</span>                 :             : </span>
-<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">         175 :     iterator_impl&amp; operator++() noexcept {</span></span>
-<span id="L449"><span class="lineNum">     449</span>                 :<span class="tlaGNC">         175 :       funcs_.next();</span></span>
-<span id="L450"><span class="lineNum">     450</span>                 :<span class="tlaGNC">         175 :       return *this;</span></span>
-<span id="L451"><span class="lineNum">     451</span>                 :<span class="tlaGNC">         175 :     }</span></span>
-<span id="L452"><span class="lineNum">     452</span>                 :             : </span>
-<span id="L453"><span class="lineNum">     453</span>                 :             :     iterator_impl operator++(int) noexcept {  // NOLINT(cert-dcl21-cpp)</span>
-<span id="L454"><span class="lineNum">     454</span>                 :             :       iterator_impl result = *this;</span>
-<span id="L455"><span class="lineNum">     455</span>                 :             :       funcs_.next();</span>
-<span id="L456"><span class="lineNum">     456</span>                 :             :       return result;</span>
-<span id="L457"><span class="lineNum">     457</span>                 :             :     }</span>
-<span id="L458"><span class="lineNum">     458</span>                 :             : </span>
-<span id="L459"><span class="lineNum">     459</span>                 :             :     template&lt;typename OE, typename OV, typename OP, typename OR&gt;</span>
-<span id="L460"><span class="lineNum">     460</span>                 :<span class="tlaGNC">         258 :     bool operator==(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
-<span id="L461"><span class="lineNum">     461</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 257 times"> + </span>]:<span class="tlaGNC">         258 :       if (this == &amp;other) {</span></span>
-<span id="L462"><span class="lineNum">     462</span>                 :<span class="tlaGNC">           1 :         return true;</span></span>
-<span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">           1 :       }</span></span>
-<span id="L464"><span class="lineNum">     464</span>                 :<span class="tlaGNC">         257 :       const bool l_end = !funcs_.more();</span></span>
-<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">         257 :       const bool o_end = !other.funcs_.more();</span></span>
-<span id="L466"><span class="lineNum">     466</span>                 :             :       // No need to also check `funcs_.curr != nullptr`, as then `more` would have returned false.</span>
-<span id="L467"><span class="lineNum">     467</span> [<span class="tlaGBC" title="branch 0 was taken 79 times"> + </span><span class="tlaGBC" title="branch 1 was taken 178 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 175 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         257 :       if (l_end || o_end) {</span></span>
-<span id="L468"><span class="lineNum">     468</span>                 :<span class="tlaGNC">         254 :         return l_end == o_end;</span></span>
-<span id="L469"><span class="lineNum">     469</span>                 :<span class="tlaGNC">         254 :       }</span></span>
-<span id="L470"><span class="lineNum">     470</span>                 :<span class="tlaGNC">           3 :       if constexpr (kAccessByRef) {</span></span>
-<span id="L471"><span class="lineNum">     471</span>                 :             :         // Approximate equal address means equal iterator. That is not always correct as a container</span>
-<span id="L472"><span class="lineNum">     472</span>                 :             :         // might have the same element reference twice.</span>
-<span id="L473"><span class="lineNum">     473</span>                 :<span class="tlaGNC">           2 :         return &amp;funcs_.curr() == &amp;other.funcs_.curr();</span></span>
-<span id="L474"><span class="lineNum">     474</span>                 :<span class="tlaGNC">           2 :       } else {</span></span>
-<span id="L475"><span class="lineNum">     475</span>                 :             :         // Cannot take address of rvalue temp. Comparing actual values would be incorrect.</span>
-<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">           1 :         return false;</span></span>
-<span id="L477"><span class="lineNum">     477</span>                 :<span class="tlaGNC">           1 :       }</span></span>
-<span id="L478"><span class="lineNum">     478</span>                 :<span class="tlaGNC">           3 :     }</span></span>
-<span id="L479"><span class="lineNum">     479</span>                 :             : </span>
-<span id="L480"><span class="lineNum">     480</span>                 :             :     template&lt;typename OE, typename OV, typename OP, typename OR&gt;</span>
-<span id="L481"><span class="lineNum">     481</span>                 :<span class="tlaGNC">         253 :     bool operator!=(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
-<span id="L482"><span class="lineNum">     482</span>                 :<span class="tlaGNC">         253 :       return !(*this == other);</span></span>
-<span id="L483"><span class="lineNum">     483</span>                 :<span class="tlaGNC">         253 :     }</span></span>
-<span id="L484"><span class="lineNum">     484</span>                 :             : </span>
-<span id="L485"><span class="lineNum">     485</span>                 :             :    private:</span>
-<span id="L486"><span class="lineNum">     486</span>                 :             :     IterFuncs funcs_;  // Cannot be const.</span>
-<span id="L487"><span class="lineNum">     487</span>                 :             :   };</span>
-<span id="L488"><span class="lineNum">     488</span>                 :             : </span>
-<span id="L489"><span class="lineNum">     489</span>                 :             :   using iterator = iterator_impl&lt;element_type, value_type, pointer, reference&gt;;</span>
-<span id="L490"><span class="lineNum">     490</span>                 :             :   using const_iterator = iterator_impl&lt;element_type, const value_type, const_pointer, const_reference&gt;;</span>
-<span id="L491"><span class="lineNum">     491</span>                 :             : </span>
-<span id="L492"><span class="lineNum">     492</span>                 :<span class="tlaGNC">           4 :   iterator begin() noexcept { return iterator(funcs_); }</span></span>
-<span id="L493"><span class="lineNum">     493</span>                 :             : </span>
-<span id="L494"><span class="lineNum">     494</span>                 :<span class="tlaGNC">           3 :   iterator end() noexcept { return iterator(); }</span></span>
-<span id="L495"><span class="lineNum">     495</span>                 :             : </span>
-<span id="L496"><span class="lineNum">     496</span>                 :<span class="tlaGNC">          80 :   const_iterator begin() const noexcept { return const_iterator(funcs_); }</span></span>
+<span id="L399"><span class="lineNum">     399</span>                 :             :   // Iterator equality deliberately does not retain or compare the originating scan. This keeps the</span>
+<span id="L400"><span class="lineNum">     400</span>                 :             :   // type-erased iterator lightweight, with the following consequences:</span>
+<span id="L401"><span class="lineNum">     401</span>                 :             :   //</span>
+<span id="L402"><span class="lineNum">     402</span>                 :             :   // * A default-constructed iterator is exhausted and compares equal to every other exhausted</span>
+<span id="L403"><span class="lineNum">     403</span>                 :             :   //   iterator, including the end iterator of a different scan.</span>
+<span id="L404"><span class="lineNum">     404</span>                 :             :   // * Two non-exhausted reference iterators compare equal when their current element addresses are</span>
+<span id="L405"><span class="lineNum">     405</span>                 :             :   //   equal. This is only an approximation because a container may expose the same element more</span>
+<span id="L406"><span class="lineNum">     406</span>                 :             :   //   than once.</span>
+<span id="L407"><span class="lineNum">     407</span>                 :             :   // * Non-exhausted converting iterators cannot be compared by address and compare unequal unless</span>
+<span id="L408"><span class="lineNum">     408</span>                 :             :   //   they are the same iterator object.</span>
+<span id="L409"><span class="lineNum">     409</span>                 :             :   //</span>
+<span id="L410"><span class="lineNum">     410</span>                 :             :   // As with standard iterators, do not compare iterators from unrelated ranges to determine range</span>
+<span id="L411"><span class="lineNum">     411</span>                 :             :   // identity.</span>
+<span id="L412"><span class="lineNum">     412</span>                 :             :   template&lt;typename ItElementType, typename ItValueType, typename ItPointer, typename ItReference&gt;</span>
+<span id="L413"><span class="lineNum">     413</span>                 :             :   class iterator_impl {</span>
+<span id="L414"><span class="lineNum">     414</span>                 :             :    public:</span>
+<span id="L415"><span class="lineNum">     415</span>                 :             :     using iterator_category = std::input_iterator_tag;</span>
+<span id="L416"><span class="lineNum">     416</span>                 :             :     using difference_type = AnyScanImpl::difference_type;</span>
+<span id="L417"><span class="lineNum">     417</span>                 :             :     using element_type = ItElementType;</span>
+<span id="L418"><span class="lineNum">     418</span>                 :             :     using value_type = ItValueType;</span>
+<span id="L419"><span class="lineNum">     419</span>                 :             :     using pointer = ItPointer;</span>
+<span id="L420"><span class="lineNum">     420</span>                 :             :     using reference = ItReference;</span>
+<span id="L421"><span class="lineNum">     421</span>                 :             : </span>
+<span id="L422"><span class="lineNum">     422</span>                 :             :     iterator_impl()</span>
+<span id="L423"><span class="lineNum">     423</span>                 :<span class="tlaGNC">          87 :         : funcs_{</span></span>
+<span id="L424"><span class="lineNum">     424</span>                 :<span class="tlaGNC">         259 :               .more = [] { return false; },</span></span>
+<span id="L425"><span class="lineNum">     425</span>                 :<span class="tlaGNC">          87 :               .curr = nullptr,</span></span>
+<span id="L426"><span class="lineNum">     426</span>                 :<span class="tlaGNC">          87 :               .next = [] {},</span></span>
+<span id="L427"><span class="lineNum">     427</span>                 :<span class="tlaGNC">          87 :           } {}</span></span>
+<span id="L428"><span class="lineNum">     428</span>                 :             : </span>
+<span id="L429"><span class="lineNum">     429</span>                 :<span class="tlaGNC">          84 :     explicit iterator_impl(const AccessFuncs&amp; funcs) : funcs_(funcs.iter()) {}</span></span>
+<span id="L430"><span class="lineNum">     430</span>                 :             : </span>
+<span id="L431"><span class="lineNum">     431</span>                 :             :     reference operator*() const noexcept</span>
+<span id="L432"><span class="lineNum">     432</span>                 :             :     requires kAccessByRef</span>
+<span id="L433"><span class="lineNum">     433</span>                 :<span class="tlaGNC">         125 :     {</span></span>
+<span id="L434"><span class="lineNum">     434</span>                 :             :       // We check both the presence of `funcs_` as well as calling the actual `more` function.</span>
+<span id="L435"><span class="lineNum">     435</span>                 :             :       // That means we bypass any protection an iterator may have, but we can make this function</span>
+<span id="L436"><span class="lineNum">     436</span>                 :             :       // `noexcept` assuming the iterator is noexcept for access. On the other hand we expect that</span>
+<span id="L437"><span class="lineNum">     437</span>                 :             :       // out of bounds access may actually raise. So we effectively side step such exceptions.</span>
+<span id="L438"><span class="lineNum">     438</span>                 :             :       // CHECK failures abort before GCC can flush coverage counters, so only the successful guard</span>
+<span id="L439"><span class="lineNum">     439</span>                 :             :       // path can appear in LCOV. The existing iterator tests exercise that path.</span>
+<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">         125 :       ABSL_CHECK_NE(funcs_.curr, nullptr);  // NOLINT(*-missing-default-case) LCOV_EXCL_BR_LINE</span></span>
+<span id="L441"><span class="lineNum">     441</span>                 :<span class="tlaGNC">         125 :       ABSL_CHECK(funcs_.more());            // LCOV_EXCL_BR_LINE</span></span>
+<span id="L442"><span class="lineNum">     442</span>                 :<span class="tlaGNC">         125 :       return funcs_.curr();</span></span>
+<span id="L443"><span class="lineNum">     443</span>                 :<span class="tlaGNC">         125 :     }</span></span>
+<span id="L444"><span class="lineNum">     444</span>                 :             : </span>
+<span id="L445"><span class="lineNum">     445</span>                 :             :     value_type operator*() const noexcept</span>
+<span id="L446"><span class="lineNum">     446</span>                 :             :     requires(!kAccessByRef)</span>
+<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">          50 :     {</span></span>
+<span id="L448"><span class="lineNum">     448</span>                 :             :       // CHECK failures abort before GCC can flush coverage counters, so only the successful guard</span>
+<span id="L449"><span class="lineNum">     449</span>                 :             :       // path can appear in LCOV. The existing iterator tests exercise that path.</span>
+<span id="L450"><span class="lineNum">     450</span>                 :<span class="tlaGNC">          50 :       ABSL_CHECK_NE(funcs_.curr, nullptr);  // NOLINT(*-missing-default-case) LCOV_EXCL_BR_LINE</span></span>
+<span id="L451"><span class="lineNum">     451</span>                 :<span class="tlaGNC">          50 :       ABSL_CHECK(funcs_.more());            // LCOV_EXCL_BR_LINE</span></span>
+<span id="L452"><span class="lineNum">     452</span>                 :<span class="tlaGNC">          50 :       return value_type(funcs_.curr());</span></span>
+<span id="L453"><span class="lineNum">     453</span>                 :<span class="tlaGNC">          50 :     }</span></span>
+<span id="L454"><span class="lineNum">     454</span>                 :             : </span>
+<span id="L455"><span class="lineNum">     455</span>                 :             :     const_pointer operator-&gt;() const noexcept</span>
+<span id="L456"><span class="lineNum">     456</span>                 :             :     requires kAccessByRef</span>
+<span id="L457"><span class="lineNum">     457</span>                 :             :     {</span>
+<span id="L458"><span class="lineNum">     458</span>                 :             :       return funcs_.curr != nullptr &amp;&amp; funcs_.more() ? &amp;funcs_.curr() : nullptr;</span>
+<span id="L459"><span class="lineNum">     459</span>                 :             :     }</span>
+<span id="L460"><span class="lineNum">     460</span>                 :             : </span>
+<span id="L461"><span class="lineNum">     461</span>                 :<span class="tlaGNC">         175 :     iterator_impl&amp; operator++() noexcept {</span></span>
+<span id="L462"><span class="lineNum">     462</span>                 :<span class="tlaGNC">         175 :       funcs_.next();</span></span>
+<span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">         175 :       return *this;</span></span>
+<span id="L464"><span class="lineNum">     464</span>                 :<span class="tlaGNC">         175 :     }</span></span>
+<span id="L465"><span class="lineNum">     465</span>                 :             : </span>
+<span id="L466"><span class="lineNum">     466</span>                 :             :     iterator_impl operator++(int) noexcept {  // NOLINT(cert-dcl21-cpp)</span>
+<span id="L467"><span class="lineNum">     467</span>                 :             :       iterator_impl result = *this;</span>
+<span id="L468"><span class="lineNum">     468</span>                 :             :       funcs_.next();</span>
+<span id="L469"><span class="lineNum">     469</span>                 :             :       return result;</span>
+<span id="L470"><span class="lineNum">     470</span>                 :             :     }</span>
+<span id="L471"><span class="lineNum">     471</span>                 :             : </span>
+<span id="L472"><span class="lineNum">     472</span>                 :             :     template&lt;typename OE, typename OV, typename OP, typename OR&gt;</span>
+<span id="L473"><span class="lineNum">     473</span>                 :<span class="tlaGNC">         260 :     bool operator==(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
+<span id="L474"><span class="lineNum">     474</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 259 times"> + </span>]:<span class="tlaGNC">         260 :       if (this == &amp;other) {</span></span>
+<span id="L475"><span class="lineNum">     475</span>                 :<span class="tlaGNC">           1 :         return true;</span></span>
+<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L477"><span class="lineNum">     477</span>                 :<span class="tlaGNC">         259 :       const bool l_end = !funcs_.more();</span></span>
+<span id="L478"><span class="lineNum">     478</span>                 :<span class="tlaGNC">         259 :       const bool o_end = !other.funcs_.more();</span></span>
+<span id="L479"><span class="lineNum">     479</span>                 :             :       // No need to also check `funcs_.curr != nullptr`, as then `more` would have returned false.</span>
+<span id="L480"><span class="lineNum">     480</span> [<span class="tlaGBC" title="branch 0 was taken 81 times"> + </span><span class="tlaGBC" title="branch 1 was taken 178 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 175 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         259 :       if (l_end || o_end) {</span></span>
+<span id="L481"><span class="lineNum">     481</span>                 :<span class="tlaGNC">         256 :         return l_end == o_end;</span></span>
+<span id="L482"><span class="lineNum">     482</span>                 :<span class="tlaGNC">         256 :       }</span></span>
+<span id="L483"><span class="lineNum">     483</span>                 :<span class="tlaGNC">           3 :       if constexpr (kAccessByRef) {</span></span>
+<span id="L484"><span class="lineNum">     484</span>                 :             :         // Approximate equal address means equal iterator. That is not always correct as a container</span>
+<span id="L485"><span class="lineNum">     485</span>                 :             :         // might have the same element reference twice.</span>
+<span id="L486"><span class="lineNum">     486</span>                 :<span class="tlaGNC">           2 :         return &amp;funcs_.curr() == &amp;other.funcs_.curr();</span></span>
+<span id="L487"><span class="lineNum">     487</span>                 :<span class="tlaGNC">           2 :       } else {</span></span>
+<span id="L488"><span class="lineNum">     488</span>                 :             :         // Cannot take address of rvalue temp. Comparing actual values would be incorrect.</span>
+<span id="L489"><span class="lineNum">     489</span>                 :<span class="tlaGNC">           1 :         return false;</span></span>
+<span id="L490"><span class="lineNum">     490</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L491"><span class="lineNum">     491</span>                 :<span class="tlaGNC">           3 :     }</span></span>
+<span id="L492"><span class="lineNum">     492</span>                 :             : </span>
+<span id="L493"><span class="lineNum">     493</span>                 :             :     template&lt;typename OE, typename OV, typename OP, typename OR&gt;</span>
+<span id="L494"><span class="lineNum">     494</span>                 :<span class="tlaGNC">         253 :     bool operator!=(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
+<span id="L495"><span class="lineNum">     495</span>                 :<span class="tlaGNC">         253 :       return !(*this == other);</span></span>
+<span id="L496"><span class="lineNum">     496</span>                 :<span class="tlaGNC">         253 :     }</span></span>
 <span id="L497"><span class="lineNum">     497</span>                 :             : </span>
-<span id="L498"><span class="lineNum">     498</span>                 :<span class="tlaGNC">          78 :   const_iterator end() const noexcept { return const_iterator(); }</span></span>
-<span id="L499"><span class="lineNum">     499</span>                 :             : </span>
-<span id="L500"><span class="lineNum">     500</span>                 :             :   const_iterator cbegin() const noexcept { return const_iterator(funcs_); }</span>
+<span id="L498"><span class="lineNum">     498</span>                 :             :    private:</span>
+<span id="L499"><span class="lineNum">     499</span>                 :             :     IterFuncs funcs_;  // Cannot be const.</span>
+<span id="L500"><span class="lineNum">     500</span>                 :             :   };</span>
 <span id="L501"><span class="lineNum">     501</span>                 :             : </span>
-<span id="L502"><span class="lineNum">     502</span>                 :             :   const_iterator cend() const noexcept { return const_iterator(); }</span>
-<span id="L503"><span class="lineNum">     503</span>                 :             : </span>
-<span id="L504"><span class="lineNum">     504</span>                 :<span class="tlaGNC">          77 :   bool empty() const noexcept { return funcs_.empty(); }</span></span>
-<span id="L505"><span class="lineNum">     505</span>                 :             : </span>
-<span id="L506"><span class="lineNum">     506</span>                 :<span class="tlaGNC">          77 :   std::size_t size() const noexcept { return funcs_.size(); }</span></span>
-<span id="L507"><span class="lineNum">     507</span>                 :             : </span>
-<span id="L508"><span class="lineNum">     508</span>                 :             :  private:</span>
-<span id="L509"><span class="lineNum">     509</span>                 :             :   AccessFuncs funcs_;</span>
-<span id="L510"><span class="lineNum">     510</span>                 :             : };</span>
-<span id="L511"><span class="lineNum">     511</span>                 :             : </span>
-<span id="L512"><span class="lineNum">     512</span>                 :             : }  // namespace container_internal</span>
-<span id="L513"><span class="lineNum">     513</span>                 :             : </span>
-<span id="L514"><span class="lineNum">     514</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
-<span id="L515"><span class="lineNum">     515</span>                 :             : class AnyScan : public container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kAny&gt; {</span>
-<span id="L516"><span class="lineNum">     516</span>                 :             :  private:</span>
-<span id="L517"><span class="lineNum">     517</span>                 :             :   using AnyScanImpl = container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kAny&gt;;</span>
+<span id="L502"><span class="lineNum">     502</span>                 :             :   using iterator = iterator_impl&lt;element_type, value_type, pointer, reference&gt;;</span>
+<span id="L503"><span class="lineNum">     503</span>                 :             :   using const_iterator = iterator_impl&lt;element_type, const value_type, const_pointer, const_reference&gt;;</span>
+<span id="L504"><span class="lineNum">     504</span>                 :             : </span>
+<span id="L505"><span class="lineNum">     505</span>                 :<span class="tlaGNC">           4 :   iterator begin() noexcept { return iterator(funcs_); }</span></span>
+<span id="L506"><span class="lineNum">     506</span>                 :             : </span>
+<span id="L507"><span class="lineNum">     507</span>                 :<span class="tlaGNC">           6 :   iterator end() noexcept { return iterator(); }</span></span>
+<span id="L508"><span class="lineNum">     508</span>                 :             : </span>
+<span id="L509"><span class="lineNum">     509</span>                 :<span class="tlaGNC">          80 :   const_iterator begin() const noexcept { return const_iterator(funcs_); }</span></span>
+<span id="L510"><span class="lineNum">     510</span>                 :             : </span>
+<span id="L511"><span class="lineNum">     511</span>                 :<span class="tlaGNC">          78 :   const_iterator end() const noexcept { return const_iterator(); }</span></span>
+<span id="L512"><span class="lineNum">     512</span>                 :             : </span>
+<span id="L513"><span class="lineNum">     513</span>                 :             :   const_iterator cbegin() const noexcept { return const_iterator(funcs_); }</span>
+<span id="L514"><span class="lineNum">     514</span>                 :             : </span>
+<span id="L515"><span class="lineNum">     515</span>                 :             :   const_iterator cend() const noexcept { return const_iterator(); }</span>
+<span id="L516"><span class="lineNum">     516</span>                 :             : </span>
+<span id="L517"><span class="lineNum">     517</span>                 :<span class="tlaGNC">          77 :   bool empty() const noexcept { return funcs_.empty(); }</span></span>
 <span id="L518"><span class="lineNum">     518</span>                 :             : </span>
-<span id="L519"><span class="lineNum">     519</span>                 :             :  public:</span>
-<span id="L520"><span class="lineNum">     520</span>                 :             :   AnyScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
-<span id="L521"><span class="lineNum">     521</span>                 :<span class="tlaGNC">           2 :       : AnyScanImpl(</span></span>
-<span id="L522"><span class="lineNum">     522</span>                 :<span class="tlaGNC">           2 :             container_internal::MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kAny&gt;(</span></span>
-<span id="L523"><span class="lineNum">     523</span>                 :<span class="tlaGNC">           2 :                 data)) {}</span></span>
+<span id="L519"><span class="lineNum">     519</span>                 :<span class="tlaGNC">          77 :   std::size_t size() const noexcept { return funcs_.size(); }</span></span>
+<span id="L520"><span class="lineNum">     520</span>                 :             : </span>
+<span id="L521"><span class="lineNum">     521</span>                 :             :  private:</span>
+<span id="L522"><span class="lineNum">     522</span>                 :             :   AccessFuncs funcs_;</span>
+<span id="L523"><span class="lineNum">     523</span>                 :             : };</span>
 <span id="L524"><span class="lineNum">     524</span>                 :             : </span>
-<span id="L525"><span class="lineNum">     525</span>                 :             :   template&lt;::mbo::types::ContainerHasInputIterator Container&gt;</span>
-<span id="L526"><span class="lineNum">     526</span>                 :             :   requires(types::ConstructibleFrom&lt;ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
-<span id="L527"><span class="lineNum">     527</span>                 :             :   AnyScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
-<span id="L528"><span class="lineNum">     528</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kAny&gt;&amp; data)</span>
-<span id="L529"><span class="lineNum">     529</span>                 :<span class="tlaGNC">          31 :       : AnyScanImpl(data) {}</span></span>
-<span id="L530"><span class="lineNum">     530</span>                 :             : </span>
-<span id="L531"><span class="lineNum">     531</span>                 :             :   using AnyScanImpl::begin;</span>
-<span id="L532"><span class="lineNum">     532</span>                 :             :   using AnyScanImpl::end;</span>
-<span id="L533"><span class="lineNum">     533</span>                 :             : };</span>
-<span id="L534"><span class="lineNum">     534</span>                 :             : </span>
-<span id="L535"><span class="lineNum">     535</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
-<span id="L536"><span class="lineNum">     536</span>                 :             : class ConstScan</span>
-<span id="L537"><span class="lineNum">     537</span>                 :             :     : public container_internal::AnyScanImpl&lt;const ValueType, DifferenceType, container_internal::ScanMode::kConst&gt; {</span>
-<span id="L538"><span class="lineNum">     538</span>                 :             :  private:</span>
-<span id="L539"><span class="lineNum">     539</span>                 :             :   using AnyScanImpl =</span>
-<span id="L540"><span class="lineNum">     540</span>                 :             :       container_internal::AnyScanImpl&lt;const ValueType, DifferenceType, container_internal::ScanMode::kConst&gt;;</span>
-<span id="L541"><span class="lineNum">     541</span>                 :             : </span>
-<span id="L542"><span class="lineNum">     542</span>                 :             :  public:</span>
-<span id="L543"><span class="lineNum">     543</span>                 :             :   ConstScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
-<span id="L544"><span class="lineNum">     544</span>                 :<span class="tlaGNC">           1 :       : AnyScanImpl(</span></span>
-<span id="L545"><span class="lineNum">     545</span>                 :<span class="tlaGNC">           1 :             container_internal::MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kConst&gt;(</span></span>
-<span id="L546"><span class="lineNum">     546</span>                 :<span class="tlaGNC">           1 :                 data)) {}</span></span>
+<span id="L525"><span class="lineNum">     525</span>                 :             : }  // namespace container_internal</span>
+<span id="L526"><span class="lineNum">     526</span>                 :             : </span>
+<span id="L527"><span class="lineNum">     527</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
+<span id="L528"><span class="lineNum">     528</span>                 :             : class AnyScan : public container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kAny&gt; {</span>
+<span id="L529"><span class="lineNum">     529</span>                 :             :  private:</span>
+<span id="L530"><span class="lineNum">     530</span>                 :             :   using AnyScanImpl = container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kAny&gt;;</span>
+<span id="L531"><span class="lineNum">     531</span>                 :             : </span>
+<span id="L532"><span class="lineNum">     532</span>                 :             :  public:</span>
+<span id="L533"><span class="lineNum">     533</span>                 :             :   AnyScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
+<span id="L534"><span class="lineNum">     534</span>                 :<span class="tlaGNC">           2 :       : AnyScanImpl(</span></span>
+<span id="L535"><span class="lineNum">     535</span>                 :<span class="tlaGNC">           2 :             container_internal::MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kAny&gt;(</span></span>
+<span id="L536"><span class="lineNum">     536</span>                 :<span class="tlaGNC">           2 :                 data)) {}</span></span>
+<span id="L537"><span class="lineNum">     537</span>                 :             : </span>
+<span id="L538"><span class="lineNum">     538</span>                 :             :   template&lt;::mbo::types::ContainerHasInputIterator Container&gt;</span>
+<span id="L539"><span class="lineNum">     539</span>                 :             :   requires(types::ConstructibleFrom&lt;ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
+<span id="L540"><span class="lineNum">     540</span>                 :             :   AnyScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
+<span id="L541"><span class="lineNum">     541</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kAny&gt;&amp; data)</span>
+<span id="L542"><span class="lineNum">     542</span>                 :<span class="tlaGNC">          34 :       : AnyScanImpl(data) {}</span></span>
+<span id="L543"><span class="lineNum">     543</span>                 :             : </span>
+<span id="L544"><span class="lineNum">     544</span>                 :             :   using AnyScanImpl::begin;</span>
+<span id="L545"><span class="lineNum">     545</span>                 :             :   using AnyScanImpl::end;</span>
+<span id="L546"><span class="lineNum">     546</span>                 :             : };</span>
 <span id="L547"><span class="lineNum">     547</span>                 :             : </span>
-<span id="L548"><span class="lineNum">     548</span>                 :             :   template&lt;container_internal::AcceptableContainer Container&gt;</span>
-<span id="L549"><span class="lineNum">     549</span>                 :             :   requires(types::ConstructibleFrom&lt;const ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
-<span id="L550"><span class="lineNum">     550</span>                 :             :   ConstScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
-<span id="L551"><span class="lineNum">     551</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConst&gt;&amp; data)</span>
-<span id="L552"><span class="lineNum">     552</span>                 :<span class="tlaGNC">          23 :       : AnyScanImpl(data) {}</span></span>
-<span id="L553"><span class="lineNum">     553</span>                 :             : </span>
-<span id="L554"><span class="lineNum">     554</span>                 :             :   using AnyScanImpl::begin;</span>
-<span id="L555"><span class="lineNum">     555</span>                 :             :   using AnyScanImpl::end;</span>
-<span id="L556"><span class="lineNum">     556</span>                 :             : };</span>
-<span id="L557"><span class="lineNum">     557</span>                 :             : </span>
-<span id="L558"><span class="lineNum">     558</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
-<span id="L559"><span class="lineNum">     559</span>                 :             : class ConvertingScan</span>
-<span id="L560"><span class="lineNum">     560</span>                 :             :     : public container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kConverting&gt; {</span>
-<span id="L561"><span class="lineNum">     561</span>                 :             :  private:</span>
-<span id="L562"><span class="lineNum">     562</span>                 :             :   using AnyScanImpl =</span>
-<span id="L563"><span class="lineNum">     563</span>                 :             :       container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kConverting&gt;;</span>
-<span id="L564"><span class="lineNum">     564</span>                 :             : </span>
-<span id="L565"><span class="lineNum">     565</span>                 :             :  public:</span>
-<span id="L566"><span class="lineNum">     566</span>                 :             :   ConvertingScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
-<span id="L567"><span class="lineNum">     567</span>                 :<span class="tlaGNC">          10 :       : AnyScanImpl(</span></span>
-<span id="L568"><span class="lineNum">     568</span>                 :<span class="tlaGNC">          10 :             container_internal::</span></span>
-<span id="L569"><span class="lineNum">     569</span>                 :<span class="tlaGNC">          10 :                 MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kConverting&gt;(data)) {}</span></span>
+<span id="L548"><span class="lineNum">     548</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
+<span id="L549"><span class="lineNum">     549</span>                 :             : class ConstScan</span>
+<span id="L550"><span class="lineNum">     550</span>                 :             :     : public container_internal::AnyScanImpl&lt;const ValueType, DifferenceType, container_internal::ScanMode::kConst&gt; {</span>
+<span id="L551"><span class="lineNum">     551</span>                 :             :  private:</span>
+<span id="L552"><span class="lineNum">     552</span>                 :             :   using AnyScanImpl =</span>
+<span id="L553"><span class="lineNum">     553</span>                 :             :       container_internal::AnyScanImpl&lt;const ValueType, DifferenceType, container_internal::ScanMode::kConst&gt;;</span>
+<span id="L554"><span class="lineNum">     554</span>                 :             : </span>
+<span id="L555"><span class="lineNum">     555</span>                 :             :  public:</span>
+<span id="L556"><span class="lineNum">     556</span>                 :             :   ConstScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
+<span id="L557"><span class="lineNum">     557</span>                 :<span class="tlaGNC">           1 :       : AnyScanImpl(</span></span>
+<span id="L558"><span class="lineNum">     558</span>                 :<span class="tlaGNC">           1 :             container_internal::MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kConst&gt;(</span></span>
+<span id="L559"><span class="lineNum">     559</span>                 :<span class="tlaGNC">           1 :                 data)) {}</span></span>
+<span id="L560"><span class="lineNum">     560</span>                 :             : </span>
+<span id="L561"><span class="lineNum">     561</span>                 :             :   template&lt;container_internal::AcceptableContainer Container&gt;</span>
+<span id="L562"><span class="lineNum">     562</span>                 :             :   requires(types::ConstructibleFrom&lt;const ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
+<span id="L563"><span class="lineNum">     563</span>                 :             :   ConstScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
+<span id="L564"><span class="lineNum">     564</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConst&gt;&amp; data)</span>
+<span id="L565"><span class="lineNum">     565</span>                 :<span class="tlaGNC">          23 :       : AnyScanImpl(data) {}</span></span>
+<span id="L566"><span class="lineNum">     566</span>                 :             : </span>
+<span id="L567"><span class="lineNum">     567</span>                 :             :   using AnyScanImpl::begin;</span>
+<span id="L568"><span class="lineNum">     568</span>                 :             :   using AnyScanImpl::end;</span>
+<span id="L569"><span class="lineNum">     569</span>                 :             : };</span>
 <span id="L570"><span class="lineNum">     570</span>                 :             : </span>
-<span id="L571"><span class="lineNum">     571</span>                 :             :   template&lt;container_internal::AcceptableContainer Container&gt;</span>
-<span id="L572"><span class="lineNum">     572</span>                 :             :   requires(types::ConstructibleFrom&lt;ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
-<span id="L573"><span class="lineNum">     573</span>                 :             :   ConvertingScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
-<span id="L574"><span class="lineNum">     574</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConverting&gt;&amp; data)</span>
-<span id="L575"><span class="lineNum">     575</span>                 :<span class="tlaGNC">          14 :       : AnyScanImpl(data) {}</span></span>
-<span id="L576"><span class="lineNum">     576</span>                 :             : </span>
-<span id="L577"><span class="lineNum">     577</span>                 :             :   using AnyScanImpl::begin;</span>
-<span id="L578"><span class="lineNum">     578</span>                 :             :   using AnyScanImpl::end;</span>
-<span id="L579"><span class="lineNum">     579</span>                 :             : };</span>
-<span id="L580"><span class="lineNum">     580</span>                 :             : </span>
-<span id="L581"><span class="lineNum">     581</span>                 :             : // Creates adapters that can be received by `AnyScan` parameters.</span>
-<span id="L582"><span class="lineNum">     582</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
-<span id="L583"><span class="lineNum">     583</span>                 :<span class="tlaGNC">          31 : auto MakeAnyScan(Container&amp;&amp; container) noexcept {</span></span>
-<span id="L584"><span class="lineNum">     584</span>                 :<span class="tlaGNC">          31 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kAny&gt;(</span></span>
-<span id="L585"><span class="lineNum">     585</span>                 :<span class="tlaGNC">          31 :       std::forward&lt;Container&gt;(container));</span></span>
-<span id="L586"><span class="lineNum">     586</span>                 :<span class="tlaGNC">          31 : }</span></span>
-<span id="L587"><span class="lineNum">     587</span>                 :             : </span>
-<span id="L588"><span class="lineNum">     588</span>                 :             : // Creates adapters that can be received by `ConstScan` parameters.</span>
-<span id="L589"><span class="lineNum">     589</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
-<span id="L590"><span class="lineNum">     590</span>                 :<span class="tlaGNC">          23 : auto MakeConstScan(Container&amp;&amp; container) noexcept {</span></span>
-<span id="L591"><span class="lineNum">     591</span>                 :<span class="tlaGNC">          23 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConst&gt;(</span></span>
-<span id="L592"><span class="lineNum">     592</span>                 :<span class="tlaGNC">          23 :       std::forward&lt;Container&gt;(container));</span></span>
-<span id="L593"><span class="lineNum">     593</span>                 :<span class="tlaGNC">          23 : }</span></span>
-<span id="L594"><span class="lineNum">     594</span>                 :             : </span>
-<span id="L595"><span class="lineNum">     595</span>                 :             : // Creates adapters that can be received by `ConvertingScan` parameters.</span>
-<span id="L596"><span class="lineNum">     596</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
-<span id="L597"><span class="lineNum">     597</span>                 :<span class="tlaGNC">          14 : auto MakeConvertingScan(Container&amp;&amp; container) noexcept {</span></span>
-<span id="L598"><span class="lineNum">     598</span>                 :<span class="tlaGNC">          14 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConverting&gt;(</span></span>
-<span id="L599"><span class="lineNum">     599</span>                 :<span class="tlaGNC">          14 :       std::forward&lt;Container&gt;(container));</span></span>
-<span id="L600"><span class="lineNum">     600</span>                 :<span class="tlaGNC">          14 : }</span></span>
-<span id="L601"><span class="lineNum">     601</span>                 :             : </span>
-<span id="L602"><span class="lineNum">     602</span>                 :             : // NOLINTEND(*-pro-type-union-access,*-pro-bounds-constant-array-index,*-pro-bounds-pointer-arithmetic,*-no-array-decay,*-array-to-pointer-decay)</span>
-<span id="L603"><span class="lineNum">     603</span>                 :             : </span>
-<span id="L604"><span class="lineNum">     604</span>                 :             : }  // namespace mbo::container</span>
-<span id="L605"><span class="lineNum">     605</span>                 :             : </span>
-<span id="L606"><span class="lineNum">     606</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L571"><span class="lineNum">     571</span>                 :             : template&lt;typename ValueType, typename DifferenceType&gt;</span>
+<span id="L572"><span class="lineNum">     572</span>                 :             : class ConvertingScan</span>
+<span id="L573"><span class="lineNum">     573</span>                 :             :     : public container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kConverting&gt; {</span>
+<span id="L574"><span class="lineNum">     574</span>                 :             :  private:</span>
+<span id="L575"><span class="lineNum">     575</span>                 :             :   using AnyScanImpl =</span>
+<span id="L576"><span class="lineNum">     576</span>                 :             :       container_internal::AnyScanImpl&lt;ValueType, DifferenceType, container_internal::ScanMode::kConverting&gt;;</span>
+<span id="L577"><span class="lineNum">     577</span>                 :             : </span>
+<span id="L578"><span class="lineNum">     578</span>                 :             :  public:</span>
+<span id="L579"><span class="lineNum">     579</span>                 :             :   ConvertingScan(const std::initializer_list&lt;ValueType&gt;&amp; data)</span>
+<span id="L580"><span class="lineNum">     580</span>                 :<span class="tlaGNC">          10 :       : AnyScanImpl(</span></span>
+<span id="L581"><span class="lineNum">     581</span>                 :<span class="tlaGNC">          10 :             container_internal::</span></span>
+<span id="L582"><span class="lineNum">     582</span>                 :<span class="tlaGNC">          10 :                 MakeAnyScanData&lt;std::initializer_list&lt;ValueType&gt;, container_internal::ScanMode::kConverting&gt;(data)) {}</span></span>
+<span id="L583"><span class="lineNum">     583</span>                 :             : </span>
+<span id="L584"><span class="lineNum">     584</span>                 :             :   template&lt;container_internal::AcceptableContainer Container&gt;</span>
+<span id="L585"><span class="lineNum">     585</span>                 :             :   requires(types::ConstructibleFrom&lt;ValueType, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;)</span>
+<span id="L586"><span class="lineNum">     586</span>                 :             :   ConvertingScan(  // NOLINT(*-explicit-constructor,*-explicit-conversions)</span>
+<span id="L587"><span class="lineNum">     587</span>                 :             :       const container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConverting&gt;&amp; data)</span>
+<span id="L588"><span class="lineNum">     588</span>                 :<span class="tlaGNC">          14 :       : AnyScanImpl(data) {}</span></span>
+<span id="L589"><span class="lineNum">     589</span>                 :             : </span>
+<span id="L590"><span class="lineNum">     590</span>                 :             :   using AnyScanImpl::begin;</span>
+<span id="L591"><span class="lineNum">     591</span>                 :             :   using AnyScanImpl::end;</span>
+<span id="L592"><span class="lineNum">     592</span>                 :             : };</span>
+<span id="L593"><span class="lineNum">     593</span>                 :             : </span>
+<span id="L594"><span class="lineNum">     594</span>                 :             : // Creates adapters that can be received by `AnyScan` parameters.</span>
+<span id="L595"><span class="lineNum">     595</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
+<span id="L596"><span class="lineNum">     596</span>                 :<span class="tlaGNC">          34 : auto MakeAnyScan(Container&amp;&amp; container) noexcept {</span></span>
+<span id="L597"><span class="lineNum">     597</span>                 :<span class="tlaGNC">          34 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kAny&gt;(</span></span>
+<span id="L598"><span class="lineNum">     598</span>                 :<span class="tlaGNC">          34 :       std::forward&lt;Container&gt;(container));</span></span>
+<span id="L599"><span class="lineNum">     599</span>                 :<span class="tlaGNC">          34 : }</span></span>
+<span id="L600"><span class="lineNum">     600</span>                 :             : </span>
+<span id="L601"><span class="lineNum">     601</span>                 :             : // Creates adapters that can be received by `ConstScan` parameters.</span>
+<span id="L602"><span class="lineNum">     602</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
+<span id="L603"><span class="lineNum">     603</span>                 :<span class="tlaGNC">          23 : auto MakeConstScan(Container&amp;&amp; container) noexcept {</span></span>
+<span id="L604"><span class="lineNum">     604</span>                 :<span class="tlaGNC">          23 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConst&gt;(</span></span>
+<span id="L605"><span class="lineNum">     605</span>                 :<span class="tlaGNC">          23 :       std::forward&lt;Container&gt;(container));</span></span>
+<span id="L606"><span class="lineNum">     606</span>                 :<span class="tlaGNC">          23 : }</span></span>
 <span id="L607"><span class="lineNum">     607</span>                 :             : </span>
-<span id="L608"><span class="lineNum">     608</span>                 :             : #endif  // MBO_CONTAINER_ANY_SCAN_H_</span>
+<span id="L608"><span class="lineNum">     608</span>                 :             : // Creates adapters that can be received by `ConvertingScan` parameters.</span>
+<span id="L609"><span class="lineNum">     609</span>                 :             : template&lt;container_internal::AcceptableContainer Container&gt;</span>
+<span id="L610"><span class="lineNum">     610</span>                 :<span class="tlaGNC">          14 : auto MakeConvertingScan(Container&amp;&amp; container) noexcept {</span></span>
+<span id="L611"><span class="lineNum">     611</span>                 :<span class="tlaGNC">          14 :   return container_internal::MakeAnyScanData&lt;Container, container_internal::ScanMode::kConverting&gt;(</span></span>
+<span id="L612"><span class="lineNum">     612</span>                 :<span class="tlaGNC">          14 :       std::forward&lt;Container&gt;(container));</span></span>
+<span id="L613"><span class="lineNum">     613</span>                 :<span class="tlaGNC">          14 : }</span></span>
+<span id="L614"><span class="lineNum">     614</span>                 :             : </span>
+<span id="L615"><span class="lineNum">     615</span>                 :             : // NOLINTEND(*-pro-type-union-access,*-pro-bounds-constant-array-index,*-pro-bounds-pointer-arithmetic,*-no-array-decay,*-array-to-pointer-decay)</span>
+<span id="L616"><span class="lineNum">     616</span>                 :             : </span>
+<span id="L617"><span class="lineNum">     617</span>                 :             : }  // namespace mbo::container</span>
+<span id="L618"><span class="lineNum">     618</span>                 :             : </span>
+<span id="L619"><span class="lineNum">     619</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L620"><span class="lineNum">     620</span>                 :             : </span>
+<span id="L621"><span class="lineNum">     621</span>                 :             : #endif  // MBO_CONTAINER_ANY_SCAN_H_</span>
         </pre>
               </td>
             </tr>

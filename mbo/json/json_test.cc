@@ -386,6 +386,21 @@ TEST_F(JsonTest, ArrayIteration) {
   EXPECT_THAT(json.values(), elements_are);
 }
 
+TEST_F(JsonTest, ArrayIteratorOverloads) {
+  Json array;
+  array.emplace_back(1);
+  array.emplace_back(2);
+  const Json& const_array = array;
+
+  EXPECT_THAT(array.cend(), array.end());
+  EXPECT_THAT(*array.rbegin(), 2);
+  EXPECT_THAT(*const_array.rbegin(), 2);
+  EXPECT_THAT(*array.crbegin(), 2);
+  EXPECT_THAT(array.rend(), array.rbegin() + 2);
+  EXPECT_THAT(const_array.rend(), const_array.rbegin() + 2);
+  EXPECT_THAT(array.crend(), array.crbegin() + 2);
+}
+
 TEST_F(JsonTest, PropertyIteration) {
   Json json;
   json["a"] = 1;

@@ -219,6 +219,37 @@ class CoverageSourcesTest(unittest.TestCase):
             self.assertIn("BRDA:4,0,0,1\nBRF:1\nBRH:1", actual)
             self.assertIn("DA:1,1\nDA:4,1\nDA:5,1\nLF:3\nLH:3", actual)
 
+    def test_excludes_namespace_and_marked_function_declarations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            source = workspace / "mbo/log/log.h"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "namespace mbo::log {\n"
+                "// LCOV_EXCL_FUNC_LINE: process termination prevents coverage flush.\n"
+                "int terminate() {\n"
+                "  return 1;\n"
+                "}\n"
+                "int covered() { return 2; }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            report = (
+                "SF:mbo/log/log.h\n"
+                "FN:3,terminate\nFN:6,covered\n"
+                "FNDA:0,terminate\nFNDA:1,covered\nFNF:2\nFNH:1\n"
+                "BRDA:1,0,0,0\nBRDA:4,0,0,0\nBRDA:6,0,0,1\n"
+                "DA:1,0\nDA:3,0\nDA:4,0\nDA:5,0\nDA:6,1\n"
+                "end_of_record\n"
+            )
+
+            actual = coverage_sources.normalized(report, workspace)
+
+            self.assertNotIn("terminate", actual)
+            self.assertIn("FN:6,covered\nFNDA:1,covered\nFNF:1\nFNH:1", actual)
+            self.assertIn("BRDA:4,0,0,0\nBRDA:6,0,0,1\nBRF:2\nBRH:1", actual)
+            self.assertIn("DA:4,0\nDA:5,0\nDA:6,1\nLF:3\nLH:1", actual)
+
     def test_rejects_unbalanced_exclusion_ranges(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "workspace"

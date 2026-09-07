@@ -62,6 +62,8 @@ class Template {
       const mbo::container::ConvertingScan<std::pair<std::string_view, std::string_view>>& context_data) const;
 
  private:
+  friend struct MopeTest;
+
   enum class TagType {
     kValue,
     kSection,

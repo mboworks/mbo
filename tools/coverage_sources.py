@@ -56,11 +56,16 @@ def _declaration_macro_lines(source_lines: list[str], macro: str) -> set[int]:
 
 
 def _non_code_lines(source_lines: list[str]) -> set[int]:
-    """Returns blank and C++ line-comment source lines."""
+    """Returns blank, comment-only, and declaration-only C++ source lines."""
+    namespace_declaration = re.compile(
+        r"^\s*namespace(?:\s+[A-Za-z_]\w*(?:::\w+)*)?\s*\{\s*(?://.*)?$"
+    )
     return {
         number
         for number, line in enumerate(source_lines, start=1)
-        if not line.strip() or line.lstrip().startswith("//")
+        if not line.strip()
+        or line.lstrip().startswith("//")
+        or namespace_declaration.fullmatch(line)
     }
 
 
@@ -106,7 +111,9 @@ def _normalize_record(record: str, source: Path) -> str:
     excluded_ranges = _excluded_range_lines(source_lines) | _declaration_macro_lines(
         source_lines, "ABSL_FLAG"
     )
-    excluded_lines = excluded_ranges | _non_code_lines(source_lines) | {
+    excluded_functions, merged_functions = _function_markers(source_lines)
+    excluded_functions |= excluded_ranges
+    excluded_lines = excluded_ranges | excluded_functions | _non_code_lines(source_lines) | {
         number
         for number, line in enumerate(source_lines, start=1)
         if "LCOV_EXCL_LINE" in line
@@ -116,8 +123,6 @@ def _normalize_record(record: str, source: Path) -> str:
         for number, line in enumerate(source_lines, start=1)
         if "LCOV_EXCL_BR_LINE" in line
     }
-    excluded_functions, merged_functions = _function_markers(source_lines)
-    excluded_functions |= excluded_ranges
     merged_branches = _branch_merge_markers(source_lines)
 
     raw_lines = record.splitlines()

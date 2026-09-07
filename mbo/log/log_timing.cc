@@ -43,6 +43,7 @@ ABSL_FLAG(
 // NOLINTEND(*avoid-non-const-global-variables,*abseil-no-namespace)
 
 namespace mbo::log::log_internal {
+
 namespace {
 
 std::string ShortenLambdas(std::string_view function) {
@@ -66,25 +67,11 @@ std::string_view LogTimingImpl::ReverseFindSpaceSkipPastMatchingBrackets(std::st
   std::size_t angles = 0;
   for (; pos != 0; --pos) {
     switch (str.at(pos)) {
-      default: {
-        break;
-      }
-      case ')': {
-        ++brackets;
-        break;
-      }
-      case '(': {
-        --brackets;
-        break;
-      }
-      case '>': {
-        ++angles;
-        break;
-      }
-      case '<': {
-        --angles;
-        break;
-      }
+      default: break;
+      case ')': ++brackets; break;
+      case '(': --brackets; break;
+      case '>': ++angles; break;
+      case '<': --angles; break;
       case ' ': {
         if (brackets == 0 && angles == 0) {
           str.remove_prefix(pos + 1);
@@ -106,13 +93,8 @@ std::string_view LogTimingImpl::ReverseStripAngleBrackets(std::string_view str) 
   std::size_t angles = 0;
   for (; pos != 0; --pos) {
     switch (str.at(pos)) {
-      default: {
-        break;
-      }
-      case '>': {
-        ++angles;
-        break;
-      }
+      default: break;
+      case '>': ++angles; break;
       case '<': {
         --angles;
         if (angles == 0) {

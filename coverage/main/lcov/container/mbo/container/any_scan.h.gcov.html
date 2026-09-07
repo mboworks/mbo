@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -487,11 +487,11 @@
 <span id="L407"><span class="lineNum">     407</span>                 :             :     using reference = ItReference;</span>
 <span id="L408"><span class="lineNum">     408</span>                 :             : </span>
 <span id="L409"><span class="lineNum">     409</span>                 :             :     iterator_impl()</span>
-<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">          81 :         : funcs_{</span></span>
-<span id="L411"><span class="lineNum">     411</span>                 :<span class="tlaGNC">         253 :               .more = [] { return false; },</span></span>
-<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          81 :               .curr = nullptr,</span></span>
-<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          81 :               .next = [] {},</span></span>
-<span id="L414"><span class="lineNum">     414</span>                 :<span class="tlaGNC">          81 :           } {}</span></span>
+<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">          83 :         : funcs_{</span></span>
+<span id="L411"><span class="lineNum">     411</span>                 :<span class="tlaGNC">         255 :               .more = [] { return false; },</span></span>
+<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          83 :               .curr = nullptr,</span></span>
+<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          83 :               .next = [] {},</span></span>
+<span id="L414"><span class="lineNum">     414</span>                 :<span class="tlaGNC">          83 :           } {}</span></span>
 <span id="L415"><span class="lineNum">     415</span>                 :             : </span>
 <span id="L416"><span class="lineNum">     416</span>                 :<span class="tlaGNC">          84 :     explicit iterator_impl(const AccessFuncs&amp; funcs) : funcs_(funcs.iter()) {}</span></span>
 <span id="L417"><span class="lineNum">     417</span>                 :             : </span>
@@ -537,16 +537,16 @@
 <span id="L457"><span class="lineNum">     457</span>                 :             :     }</span>
 <span id="L458"><span class="lineNum">     458</span>                 :             : </span>
 <span id="L459"><span class="lineNum">     459</span>                 :             :     template&lt;typename OE, typename OV, typename OP, typename OR&gt;</span>
-<span id="L460"><span class="lineNum">     460</span>                 :<span class="tlaGNC">         257 :     bool operator==(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
-<span id="L461"><span class="lineNum">     461</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 256 times"> + </span>]:<span class="tlaGNC">         257 :       if (this == &amp;other) {</span></span>
+<span id="L460"><span class="lineNum">     460</span>                 :<span class="tlaGNC">         258 :     bool operator==(const iterator_impl&lt;OE, OV, OP, OR&gt;&amp; other) const noexcept {</span></span>
+<span id="L461"><span class="lineNum">     461</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 257 times"> + </span>]:<span class="tlaGNC">         258 :       if (this == &amp;other) {</span></span>
 <span id="L462"><span class="lineNum">     462</span>                 :<span class="tlaGNC">           1 :         return true;</span></span>
 <span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">           1 :       }</span></span>
-<span id="L464"><span class="lineNum">     464</span>                 :<span class="tlaGNC">         256 :       const bool l_end = !funcs_.more();</span></span>
-<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">         256 :       const bool o_end = !other.funcs_.more();</span></span>
+<span id="L464"><span class="lineNum">     464</span>                 :<span class="tlaGNC">         257 :       const bool l_end = !funcs_.more();</span></span>
+<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">         257 :       const bool o_end = !other.funcs_.more();</span></span>
 <span id="L466"><span class="lineNum">     466</span>                 :             :       // No need to also check `funcs_.curr != nullptr`, as then `more` would have returned false.</span>
-<span id="L467"><span class="lineNum">     467</span> [<span class="tlaGBC" title="branch 0 was taken 78 times"> + </span><span class="tlaGBC" title="branch 1 was taken 178 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 175 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         256 :       if (l_end || o_end) {</span></span>
-<span id="L468"><span class="lineNum">     468</span>                 :<span class="tlaGNC">         253 :         return l_end == o_end;</span></span>
-<span id="L469"><span class="lineNum">     469</span>                 :<span class="tlaGNC">         253 :       }</span></span>
+<span id="L467"><span class="lineNum">     467</span> [<span class="tlaGBC" title="branch 0 was taken 79 times"> + </span><span class="tlaGBC" title="branch 1 was taken 178 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 175 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         257 :       if (l_end || o_end) {</span></span>
+<span id="L468"><span class="lineNum">     468</span>                 :<span class="tlaGNC">         254 :         return l_end == o_end;</span></span>
+<span id="L469"><span class="lineNum">     469</span>                 :<span class="tlaGNC">         254 :       }</span></span>
 <span id="L470"><span class="lineNum">     470</span>                 :<span class="tlaGNC">           3 :       if constexpr (kAccessByRef) {</span></span>
 <span id="L471"><span class="lineNum">     471</span>                 :             :         // Approximate equal address means equal iterator. That is not always correct as a container</span>
 <span id="L472"><span class="lineNum">     472</span>                 :             :         // might have the same element reference twice.</span>

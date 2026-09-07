@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">93.8&nbsp;%</td>
+            <td class="headerCovTableEntryHi">95.5&nbsp;%</td>
             <td class="headerCovTableEntry">673</td>
-            <td class="headerCovTableEntry">631</td>
+            <td class="headerCovTableEntry">643</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -58,9 +58,9 @@
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">89.5&nbsp;%</td>
+            <td class="headerCovTableEntryHi">90.8&nbsp;%</td>
             <td class="headerCovTableEntry">524</td>
-            <td class="headerCovTableEntry">469</td>
+            <td class="headerCovTableEntry">476</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -300,34 +300,34 @@
 <span id="L201"><span class="lineNum">     201</span>                 :             :   bool mixed = false;</span>
 <span id="L202"><span class="lineNum">     202</span>                 :             : };</span>
 <span id="L203"><span class="lineNum">     203</span>                 :             : </span>
-<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">         143 : bool AllowApendStar(std::string_view pattern, std::size_t past_last_escape, const Glob2Re2Options&amp; options) {</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">         146 : bool AllowApendStar(std::string_view pattern, std::size_t past_last_escape, const Glob2Re2Options&amp; options) {</span></span>
 <span id="L205"><span class="lineNum">     205</span>                 :             :   // We consider whether the previous chars were stars, but they could have been escaped.</span>
 <span id="L206"><span class="lineNum">     206</span>                 :             :   // The escape char itself could be escaped, so we forward search for escape chars and drop those</span>
 <span id="L207"><span class="lineNum">     207</span>                 :             :   // nad the next character. What remains is an unescaped sequence.</span>
-<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">         143 :   pattern.remove_prefix(past_last_escape);</span></span>
-<span id="L209"><span class="lineNum">     209</span>         [<span class="tlaGBC" title="branch 0 was taken 132 times"> + </span><span class="tlaGBC" title="branch 1 was taken 11 times"> + </span>]:<span class="tlaGNC">         143 :   if (options.allow_star_star) {</span></span>
-<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">         132 :     return !pattern.ends_with(&quot;**&quot;);</span></span>
-<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">         132 :   } else {</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">         146 :   pattern.remove_prefix(past_last_escape);</span></span>
+<span id="L209"><span class="lineNum">     209</span>         [<span class="tlaGBC" title="branch 0 was taken 135 times"> + </span><span class="tlaGBC" title="branch 1 was taken 11 times"> + </span>]:<span class="tlaGNC">         146 :   if (options.allow_star_star) {</span></span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">         135 :     return !pattern.ends_with(&quot;**&quot;);</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">         135 :   } else {</span></span>
 <span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">          11 :     return !pattern.ends_with(&quot;*&quot;);</span></span>
 <span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">          11 :   }</span></span>
-<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">         143 : }</span></span>
+<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">         146 : }</span></span>
 <span id="L215"><span class="lineNum">     215</span>                 :             : </span>
-<span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">         328 : bool AllowAppendSlash(std::string_view pattern, std::size_t past_last_escape) {</span></span>
-<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">         328 :   pattern.remove_prefix(past_last_escape);</span></span>
-<span id="L218"><span class="lineNum">     218</span> [<span class="tlaGBC" title="branch 0 was taken 284 times"> + </span><span class="tlaGBC" title="branch 1 was taken 44 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 43 times"> + </span>]:<span class="tlaGNC">         328 :   return !pattern.ends_with(&quot;/&quot;) || pattern.ends_with(&quot;:/&quot;);</span></span>
-<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">         328 : }</span></span>
+<span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">         330 : bool AllowAppendSlash(std::string_view pattern, std::size_t past_last_escape) {</span></span>
+<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">         330 :   pattern.remove_prefix(past_last_escape);</span></span>
+<span id="L218"><span class="lineNum">     218</span> [<span class="tlaGBC" title="branch 0 was taken 286 times"> + </span><span class="tlaGBC" title="branch 1 was taken 44 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 43 times"> + </span>]:<span class="tlaGNC">         330 :   return !pattern.ends_with(&quot;/&quot;) || pattern.ends_with(&quot;:/&quot;);</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">         330 : }</span></span>
 <span id="L220"><span class="lineNum">     220</span>                 :             : </span>
 <span id="L221"><span class="lineNum">     221</span>                 :             : // Deduplicate '/'s, remove trailing '/' and reduce '*' sequences to at most `options.allow_star_star ? 2 : 1`.</span>
 <span id="L222"><span class="lineNum">     222</span>                 :             : MBO_ALWAYS_INLINE absl::StatusOr&lt;std::string&gt; GlobNormalizeStr(</span>
 <span id="L223"><span class="lineNum">     223</span>                 :             :     std::string_view glob_pattern,</span>
-<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">         283 :     const Glob2Re2Options&amp; options) {</span></span>
-<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">         283 :   std::string result;</span></span>
-<span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">         283 :   result.reserve(glob_pattern.size());</span></span>
-<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">         283 :   std::size_t past_last_escape = 0;</span></span>
-<span id="L228"><span class="lineNum">     228</span>         [<span class="tlaGBC" title="branch 0 was taken 3032 times"> + </span><span class="tlaGBC" title="branch 1 was taken 277 times"> + </span>]:<span class="tlaGNC">        3309 :   while (!glob_pattern.empty()) {</span></span>
-<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">        3032 :     char chr = glob_pattern.front();</span></span>
-<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">        3032 :     glob_pattern.remove_prefix(1);</span></span>
-<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2997 times"> + </span>]:<span class="tlaGNC">        3032 :     if (chr == '\\') {</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">         286 :     const Glob2Re2Options&amp; options) {</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">         286 :   std::string result;</span></span>
+<span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">         286 :   result.reserve(glob_pattern.size());</span></span>
+<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">         286 :   std::size_t past_last_escape = 0;</span></span>
+<span id="L228"><span class="lineNum">     228</span>         [<span class="tlaGBC" title="branch 0 was taken 3041 times"> + </span><span class="tlaGBC" title="branch 1 was taken 280 times"> + </span>]:<span class="tlaGNC">        3321 :   while (!glob_pattern.empty()) {</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">        3041 :     char chr = glob_pattern.front();</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">        3041 :     glob_pattern.remove_prefix(1);</span></span>
+<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3006 times"> + </span>]:<span class="tlaGNC">        3041 :     if (chr == '\\') {</span></span>
 <span id="L232"><span class="lineNum">     232</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 29 times"> + </span>]:<span class="tlaGNC">          35 :       if (glob_pattern.empty()) {</span></span>
 <span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           6 :         return absl::InvalidArgumentError(&quot;No character left to escape at end of pattern.&quot;);</span></span>
 <span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">           6 :       }</span></span>
@@ -341,112 +341,112 @@
 <span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">          20 :       }</span></span>
 <span id="L243"><span class="lineNum">     243</span>                 :             :       // No need to escape the forward slash, but rather prevent duplicates even if escaped.</span>
 <span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">          29 :     }</span></span>
-<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">        3006 :     switch (chr) {</span></span>
-<span id="L246"><span class="lineNum">     246</span>         [<span class="tlaGBC" title="branch 0 was taken 143 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2863 times"> + </span>]:<span class="tlaGNC">         143 :       case '*':</span></span>
-<span id="L247"><span class="lineNum">     247</span>         [<span class="tlaGBC" title="branch 0 was taken 121 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">         143 :         if (AllowApendStar(result, past_last_escape, options)) {</span></span>
-<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">         121 :           result += chr;</span></span>
-<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">         121 :         }</span></span>
-<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">         143 :         continue;</span></span>
-<span id="L251"><span class="lineNum">     251</span>         [<span class="tlaGBC" title="branch 0 was taken 252 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2754 times"> + </span>]:<span class="tlaGNC">         252 :       case '[':</span></span>
-<span id="L252"><span class="lineNum">     252</span> [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="branch 1 was taken 240 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 205 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 35 times"> + </span>]:<span class="tlaGNC">         252 :         if (!options.allow_ranges || !glob_pattern.starts_with(&quot;/]&quot;)) {</span></span>
-<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">         217 :           result += chr;  // replace '[/]' with '/'.</span></span>
-<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">         217 :           continue;</span></span>
-<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">         217 :         }</span></span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">        3015 :     switch (chr) {</span></span>
+<span id="L246"><span class="lineNum">     246</span>         [<span class="tlaGBC" title="branch 0 was taken 146 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2869 times"> + </span>]:<span class="tlaGNC">         146 :       case '*':</span></span>
+<span id="L247"><span class="lineNum">     247</span>         [<span class="tlaGBC" title="branch 0 was taken 124 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">         146 :         if (AllowApendStar(result, past_last_escape, options)) {</span></span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">         124 :           result += chr;</span></span>
+<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">         124 :         }</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">         146 :         continue;</span></span>
+<span id="L251"><span class="lineNum">     251</span>         [<span class="tlaGBC" title="branch 0 was taken 253 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2762 times"> + </span>]:<span class="tlaGNC">         253 :       case '[':</span></span>
+<span id="L252"><span class="lineNum">     252</span> [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 240 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 205 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 35 times"> + </span>]:<span class="tlaGNC">         253 :         if (!options.allow_ranges || !glob_pattern.starts_with(&quot;/]&quot;)) {</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">         218 :           result += chr;  // replace '[/]' with '/'.</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">         218 :           continue;</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">         218 :         }</span></span>
 <span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          35 :         glob_pattern.remove_prefix(2);</span></span>
 <span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          35 :         chr = '/';</span></span>
 <span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">          35 :         [[fallthrough]];</span></span>
-<span id="L259"><span class="lineNum">     259</span>         [<span class="tlaGBC" title="branch 0 was taken 293 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2713 times"> + </span>]:<span class="tlaGNC">         328 :       case '/':</span></span>
-<span id="L260"><span class="lineNum">     260</span>         [<span class="tlaGBC" title="branch 0 was taken 285 times"> + </span><span class="tlaGBC" title="branch 1 was taken 43 times"> + </span>]:<span class="tlaGNC">         328 :         if (AllowAppendSlash(result, past_last_escape)) {</span></span>
-<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">         285 :           result += chr;</span></span>
-<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">         285 :         }</span></span>
-<span id="L263"><span class="lineNum">     263</span>                 :<span class="tlaGNC">         328 :         continue;</span></span>
-<span id="L264"><span class="lineNum">     264</span>         [<span class="tlaGBC" title="branch 0 was taken 2318 times"> + </span><span class="tlaGBC" title="branch 1 was taken 688 times"> + </span>]:<span class="tlaGNC">        2318 :       default: {</span></span>
-<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">        2318 :         result += chr;</span></span>
-<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">        2318 :         continue;</span></span>
+<span id="L259"><span class="lineNum">     259</span>         [<span class="tlaGBC" title="branch 0 was taken 295 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2720 times"> + </span>]:<span class="tlaGNC">         330 :       case '/':</span></span>
+<span id="L260"><span class="lineNum">     260</span>         [<span class="tlaGBC" title="branch 0 was taken 287 times"> + </span><span class="tlaGBC" title="branch 1 was taken 43 times"> + </span>]:<span class="tlaGNC">         330 :         if (AllowAppendSlash(result, past_last_escape)) {</span></span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">         287 :           result += chr;</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">         287 :         }</span></span>
+<span id="L263"><span class="lineNum">     263</span>                 :<span class="tlaGNC">         330 :         continue;</span></span>
+<span id="L264"><span class="lineNum">     264</span>         [<span class="tlaGBC" title="branch 0 was taken 2321 times"> + </span><span class="tlaGBC" title="branch 1 was taken 694 times"> + </span>]:<span class="tlaGNC">        2321 :       default: {</span></span>
+<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">        2321 :         result += chr;</span></span>
+<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">        2321 :         continue;</span></span>
 <span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">          35 :       }</span></span>
-<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">        3006 :     }</span></span>
-<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">        3006 :   }</span></span>
-<span id="L270"><span class="lineNum">     270</span> [<span class="tlaGBC" title="branch 0 was taken 250 times"> + </span><span class="tlaGBC" title="branch 1 was taken 27 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 4 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 246 times"> + </span>]:<span class="tlaGNC">         277 :   if (result.size() &gt; 1 &amp;&amp; result.ends_with('/')) {</span></span>
-<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">           4 :     result.pop_back();</span></span>
-<span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">           4 :   }</span></span>
-<span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">         277 :   return result;</span></span>
-<span id="L274"><span class="lineNum">     274</span>                 :<span class="tlaGNC">         283 : }</span></span>
+<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">        3015 :     }</span></span>
+<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">        3015 :   }</span></span>
+<span id="L270"><span class="lineNum">     270</span> [<span class="tlaGBC" title="branch 0 was taken 252 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 5 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 247 times"> + </span>]:<span class="tlaGNC">         280 :   if (result.size() &gt; 1 &amp;&amp; result.ends_with('/')) {</span></span>
+<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">           5 :     result.pop_back();</span></span>
+<span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">           5 :   }</span></span>
+<span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">         280 :   return result;</span></span>
+<span id="L274"><span class="lineNum">     274</span>                 :<span class="tlaGNC">         286 : }</span></span>
 <span id="L275"><span class="lineNum">     275</span>                 :             : </span>
 <span id="L276"><span class="lineNum">     276</span>                 :             : MBO_ALWAYS_INLINE absl::StatusOr&lt;GlobData&gt; GlobNormalizeData(</span>
 <span id="L277"><span class="lineNum">     277</span>                 :             :     std::string_view glob_pattern,</span>
-<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">          67 :     const Glob2Re2Options&amp; options) {</span></span>
-<span id="L279"><span class="lineNum">     279</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 66 times"> + </span>]:<span class="tlaGNC">          67 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeStr(glob_pattern, options), const std::string pattern);</span></span>
-<span id="L280"><span class="lineNum">     280</span>                 :<span class="tlaGNC">          66 :   char chr = '\0';</span></span>
-<span id="L281"><span class="lineNum">     281</span>                 :<span class="tlaGNC">          66 :   std::size_t slash_0 = std::string_view::npos;</span></span>
-<span id="L282"><span class="lineNum">     282</span>                 :<span class="tlaGNC">          66 :   std::size_t slash_1 = std::string_view::npos;</span></span>
-<span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">          66 :   bool found_pattern = false;</span></span>
-<span id="L284"><span class="lineNum">     284</span>                 :<span class="tlaGNC">          66 :   glob_pattern = pattern;  // Operate on the normalized pattern</span></span>
-<span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">          66 :   GlobData result{</span></span>
-<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">          66 :       .pattern = pattern,</span></span>
-<span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">          66 :   };</span></span>
-<span id="L288"><span class="lineNum">     288</span>         [<span class="tlaGBC" title="branch 0 was taken 1331 times"> + </span><span class="tlaGBC" title="branch 1 was taken 65 times"> + </span>]:<span class="tlaGNC">        1396 :   while (!glob_pattern.empty()) {</span></span>
-<span id="L289"><span class="lineNum">     289</span>                 :<span class="tlaGNC">        1331 :     chr = glob_pattern.front();</span></span>
-<span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">        1331 :     switch (chr) {</span></span>
-<span id="L291"><span class="lineNum">     291</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 1331 times"> + </span>]:<span class="tlaUNC">           0 :       case '\\': {</span></span>
+<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">          68 :     const Glob2Re2Options&amp; options) {</span></span>
+<span id="L279"><span class="lineNum">     279</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 67 times"> + </span>]:<span class="tlaGNC">          68 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeStr(glob_pattern, options), const std::string pattern);</span></span>
+<span id="L280"><span class="lineNum">     280</span>                 :<span class="tlaGNC">          67 :   char chr = '\0';</span></span>
+<span id="L281"><span class="lineNum">     281</span>                 :<span class="tlaGNC">          67 :   std::size_t slash_0 = std::string_view::npos;</span></span>
+<span id="L282"><span class="lineNum">     282</span>                 :<span class="tlaGNC">          67 :   std::size_t slash_1 = std::string_view::npos;</span></span>
+<span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">          67 :   bool found_pattern = false;</span></span>
+<span id="L284"><span class="lineNum">     284</span>                 :<span class="tlaGNC">          67 :   glob_pattern = pattern;  // Operate on the normalized pattern</span></span>
+<span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">          67 :   GlobData result{</span></span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">          67 :       .pattern = pattern,</span></span>
+<span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">          67 :   };</span></span>
+<span id="L288"><span class="lineNum">     288</span>         [<span class="tlaGBC" title="branch 0 was taken 1336 times"> + </span><span class="tlaGBC" title="branch 1 was taken 66 times"> + </span>]:<span class="tlaGNC">        1402 :   while (!glob_pattern.empty()) {</span></span>
+<span id="L289"><span class="lineNum">     289</span>                 :<span class="tlaGNC">        1336 :     chr = glob_pattern.front();</span></span>
+<span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">        1336 :     switch (chr) {</span></span>
+<span id="L291"><span class="lineNum">     291</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 1336 times"> + </span>]:<span class="tlaUNC">           0 :       case '\\': {</span></span>
 <span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaUNC">           0 :         glob_pattern.remove_prefix(2);</span></span>
 <span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaUNC">           0 :         continue;</span></span>
 <span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L295"><span class="lineNum">     295</span>         [<span class="tlaGBC" title="branch 0 was taken 25 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1306 times"> + </span>]:<span class="tlaGNC">          25 :       case '*':</span></span>
-<span id="L296"><span class="lineNum">     296</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1327 times"> + </span>]:<span class="tlaGNC">          29 :       case '?':</span></span>
+<span id="L295"><span class="lineNum">     295</span>         [<span class="tlaGBC" title="branch 0 was taken 25 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1311 times"> + </span>]:<span class="tlaGNC">          25 :       case '*':</span></span>
+<span id="L296"><span class="lineNum">     296</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1332 times"> + </span>]:<span class="tlaGNC">          29 :       case '?':</span></span>
 <span id="L297"><span class="lineNum">     297</span>                 :<span class="tlaGNC">          29 :         glob_pattern.remove_prefix(1);</span></span>
 <span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">          29 :         found_pattern = true;</span></span>
 <span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaGNC">          29 :         continue;</span></span>
-<span id="L300"><span class="lineNum">     300</span>         [<span class="tlaGBC" title="branch 0 was taken 25 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1306 times"> + </span>]:<span class="tlaGNC">          25 :       case '[': {</span></span>
-<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          25 :         found_pattern = true;</span></span>
-<span id="L302"><span class="lineNum">     302</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 25 times"> + </span>]:<span class="tlaGNC">          25 :         if (!options.allow_ranges) {</span></span>
-<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaUNC">           0 :           glob_pattern.remove_prefix(1);</span></span>
-<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaUNC">           0 :           continue;</span></span>
-<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaUNC">           0 :         }</span></span>
+<span id="L300"><span class="lineNum">     300</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1310 times"> + </span>]:<span class="tlaGNC">          26 :       case '[': {</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          26 :         found_pattern = true;</span></span>
+<span id="L302"><span class="lineNum">     302</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 25 times"> + </span>]:<span class="tlaGNC">          26 :         if (!options.allow_ranges) {</span></span>
+<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">           1 :           glob_pattern.remove_prefix(1);</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">           1 :           continue;</span></span>
+<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">           1 :         }</span></span>
 <span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">          25 :         std::string tmp_re2;</span></span>
 <span id="L307"><span class="lineNum">     307</span> [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 25 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 25 times"> + </span>]:<span class="tlaGNC">          25 :         MBO_RETURN_IF_ERROR(GlobFindRange(glob_pattern, tmp_re2));</span></span>
 <span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">          24 :         continue;</span></span>
 <span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">          25 :       }</span></span>
-<span id="L310"><span class="lineNum">     310</span>         [<span class="tlaGBC" title="branch 0 was taken 198 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1133 times"> + </span>]:<span class="tlaGNC">         198 :       case '/':</span></span>
-<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">         198 :         slash_0 = slash_1;</span></span>
-<span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">         198 :         slash_1 = result.pattern.size() - glob_pattern.size();</span></span>
-<span id="L313"><span class="lineNum">     313</span>         [<span class="tlaGBC" title="branch 0 was taken 171 times"> + </span><span class="tlaGBC" title="branch 1 was taken 27 times"> + </span>]:<span class="tlaGNC">         198 :         if (!found_pattern) {</span></span>
-<span id="L314"><span class="lineNum">     314</span>                 :<span class="tlaGNC">         171 :           result.root_len = result.pattern.size() - glob_pattern.size();</span></span>
-<span id="L315"><span class="lineNum">     315</span>                 :<span class="tlaGNC">         171 :         }</span></span>
-<span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">         198 :         glob_pattern.remove_prefix(1);</span></span>
-<span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">         198 :         continue;</span></span>
-<span id="L318"><span class="lineNum">     318</span>         [<span class="tlaGBC" title="branch 0 was taken 1079 times"> + </span><span class="tlaGBC" title="branch 1 was taken 252 times"> + </span>]:<span class="tlaGNC">        1079 :       default: glob_pattern.remove_prefix(1); continue;</span></span>
-<span id="L319"><span class="lineNum">     319</span>                 :<span class="tlaGNC">        1331 :     }</span></span>
-<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">        1331 :   }</span></span>
-<span id="L321"><span class="lineNum">     321</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 41 times"> + </span>]:<span class="tlaGNC">          65 :   if (!found_pattern) {</span></span>
+<span id="L310"><span class="lineNum">     310</span>         [<span class="tlaGBC" title="branch 0 was taken 199 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1137 times"> + </span>]:<span class="tlaGNC">         199 :       case '/':</span></span>
+<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">         199 :         slash_0 = slash_1;</span></span>
+<span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">         199 :         slash_1 = result.pattern.size() - glob_pattern.size();</span></span>
+<span id="L313"><span class="lineNum">     313</span>         [<span class="tlaGBC" title="branch 0 was taken 172 times"> + </span><span class="tlaGBC" title="branch 1 was taken 27 times"> + </span>]:<span class="tlaGNC">         199 :         if (!found_pattern) {</span></span>
+<span id="L314"><span class="lineNum">     314</span>                 :<span class="tlaGNC">         172 :           result.root_len = result.pattern.size() - glob_pattern.size();</span></span>
+<span id="L315"><span class="lineNum">     315</span>                 :<span class="tlaGNC">         172 :         }</span></span>
+<span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">         199 :         glob_pattern.remove_prefix(1);</span></span>
+<span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">         199 :         continue;</span></span>
+<span id="L318"><span class="lineNum">     318</span>         [<span class="tlaGBC" title="branch 0 was taken 1082 times"> + </span><span class="tlaGBC" title="branch 1 was taken 254 times"> + </span>]:<span class="tlaGNC">        1082 :       default: glob_pattern.remove_prefix(1); continue;</span></span>
+<span id="L319"><span class="lineNum">     319</span>                 :<span class="tlaGNC">        1336 :     }</span></span>
+<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">        1336 :   }</span></span>
+<span id="L321"><span class="lineNum">     321</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 42 times"> + </span>]:<span class="tlaGNC">          66 :   if (!found_pattern) {</span></span>
 <span id="L322"><span class="lineNum">     322</span>                 :<span class="tlaGNC">          24 :     result.root_len = result.pattern.size();</span></span>
 <span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">          24 :   }</span></span>
-<span id="L324"><span class="lineNum">     324</span> [<span class="tlaGBC" title="branch 0 was taken 59 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 59 times"> + </span>]:<span class="tlaGNC">          65 :   if (result.pattern.size() &gt; 1 &amp;&amp; result.pattern.ends_with('/')) {</span></span>
+<span id="L324"><span class="lineNum">     324</span> [<span class="tlaGBC" title="branch 0 was taken 60 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 60 times"> + </span>]:<span class="tlaGNC">          66 :   if (result.pattern.size() &gt; 1 &amp;&amp; result.pattern.ends_with('/')) {</span></span>
 <span id="L325"><span class="lineNum">     325</span>                 :<span class="tlaUNC">           0 :     result.pattern.pop_back();</span></span>
 <span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaUNC">           0 :     slash_1 = slash_0;</span></span>
 <span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L328"><span class="lineNum">     328</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 63 times"> + </span>]:<span class="tlaGNC">          65 :   if (slash_1 == std::string_view::npos) {</span></span>
+<span id="L328"><span class="lineNum">     328</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 64 times"> + </span>]:<span class="tlaGNC">          66 :   if (slash_1 == std::string_view::npos) {</span></span>
 <span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">           2 :     return result;</span></span>
 <span id="L330"><span class="lineNum">     330</span>                 :<span class="tlaGNC">           2 :   }</span></span>
-<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          63 :   const bool star_star = result.pattern.find(&quot;**&quot;, slash_1) != std::string::npos;</span></span>
-<span id="L332"><span class="lineNum">     332</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 62 times"> + </span>]:<span class="tlaGNC">          63 :   result.path_len = star_star ? result.pattern.size() : slash_1;</span></span>
-<span id="L333"><span class="lineNum">     333</span>                 :<span class="tlaGNC">          63 :   return result;</span></span>
-<span id="L334"><span class="lineNum">     334</span>                 :<span class="tlaGNC">          65 : }</span></span>
+<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          64 :   const bool star_star = result.pattern.find(&quot;**&quot;, slash_1) != std::string::npos;</span></span>
+<span id="L332"><span class="lineNum">     332</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 63 times"> + </span>]:<span class="tlaGNC">          64 :   result.path_len = star_star ? result.pattern.size() : slash_1;</span></span>
+<span id="L333"><span class="lineNum">     333</span>                 :<span class="tlaGNC">          64 :   return result;</span></span>
+<span id="L334"><span class="lineNum">     334</span>                 :<span class="tlaGNC">          66 : }</span></span>
 <span id="L335"><span class="lineNum">     335</span>                 :             : </span>
-<span id="L336"><span class="lineNum">     336</span>                 :<span class="tlaGNC">          57 : MBO_ALWAYS_INLINE void Glob2Re2ExpressionImplStar(std::string&amp; re2_pattern, std::string_view&amp; pattern) {</span></span>
-<span id="L337"><span class="lineNum">     337</span>                 :<span class="tlaGNC">          57 :   std::size_t stars = 0;</span></span>
-<span id="L338"><span class="lineNum">     338</span> [<span class="tlaGBC" title="branch 0 was taken 131 times"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 92 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 39 times"> + </span>]:<span class="tlaGNC">         149 :   while (stars &lt; pattern.size() &amp;&amp; pattern.at(stars) == '*') {</span></span>
-<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaGNC">          92 :     ++stars;</span></span>
-<span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">          92 :   }</span></span>
-<span id="L341"><span class="lineNum">     341</span> [<span class="tlaGBC" title="branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 13 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 22 times"> + </span>]:<span class="tlaGNC">          57 :   const bool complete_component = stars &gt;= 2 &amp;&amp; (re2_pattern.empty() || re2_pattern.ends_with('/'))</span></span>
+<span id="L336"><span class="lineNum">     336</span>                 :<span class="tlaGNC">          59 : MBO_ALWAYS_INLINE void Glob2Re2ExpressionImplStar(std::string&amp; re2_pattern, std::string_view&amp; pattern) {</span></span>
+<span id="L337"><span class="lineNum">     337</span>                 :<span class="tlaGNC">          59 :   std::size_t stars = 0;</span></span>
+<span id="L338"><span class="lineNum">     338</span> [<span class="tlaGBC" title="branch 0 was taken 134 times"> + </span><span class="tlaGBC" title="branch 1 was taken 20 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 95 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 39 times"> + </span>]:<span class="tlaGNC">         154 :   while (stars &lt; pattern.size() &amp;&amp; pattern.at(stars) == '*') {</span></span>
+<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaGNC">          95 :     ++stars;</span></span>
+<span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">          95 :   }</span></span>
+<span id="L341"><span class="lineNum">     341</span> [<span class="tlaGBC" title="branch 0 was taken 36 times"> + </span><span class="tlaGBC" title="branch 1 was taken 23 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 14 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 22 times"> + </span>]:<span class="tlaGNC">          59 :   const bool complete_component = stars &gt;= 2 &amp;&amp; (re2_pattern.empty() || re2_pattern.ends_with('/'))</span></span>
 <span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 15 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 7 times"> + </span>]
-<span id="L342"><span class="lineNum">     342</span> [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 19 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 16 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">          28 :                                   &amp;&amp; (stars == pattern.size() || pattern.at(stars) == '/');</span></span>
-<span id="L343"><span class="lineNum">     343</span>         [<span class="tlaGBC" title="branch 0 was taken 32 times"> + </span><span class="tlaGBC" title="branch 1 was taken 25 times"> + </span>]:<span class="tlaGNC">          57 :   if (!complete_component) {</span></span>
-<span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">          32 :     pattern.remove_prefix(stars);</span></span>
-<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">          32 :     absl::StrAppend(&amp;re2_pattern, &quot;[^/]*&quot;);</span></span>
-<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">          32 :     return;</span></span>
-<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">          32 :   }</span></span>
-<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">          25 :   pattern.remove_prefix(stars);</span></span>
-<span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="branch 1 was taken 13 times"> + </span>]:<span class="tlaGNC">          25 :   if (re2_pattern.ends_with('/')) {</span></span>
+<span id="L342"><span class="lineNum">     342</span> [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 19 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 16 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">          29 :                                   &amp;&amp; (stars == pattern.size() || pattern.at(stars) == '/');</span></span>
+<span id="L343"><span class="lineNum">     343</span>         [<span class="tlaGBC" title="branch 0 was taken 33 times"> + </span><span class="tlaGBC" title="branch 1 was taken 26 times"> + </span>]:<span class="tlaGNC">          59 :   if (!complete_component) {</span></span>
+<span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">          33 :     pattern.remove_prefix(stars);</span></span>
+<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">          33 :     absl::StrAppend(&amp;re2_pattern, &quot;[^/]*&quot;);</span></span>
+<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">          33 :     return;</span></span>
+<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">          33 :   }</span></span>
+<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">          26 :   pattern.remove_prefix(stars);</span></span>
+<span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          26 :   if (re2_pattern.ends_with('/')) {</span></span>
 <span id="L350"><span class="lineNum">     350</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          12 :     if (pattern.empty()) {</span></span>
 <span id="L351"><span class="lineNum">     351</span>                 :<span class="tlaGNC">           4 :       absl::StrAppend(&amp;re2_pattern, &quot;.*&quot;);</span></span>
 <span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">           4 :       return;</span></span>
@@ -459,13 +459,13 @@
 <span id="L359"><span class="lineNum">     359</span>                 :<span class="tlaGNC">           8 :     }</span></span>
 <span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">           8 :     return;</span></span>
 <span id="L361"><span class="lineNum">     361</span>                 :<span class="tlaGNC">          12 :   }</span></span>
-<span id="L362"><span class="lineNum">     362</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          13 :   if (pattern.starts_with('/')) {</span></span>
+<span id="L362"><span class="lineNum">     362</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">          14 :   if (pattern.starts_with('/')) {</span></span>
 <span id="L363"><span class="lineNum">     363</span>                 :<span class="tlaGNC">           8 :     absl::StrAppend(&amp;re2_pattern, &quot;(?:[^/]+/)*&quot;);</span></span>
 <span id="L364"><span class="lineNum">     364</span>                 :<span class="tlaGNC">           8 :     pattern.remove_prefix(1);</span></span>
 <span id="L365"><span class="lineNum">     365</span>                 :<span class="tlaGNC">           8 :   } else {</span></span>
-<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">           5 :     absl::StrAppend(&amp;re2_pattern, &quot;.*&quot;);</span></span>
-<span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">           5 :   }</span></span>
-<span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          13 : }</span></span>
+<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">           6 :     absl::StrAppend(&amp;re2_pattern, &quot;.*&quot;);</span></span>
+<span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">           6 :   }</span></span>
+<span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          14 : }</span></span>
 <span id="L369"><span class="lineNum">     369</span>                 :             : </span>
 <span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">       38957 : void AppendLiteral(std::string&amp; re2_pattern, char chr) {</span></span>
 <span id="L371"><span class="lineNum">     371</span>                 :<span class="tlaGNC">       38957 :   constexpr std::string_view kRe2Metacharacters = R&quot;(.+*?()|[]{}^$\)&quot;;</span></span>
@@ -692,34 +692,34 @@
 <span id="L591"><span class="lineNum">     591</span>                 :             : </span>
 <span id="L592"><span class="lineNum">     592</span>                 :             : MBO_ALWAYS_INLINE absl::StatusOr&lt;std::string&gt; Glob2Re2ExpressionImpl(</span>
 <span id="L593"><span class="lineNum">     593</span>                 :             :     std::string_view pattern,</span>
-<span id="L594"><span class="lineNum">     594</span>                 :<span class="tlaGNC">         236 :     const Glob2Re2Options&amp; options) {</span></span>
-<span id="L595"><span class="lineNum">     595</span>                 :<span class="tlaGNC">         236 :   std::string re2_pattern;</span></span>
-<span id="L596"><span class="lineNum">     596</span>                 :<span class="tlaGNC">         236 :   re2_pattern.reserve(pattern.size() * 2);</span></span>
-<span id="L597"><span class="lineNum">     597</span>         [<span class="tlaGBC" title="branch 0 was taken 631 times"> + </span><span class="tlaGBC" title="branch 1 was taken 219 times"> + </span>]:<span class="tlaGNC">         850 :   while (!pattern.empty()) {</span></span>
-<span id="L598"><span class="lineNum">     598</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 630 times"> + </span>]:<span class="tlaGNC">         631 :     if (pattern.starts_with(&quot;!(&quot;)) {</span></span>
+<span id="L594"><span class="lineNum">     594</span>                 :<span class="tlaGNC">         238 :     const Glob2Re2Options&amp; options) {</span></span>
+<span id="L595"><span class="lineNum">     595</span>                 :<span class="tlaGNC">         238 :   std::string re2_pattern;</span></span>
+<span id="L596"><span class="lineNum">     596</span>                 :<span class="tlaGNC">         238 :   re2_pattern.reserve(pattern.size() * 2);</span></span>
+<span id="L597"><span class="lineNum">     597</span>         [<span class="tlaGBC" title="branch 0 was taken 633 times"> + </span><span class="tlaGBC" title="branch 1 was taken 221 times"> + </span>]:<span class="tlaGNC">         854 :   while (!pattern.empty()) {</span></span>
+<span id="L598"><span class="lineNum">     598</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 632 times"> + </span>]:<span class="tlaGNC">         633 :     if (pattern.starts_with(&quot;!(&quot;)) {</span></span>
 <span id="L599"><span class="lineNum">     599</span>                 :<span class="tlaGNC">           1 :       return absl::InvalidArgumentError(</span></span>
 <span id="L600"><span class="lineNum">     600</span>                 :<span class="tlaGNC">           1 :           &quot;Negative extglob is unsupported because RE2 cannot express subexpression complement.&quot;);</span></span>
 <span id="L601"><span class="lineNum">     601</span>                 :<span class="tlaGNC">           1 :     }</span></span>
-<span id="L602"><span class="lineNum">     602</span>                 :<span class="tlaGNC">         630 :     const char chr = pattern.front();</span></span>
-<span id="L603"><span class="lineNum">     603</span>                 :<span class="tlaGNC">         630 :     switch (chr) {</span></span>
-<span id="L604"><span class="lineNum">     604</span>         [<span class="tlaGBC" title="branch 0 was taken 373 times"> + </span><span class="tlaGBC" title="branch 1 was taken 257 times"> + </span>]:<span class="tlaGNC">         373 :       default:</span></span>
+<span id="L602"><span class="lineNum">     602</span>                 :<span class="tlaGNC">         632 :     const char chr = pattern.front();</span></span>
+<span id="L603"><span class="lineNum">     603</span>                 :<span class="tlaGNC">         632 :     switch (chr) {</span></span>
+<span id="L604"><span class="lineNum">     604</span>         [<span class="tlaGBC" title="branch 0 was taken 373 times"> + </span><span class="tlaGBC" title="branch 1 was taken 259 times"> + </span>]:<span class="tlaGNC">         373 :       default:</span></span>
 <span id="L605"><span class="lineNum">     605</span>                 :<span class="tlaGNC">         373 :         re2_pattern += chr;</span></span>
 <span id="L606"><span class="lineNum">     606</span>                 :<span class="tlaGNC">         373 :         pattern.remove_prefix(1);</span></span>
 <span id="L607"><span class="lineNum">     607</span>                 :<span class="tlaGNC">         373 :         continue;</span></span>
-<span id="L608"><span class="lineNum">     608</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 613 times"> + </span>]:<span class="tlaGNC">          17 :       case '\\':</span></span>
+<span id="L608"><span class="lineNum">     608</span>         [<span class="tlaGBC" title="branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="branch 1 was taken 615 times"> + </span>]:<span class="tlaGNC">          17 :       case '\\':</span></span>
 <span id="L609"><span class="lineNum">     609</span>                 :             :         // if (pattern.size() &lt; 2) { already handled</span>
 <span id="L610"><span class="lineNum">     610</span>                 :<span class="tlaGNC">          17 :         AppendLiteral(re2_pattern, pattern.at(1));</span></span>
 <span id="L611"><span class="lineNum">     611</span>                 :<span class="tlaGNC">          17 :         pattern.remove_prefix(2);</span></span>
 <span id="L612"><span class="lineNum">     612</span>                 :<span class="tlaGNC">          17 :         continue;</span></span>
-<span id="L613"><span class="lineNum">     613</span>         [<span class="tlaGBC" title="branch 0 was taken 57 times"> + </span><span class="tlaGBC" title="branch 1 was taken 573 times"> + </span>]:<span class="tlaGNC">          57 :       case '*': {</span></span>
-<span id="L614"><span class="lineNum">     614</span>                 :<span class="tlaGNC">          57 :         Glob2Re2ExpressionImplStar(re2_pattern, pattern);</span></span>
-<span id="L615"><span class="lineNum">     615</span>                 :<span class="tlaGNC">          57 :         continue;</span></span>
+<span id="L613"><span class="lineNum">     613</span>         [<span class="tlaGBC" title="branch 0 was taken 59 times"> + </span><span class="tlaGBC" title="branch 1 was taken 573 times"> + </span>]:<span class="tlaGNC">          59 :       case '*': {</span></span>
+<span id="L614"><span class="lineNum">     614</span>                 :<span class="tlaGNC">          59 :         Glob2Re2ExpressionImplStar(re2_pattern, pattern);</span></span>
+<span id="L615"><span class="lineNum">     615</span>                 :<span class="tlaGNC">          59 :         continue;</span></span>
 <span id="L616"><span class="lineNum">     616</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L617"><span class="lineNum">     617</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 622 times"> + </span>]:<span class="tlaGNC">           8 :       case '?':</span></span>
+<span id="L617"><span class="lineNum">     617</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 624 times"> + </span>]:<span class="tlaGNC">           8 :       case '?':</span></span>
 <span id="L618"><span class="lineNum">     618</span>                 :<span class="tlaGNC">           8 :         absl::StrAppend(&amp;re2_pattern, &quot;[^/]&quot;);</span></span>
 <span id="L619"><span class="lineNum">     619</span>                 :<span class="tlaGNC">           8 :         pattern.remove_prefix(1);</span></span>
 <span id="L620"><span class="lineNum">     620</span>                 :<span class="tlaGNC">           8 :         continue;</span></span>
-<span id="L621"><span class="lineNum">     621</span>         [<span class="tlaGBC" title="branch 0 was taken 28 times"> + </span><span class="tlaGBC" title="branch 1 was taken 602 times"> + </span>]:<span class="tlaGNC">          28 :       case '{':</span></span>
+<span id="L621"><span class="lineNum">     621</span>         [<span class="tlaGBC" title="branch 0 was taken 28 times"> + </span><span class="tlaGBC" title="branch 1 was taken 604 times"> + </span>]:<span class="tlaGNC">          28 :       case '{':</span></span>
 <span id="L622"><span class="lineNum">     622</span>         [<span class="tlaGBC" title="branch 0 was taken 27 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          28 :         if (options.syntax == GlobSyntax::kShGlob) {</span></span>
 <span id="L623"><span class="lineNum">     623</span>                 :<span class="tlaGNC">          27 :           std::size_t pos = 0;</span></span>
 <span id="L624"><span class="lineNum">     624</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 26 times"> + </span>]:<span class="tlaGNC">          27 :           MBO_ASSIGN_OR_RETURN(const bool consumed, AppendBraceGroup(re2_pattern, pattern, pos, options));</span></span>
@@ -729,20 +729,20 @@
 <span id="L628"><span class="lineNum">     628</span>                 :<span class="tlaGNC">          22 :           }</span></span>
 <span id="L629"><span class="lineNum">     629</span>                 :<span class="tlaGNC">          26 :         }</span></span>
 <span id="L630"><span class="lineNum">     630</span>                 :<span class="tlaGNC">           5 :         [[fallthrough]];</span></span>
-<span id="L631"><span class="lineNum">     631</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 626 times"> + </span>]:<span class="tlaGNC">           9 :       case '}':</span></span>
-<span id="L632"><span class="lineNum">     632</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 629 times"> + </span>]:<span class="tlaGNC">          10 :       case '(':</span></span>
-<span id="L633"><span class="lineNum">     633</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 629 times"> + </span>]:<span class="tlaGNC">          11 :       case ')':</span></span>
-<span id="L634"><span class="lineNum">     634</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 629 times"> + </span>]:<span class="tlaGNC">          12 :       case '|':</span></span>
-<span id="L635"><span class="lineNum">     635</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 629 times"> + </span>]:<span class="tlaGNC">          13 :       case '+':</span></span>
-<span id="L636"><span class="lineNum">     636</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 617 times"> + </span>]:<span class="tlaGNC">          26 :       case '.':</span></span>
-<span id="L637"><span class="lineNum">     637</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 630 times"> + </span>]:<span class="tlaGNC">          26 :       case '^':</span></span>
-<span id="L638"><span class="lineNum">     638</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 630 times"> + </span>]:<span class="tlaGNC">          26 :       case '$':</span></span>
+<span id="L631"><span class="lineNum">     631</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 628 times"> + </span>]:<span class="tlaGNC">           9 :       case '}':</span></span>
+<span id="L632"><span class="lineNum">     632</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 631 times"> + </span>]:<span class="tlaGNC">          10 :       case '(':</span></span>
+<span id="L633"><span class="lineNum">     633</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 631 times"> + </span>]:<span class="tlaGNC">          11 :       case ')':</span></span>
+<span id="L634"><span class="lineNum">     634</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 631 times"> + </span>]:<span class="tlaGNC">          12 :       case '|':</span></span>
+<span id="L635"><span class="lineNum">     635</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 631 times"> + </span>]:<span class="tlaGNC">          13 :       case '+':</span></span>
+<span id="L636"><span class="lineNum">     636</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 619 times"> + </span>]:<span class="tlaGNC">          26 :       case '.':</span></span>
+<span id="L637"><span class="lineNum">     637</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 632 times"> + </span>]:<span class="tlaGNC">          26 :       case '^':</span></span>
+<span id="L638"><span class="lineNum">     638</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 632 times"> + </span>]:<span class="tlaGNC">          26 :       case '$':</span></span>
 <span id="L639"><span class="lineNum">     639</span>                 :             :         // Characters that need to be escaped since they are literal in rglob but special in re2.</span>
 <span id="L640"><span class="lineNum">     640</span>                 :<span class="tlaGNC">          26 :         re2_pattern += '\\';</span></span>
 <span id="L641"><span class="lineNum">     641</span>                 :<span class="tlaGNC">          26 :         re2_pattern += chr;</span></span>
 <span id="L642"><span class="lineNum">     642</span>                 :<span class="tlaGNC">          26 :         pattern.remove_prefix(1);</span></span>
 <span id="L643"><span class="lineNum">     643</span>                 :<span class="tlaGNC">          26 :         continue;</span></span>
-<span id="L644"><span class="lineNum">     644</span>         [<span class="tlaGBC" title="branch 0 was taken 126 times"> + </span><span class="tlaGBC" title="branch 1 was taken 504 times"> + </span>]:<span class="tlaGNC">         126 :       case '[':</span></span>
+<span id="L644"><span class="lineNum">     644</span>         [<span class="tlaGBC" title="branch 0 was taken 126 times"> + </span><span class="tlaGBC" title="branch 1 was taken 506 times"> + </span>]:<span class="tlaGNC">         126 :       case '[':</span></span>
 <span id="L645"><span class="lineNum">     645</span>         [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="branch 1 was taken 114 times"> + </span>]:<span class="tlaGNC">         126 :         if (!options.allow_ranges) {</span></span>
 <span id="L646"><span class="lineNum">     646</span>                 :<span class="tlaGNC">          12 :           re2_pattern += pattern.front();</span></span>
 <span id="L647"><span class="lineNum">     647</span>                 :<span class="tlaGNC">          12 :           pattern.remove_prefix(1);</span></span>
@@ -750,59 +750,59 @@
 <span id="L649"><span class="lineNum">     649</span>                 :<span class="tlaGNC">          12 :         }</span></span>
 <span id="L650"><span class="lineNum">     650</span> [<span class="tlaGBC" title="branch 0 was taken 99 times"> + </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 114 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 114 times"> + </span>]:<span class="tlaGNC">         126 :         MBO_RETURN_IF_ERROR(GlobFindRange(pattern, re2_pattern));</span></span>
 <span id="L651"><span class="lineNum">     651</span>                 :<span class="tlaGNC">          99 :         continue;</span></span>
-<span id="L652"><span class="lineNum">     652</span>                 :<span class="tlaGNC">         630 :     }</span></span>
-<span id="L653"><span class="lineNum">     653</span>                 :<span class="tlaGNC">         630 :   }</span></span>
-<span id="L654"><span class="lineNum">     654</span>                 :<span class="tlaGNC">         219 :   return re2_pattern;</span></span>
-<span id="L655"><span class="lineNum">     655</span>                 :<span class="tlaGNC">         236 : }</span></span>
+<span id="L652"><span class="lineNum">     652</span>                 :<span class="tlaGNC">         632 :     }</span></span>
+<span id="L653"><span class="lineNum">     653</span>                 :<span class="tlaGNC">         632 :   }</span></span>
+<span id="L654"><span class="lineNum">     654</span>                 :<span class="tlaGNC">         221 :   return re2_pattern;</span></span>
+<span id="L655"><span class="lineNum">     655</span>                 :<span class="tlaGNC">         238 : }</span></span>
 <span id="L656"><span class="lineNum">     656</span>                 :             : </span>
 <span id="L657"><span class="lineNum">     657</span>                 :             : }  // namespace</span>
 <span id="L658"><span class="lineNum">     658</span>                 :             : </span>
 <span id="L659"><span class="lineNum">     659</span>                 :             : namespace file_internal {</span>
 <span id="L660"><span class="lineNum">     660</span>                 :             : </span>
-<span id="L661"><span class="lineNum">     661</span>                 :<span class="tlaGNC">          38 : absl::StatusOr&lt;GlobParts&gt; GlobSplitParts(std::string_view pattern, const Glob2Re2Options&amp; options) {</span></span>
-<span id="L662"><span class="lineNum">     662</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 36 times"> + </span>]:<span class="tlaGNC">          38 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeData(pattern, options), const GlobData data);</span></span>
-<span id="L663"><span class="lineNum">     663</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 36 times"> + </span>]:<span class="tlaGNC">          36 :   if (data.mixed) {</span></span>
+<span id="L661"><span class="lineNum">     661</span>                 :<span class="tlaGNC">          39 : absl::StatusOr&lt;GlobParts&gt; GlobSplitParts(std::string_view pattern, const Glob2Re2Options&amp; options) {</span></span>
+<span id="L662"><span class="lineNum">     662</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          39 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeData(pattern, options), const GlobData data);</span></span>
+<span id="L663"><span class="lineNum">     663</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          37 :   if (data.mixed) {</span></span>
 <span id="L664"><span class="lineNum">     664</span>                 :<span class="tlaUNC">           0 :     return GlobParts{</span></span>
 <span id="L665"><span class="lineNum">     665</span>                 :<span class="tlaUNC">           0 :         .path_pattern{data.pattern},</span></span>
 <span id="L666"><span class="lineNum">     666</span>                 :<span class="tlaUNC">           0 :         .file_pattern{},</span></span>
 <span id="L667"><span class="lineNum">     667</span>                 :<span class="tlaUNC">           0 :         .mixed = true,</span></span>
 <span id="L668"><span class="lineNum">     668</span>                 :<span class="tlaUNC">           0 :     };</span></span>
 <span id="L669"><span class="lineNum">     669</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L670"><span class="lineNum">     670</span>         [<span class="tlaGBC" title="branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          36 :   if (data.path_len.has_value()) {</span></span>
-<span id="L671"><span class="lineNum">     671</span>         [<span class="tlaGBC" title="branch 0 was taken 32 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          35 :     if (*data.path_len + 1 &lt; data.pattern.size()) {</span></span>
-<span id="L672"><span class="lineNum">     672</span>                 :<span class="tlaGNC">          32 :       return GlobParts{</span></span>
-<span id="L673"><span class="lineNum">     673</span>                 :<span class="tlaGNC">          32 :           .path_pattern{data.pattern.substr(0, *data.path_len)},</span></span>
-<span id="L674"><span class="lineNum">     674</span>                 :<span class="tlaGNC">          32 :           .file_pattern{data.pattern.substr(*data.path_len + 1)},</span></span>
-<span id="L675"><span class="lineNum">     675</span>                 :<span class="tlaGNC">          32 :       };</span></span>
-<span id="L676"><span class="lineNum">     676</span>                 :<span class="tlaGNC">          32 :     }</span></span>
+<span id="L670"><span class="lineNum">     670</span>         [<span class="tlaGBC" title="branch 0 was taken 36 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          37 :   if (data.path_len.has_value()) {</span></span>
+<span id="L671"><span class="lineNum">     671</span>         [<span class="tlaGBC" title="branch 0 was taken 33 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          36 :     if (*data.path_len + 1 &lt; data.pattern.size()) {</span></span>
+<span id="L672"><span class="lineNum">     672</span>                 :<span class="tlaGNC">          33 :       return GlobParts{</span></span>
+<span id="L673"><span class="lineNum">     673</span>                 :<span class="tlaGNC">          33 :           .path_pattern{data.pattern.substr(0, *data.path_len)},</span></span>
+<span id="L674"><span class="lineNum">     674</span>                 :<span class="tlaGNC">          33 :           .file_pattern{data.pattern.substr(*data.path_len + 1)},</span></span>
+<span id="L675"><span class="lineNum">     675</span>                 :<span class="tlaGNC">          33 :       };</span></span>
+<span id="L676"><span class="lineNum">     676</span>                 :<span class="tlaGNC">          33 :     }</span></span>
 <span id="L677"><span class="lineNum">     677</span>                 :<span class="tlaGNC">           3 :     return GlobParts{</span></span>
 <span id="L678"><span class="lineNum">     678</span>                 :<span class="tlaGNC">           3 :         .path_pattern{data.pattern},</span></span>
 <span id="L679"><span class="lineNum">     679</span>                 :<span class="tlaGNC">           3 :         .file_pattern{},</span></span>
 <span id="L680"><span class="lineNum">     680</span>                 :<span class="tlaGNC">           3 :     };</span></span>
-<span id="L681"><span class="lineNum">     681</span>                 :<span class="tlaGNC">          35 :   }</span></span>
+<span id="L681"><span class="lineNum">     681</span>                 :<span class="tlaGNC">          36 :   }</span></span>
 <span id="L682"><span class="lineNum">     682</span>                 :<span class="tlaGNC">           1 :   return GlobParts{</span></span>
 <span id="L683"><span class="lineNum">     683</span>                 :<span class="tlaGNC">           1 :       .path_pattern{},</span></span>
 <span id="L684"><span class="lineNum">     684</span>                 :<span class="tlaGNC">           1 :       .file_pattern{data.pattern},</span></span>
 <span id="L685"><span class="lineNum">     685</span>                 :<span class="tlaGNC">           1 :   };</span></span>
-<span id="L686"><span class="lineNum">     686</span>                 :<span class="tlaGNC">          36 : }</span></span>
+<span id="L686"><span class="lineNum">     686</span>                 :<span class="tlaGNC">          37 : }</span></span>
 <span id="L687"><span class="lineNum">     687</span>                 :             : </span>
 <span id="L688"><span class="lineNum">     688</span>                 :             : }  // namespace file_internal</span>
 <span id="L689"><span class="lineNum">     689</span>                 :             : </span>
-<span id="L690"><span class="lineNum">     690</span>                 :<span class="tlaGNC">         216 : absl::StatusOr&lt;std::string&gt; Glob2Re2Expression(std::string_view pattern, const Glob2Re2Options&amp; re2_convert_options) {</span></span>
-<span id="L691"><span class="lineNum">     691</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 211 times"> + </span>]:<span class="tlaGNC">         216 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeStr(pattern, re2_convert_options), const std::string normalized_pattern);</span></span>
-<span id="L692"><span class="lineNum">     692</span>                 :<span class="tlaGNC">         211 :   return Glob2Re2ExpressionImpl(normalized_pattern, re2_convert_options);</span></span>
-<span id="L693"><span class="lineNum">     693</span>                 :<span class="tlaGNC">         216 : }</span></span>
+<span id="L690"><span class="lineNum">     690</span>                 :<span class="tlaGNC">         218 : absl::StatusOr&lt;std::string&gt; Glob2Re2Expression(std::string_view pattern, const Glob2Re2Options&amp; re2_convert_options) {</span></span>
+<span id="L691"><span class="lineNum">     691</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 213 times"> + </span>]:<span class="tlaGNC">         218 :   MBO_MOVE_TO_OR_RETURN(GlobNormalizeStr(pattern, re2_convert_options), const std::string normalized_pattern);</span></span>
+<span id="L692"><span class="lineNum">     692</span>                 :<span class="tlaGNC">         213 :   return Glob2Re2ExpressionImpl(normalized_pattern, re2_convert_options);</span></span>
+<span id="L693"><span class="lineNum">     693</span>                 :<span class="tlaGNC">         218 : }</span></span>
 <span id="L694"><span class="lineNum">     694</span>                 :             : </span>
 <span id="L695"><span class="lineNum">     695</span>                 :             : absl::StatusOr&lt;std::unique_ptr&lt;const RE2&gt;&gt; Glob2Re2(</span>
 <span id="L696"><span class="lineNum">     696</span>                 :             :     std::string_view pattern,</span>
-<span id="L697"><span class="lineNum">     697</span>                 :<span class="tlaGNC">          91 :     const Glob2Re2Options&amp; re2_convert_options) {</span></span>
-<span id="L698"><span class="lineNum">     698</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">          91 :   MBO_MOVE_TO_OR_RETURN(Glob2Re2Expression(pattern, re2_convert_options), const std::string re2_pattern);</span></span>
-<span id="L699"><span class="lineNum">     699</span>                 :<span class="tlaGNC">          91 :   auto re2 = std::make_unique&lt;RE2&gt;(re2_pattern, re2_convert_options.re2_options);</span></span>
-<span id="L700"><span class="lineNum">     700</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">          91 :   if (re2-&gt;error_code() != RE2::NoError) {</span></span>
+<span id="L697"><span class="lineNum">     697</span>                 :<span class="tlaGNC">          93 :     const Glob2Re2Options&amp; re2_convert_options) {</span></span>
+<span id="L698"><span class="lineNum">     698</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 93 times"> + </span>]:<span class="tlaGNC">          93 :   MBO_MOVE_TO_OR_RETURN(Glob2Re2Expression(pattern, re2_convert_options), const std::string re2_pattern);</span></span>
+<span id="L699"><span class="lineNum">     699</span>                 :<span class="tlaGNC">          93 :   auto re2 = std::make_unique&lt;RE2&gt;(re2_pattern, re2_convert_options.re2_options);</span></span>
+<span id="L700"><span class="lineNum">     700</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 93 times"> + </span>]:<span class="tlaGNC">          93 :   if (re2-&gt;error_code() != RE2::NoError) {</span></span>
 <span id="L701"><span class="lineNum">     701</span>                 :<span class="tlaUNC">           0 :     return absl::InvalidArgumentError(absl::StrFormat(&quot;Could not compile re2: '%s': %s.&quot;, pattern, re2-&gt;error()));</span></span>
 <span id="L702"><span class="lineNum">     702</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L703"><span class="lineNum">     703</span>                 :<span class="tlaGNC">          91 :   return re2;</span></span>
-<span id="L704"><span class="lineNum">     704</span>                 :<span class="tlaGNC">          91 : }</span></span>
+<span id="L703"><span class="lineNum">     703</span>                 :<span class="tlaGNC">          93 :   return re2;</span></span>
+<span id="L704"><span class="lineNum">     704</span>                 :<span class="tlaGNC">          93 : }</span></span>
 <span id="L705"><span class="lineNum">     705</span>                 :             : </span>
 <span id="L706"><span class="lineNum">     706</span>                 :             : namespace file_internal {</span>
 <span id="L707"><span class="lineNum">     707</span>                 :             : </span>
@@ -829,112 +829,112 @@
 <span id="L728"><span class="lineNum">     728</span>                 :             : namespace {</span>
 <span id="L729"><span class="lineNum">     729</span>                 :             : </span>
 <span id="L730"><span class="lineNum">     730</span>                 :             : template&lt;typename FileIterator&gt;</span>
-<span id="L731"><span class="lineNum">     731</span>                 :<span class="tlaGNC">         130 : int FileIteratorDepth(const FileIterator&amp; file_iterator) {</span></span>
-<span id="L732"><span class="lineNum">     732</span>                 :<span class="tlaGNC">         130 :   if constexpr (std::same_as&lt;FileIterator, std::filesystem::recursive_directory_iterator&gt;) {</span></span>
-<span id="L733"><span class="lineNum">     733</span>                 :<span class="tlaGNC">         127 :     return file_iterator.depth();</span></span>
-<span id="L734"><span class="lineNum">     734</span>                 :<span class="tlaGNC">         127 :   } else {</span></span>
+<span id="L731"><span class="lineNum">     731</span>                 :<span class="tlaGNC">         143 : int FileIteratorDepth(const FileIterator&amp; file_iterator) {</span></span>
+<span id="L732"><span class="lineNum">     732</span>                 :<span class="tlaGNC">         143 :   if constexpr (std::same_as&lt;FileIterator, std::filesystem::recursive_directory_iterator&gt;) {</span></span>
+<span id="L733"><span class="lineNum">     733</span>                 :<span class="tlaGNC">         140 :     return file_iterator.depth();</span></span>
+<span id="L734"><span class="lineNum">     734</span>                 :<span class="tlaGNC">         140 :   } else {</span></span>
 <span id="L735"><span class="lineNum">     735</span>                 :<span class="tlaGNC">           3 :     return 0;</span></span>
 <span id="L736"><span class="lineNum">     736</span>                 :<span class="tlaGNC">           3 :   }</span></span>
-<span id="L737"><span class="lineNum">     737</span>                 :<span class="tlaGNC">         130 : }</span></span>
+<span id="L737"><span class="lineNum">     737</span>                 :<span class="tlaGNC">         143 : }</span></span>
 <span id="L738"><span class="lineNum">     738</span>                 :             : </span>
 <span id="L739"><span class="lineNum">     739</span>                 :             : template&lt;typename FileIterator&gt;</span>
-<span id="L740"><span class="lineNum">     740</span>                 :<span class="tlaGNC">           1 : void FileIteratorDisableRecursionPending(FileIterator&amp; file_iterator) {</span></span>
-<span id="L741"><span class="lineNum">     741</span>                 :<span class="tlaGNC">           1 :   if constexpr (std::same_as&lt;FileIterator, std::filesystem::recursive_directory_iterator&gt;) {</span></span>
-<span id="L742"><span class="lineNum">     742</span>                 :<span class="tlaGNC">           1 :     file_iterator.disable_recursion_pending();</span></span>
-<span id="L743"><span class="lineNum">     743</span>                 :<span class="tlaGNC">           1 :   }</span></span>
-<span id="L744"><span class="lineNum">     744</span>                 :<span class="tlaGNC">           1 : }</span></span>
+<span id="L740"><span class="lineNum">     740</span>                 :<span class="tlaGNC">           2 : void FileIteratorDisableRecursionPending(FileIterator&amp; file_iterator) {</span></span>
+<span id="L741"><span class="lineNum">     741</span>                 :<span class="tlaGNC">           2 :   if constexpr (std::same_as&lt;FileIterator, std::filesystem::recursive_directory_iterator&gt;) {</span></span>
+<span id="L742"><span class="lineNum">     742</span>                 :<span class="tlaGNC">           2 :     file_iterator.disable_recursion_pending();</span></span>
+<span id="L743"><span class="lineNum">     743</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L744"><span class="lineNum">     744</span>                 :<span class="tlaGNC">           2 : }</span></span>
 <span id="L745"><span class="lineNum">     745</span>                 :             : </span>
 <span id="L746"><span class="lineNum">     746</span>                 :             : template&lt;typename FileIterator&gt;</span>
-<span id="L747"><span class="lineNum">     747</span>                 :<span class="tlaGNC">          15 : absl::Status GlobLoopImpl(const fs::path&amp; root, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
-<span id="L748"><span class="lineNum">     748</span> [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 15 times"> + </span>]:<span class="tlaGNC">          15 :   const fs::path normalized_root = (root.empty() || root == &quot;.&quot;) ? fs::current_path() : root.lexically_normal();</span></span>
-<span id="L749"><span class="lineNum">     749</span>                 :<span class="tlaGNC">          15 :   std::error_code error_code;</span></span>
-<span id="L750"><span class="lineNum">     750</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          15 :   if (!fs::exists(normalized_root, error_code)) {</span></span>
-<span id="L751"><span class="lineNum">     751</span>                 :<span class="tlaUNC">           0 :     return absl::NotFoundError(</span></span>
-<span id="L752"><span class="lineNum">     752</span>         [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>]:<span class="tlaUNC">           0 :         error_code ? error_code.message() : absl::StrFormat(&quot;Path does not exist: '%s'.&quot;, normalized_root));</span></span>
-<span id="L753"><span class="lineNum">     753</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L754"><span class="lineNum">     754</span>                 :<span class="tlaGNC">          15 :   auto it = FileIterator(normalized_root, options.dir_options, error_code);</span></span>
-<span id="L755"><span class="lineNum">     755</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          15 :   if (error_code) {</span></span>
+<span id="L747"><span class="lineNum">     747</span>                 :<span class="tlaGNC">          19 : absl::Status GlobLoopImpl(const fs::path&amp; root, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
+<span id="L748"><span class="lineNum">     748</span> [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 19 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 19 times"> + </span>]:<span class="tlaGNC">          19 :   const fs::path normalized_root = (root.empty() || root == &quot;.&quot;) ? fs::current_path() : root.lexically_normal();</span></span>
+<span id="L749"><span class="lineNum">     749</span>                 :<span class="tlaGNC">          19 :   std::error_code error_code;</span></span>
+<span id="L750"><span class="lineNum">     750</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          19 :   if (!fs::exists(normalized_root, error_code)) {</span></span>
+<span id="L751"><span class="lineNum">     751</span>                 :<span class="tlaGNC">           1 :     return absl::NotFoundError(</span></span>
+<span id="L752"><span class="lineNum">     752</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           1 :         error_code ? error_code.message() : absl::StrFormat(&quot;Path does not exist: '%s'.&quot;, normalized_root));</span></span>
+<span id="L753"><span class="lineNum">     753</span>                 :<span class="tlaGNC">           1 :   }</span></span>
+<span id="L754"><span class="lineNum">     754</span>                 :<span class="tlaGNC">          18 :   auto it = FileIterator(normalized_root, options.dir_options, error_code);</span></span>
+<span id="L755"><span class="lineNum">     755</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          18 :   if (error_code) {</span></span>
 <span id="L756"><span class="lineNum">     756</span>                 :<span class="tlaUNC">           0 :     return absl::CancelledError(error_code.message());</span></span>
 <span id="L757"><span class="lineNum">     757</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L758"><span class="lineNum">     758</span>         [<span class="tlaGBC" title="branch 0 was taken 130 times"> + </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">         130 :   for (const fs::directory_entry&amp; entry : it) {</span></span>
-<span id="L759"><span class="lineNum">     759</span>                 :<span class="tlaGNC">         130 :     const GlobEntry glob_entry{</span></span>
-<span id="L760"><span class="lineNum">     760</span>                 :<span class="tlaGNC">         130 :         .rel_path =</span></span>
-<span id="L761"><span class="lineNum">     761</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 130 times"> + </span>]:<span class="tlaGNC">         130 :             options.use_rel_path ? std::optional&lt;fs::path&gt;{entry.path().lexically_relative(root)} : std::nullopt,</span></span>
-<span id="L762"><span class="lineNum">     762</span>                 :<span class="tlaGNC">         130 :         .entry = entry,</span></span>
-<span id="L763"><span class="lineNum">     763</span>                 :<span class="tlaGNC">         130 :         .depth = FileIteratorDepth(it),</span></span>
-<span id="L764"><span class="lineNum">     764</span>                 :<span class="tlaGNC">         130 :     };</span></span>
-<span id="L765"><span class="lineNum">     765</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 130 times"> + </span>]:<span class="tlaGNC">         130 :     MBO_ASSIGN_OR_RETURN(const GlobEntryAction action, func(glob_entry));</span></span>
-<span id="L766"><span class="lineNum">     766</span>         [<span class="tlaGBC" title="branch 0 was taken 130 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         130 :     switch (action) {</span></span>
-<span id="L767"><span class="lineNum">     767</span>         [<span class="tlaGBC" title="branch 0 was taken 128 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">         128 :       case GlobEntryAction::kContinue: continue;</span></span>
-<span id="L768"><span class="lineNum">     768</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 129 times"> + </span>]:<span class="tlaGNC">           1 :       case GlobEntryAction::kStop: return absl::OkStatus();</span></span>
-<span id="L769"><span class="lineNum">     769</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 129 times"> + </span>]:<span class="tlaGNC">           1 :       case GlobEntryAction::kDoNotRecurse: {</span></span>
-<span id="L770"><span class="lineNum">     770</span>                 :<span class="tlaGNC">           1 :         FileIteratorDisableRecursionPending(it);</span></span>
-<span id="L771"><span class="lineNum">     771</span>                 :<span class="tlaGNC">           1 :         continue;</span></span>
+<span id="L758"><span class="lineNum">     758</span>         [<span class="tlaGBC" title="branch 0 was taken 143 times"> + </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">         143 :   for (const fs::directory_entry&amp; entry : it) {</span></span>
+<span id="L759"><span class="lineNum">     759</span>                 :<span class="tlaGNC">         143 :     const GlobEntry glob_entry{</span></span>
+<span id="L760"><span class="lineNum">     760</span>                 :<span class="tlaGNC">         143 :         .rel_path =</span></span>
+<span id="L761"><span class="lineNum">     761</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 143 times"> + </span>]:<span class="tlaGNC">         143 :             options.use_rel_path ? std::optional&lt;fs::path&gt;{entry.path().lexically_relative(root)} : std::nullopt,</span></span>
+<span id="L762"><span class="lineNum">     762</span>                 :<span class="tlaGNC">         143 :         .entry = entry,</span></span>
+<span id="L763"><span class="lineNum">     763</span>                 :<span class="tlaGNC">         143 :         .depth = FileIteratorDepth(it),</span></span>
+<span id="L764"><span class="lineNum">     764</span>                 :<span class="tlaGNC">         143 :     };</span></span>
+<span id="L765"><span class="lineNum">     765</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 143 times"> + </span>]:<span class="tlaGNC">         143 :     MBO_ASSIGN_OR_RETURN(const GlobEntryAction action, func(glob_entry));</span></span>
+<span id="L766"><span class="lineNum">     766</span>         [<span class="tlaGBC" title="branch 0 was taken 143 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         143 :     switch (action) {</span></span>
+<span id="L767"><span class="lineNum">     767</span>         [<span class="tlaGBC" title="branch 0 was taken 138 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">         138 :       case GlobEntryAction::kContinue: continue;</span></span>
+<span id="L768"><span class="lineNum">     768</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 140 times"> + </span>]:<span class="tlaGNC">           3 :       case GlobEntryAction::kStop: return absl::OkStatus();</span></span>
+<span id="L769"><span class="lineNum">     769</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 141 times"> + </span>]:<span class="tlaGNC">           2 :       case GlobEntryAction::kDoNotRecurse: {</span></span>
+<span id="L770"><span class="lineNum">     770</span>                 :<span class="tlaGNC">           2 :         FileIteratorDisableRecursionPending(it);</span></span>
+<span id="L771"><span class="lineNum">     771</span>                 :<span class="tlaGNC">           2 :         continue;</span></span>
 <span id="L772"><span class="lineNum">     772</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L773"><span class="lineNum">     773</span>                 :<span class="tlaGNC">         130 :     }</span></span>
-<span id="L774"><span class="lineNum">     774</span>                 :<span class="tlaGNC">         130 :   }</span></span>
-<span id="L775"><span class="lineNum">     775</span>                 :<span class="tlaGNC">          14 :   return absl::OkStatus();</span></span>
-<span id="L776"><span class="lineNum">     776</span>                 :<span class="tlaGNC">          15 : }</span></span>
+<span id="L773"><span class="lineNum">     773</span>                 :<span class="tlaGNC">         143 :     }</span></span>
+<span id="L774"><span class="lineNum">     774</span>                 :<span class="tlaGNC">         143 :   }</span></span>
+<span id="L775"><span class="lineNum">     775</span>                 :<span class="tlaGNC">          15 :   return absl::OkStatus();</span></span>
+<span id="L776"><span class="lineNum">     776</span>                 :<span class="tlaGNC">          18 : }</span></span>
 <span id="L777"><span class="lineNum">     777</span>                 :             : </span>
-<span id="L778"><span class="lineNum">     778</span>                 :<span class="tlaGNC">          15 : absl::Status GlobLoop(const fs::path&amp; root, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
-<span id="L779"><span class="lineNum">     779</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          15 :   if (options.recursive) {</span></span>
-<span id="L780"><span class="lineNum">     780</span>                 :<span class="tlaGNC">          14 :     return GlobLoopImpl&lt;fs::recursive_directory_iterator&gt;(root, options, func);</span></span>
-<span id="L781"><span class="lineNum">     781</span>                 :<span class="tlaGNC">          14 :   } else {</span></span>
+<span id="L778"><span class="lineNum">     778</span>                 :<span class="tlaGNC">          19 : absl::Status GlobLoop(const fs::path&amp; root, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
+<span id="L779"><span class="lineNum">     779</span>         [<span class="tlaGBC" title="branch 0 was taken 18 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          19 :   if (options.recursive) {</span></span>
+<span id="L780"><span class="lineNum">     780</span>                 :<span class="tlaGNC">          18 :     return GlobLoopImpl&lt;fs::recursive_directory_iterator&gt;(root, options, func);</span></span>
+<span id="L781"><span class="lineNum">     781</span>                 :<span class="tlaGNC">          18 :   } else {</span></span>
 <span id="L782"><span class="lineNum">     782</span>                 :<span class="tlaGNC">           1 :     return GlobLoopImpl&lt;fs::directory_iterator&gt;(root, options, func);</span></span>
 <span id="L783"><span class="lineNum">     783</span>                 :<span class="tlaGNC">           1 :   }</span></span>
-<span id="L784"><span class="lineNum">     784</span>                 :<span class="tlaGNC">          15 : }</span></span>
+<span id="L784"><span class="lineNum">     784</span>                 :<span class="tlaGNC">          19 : }</span></span>
 <span id="L785"><span class="lineNum">     785</span>                 :             : </span>
 <span id="L786"><span class="lineNum">     786</span>                 :             : }  // namespace</span>
 <span id="L787"><span class="lineNum">     787</span>                 :             : </span>
-<span id="L788"><span class="lineNum">     788</span>                 :<span class="tlaGNC">          15 : absl::Status GlobRe2(fs::path root, const RE2&amp; regex, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
-<span id="L789"><span class="lineNum">     789</span>         [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          15 :   if (options.use_current_dir) {</span></span>
-<span id="L790"><span class="lineNum">     790</span> [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 30 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 15 times"> + </span>]:<span class="tlaGNC">          15 :     if (root.empty() || root == &quot;.&quot;) {</span></span>
-<span id="L791"><span class="lineNum">     791</span>                 :<span class="tlaUNC">           0 :       root = std::filesystem::current_path();</span></span>
-<span id="L792"><span class="lineNum">     792</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          15 :     } else if (root.is_relative()) {</span></span>
-<span id="L793"><span class="lineNum">     793</span>                 :<span class="tlaUNC">           0 :       root = std::filesystem::current_path() / root;</span></span>
-<span id="L794"><span class="lineNum">     794</span>                 :<span class="tlaUNC">           0 :     }</span></span>
-<span id="L795"><span class="lineNum">     795</span>                 :<span class="tlaGNC">          15 :   }</span></span>
-<span id="L796"><span class="lineNum">     796</span>                 :<span class="tlaGNC">         130 :   const auto wrap_func = [&amp;](const GlobEntry&amp; entry) -&gt; absl::StatusOr&lt;GlobEntryAction&gt; {</span></span>
-<span id="L797"><span class="lineNum">     797</span>         [<span class="tlaGBC" title="branch 0 was taken 88 times"> + </span><span class="tlaGBC" title="branch 1 was taken 42 times"> + </span>]:<span class="tlaGNC">         130 :     if (!regex.pattern().empty()) {</span></span>
-<span id="L798"><span class="lineNum">     798</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 88 times"> + </span>]:<span class="tlaGNC">          88 :       if (options.use_rel_path) {</span></span>
+<span id="L788"><span class="lineNum">     788</span>                 :<span class="tlaGNC">          19 : absl::Status GlobRe2(fs::path root, const RE2&amp; regex, const GlobOptions&amp; options, const GlobEntryFunc&amp; func) {</span></span>
+<span id="L789"><span class="lineNum">     789</span>         [<span class="tlaGBC" title="branch 0 was taken 19 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          19 :   if (options.use_current_dir) {</span></span>
+<span id="L790"><span class="lineNum">     790</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 18 times"> + </span>]:<span class="tlaGNC">          19 :     if (root.empty() || root == &quot;.&quot;) {</span></span>
+<span id="L791"><span class="lineNum">     791</span>                 :<span class="tlaGNC">           1 :       root = std::filesystem::current_path();</span></span>
+<span id="L792"><span class="lineNum">     792</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span>]:<span class="tlaGNC">          18 :     } else if (root.is_relative()) {</span></span>
+<span id="L793"><span class="lineNum">     793</span>                 :<span class="tlaGNC">           1 :       root = std::filesystem::current_path() / root;</span></span>
+<span id="L794"><span class="lineNum">     794</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L795"><span class="lineNum">     795</span>                 :<span class="tlaGNC">          19 :   }</span></span>
+<span id="L796"><span class="lineNum">     796</span>                 :<span class="tlaGNC">         143 :   const auto wrap_func = [&amp;](const GlobEntry&amp; entry) -&gt; absl::StatusOr&lt;GlobEntryAction&gt; {</span></span>
+<span id="L797"><span class="lineNum">     797</span>         [<span class="tlaGBC" title="branch 0 was taken 99 times"> + </span><span class="tlaGBC" title="branch 1 was taken 44 times"> + </span>]:<span class="tlaGNC">         143 :     if (!regex.pattern().empty()) {</span></span>
+<span id="L798"><span class="lineNum">     798</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 99 times"> + </span>]:<span class="tlaGNC">          99 :       if (options.use_rel_path) {</span></span>
 <span id="L799"><span class="lineNum">     799</span>         [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>]:<span class="tlaUNC">           0 :         if (!RE2::FullMatch(entry.MaybeRelativePath().native(), regex)) {</span></span>
 <span id="L800"><span class="lineNum">     800</span>                 :<span class="tlaUNC">           0 :           return GlobEntryAction::kContinue;  // Path/Filename rejected.</span></span>
 <span id="L801"><span class="lineNum">     801</span>                 :<span class="tlaUNC">           0 :         }</span></span>
-<span id="L802"><span class="lineNum">     802</span>                 :<span class="tlaGNC">          88 :       } else {</span></span>
+<span id="L802"><span class="lineNum">     802</span>                 :<span class="tlaGNC">          99 :       } else {</span></span>
 <span id="L803"><span class="lineNum">     803</span>                 :             :         // The only difference is that we are not actually saving the `rel_path` anywhere.</span>
-<span id="L804"><span class="lineNum">     804</span>                 :<span class="tlaGNC">          88 :         const fs::path rel_path = entry.entry.path().lexically_relative(root);</span></span>
-<span id="L805"><span class="lineNum">     805</span>         [<span class="tlaGBC" title="branch 0 was taken 55 times"> + </span><span class="tlaGBC" title="branch 1 was taken 33 times"> + </span>]:<span class="tlaGNC">          88 :         if (!RE2::FullMatch(rel_path.native(), regex)) {</span></span>
+<span id="L804"><span class="lineNum">     804</span>                 :<span class="tlaGNC">          99 :         const fs::path rel_path = entry.entry.path().lexically_relative(root);</span></span>
+<span id="L805"><span class="lineNum">     805</span>         [<span class="tlaGBC" title="branch 0 was taken 55 times"> + </span><span class="tlaGBC" title="branch 1 was taken 44 times"> + </span>]:<span class="tlaGNC">          99 :         if (!RE2::FullMatch(rel_path.native(), regex)) {</span></span>
 <span id="L806"><span class="lineNum">     806</span>                 :<span class="tlaGNC">          55 :           return GlobEntryAction::kContinue;  // Path/Filename rejected.</span></span>
 <span id="L807"><span class="lineNum">     807</span>                 :<span class="tlaGNC">          55 :         }</span></span>
-<span id="L808"><span class="lineNum">     808</span>                 :<span class="tlaGNC">          88 :       }</span></span>
-<span id="L809"><span class="lineNum">     809</span>                 :<span class="tlaGNC">          88 :     }</span></span>
-<span id="L810"><span class="lineNum">     810</span>                 :<span class="tlaGNC">          75 :     return func(entry);</span></span>
-<span id="L811"><span class="lineNum">     811</span>                 :<span class="tlaGNC">         130 :   };</span></span>
-<span id="L812"><span class="lineNum">     812</span>                 :<span class="tlaGNC">          15 :   return GlobLoop(root, options, wrap_func);</span></span>
-<span id="L813"><span class="lineNum">     813</span>                 :<span class="tlaGNC">          15 : }</span></span>
+<span id="L808"><span class="lineNum">     808</span>                 :<span class="tlaGNC">          99 :       }</span></span>
+<span id="L809"><span class="lineNum">     809</span>                 :<span class="tlaGNC">          99 :     }</span></span>
+<span id="L810"><span class="lineNum">     810</span>                 :<span class="tlaGNC">          88 :     return func(entry);</span></span>
+<span id="L811"><span class="lineNum">     811</span>                 :<span class="tlaGNC">         143 :   };</span></span>
+<span id="L812"><span class="lineNum">     812</span>                 :<span class="tlaGNC">          19 :   return GlobLoop(root, options, wrap_func);</span></span>
+<span id="L813"><span class="lineNum">     813</span>                 :<span class="tlaGNC">          19 : }</span></span>
 <span id="L814"><span class="lineNum">     814</span>                 :             : </span>
 <span id="L815"><span class="lineNum">     815</span>                 :             : absl::Status GlobRe2(</span>
 <span id="L816"><span class="lineNum">     816</span>                 :             :     const absl::StatusOr&lt;RootAndPattern&gt;&amp; pattern,</span>
 <span id="L817"><span class="lineNum">     817</span>                 :             :     const GlobOptions&amp; options,</span>
-<span id="L818"><span class="lineNum">     818</span>                 :<span class="tlaGNC">           1 :     const GlobEntryFunc&amp; func) {</span></span>
-<span id="L819"><span class="lineNum">     819</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">           1 :   MBO_RETURN_IF_ERROR(pattern);</span></span>
-<span id="L820"><span class="lineNum">     820</span>                 :<span class="tlaGNC">           1 :   const RE2 re2(pattern-&gt;pattern);</span></span>
-<span id="L821"><span class="lineNum">     821</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           1 :   if (re2.error_code() != RE2::NoError) {</span></span>
-<span id="L822"><span class="lineNum">     822</span>                 :<span class="tlaUNC">           0 :     return absl::InvalidArgumentError(</span></span>
-<span id="L823"><span class="lineNum">     823</span>                 :<span class="tlaUNC">           0 :         absl::StrFormat(&quot;Could not compile re2: '%s': %s.&quot;, pattern-&gt;pattern, re2.error()));</span></span>
-<span id="L824"><span class="lineNum">     824</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L818"><span class="lineNum">     818</span>                 :<span class="tlaGNC">           2 :     const GlobEntryFunc&amp; func) {</span></span>
+<span id="L819"><span class="lineNum">     819</span> [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 2 times"> + </span>]:<span class="tlaGNC">           2 :   MBO_RETURN_IF_ERROR(pattern);</span></span>
+<span id="L820"><span class="lineNum">     820</span>                 :<span class="tlaGNC">           2 :   const RE2 re2(pattern-&gt;pattern);</span></span>
+<span id="L821"><span class="lineNum">     821</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :   if (re2.error_code() != RE2::NoError) {</span></span>
+<span id="L822"><span class="lineNum">     822</span>                 :<span class="tlaGNC">           1 :     return absl::InvalidArgumentError(</span></span>
+<span id="L823"><span class="lineNum">     823</span>                 :<span class="tlaGNC">           1 :         absl::StrFormat(&quot;Could not compile re2: '%s': %s.&quot;, pattern-&gt;pattern, re2.error()));</span></span>
+<span id="L824"><span class="lineNum">     824</span>                 :<span class="tlaGNC">           1 :   }</span></span>
 <span id="L825"><span class="lineNum">     825</span>                 :<span class="tlaGNC">           1 :   return GlobRe2(pattern-&gt;root, re2, options, func);</span></span>
-<span id="L826"><span class="lineNum">     826</span>                 :<span class="tlaGNC">           1 : }</span></span>
+<span id="L826"><span class="lineNum">     826</span>                 :<span class="tlaGNC">           2 : }</span></span>
 <span id="L827"><span class="lineNum">     827</span>                 :             : </span>
 <span id="L828"><span class="lineNum">     828</span>                 :             : absl::Status Glob(</span>
 <span id="L829"><span class="lineNum">     829</span>                 :             :     const fs::path&amp; root,</span>
 <span id="L830"><span class="lineNum">     830</span>                 :             :     std::string_view pattern,</span>
 <span id="L831"><span class="lineNum">     831</span>                 :             :     const Glob2Re2Options&amp; re2_convert_options,</span>
 <span id="L832"><span class="lineNum">     832</span>                 :             :     const GlobOptions&amp; options,</span>
-<span id="L833"><span class="lineNum">     833</span>                 :<span class="tlaGNC">          14 :     const GlobEntryFunc&amp; func) {</span></span>
-<span id="L834"><span class="lineNum">     834</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          14 :   MBO_MOVE_TO_OR_RETURN(Glob2Re2(pattern, re2_convert_options), const std::unique_ptr&lt;const RE2&gt; regex);</span></span>
-<span id="L835"><span class="lineNum">     835</span>                 :<span class="tlaGNC">          14 :   return GlobRe2(root, *regex, options, func);</span></span>
-<span id="L836"><span class="lineNum">     836</span>                 :<span class="tlaGNC">          14 : }</span></span>
+<span id="L833"><span class="lineNum">     833</span>                 :<span class="tlaGNC">          16 :     const GlobEntryFunc&amp; func) {</span></span>
+<span id="L834"><span class="lineNum">     834</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 16 times"> + </span>]:<span class="tlaGNC">          16 :   MBO_MOVE_TO_OR_RETURN(Glob2Re2(pattern, re2_convert_options), const std::unique_ptr&lt;const RE2&gt; regex);</span></span>
+<span id="L835"><span class="lineNum">     835</span>                 :<span class="tlaGNC">          16 :   return GlobRe2(root, *regex, options, func);</span></span>
+<span id="L836"><span class="lineNum">     836</span>                 :<span class="tlaGNC">          16 : }</span></span>
 <span id="L837"><span class="lineNum">     837</span>                 :             : </span>
 <span id="L838"><span class="lineNum">     838</span>                 :             : absl::Status Glob(</span>
 <span id="L839"><span class="lineNum">     839</span>                 :             :     const absl::StatusOr&lt;RootAndPattern&gt;&amp; pattern,</span>

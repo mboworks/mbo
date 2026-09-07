@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -113,32 +113,32 @@
 <span id="L33"><span class="lineNum">      33</span>                 :<span class="tlaGNC">           2 :   return std::move(*this);</span></span>
 <span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">           2 : }</span></span>
 <span id="L35"><span class="lineNum">      35</span>                 :             : </span>
-<span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">           5 : StatusBuilder&amp; StatusBuilder::SetAppend() &amp; {</span></span>
-<span id="L37"><span class="lineNum">      37</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           5 :   if (data_) {</span></span>
-<span id="L38"><span class="lineNum">      38</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           4 :     if (!data_-&gt;appended) {</span></span>
-<span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">           3 :       data_-&gt;stream &lt;&lt; data_-&gt;status.message();</span></span>
-<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">           3 :     }</span></span>
-<span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">           4 :     data_-&gt;appended = true;</span></span>
-<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">           4 :   }</span></span>
-<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">           5 :   return *this;</span></span>
-<span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">           5 : }</span></span>
+<span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">           6 : StatusBuilder&amp; StatusBuilder::SetAppend() &amp; {</span></span>
+<span id="L37"><span class="lineNum">      37</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           6 :   if (data_) {</span></span>
+<span id="L38"><span class="lineNum">      38</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           5 :     if (!data_-&gt;appended) {</span></span>
+<span id="L39"><span class="lineNum">      39</span>                 :<span class="tlaGNC">           4 :       data_-&gt;stream &lt;&lt; data_-&gt;status.message();</span></span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaGNC">           5 :     data_-&gt;appended = true;</span></span>
+<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">           5 :   }</span></span>
+<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">           6 :   return *this;</span></span>
+<span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">           6 : }</span></span>
 <span id="L45"><span class="lineNum">      45</span>                 :             : </span>
-<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">           4 : StatusBuilder&amp;&amp; StatusBuilder::SetAppend() &amp;&amp; {</span></span>
-<span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaGNC">           4 :   this-&gt;SetAppend();</span></span>
-<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">           4 :   return std::move(*this);</span></span>
-<span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">           4 : }</span></span>
+<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaGNC">           5 : StatusBuilder&amp;&amp; StatusBuilder::SetAppend() &amp;&amp; {</span></span>
+<span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaGNC">           5 :   this-&gt;SetAppend();</span></span>
+<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">           5 :   return std::move(*this);</span></span>
+<span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">           5 : }</span></span>
 <span id="L50"><span class="lineNum">      50</span>                 :             : </span>
-<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">          58 : StatusBuilder::operator absl::Status() const &amp; {</span></span>
-<span id="L52"><span class="lineNum">      52</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 54 times"> + </span>]:<span class="tlaGNC">          58 :   if (!data_) {</span></span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">          59 : StatusBuilder::operator absl::Status() const &amp; {</span></span>
+<span id="L52"><span class="lineNum">      52</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 55 times"> + </span>]:<span class="tlaGNC">          59 :   if (!data_) {</span></span>
 <span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">           4 :     return absl::OkStatus();</span></span>
 <span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">           4 :   }</span></span>
-<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          54 :   absl::Status result(</span></span>
-<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          54 :       data_-&gt;status.code(),</span></span>
-<span id="L57"><span class="lineNum">      57</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 51 times"> + </span>]:<span class="tlaGNC">          54 :       data_-&gt;appended ? data_-&gt;stream.str() : absl::StrCat(data_-&gt;status.message(), data_-&gt;stream.str()));</span></span>
-<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          54 :   data_-&gt;status.ForEachPayload(</span></span>
-<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">          54 :       [&amp;result](std::string_view url, const absl::Cord&amp; payload) { result.SetPayload(url, payload); });</span></span>
-<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          54 :   return result;</span></span>
-<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">          58 : }</span></span>
+<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          55 :   absl::Status result(</span></span>
+<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          55 :       data_-&gt;status.code(),</span></span>
+<span id="L57"><span class="lineNum">      57</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 51 times"> + </span>]:<span class="tlaGNC">          55 :       data_-&gt;appended ? data_-&gt;stream.str() : absl::StrCat(data_-&gt;status.message(), data_-&gt;stream.str()));</span></span>
+<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          55 :   data_-&gt;status.ForEachPayload(</span></span>
+<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">          55 :       [&amp;result](std::string_view url, const absl::Cord&amp; payload) { result.SetPayload(url, payload); });</span></span>
+<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          55 :   return result;</span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">          59 : }</span></span>
 <span id="L62"><span class="lineNum">      62</span>                 :             : </span>
 <span id="L63"><span class="lineNum">      63</span>                 :             : }  // namespace mbo::status</span>
         </pre>

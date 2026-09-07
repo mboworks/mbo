@@ -40,18 +40,18 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">92.3&nbsp;%</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
             <td class="headerCovTableEntry">39</td>
-            <td class="headerCovTableEntry">36</td>
+            <td class="headerCovTableEntry">39</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryMed">81.2&nbsp;%</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
             <td class="headerCovTableEntry">16</td>
-            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">16</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -193,7 +193,7 @@
 <span id="L122"><span class="lineNum">     122</span>              : struct MakeExtender {</span>
 <span id="L123"><span class="lineNum">     123</span>              :   using RequiredExtender = RequiredExtenderT;</span>
 <span id="L124"><span class="lineNum">     124</span>              : </span>
-<span id="L125"><span class="lineNum">     125</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(ExtenderNameT)::str(); }</span></span>
+<span id="L125"><span class="lineNum">     125</span> <span class="tlaGNC">           1 :   static constexpr std::string_view GetExtenderName() { return decltype(ExtenderNameT)::str(); }</span></span>
 <span id="L126"><span class="lineNum">     126</span>              : </span>
 <span id="L127"><span class="lineNum">     127</span>              :  private:</span>
 <span id="L128"><span class="lineNum">     128</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>
@@ -215,21 +215,21 @@
 <span id="L144"><span class="lineNum">     144</span>              :   friend struct AbslStringify_;</span>
 <span id="L145"><span class="lineNum">     145</span>              : </span>
 <span id="L146"><span class="lineNum">     146</span>              :   template&lt;typename Sink&gt;</span>
-<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          58 :   friend void AbslStringify(Sink&amp; sink, const Type&amp; value) {</span></span>
-<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          58 :     std::ostringstream os;</span></span>
-<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">          58 :     value.OStreamFields(os);</span></span>
-<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">          58 :     sink.Append(os.str());</span></span>
-<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          58 :   }</span></span>
+<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          59 :   friend void AbslStringify(Sink&amp; sink, const Type&amp; value) {</span></span>
+<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          59 :     std::ostringstream os;</span></span>
+<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">          59 :     value.OStreamFields(os);</span></span>
+<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">          59 :     sink.Append(os.str());</span></span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          59 :   }</span></span>
 <span id="L152"><span class="lineNum">     152</span>              : </span>
 <span id="L153"><span class="lineNum">     153</span>              :  protected:</span>
 <span id="L154"><span class="lineNum">     154</span>              :   // Stream the type to `os` with control via `field_options`.</span>
-<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         114 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
-<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         114 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
-<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         114 :   }</span></span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         115 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         115 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         115 :   }</span></span>
 <span id="L158"><span class="lineNum">     158</span>              : </span>
-<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         114 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
-<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         114 :     Stringify(default_options).Stream(os, value);</span></span>
-<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         114 :   }</span></span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         115 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         115 :     Stringify(default_options).Stream(os, value);</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         115 :   }</span></span>
 <span id="L162"><span class="lineNum">     162</span>              : };</span>
 <span id="L163"><span class="lineNum">     163</span>              : </span>
 <span id="L164"><span class="lineNum">     164</span>              : template&lt;typename ExtenderBase&gt;</span>
@@ -482,7 +482,7 @@
 <span id="L411"><span class="lineNum">     411</span>              :   using RequiredExtender = void;</span>
 <span id="L412"><span class="lineNum">     412</span>              :   using ExtenderTuple = std::tuple&lt;AbslHashable, AbslStringify, Comparable, Printable, Streamable&gt;;</span>
 <span id="L413"><span class="lineNum">     413</span>              : </span>
-<span id="L414"><span class="lineNum">     414</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;Default&quot;_ts)::str(); }</span></span>
+<span id="L414"><span class="lineNum">     414</span> <span class="tlaGNC">           1 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;Default&quot;_ts)::str(); }</span></span>
 <span id="L415"><span class="lineNum">     415</span>              : </span>
 <span id="L416"><span class="lineNum">     416</span>              :  private:</span>
 <span id="L417"><span class="lineNum">     417</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>
@@ -516,7 +516,7 @@
 <span id="L445"><span class="lineNum">     445</span>              :   using RequiredExtender = void;</span>
 <span id="L446"><span class="lineNum">     446</span>              :   using ExtenderTuple = std::tuple&lt;AbslHashable, AbslStringify, Comparable&gt;;</span>
 <span id="L447"><span class="lineNum">     447</span>              : </span>
-<span id="L448"><span class="lineNum">     448</span> <span class="tlaUNC">           0 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;NoPrint&quot;_ts)::str(); }</span></span>
+<span id="L448"><span class="lineNum">     448</span> <span class="tlaGNC">           1 :   static constexpr std::string_view GetExtenderName() { return decltype(&quot;NoPrint&quot;_ts)::str(); }</span></span>
 <span id="L449"><span class="lineNum">     449</span>              : </span>
 <span id="L450"><span class="lineNum">     450</span>              :  private:</span>
 <span id="L451"><span class="lineNum">     451</span>              :   // This friend is necessary to keep symbol visibility in check. But it has to</span>

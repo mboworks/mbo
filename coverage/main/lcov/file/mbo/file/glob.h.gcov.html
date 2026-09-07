@@ -40,18 +40,18 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">85.7&nbsp;%</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
             <td class="headerCovTableEntry">21</td>
-            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">21</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryMed">75.0&nbsp;%</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
             <td class="headerCovTableEntry">4</td>
-            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">4</td>
           </tr>
           <tr>
             <td></td>
@@ -212,15 +212,15 @@
 <span id="L132"><span class="lineNum">     132</span>                 :             : </span>
 <span id="L133"><span class="lineNum">     133</span>                 :             :   static std::string MboTypesStringifyConvert(</span>
 <span id="L134"><span class="lineNum">     134</span>                 :             :       const GlobEntry&amp; entry,</span>
-<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaUNC">           0 :       const std::filesystem::directory_entry&amp; /*value*/) {</span></span>
-<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaUNC">           0 :     return entry.MaybeRelativePath().native();</span></span>
-<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaUNC">           0 :   }</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">           2 :       const std::filesystem::directory_entry&amp; /*value*/) {</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">           2 :     return entry.MaybeRelativePath().native();</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">           2 :   }</span></span>
 <span id="L138"><span class="lineNum">     138</span>                 :             : </span>
 <span id="L139"><span class="lineNum">     139</span>                 :             :   // Returns the path for the `entry` either as is or relative to `root` if that was requested using</span>
 <span id="L140"><span class="lineNum">     140</span>                 :             :   // `GlobOptions.use_rel_path`.</span>
-<span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">           2 :   const std::filesystem::path&amp; MaybeRelativePath() const noexcept {</span></span>
-<span id="L142"><span class="lineNum">     142</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     return rel_path.has_value() ? *rel_path : entry.path();</span></span>
-<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">           4 :   const std::filesystem::path&amp; MaybeRelativePath() const noexcept {</span></span>
+<span id="L142"><span class="lineNum">     142</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           4 :     return rel_path.has_value() ? *rel_path : entry.path();</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">           4 :   }</span></span>
 <span id="L144"><span class="lineNum">     144</span>                 :             : </span>
 <span id="L145"><span class="lineNum">     145</span>                 :             :   // Returns the file's size or 0 if the entry is not a regular file.</span>
 <span id="L146"><span class="lineNum">     146</span>                 :             :   // If the file size cannot be retrieved, then the function also returns 0.</span>

@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -138,24 +138,24 @@
 <span id="L58"><span class="lineNum">      58</span>                 :             : // gcc 13: 8x movzx+or, ~3x slower hashing) -- hence the explicit `memcpy` path.</span>
 <span id="L59"><span class="lineNum">      59</span>                 :             : // Both paths produce identical values; the ConstexprMatchesRuntime test guards</span>
 <span id="L60"><span class="lineNum">      60</span>                 :             : // this equality.</span>
-<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">   186596720 : MBO_FORCE_INLINE constexpr uint64_t Load64(const char* ptr) noexcept {</span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">   186596976 : MBO_FORCE_INLINE constexpr uint64_t Load64(const char* ptr) noexcept {</span></span>
 <span id="L62"><span class="lineNum">      62</span>                 :             :   // Coverage runs on little-endian machines and cannot observe compile-time</span>
 <span id="L63"><span class="lineNum">      63</span>                 :             :   // execution. GCC nevertheless emits a branch pair for both alternatives at</span>
 <span id="L64"><span class="lineNum">      64</span>                 :             :   // every always-inline call site. ConstexprMatchesRuntime and the direct load</span>
 <span id="L65"><span class="lineNum">      65</span>                 :             :   // tests cover their behavior without counting those unreachable records.</span>
-<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">   186596720 :   if (!std::is_constant_evaluated()) {  // LCOV_EXCL_BR_LINE</span></span>
-<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">   186596720 :     if constexpr (std::endian::native == std::endian::little) {</span></span>
-<span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">   186596720 :       uint64_t result = 0;</span></span>
-<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">   186596720 :       std::memcpy(&amp;result, ptr, 8);</span></span>
-<span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">   186596720 :       return result;</span></span>
-<span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaGNC">   186596720 :     }</span></span>
-<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">   186596720 :   }</span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">   186596976 :   if (!std::is_constant_evaluated()) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">   186596976 :     if constexpr (std::endian::native == std::endian::little) {</span></span>
+<span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">   186596976 :       uint64_t result = 0;</span></span>
+<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">   186596976 :       std::memcpy(&amp;result, ptr, 8);</span></span>
+<span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">   186596976 :       return result;</span></span>
+<span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaGNC">   186596976 :     }</span></span>
+<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">   186596976 :   }</span></span>
 <span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaUNC">           0 :   uint64_t result = 0;</span></span>
 <span id="L74"><span class="lineNum">      74</span>                 :             :   for (std::size_t i = 0; i &lt; 8; ++i) {  // LCOV_EXCL_LINE</span>
 <span id="L75"><span class="lineNum">      75</span>                 :<span class="tlaUNC">           0 :     result |= static_cast&lt;uint64_t&gt;(static_cast&lt;uint8_t&gt;(ptr[i])) &lt;&lt; (i * 8U);</span></span>
 <span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">   186596720 :   return result;</span></span>
-<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">   186596720 : }</span></span>
+<span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">   186596976 :   return result;</span></span>
+<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">   186596976 : }</span></span>
 <span id="L79"><span class="lineNum">      79</span>                 :             : </span>
 <span id="L80"><span class="lineNum">      80</span>                 :             : // Loads 4 bytes as a **big-endian** `uint32_t`. The message-digest</span>
 <span id="L81"><span class="lineNum">      81</span>                 :             : // specifications (SHA-1/SHA-2, FIPS 180-4; see mbo/digest) are big-endian,</span>
@@ -266,10 +266,10 @@
 <span id="L186"><span class="lineNum">     186</span>                 :             : // Full 64x64-&gt;128 multiply; returns the low half in `h1` and the high half in</span>
 <span id="L187"><span class="lineNum">     187</span>                 :             : // `h2`. Uses `__uint128_t` where the compiler provides it (gcc/clang,</span>
 <span id="L188"><span class="lineNum">     188</span>                 :             : // constexpr-legal); the portable 32-bit schoolbook multiply otherwise.</span>
-<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaGNC">    31950070 : MBO_FORCE_INLINE constexpr Hash128 Mult128(uint64_t lhs, uint64_t rhs) noexcept {</span></span>
-<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">    31950070 :   if constexpr (has_128_bit) {</span></span>
-<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">    31950070 :     const auto product = static_cast&lt;mbo_uint128_t&gt;(lhs) * static_cast&lt;mbo_uint128_t&gt;(rhs);</span></span>
-<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">    31950070 :     return {.h1 = static_cast&lt;uint64_t&gt;(product), .h2 = static_cast&lt;uint64_t&gt;(product &gt;&gt; 64U)};</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaGNC">    31950078 : MBO_FORCE_INLINE constexpr Hash128 Mult128(uint64_t lhs, uint64_t rhs) noexcept {</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">    31950078 :   if constexpr (has_128_bit) {</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">    31950078 :     const auto product = static_cast&lt;mbo_uint128_t&gt;(lhs) * static_cast&lt;mbo_uint128_t&gt;(rhs);</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">    31950078 :     return {.h1 = static_cast&lt;uint64_t&gt;(product), .h2 = static_cast&lt;uint64_t&gt;(product &gt;&gt; 64U)};</span></span>
 <span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaUNC">           0 :   } else {</span></span>
 <span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaUNC">           0 :     const uint64_t lo_lo = (lhs &amp; 0xFFFFFFFFULL) * (rhs &amp; 0xFFFFFFFFULL);</span></span>
 <span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaUNC">           0 :     const uint64_t hi_lo = (lhs &gt;&gt; 32U) * (rhs &amp; 0xFFFFFFFFULL);</span></span>
@@ -281,16 +281,16 @@
 <span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaUNC">           0 :         .h2 = (hi_lo &gt;&gt; 32U) + (cross &gt;&gt; 32U) + hi_hi,</span></span>
 <span id="L202"><span class="lineNum">     202</span>                 :<span class="tlaUNC">           0 :     };</span></span>
 <span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">    31950070 : }</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">    31950078 : }</span></span>
 <span id="L205"><span class="lineNum">     205</span>                 :             : </span>
 <span id="L206"><span class="lineNum">     206</span>                 :             : // Full 64x64-&gt;128 multiply folded to 64 bits by XORing the halves (the core</span>
 <span id="L207"><span class="lineNum">     207</span>                 :             : // mixer of the xxh3/wyhash algorithm family). Uses `__uint128_t` where the</span>
 <span id="L208"><span class="lineNum">     208</span>                 :             : // compiler provides it (gcc/clang, constexpr-legal); the portable 32-bit</span>
 <span id="L209"><span class="lineNum">     209</span>                 :             : // schoolbook multiply otherwise.</span>
-<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">   116723132 : MBO_FORCE_INLINE constexpr uint64_t Mul128Fold64(uint64_t lhs, uint64_t rhs) noexcept {</span></span>
-<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">   116723132 :   if constexpr (has_128_bit) {</span></span>
-<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">   116723132 :     const auto product = static_cast&lt;mbo_uint128_t&gt;(lhs) * static_cast&lt;mbo_uint128_t&gt;(rhs);</span></span>
-<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">   116723132 :     return static_cast&lt;uint64_t&gt;(product) ^ static_cast&lt;uint64_t&gt;(product &gt;&gt; 64U);</span></span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">   116723320 : MBO_FORCE_INLINE constexpr uint64_t Mul128Fold64(uint64_t lhs, uint64_t rhs) noexcept {</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">   116723320 :   if constexpr (has_128_bit) {</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">   116723320 :     const auto product = static_cast&lt;mbo_uint128_t&gt;(lhs) * static_cast&lt;mbo_uint128_t&gt;(rhs);</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">   116723320 :     return static_cast&lt;uint64_t&gt;(product) ^ static_cast&lt;uint64_t&gt;(product &gt;&gt; 64U);</span></span>
 <span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaUNC">           0 :   } else {</span></span>
 <span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaUNC">           0 :     const uint64_t lo_lo = (lhs &amp; 0xFFFFFFFFULL) * (rhs &amp; 0xFFFFFFFFULL);</span></span>
 <span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaUNC">           0 :     const uint64_t hi_lo = (lhs &gt;&gt; 32U) * (rhs &amp; 0xFFFFFFFFULL);</span></span>
@@ -301,7 +301,7 @@
 <span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaUNC">           0 :     const uint64_t lower = (cross &lt;&lt; 32U) | (lo_lo &amp; 0xFFFFFFFFULL);</span></span>
 <span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaUNC">           0 :     return lower ^ upper;</span></span>
 <span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaUNC">           0 :   }</span></span>
-<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">   116723132 : }</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">   116723320 : }</span></span>
 <span id="L225"><span class="lineNum">     225</span>                 :             : </span>
 <span id="L226"><span class="lineNum">     226</span>                 :             : // Loads the (0..16 byte) small-key input into two words; see the structure</span>
 <span id="L227"><span class="lineNum">     227</span>                 :             : // notes in the header comment.</span>

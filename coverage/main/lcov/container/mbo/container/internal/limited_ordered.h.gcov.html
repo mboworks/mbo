@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">98.8&nbsp;%</td>
@@ -174,7 +174,7 @@
 <span id="L94"><span class="lineNum">      94</span>                 :             :   struct None final {};</span>
 <span id="L95"><span class="lineNum">      95</span>                 :             : </span>
 <span id="L96"><span class="lineNum">      96</span>                 :             :   union Data {</span>
-<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">        5804 :     constexpr Data() noexcept : none{} {}</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">        5806 :     constexpr Data() noexcept : none{} {}</span></span>
 <span id="L98"><span class="lineNum">      98</span>                 :             : </span>
 <span id="L99"><span class="lineNum">      99</span>                 :             :     constexpr Data(const Data&amp;) noexcept = default;</span>
 <span id="L100"><span class="lineNum">     100</span>                 :             :     constexpr Data&amp; operator=(const Data&amp;) noexcept = default;</span>
@@ -255,7 +255,7 @@
 <span id="L175"><span class="lineNum">     175</span>                 :             : </span>
 <span id="L176"><span class="lineNum">     176</span>                 :             :     constexpr explicit ValueCompare() noexcept = default;</span>
 <span id="L177"><span class="lineNum">     177</span>                 :             : </span>
-<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">         205 :     constexpr explicit ValueCompare(const key_compare&amp; comp) noexcept : key_comp(comp) {}</span></span>
+<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">         206 :     constexpr explicit ValueCompare(const key_compare&amp; comp) noexcept : key_comp(comp) {}</span></span>
 <span id="L179"><span class="lineNum">     179</span>                 :             : </span>
 <span id="L180"><span class="lineNum">     180</span>                 :             :     constexpr ValueCompare(const ValueCompare&amp;) noexcept = default;</span>
 <span id="L181"><span class="lineNum">     181</span>                 :             :     constexpr ValueCompare&amp; operator=(const ValueCompare&amp;) noexcept = default;</span>
@@ -492,7 +492,7 @@
 <span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">          69 :     clear();</span></span>
 <span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">          69 :   }</span></span>
 <span id="L414"><span class="lineNum">     414</span>                 :             : </span>
-<span id="L415"><span class="lineNum">     415</span>                 :<span class="tlaGNC">         219 :   constexpr LimitedOrdered() noexcept = default;</span></span>
+<span id="L415"><span class="lineNum">     415</span>                 :<span class="tlaGNC">         221 :   constexpr LimitedOrdered() noexcept = default;</span></span>
 <span id="L416"><span class="lineNum">     416</span>                 :             : </span>
 <span id="L417"><span class="lineNum">     417</span>                 :<span class="tlaGNC">           4 :   constexpr explicit LimitedOrdered(const Compare&amp; key_comp) noexcept : key_comp_(key_comp) {}</span></span>
 <span id="L418"><span class="lineNum">     418</span>                 :             : </span>
@@ -1197,7 +1197,7 @@
 <span id="L1115"><span class="lineNum">    1115</span>                 :             : </span>
 <span id="L1116"><span class="lineNum">    1116</span>                 :<span class="tlaUNC">           0 :   constexpr std::size_t capacity() const noexcept { return Capacity; }</span></span>
 <span id="L1117"><span class="lineNum">    1117</span>                 :             : </span>
-<span id="L1118"><span class="lineNum">    1118</span>                 :<span class="tlaGNC">        5162 :   constexpr bool empty() const noexcept { return size_ == 0; }</span></span>
+<span id="L1118"><span class="lineNum">    1118</span>                 :<span class="tlaGNC">        5164 :   constexpr bool empty() const noexcept { return size_ == 0; }</span></span>
 <span id="L1119"><span class="lineNum">    1119</span>                 :             : </span>
 <span id="L1120"><span class="lineNum">    1120</span>                 :             :   // NOLINTBEGIN(readability-container-data-pointer)</span>
 <span id="L1121"><span class="lineNum">    1121</span>                 :             : </span>

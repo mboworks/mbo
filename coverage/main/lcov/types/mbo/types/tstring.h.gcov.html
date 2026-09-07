@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 01:04:30</td>
+            <td class="headerValue">2026-09-07 02:00:29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryMed">83.3&nbsp;%</td>
@@ -195,7 +195,7 @@
 <span id="L115"><span class="lineNum">     115</span>                 :             : </span>
 <span id="L116"><span class="lineNum">     116</span>                 :             :   // Access to the underlying data as a `std::string_view`.</span>
 <span id="L117"><span class="lineNum">     117</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every compile-time string value.</span>
-<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">         229 :   static constexpr std::string_view str() noexcept { return {data.data(), sizeof...(chars)}; }</span></span>
+<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">         235 :   static constexpr std::string_view str() noexcept { return {data.data(), sizeof...(chars)}; }</span></span>
 <span id="L119"><span class="lineNum">     119</span>                 :             : </span>
 <span id="L120"><span class="lineNum">     120</span>                 :             :   static constexpr const char* c_str() noexcept { return data.data(); }</span>
 <span id="L121"><span class="lineNum">     121</span>                 :             : </span>
@@ -686,7 +686,7 @@
 <span id="L606"><span class="lineNum">     606</span>                 :             : // zero chars - as long as the compiler correctly handles length detection.</span>
 <span id="L607"><span class="lineNum">     607</span>                 :             : // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)</span>
 <span id="L608"><span class="lineNum">     608</span>                 :             : #define MBO_MAKE_TSTRING(str)                                                                     \</span>
-<span id="L609"><span class="lineNum">     609</span>                 :<span class="tlaGNC">           5 :   []&lt;std::size_t... Is&gt;(std::index_sequence&lt;Is...&gt;) constexpr noexcept -&gt; tstring&lt;(str)[Is]...&gt; { \</span></span>
+<span id="L609"><span class="lineNum">     609</span>                 :<span class="tlaGNC">           6 :   []&lt;std::size_t... Is&gt;(std::index_sequence&lt;Is...&gt;) constexpr noexcept -&gt; tstring&lt;(str)[Is]...&gt; { \</span></span>
 <span id="L610"><span class="lineNum">     610</span>                 :<span class="tlaUNC">           0 :     return {};                                                                                    \</span></span>
 <span id="L611"><span class="lineNum">     611</span>                 :<span class="tlaUNC">           0 :   }(std::make_index_sequence&lt;types_internal::tstring_input_len(str)&gt;{})</span></span>
 <span id="L612"><span class="lineNum">     612</span>                 :             : </span>

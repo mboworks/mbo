@@ -31,6 +31,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: python3 -m unittest discover -s tools -p release_site_test.py
+      - run: python3 -m unittest discover -s tools -p release_notes_test.py
       - name: Verify configured documentation and generated links
         env:
           GH_TOKEN: ${{ github.token }}

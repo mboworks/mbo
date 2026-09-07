@@ -403,6 +403,10 @@ library's only NOTICE entry is courtesy).
 
 ## Release website
 
+Release notes use `.github/release-notes.md.template`, rendered by
+`tools/release_notes.sh TAG`, to link to that tag's versioned website and related
+release resources. The existing changelog and installation notes remain included.
+
 The [website](https://mboworks.github.io/mbo/) forwards to the latest published
 stable release at `site/tag/<tag>/`, preserving the exact Git tag name.
 Each release keeps its converted HTML, images, and configured files. Retrying

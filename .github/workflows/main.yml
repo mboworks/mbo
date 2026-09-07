@@ -20,6 +20,18 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  release-site-tests:
+    name: Release site tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python3 -m unittest discover -s tools -p release_site_test.py
+
   trunk:
     runs-on: ubuntu-latest
     steps:
@@ -376,7 +388,16 @@ jobs:
 
   done:
     needs:
-      [trunk, pre-commit, clang-tidy, coverage, test-gcc, test-clang, test-bcr]
+      [
+        release-site-tests,
+        trunk,
+        pre-commit,
+        clang-tidy,
+        coverage,
+        test-gcc,
+        test-clang,
+        test-bcr,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:

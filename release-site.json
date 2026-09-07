@@ -1,0 +1,21 @@
+{
+  "pages": {
+    "README.md": "index.html",
+    "CHANGELOG.md": "CHANGELOG.html",
+    "CONTRIBUTING.md": "CONTRIBUTING.html",
+    "docs/coverage.md": "docs/coverage.html",
+    "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",
+    "mbo/diff/README.md": "mbo/diff/README.html",
+    "mbo/digest/README.md": "mbo/digest/README.html",
+    "mbo/file/README.md": "mbo/file/README.html",
+    "mbo/hash/README.md": "mbo/hash/README.html",
+    "mbo/hash/measurements/README.md": "mbo/hash/measurements/README.html",
+    "mbo/types/README.md": "mbo/types/README.html"
+  },
+  "links": [
+    {
+      "label": "Coverage",
+      "href": "/{repo}/coverage/tag/{version}/"
+    }
+  ]
+}

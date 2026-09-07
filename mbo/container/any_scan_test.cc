@@ -116,11 +116,28 @@ TEST_F(AnyScanTest, ReferenceIteratorsCompareByPosition) {
   EXPECT_THAT(first == second, IsFalse());
 }
 
-TEST_F(AnyScanTest, DefaultIteratorsAreAtEnd) {
+TEST_F(AnyScanTest, DefaultConstructedIteratorsCompareEqualAsExhausted) {
   const AnyScan<int>::iterator first;
   const AnyScan<int>::iterator second;
 
   EXPECT_THAT(first == second, IsTrue());
+}
+
+TEST_F(AnyScanTest, DefaultConstructedIteratorEqualsScanEnd) {
+  std::array<int, 1> data{1};
+  AnyScan<int> scan(MakeAnyScan(data));
+  const AnyScan<int>::iterator iterator;
+
+  EXPECT_THAT(iterator == scan.end(), IsTrue());
+}
+
+TEST_F(AnyScanTest, EndsFromDifferentScansCompareEqual) {
+  std::array<int, 1> first_data{1};
+  std::array<int, 1> second_data{2};
+  AnyScan<int> first(MakeAnyScan(first_data));
+  AnyScan<int> second(MakeAnyScan(second_data));
+
+  EXPECT_THAT(first.end() == second.end(), IsTrue());
 }
 
 TEST_F(ConstScanTest, TestInitializerList) {

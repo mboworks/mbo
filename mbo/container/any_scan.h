@@ -396,6 +396,19 @@ class AnyScanImpl {
   // NOLINTEND(bugprone-forwarding-reference-overload)
 
  public:
+  // Iterator equality deliberately does not retain or compare the originating scan. This keeps the
+  // type-erased iterator lightweight, with the following consequences:
+  //
+  // * A default-constructed iterator is exhausted and compares equal to every other exhausted
+  //   iterator, including the end iterator of a different scan.
+  // * Two non-exhausted reference iterators compare equal when their current element addresses are
+  //   equal. This is only an approximation because a container may expose the same element more
+  //   than once.
+  // * Non-exhausted converting iterators cannot be compared by address and compare unequal unless
+  //   they are the same iterator object.
+  //
+  // As with standard iterators, do not compare iterators from unrelated ranges to determine range
+  // identity.
   template<typename ItElementType, typename ItValueType, typename ItPointer, typename ItReference>
   class iterator_impl {
    public:

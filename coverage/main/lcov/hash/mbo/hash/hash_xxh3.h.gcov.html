@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">97.6&nbsp;%</td>
-            <td class="headerCovTableEntry">332</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">324</td>
             <td class="headerCovTableEntry">324</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -254,7 +254,7 @@
 <span id="L174"><span class="lineNum">     174</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kStartOffset = 3;  // XXH3_MIDSIZE_STARTOFFSET</span></span>
 <span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kLastOffset = 17;  // XXH3_MIDSIZE_LASTOFFSET</span></span>
 <span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kSecretSizeMin = 136;</span></span>
-<span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :             : </span>
 <span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">         116 :   uint64_t acc = len * xxh64::kPrime1;</span></span>
 <span id="L179"><span class="lineNum">     179</span>                 :<span class="tlaGNC">         116 :   const std::size_t rounds = len / 16;</span></span>
 <span id="L180"><span class="lineNum">     180</span>         [<span class="tlaGBC" title="branch 0 was taken 928 times"> + </span><span class="tlaGBC" title="branch 1 was taken 116 times"> + </span>]:<span class="tlaGNC">        1044 :   for (std::size_t i = 0; i &lt; 8; ++i) {</span></span>
@@ -304,7 +304,7 @@
 <span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">       32024 :       kPrime32_3,     xxh64::kPrime1, xxh64::kPrime2, xxh64::kPrime3,</span></span>
 <span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">       32024 :       xxh64::kPrime4, kPrime32_2,     xxh64::kPrime5, kPrime32_1,</span></span>
 <span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">       32024 :   };</span></span>
-<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L227"><span class="lineNum">     227</span>                 :             : </span>
 <span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">       32024 :   const std::size_t nb_blocks = (len - 1) / kBlockLen;</span></span>
 <span id="L229"><span class="lineNum">     229</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">       32030 :   for (std::size_t block = 0; block &lt; nb_blocks; ++block) {</span></span>
 <span id="L230"><span class="lineNum">     230</span>         [<span class="tlaGBC" title="branch 0 was taken 96 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">         102 :     for (std::size_t stripe = 0; stripe &lt; kStripesPerBlock; ++stripe) {</span></span>
@@ -312,14 +312,14 @@
 <span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">          96 :     }</span></span>
 <span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           6 :     ScrambleAcc(acc, secret + kSecretSize - kStripeLen);</span></span>
 <span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">           6 :   }</span></span>
-<span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :             : </span>
 <span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">       32024 :   const std::size_t stripes = ((len - 1) - (kBlockLen * nb_blocks)) / kStripeLen;</span></span>
 <span id="L237"><span class="lineNum">     237</span>         [<span class="tlaGBC" title="branch 0 was taken 128112 times"> + </span><span class="tlaGBC" title="branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">      160136 :   for (std::size_t stripe = 0; stripe &lt; stripes; ++stripe) {</span></span>
 <span id="L238"><span class="lineNum">     238</span>                 :<span class="tlaGNC">      128112 :     Accumulate512(acc, input + (nb_blocks * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
 <span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">      128112 :   }</span></span>
-<span id="L240"><span class="lineNum">     240</span>                 :<span class="tlaUNC">           0 :   // Last stripe (overlaps; secret offset -7 so it differs from the loop's).</span></span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :   // Last stripe (overlaps; secret offset -7 so it differs from the loop's).</span>
 <span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">       32024 :   Accumulate512(acc, input + len - kStripeLen, secret + kSecretSize - kStripeLen - 7);</span></span>
-<span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L242"><span class="lineNum">     242</span>                 :             : </span>
 <span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">       32024 :   return MergeAccs(acc, secret + 11, len * xxh64::kPrime1);</span></span>
 <span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">       32024 : }</span></span>
 <span id="L245"><span class="lineNum">     245</span>                 :             : </span>
@@ -442,7 +442,7 @@
 <span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kStartOffset = 3;  // XXH3_MIDSIZE_STARTOFFSET</span></span>
 <span id="L363"><span class="lineNum">     363</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kLastOffset = 17;  // XXH3_MIDSIZE_LASTOFFSET</span></span>
 <span id="L364"><span class="lineNum">     364</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kSecretSizeMin = 136;</span></span>
-<span id="L365"><span class="lineNum">     365</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L365"><span class="lineNum">     365</span>                 :             : </span>
 <span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">           4 :   Hash128 acc = {.h1 = len * xxh64::kPrime1, .h2 = 0};</span></span>
 <span id="L367"><span class="lineNum">     367</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          20 :   for (std::size_t i = 32; i &lt; 160; i += 32) {</span></span>
 <span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          16 :     acc = Mix32B(acc, input + i - 32, input + i - 16, kSecret + i - 32, seed);</span></span>
@@ -461,7 +461,7 @@
 <span id="L381"><span class="lineNum">     381</span>                 :<span class="tlaGNC">           8 :       kPrime32_3,     xxh64::kPrime1, xxh64::kPrime2, xxh64::kPrime3,</span></span>
 <span id="L382"><span class="lineNum">     382</span>                 :<span class="tlaGNC">           8 :       xxh64::kPrime4, kPrime32_2,     xxh64::kPrime5, kPrime32_1,</span></span>
 <span id="L383"><span class="lineNum">     383</span>                 :<span class="tlaGNC">           8 :   };</span></span>
-<span id="L384"><span class="lineNum">     384</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L384"><span class="lineNum">     384</span>                 :             : </span>
 <span id="L385"><span class="lineNum">     385</span>                 :<span class="tlaGNC">           8 :   const std::size_t nb_blocks = (len - 1) / kBlockLen;</span></span>
 <span id="L386"><span class="lineNum">     386</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          14 :   for (std::size_t block = 0; block &lt; nb_blocks; ++block) {</span></span>
 <span id="L387"><span class="lineNum">     387</span>         [<span class="tlaGBC" title="branch 0 was taken 96 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">         102 :     for (std::size_t stripe = 0; stripe &lt; kStripesPerBlock; ++stripe) {</span></span>
@@ -474,7 +474,7 @@
 <span id="L394"><span class="lineNum">     394</span>                 :<span class="tlaGNC">          64 :     Accumulate512(acc, input + (nb_blocks * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
 <span id="L395"><span class="lineNum">     395</span>                 :<span class="tlaGNC">          64 :   }</span></span>
 <span id="L396"><span class="lineNum">     396</span>                 :<span class="tlaGNC">           8 :   Accumulate512(acc, input + len - kStripeLen, secret + kSecretSize - kStripeLen - 7);</span></span>
-<span id="L397"><span class="lineNum">     397</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L397"><span class="lineNum">     397</span>                 :             : </span>
 <span id="L398"><span class="lineNum">     398</span>                 :<span class="tlaGNC">           8 :   return {</span></span>
 <span id="L399"><span class="lineNum">     399</span>                 :<span class="tlaGNC">           8 :       .h1 = MergeAccs(acc, secret + 11, len * xxh64::kPrime1),</span></span>
 <span id="L400"><span class="lineNum">     400</span>                 :<span class="tlaGNC">           8 :       .h2 = MergeAccs(acc, secret + kSecretSize - 64 - 11, ~(len * xxh64::kPrime2)),</span></span>

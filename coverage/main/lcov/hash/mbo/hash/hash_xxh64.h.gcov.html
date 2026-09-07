@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">98.3&nbsp;%</td>
-            <td class="headerCovTableEntry">118</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">116</td>
             <td class="headerCovTableEntry">116</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -173,7 +173,7 @@
 <span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">     2128956 :   const std::size_t len = str.size();</span></span>
 <span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">     2128956 :   const char* ptr = str.data();</span></span>
 <span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">     2128956 :   std::size_t remaining = len;</span></span>
-<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :             : </span>
 <span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">     2128956 :   uint64_t hash = 0;</span></span>
 <span id="L98"><span class="lineNum">      98</span>         [<span class="tlaGBC" title="branch 0 was taken 64762 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2064194 times"> + </span>]:<span class="tlaGNC">     2128956 :   if (remaining &gt;= 32) {</span></span>
 <span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">       64762 :     uint64_t acc1 = seed + kPrime1 + kPrime2;</span></span>
@@ -196,7 +196,7 @@
 <span id="L116"><span class="lineNum">     116</span>                 :<span class="tlaGNC">     2064786 :   } else {</span></span>
 <span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">     2064194 :     hash = seed + kPrime5;</span></span>
 <span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">     2064194 :   }</span></span>
-<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :             : </span>
 <span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">     2128956 :   hash += len;</span></span>
 <span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">     2128956 :   return xxh64_internal::FinishTail(hash, ptr, remaining);</span></span>
 <span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">     2128956 : }</span></span>

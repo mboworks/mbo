@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">96.2&nbsp;%</td>
-            <td class="headerCovTableEntry">104</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">100</td>
             <td class="headerCovTableEntry">100</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -140,15 +140,15 @@
 <span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">     2128968 : constexpr uint64_t GetHash64(std::string_view str, uint64_t seed = 0) noexcept {</span></span>
 <span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">     2128968 :   using rapidhash_internal::kSecret;</span></span>
 <span id="L62"><span class="lineNum">      62</span>                 :<span class="tlaGNC">     2128968 :   using rapidhash_internal::Mix;</span></span>
-<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
 <span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaGNC">     2128968 :   const char* ptr = str.data();</span></span>
 <span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">     2128968 :   const std::size_t len = str.size();</span></span>
-<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : </span>
 <span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">     2128968 :   seed ^= Mix(seed ^ kSecret[2], kSecret[1]);</span></span>
 <span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">     2128968 :   uint64_t val_a = 0;</span></span>
 <span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">     2128968 :   uint64_t val_b = 0;</span></span>
 <span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">     2128968 :   std::size_t remaining = len;</span></span>
-<span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : </span>
 <span id="L72"><span class="lineNum">      72</span>         [<span class="tlaGBC" title="branch 0 was taken 64176 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2064792 times"> + </span>]:<span class="tlaGNC">     2128968 :   if (len &lt;= 16) {</span></span>
 <span id="L73"><span class="lineNum">      73</span>         [<span class="tlaGBC" title="branch 0 was taken 64162 times"> + </span><span class="tlaGBC" title="branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">       64176 :     if (len &gt;= 4) {</span></span>
 <span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">       64162 :       seed ^= len;</span></span>
@@ -229,7 +229,7 @@
 <span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">     2064792 :     val_a = hash_internal::Load64(ptr + remaining - 16) ^ remaining;</span></span>
 <span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaGNC">     2064792 :     val_b = hash_internal::Load64(ptr + remaining - 8);</span></span>
 <span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">     2064792 :   }</span></span>
-<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :             : </span>
 <span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">     2128968 :   val_a ^= kSecret[1];</span></span>
 <span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">     2128968 :   val_b ^= seed;</span></span>
 <span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">     2128968 :   const Hash128 product = hash_internal::Mult128(val_a, val_b);</span></span>

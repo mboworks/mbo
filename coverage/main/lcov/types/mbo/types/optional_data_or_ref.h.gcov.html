@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">97.3&nbsp;%</td>
-            <td class="headerCovTableEntry">150</td>
+            <td class="headerCovTableEntryHi">98.6&nbsp;%</td>
+            <td class="headerCovTableEntry">148</td>
             <td class="headerCovTableEntry">146</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -227,8 +227,8 @@
 <span id="L147"><span class="lineNum">     147</span>                 :             :   constexpr OptionalDataOrRef&amp; emplace(Args&amp;&amp;... args) noexcept(std::is_nothrow_constructible_v&lt;T, Args...&gt;)</span>
 <span id="L148"><span class="lineNum">     148</span>                 :             :   requires(ConstructibleFrom&lt;T, Args...&gt;)</span>
 <span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">        2106 :   {</span></span>
-<span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaUNC">           0 :     // Make the public state empty before construction so a throwing replacement</span></span>
-<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaUNC">           0 :     // cannot leave the previous alternative's lifetime ambiguous.</span></span>
+<span id="L150"><span class="lineNum">     150</span>                 :             :     // Make the public state empty before construction so a throwing replacement</span>
+<span id="L151"><span class="lineNum">     151</span>                 :             :     // cannot leave the previous alternative's lifetime ambiguous.</span>
 <span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">        2106 :     reset();</span></span>
 <span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">        2106 :     data_.template emplace&lt;kDataIndex&gt;(std::forward&lt;Args&gt;(args)...);</span></span>
 <span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">        2106 :     return *this;</span></span>

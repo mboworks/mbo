@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryLo">69.2&nbsp;%</td>
-            <td class="headerCovTableEntry">156</td>
+            <td class="headerCovTableEntryLo">75.0&nbsp;%</td>
+            <td class="headerCovTableEntry">144</td>
             <td class="headerCovTableEntry">108</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -139,10 +139,10 @@
 <span id="L59"><span class="lineNum">      59</span>                 :             : // Both paths produce identical values; the ConstexprMatchesRuntime test guards</span>
 <span id="L60"><span class="lineNum">      60</span>                 :             : // this equality.</span>
 <span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">   186596720 : MBO_FORCE_INLINE constexpr uint64_t Load64(const char* ptr) noexcept {</span></span>
-<span id="L62"><span class="lineNum">      62</span>                 :<span class="tlaUNC">           0 :   // Coverage runs on little-endian machines and cannot observe compile-time</span></span>
-<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaUNC">           0 :   // execution. GCC nevertheless emits a branch pair for both alternatives at</span></span>
-<span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaUNC">           0 :   // every always-inline call site. ConstexprMatchesRuntime and the direct load</span></span>
-<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaUNC">           0 :   // tests cover their behavior without counting those unreachable records.</span></span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :   // Coverage runs on little-endian machines and cannot observe compile-time</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             :   // execution. GCC nevertheless emits a branch pair for both alternatives at</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :   // every always-inline call site. ConstexprMatchesRuntime and the direct load</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :   // tests cover their behavior without counting those unreachable records.</span>
 <span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">   186596720 :   if (!std::is_constant_evaluated()) {  // LCOV_EXCL_BR_LINE</span></span>
 <span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">   186596720 :     if constexpr (std::endian::native == std::endian::little) {</span></span>
 <span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">   186596720 :       uint64_t result = 0;</span></span>
@@ -201,8 +201,8 @@
 <span id="L121"><span class="lineNum">     121</span>                 :             : </span>
 <span id="L122"><span class="lineNum">     122</span>                 :             : // Loads 4 bytes as a **little-endian** `uint32_t` (same rationale as `Load64`).</span>
 <span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">    20699749 : MBO_FORCE_INLINE constexpr uint32_t Load32(const char* ptr) noexcept {</span></span>
-<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaUNC">           0 :   // See Load64: GCC duplicates these unreachable constexpr/big-endian branch</span></span>
-<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaUNC">           0 :   // records for every always-inline call site.</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :             :   // See Load64: GCC duplicates these unreachable constexpr/big-endian branch</span>
+<span id="L125"><span class="lineNum">     125</span>                 :             :   // records for every always-inline call site.</span>
 <span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">    20699749 :   if (!std::is_constant_evaluated()) {  // LCOV_EXCL_BR_LINE</span></span>
 <span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">    20699749 :     if constexpr (std::endian::native == std::endian::little) {</span></span>
 <span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">    20699749 :       uint32_t result = 0;</span></span>
@@ -311,13 +311,13 @@
 <span id="L231"><span class="lineNum">     231</span>                 :             : };</span>
 <span id="L232"><span class="lineNum">     232</span>                 :             : </span>
 <span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">      849589 : MBO_FORCE_INLINE constexpr SmallInput LoadSmall(const char* ptr, std::size_t len) noexcept {</span></span>
-<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaUNC">           0 :   // NOLINTNEXTLINE(readability-identifier-length): byte-widening helper.</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :             :   // NOLINTNEXTLINE(readability-identifier-length): byte-widening helper.</span>
 <span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaGNC">      860571 :   const auto u8 = [](char chr) constexpr { return static_cast&lt;uint64_t&gt;(static_cast&lt;uint8_t&gt;(chr)); };</span></span>
-<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaUNC">           0 :   // If-ladder, common 4..16 range gated first: the dense switch compiled to a</span></span>
-<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaUNC">           0 :   // jump table (indirect branch + table load) that dominated the small-key</span></span>
-<span id="L238"><span class="lineNum">     238</span>                 :<span class="tlaUNC">           0 :   // cost; here 9..16 (the bulk of hashed string keys, and of the SSO range)</span></span>
-<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaUNC">           0 :   // resolve on the first compare. Values are byte-identical to the previous</span></span>
-<span id="L240"><span class="lineNum">     240</span>                 :<span class="tlaUNC">           0 :   // switch at every length.</span></span>
+<span id="L236"><span class="lineNum">     236</span>                 :             :   // If-ladder, common 4..16 range gated first: the dense switch compiled to a</span>
+<span id="L237"><span class="lineNum">     237</span>                 :             :   // jump table (indirect branch + table load) that dominated the small-key</span>
+<span id="L238"><span class="lineNum">     238</span>                 :             :   // cost; here 9..16 (the bulk of hashed string keys, and of the SSO range)</span>
+<span id="L239"><span class="lineNum">     239</span>                 :             :   // resolve on the first compare. Values are byte-identical to the previous</span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :   // switch at every length.</span>
 <span id="L241"><span class="lineNum">     241</span>         [<span class="tlaGBC" title="branch 0 was taken 838635 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10954 times"> + </span>]:<span class="tlaGNC">      849589 :   if (len &gt;= 4) {</span></span>
 <span id="L242"><span class="lineNum">     242</span>         [<span class="tlaGBC" title="branch 0 was taken 418012 times"> + </span><span class="tlaGBC" title="branch 1 was taken 420623 times"> + </span>]:<span class="tlaGNC">      838635 :     if (len &gt;= 9) {  // 9..16: two 64-bit loads overlapping the end.</span></span>
 <span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">      418012 :       return {.a = Load64(ptr), .b = Load64(ptr + len - 8)};</span></span>

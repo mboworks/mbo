@@ -40,17 +40,17 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryMed">80.7&nbsp;%</td>
-            <td class="headerCovTableEntry">197</td>
+            <td class="headerCovTableEntryMed">90.9&nbsp;%</td>
+            <td class="headerCovTableEntry">175</td>
             <td class="headerCovTableEntry">159</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntryLo">45.5&nbsp;%</td>
-            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">10</td>
             <td class="headerCovTableEntry">10</td>
           </tr>
           <tr>
@@ -117,36 +117,36 @@
 <span id="L37"><span class="lineNum">      37</span>                 :             : </span>
 <span id="L38"><span class="lineNum">      38</span>                 :             : // NOLINTBEGIN: Bad flags macros</span>
 <span id="L39"><span class="lineNum">      39</span>                 :             : </span>
-<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, depth, false, &quot;Whether to show the directory depth (0 = provided root).&quot;);</span></span>
-<span id="L41"><span class="lineNum">      41</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, dotdir, true, &quot;Whether to allow or skip directories starting with a '.'.&quot;);</span></span>
-<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, dotfile, true, &quot;Whether to allow or skip files starting with a '.'.&quot;);</span></span>
-<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, entries, true, &quot;Whether to show entries.&quot;);</span></span>
-<span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, fast, false, &quot;Whether to show entries fast (no buffering and no field alignment).&quot;);</span></span>
-<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(</span></span>
-<span id="L46"><span class="lineNum">      46</span>                 :<span class="tlaUNC">           0 :     bool,</span></span>
-<span id="L47"><span class="lineNum">      47</span>                 :<span class="tlaUNC">           0 :     re2,</span></span>
-<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaUNC">           0 :     false,</span></span>
-<span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaUNC">           0 :     &quot;Whether to use re2 regular expressions. This program uses Google's Re2: &quot;</span></span>
-<span id="L50"><span class="lineNum">      50</span>                 :<span class="tlaUNC">           0 :     &quot;https://github.com/google/re2/wiki/Syntax.&quot;);</span></span>
-<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, recurse_match, true, &quot;Whether to recurse into matches.&quot;);</span></span>
-<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, size, false, &quot;Whether to show file sizes.&quot;);</span></span>
-<span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, sum, false, &quot;Whether to show summary. This is automatically enabled if --sum_every &gt; 0.&quot;);</span></span>
-<span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(std::size_t, sum_every, 0, &quot;If greater zero, then show a summary after every X entry.&quot;);</span></span>
-<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, sum_extensions, false, &quot;Whether to show an extension summary.&quot;);</span></span>
-<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaUNC">           0 : ABSL_FLAG(bool, type, false, &quot;Whether to show the file type&quot;);</span></span>
-<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaUNC">           0 : // NOLINTEND</span></span>
-<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : ABSL_FLAG(bool, depth, false, &quot;Whether to show the directory depth (0 = provided root).&quot;);</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : ABSL_FLAG(bool, dotdir, true, &quot;Whether to allow or skip directories starting with a '.'.&quot;);</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : ABSL_FLAG(bool, dotfile, true, &quot;Whether to allow or skip files starting with a '.'.&quot;);</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : ABSL_FLAG(bool, entries, true, &quot;Whether to show entries.&quot;);</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : ABSL_FLAG(bool, fast, false, &quot;Whether to show entries fast (no buffering and no field alignment).&quot;);</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : ABSL_FLAG(</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             :     bool,</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             :     re2,</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :     false,</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             :     &quot;Whether to use re2 regular expressions. This program uses Google's Re2: &quot;</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             :     &quot;https://github.com/google/re2/wiki/Syntax.&quot;);</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : ABSL_FLAG(bool, recurse_match, true, &quot;Whether to recurse into matches.&quot;);</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             : ABSL_FLAG(bool, size, false, &quot;Whether to show file sizes.&quot;);</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : ABSL_FLAG(bool, sum, false, &quot;Whether to show summary. This is automatically enabled if --sum_every &gt; 0.&quot;);</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : ABSL_FLAG(std::size_t, sum_every, 0, &quot;If greater zero, then show a summary after every X entry.&quot;);</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : ABSL_FLAG(bool, sum_extensions, false, &quot;Whether to show an extension summary.&quot;);</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             : ABSL_FLAG(bool, type, false, &quot;Whether to show the file type&quot;);</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             : // NOLINTEND</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : </span>
 <span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaUNC">           0 : using mbo::strings::BigNumber;</span></span>
 <span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaUNC">           0 : using mbo::strings::BigNumberLen;</span></span>
-<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :             : </span>
 <span id="L62"><span class="lineNum">      62</span>                 :<span class="tlaUNC">           0 : namespace {</span></span>
-<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
 <span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaUNC">           0 : class Entries {</span></span>
 <span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaUNC">           0 :  public:</span></span>
 <span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaUNC">           0 :   struct Entry : mbo::types::Extend&lt;Entry&gt; {</span></span>
 <span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaUNC">           0 :     mbo::file::GlobEntry glob_entry;</span></span>
 <span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaUNC">           0 :   };</span></span>
-<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaUNC">           0 : </span></span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : </span>
 <span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">           9 :   ~Entries() = default;</span></span>
 <span id="L71"><span class="lineNum">      71</span>                 :             : </span>
 <span id="L72"><span class="lineNum">      72</span>                 :             :   explicit Entries(std::filesystem::path root)</span>

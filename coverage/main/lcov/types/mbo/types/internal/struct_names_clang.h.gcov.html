@@ -40,13 +40,13 @@
             <td class="headerValue">mbo production coverage</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryLo">65.2&nbsp;%</td>
-            <td class="headerCovTableEntry">92</td>
+            <td class="headerCovTableEntryLo">66.7&nbsp;%</td>
+            <td class="headerCovTableEntry">90</td>
             <td class="headerCovTableEntry">60</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 00:20:50</td>
+            <td class="headerValue">2026-09-07 01:04:30</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryLo">70.6&nbsp;%</td>
@@ -202,10 +202,10 @@
 <span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaUNC">           0 :   }</span></span>
 <span id="L123"><span class="lineNum">     123</span>                 :             : </span>
 <span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaUNC">           0 :   static constexpr std::size_t ComputeFieldCount() {</span></span>
-<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaUNC">           0 :     // NOLINTNEXTLINE(misc-const-correctness): passed to FieldCount() by non-const reference.</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :             :     // NOLINTNEXTLINE(misc-const-correctness): passed to FieldCount() by non-const reference.</span>
 <span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaUNC">           0 :     std::size_t field_index{0};</span></span>
 <span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaUNC">           0 :     if constexpr (!IsEmptyType&lt;T&gt;) {</span></span>
-<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaUNC">           0 :       // NOLINTNEXTLINE(misc-const-correctness): `&amp;storage.Get()` needs a mutable object.</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :             :       // NOLINTNEXTLINE(misc-const-correctness): `&amp;storage.Get()` needs a mutable object.</span>
 <span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaUNC">           0 :       Storage storage{};</span></span>
 <span id="L130"><span class="lineNum">     130</span>                 :<span class="tlaUNC">           0 :       FieldCount(&amp;storage.Get(), field_index);</span></span>
 <span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaUNC">           0 :     }</span></span>

@@ -44,6 +44,8 @@ using ::testing::Eq;
 using ::testing::Gt;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
 using ::testing::Not;
 using ::testing::SizeIs;
 
@@ -137,6 +139,15 @@ TEST_F(IniFileTest, PermissiveParserRetainsLegacyMalformedInputBehavior) {
       explicit_permissive.GetKeyOrStatus({.group = "group", .key = "absent"}),
       StatusIs(absl::StatusCode::kNotFound, HasSubstr("has no key 'absent'")));
   EXPECT_THAT(compatibility.GetKeyOrDefault({.group = "", .key = "key"}), Eq("second"));
+}
+
+TEST_F(IniFileTest, BuildsAndQueriesAnEmptyFile) {
+  IniFile ini = IniFile::NewEmpty();
+  EXPECT_THAT(ini.HasKey({.group = "group", .key = "key"}), IsFalse());
+
+  ini.SetKey({.group = " group ", .key = " key "}, std::string{"value"});
+  EXPECT_THAT(ini.HasKey({.group = "group", .key = "key"}), IsTrue());
+  EXPECT_THAT(ini.HasKey({.group = "group", .key = "absent"}), IsFalse());
 }
 
 TEST_F(IniFileTest, ReadUsesStrictParser) {

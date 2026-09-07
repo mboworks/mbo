@@ -59,9 +59,15 @@ TEST_F(StatusBuilderTest, SetAppend) {
   EXPECT_THAT(error, StatusIs(absl::StatusCode::kCancelled, "<Error><Message>"));
 }
 
+TEST_F(StatusBuilderTest, AppendTagSupportsRvalueBuilder) {
+  const auto error = StatusBuilder(absl::CancelledError("<Error>")) << StatusBuilder::Append << "<Message>";
+  EXPECT_THAT(error, StatusIs(absl::StatusCode::kCancelled, "<Error><Message>"));
+}
+
 TEST_F(StatusBuilderTest, OperationsOnOkStatusRemainNoOps) {
   StatusBuilder builder(absl::OkStatus());
   builder.SetAppend().SetPayload("url", "content");
+  builder << "ignored";
   EXPECT_THAT(absl::Status(builder), IsOk());
 }
 

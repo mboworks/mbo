@@ -35,7 +35,10 @@ using ::mbo::config::kRequireThrows;
 using ::mbo::container::container_internal::LimitedOrdered;
 using ::mbo::testing::CapacityIs;
 using ::testing::ElementsAre;
+using ::testing::Eq;
 using ::testing::IsEmpty;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedOrdered<int, int, int, 1>>);
@@ -62,6 +65,15 @@ static_assert(std::ranges::range<LimitedOrdered<
 struct LimitedOrderedTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+TEST_F(LimitedOrderedTest, LimitedOptionsPublicHelpersRunAtRuntime) {
+  const auto first = MakeLimitedOptions<3, LimitedOptionsFlag::kEmptyDestructor>();
+  const auto second = MakeLimitedOptions<first>();
+
+  EXPECT_THAT(first.Has(LimitedOptionsFlag::kEmptyDestructor), IsTrue());
+  EXPECT_THAT(first.Has(LimitedOptionsFlag::kRequireSortedInput), IsFalse());
+  EXPECT_THAT(second.kCapacity, Eq(3));
+}
 
 TEST_F(LimitedOrderedTest, ConstexprData) {
   constexpr auto kTest = LimitedOrdered<int, int, int, 1>{};

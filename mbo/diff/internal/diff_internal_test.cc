@@ -79,6 +79,14 @@ TEST_F(DiffInternalTest, ContextDropsTheOldestOnceFull) {
   EXPECT_THAT(context.Empty(), IsTrue());
 }
 
+TEST_F(DiffInternalTest, ContextCanBeCleared) {
+  const DiffOptions options = Options(1);
+  Context context(options);
+  context.Push("line");
+  context.Clear();
+  EXPECT_THAT(context.Empty(), IsTrue());
+}
+
 TEST_F(DiffInternalTest, ContextSizeZeroKeepsNothing) {
   const DiffOptions options = Options(0);
   Context context(options);

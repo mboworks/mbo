@@ -75,10 +75,12 @@ struct LimitedSetTest : ::testing::Test {
 
 TEST_F(LimitedSetTest, MakeNoArg) {
   constexpr auto kTest = MakeLimitedSet<int>();
+  const auto runtime_test = MakeLimitedSet<int>();
   EXPECT_THAT(kTest, IsEmpty());
   EXPECT_THAT(kTest, SizeIs(0));
   EXPECT_THAT(kTest, CapacityIs(0));
   EXPECT_THAT(kTest, ElementsAre());
+  EXPECT_THAT(runtime_test, IsEmpty());
 }
 
 TEST_F(LimitedSetTest, MakeOneArg) {

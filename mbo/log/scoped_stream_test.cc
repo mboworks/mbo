@@ -88,6 +88,16 @@ TEST_F(ScopedStreamTest, TestVoid) {
           Not(HasSubstr("Ignored!"))));
 }
 
+TEST_F(ScopedStreamTest, VoidStreamAcceptsVoidifierConstructionAndAssignment) {
+  const Voidifier voidifier;
+  const VoidStream constructed = voidifier;
+  VoidStream assigned;
+  assigned = voidifier;
+
+  EXPECT_THAT(constructed.str(), IsEmpty());
+  EXPECT_THAT(assigned.str(), IsEmpty());
+}
+
 TEST_F(ScopedStreamTest, ErrorStreamContinuesAfterWritingToStderr) {
   testing::internal::CaptureStderr();
   {

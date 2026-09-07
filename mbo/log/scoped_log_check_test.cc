@@ -15,6 +15,8 @@
 
 #include "mbo/log/scoped_log_check.h"
 
+#include <string_view>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -42,6 +44,14 @@ TEST_F(ScopedLogCheckTest, ScopedLogCheck) {
         ScopedLogCheck(false, "BadCheck") << "Here" << "We" << "Go",  //
         R"rx(^\[[^\]]*/scoped_log_check_test.cc:[0-9]+\] @.*void mbo::log.*::TestBody\(\) : BadCheck : HereWeGo\n$)rx");
   }
+}
+
+TEST_F(ScopedLogCheckTest, AcceptsStringViewsOnRvalueAndLvalueStreams) {
+  testing::internal::CaptureStderr();
+  ScopedLogCheck(true, "Test") << std::string_view{"ignored rvalue"};
+  auto stream = ScopedLogCheck(true, "Test");
+  stream << std::string_view{"ignored lvalue"};
+  EXPECT_THAT(testing::internal::GetCapturedStderr(), IsEmpty());
 }
 
 TEST_F(ScopedLogCheckTest, MboLogCheck) {

@@ -116,6 +116,13 @@ TEST_F(AnyScanTest, ReferenceIteratorsCompareByPosition) {
   EXPECT_THAT(first == second, IsFalse());
 }
 
+TEST_F(AnyScanTest, DefaultIteratorsAreAtEnd) {
+  const AnyScan<int>::iterator first;
+  const AnyScan<int>::iterator second;
+
+  EXPECT_THAT(first == second, IsTrue());
+}
+
 TEST_F(ConstScanTest, TestInitializerList) {
   std::initializer_list<int> data{1, 2, 3};
   EXPECT_THAT(ConstTester<int>(data), ElementsAre(1, 2, 3));

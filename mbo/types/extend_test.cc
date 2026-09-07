@@ -180,6 +180,11 @@ struct Person : Extend<Person> {
 
 class ExtendTest : public ::testing::Test {};
 
+template<typename T>
+struct CoverageExtenderImpl {};
+
+using CoverageExtender = MakeExtender<MBO_MAKE_TSTRING("CoverageExtender"), CoverageExtenderImpl>;
+
 TEST_F(ExtendTest, TestDecomposeInfo) {
   using ::mbo::types::types_internal::DecomposeInfo;
 #define DEBUG_AND_TEST(Type, kExpected)                            \
@@ -680,6 +685,10 @@ TEST_F(ExtendTest, NoPrint) {
 }
 
 TEST_F(ExtendTest, ExtenderNames) {
+  EXPECT_THAT(extender::Default::GetExtenderName(), Eq("Default"));
+  EXPECT_THAT(extender::NoPrint::GetExtenderName(), Eq("NoPrint"));
+  EXPECT_THAT(CoverageExtender::GetExtenderName(), Eq("CoverageExtender"));
+
   struct T0 : ExtendNoDefault<T0> {};
 
   struct T1 : ExtendNoDefault<T1, AbslStringify, Printable> {};

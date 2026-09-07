@@ -149,6 +149,7 @@ TEST_F(StringOrViewTest, ComparesTextIndependentOfOwnership) {
   EXPECT_THAT(std::string_view{"same"} == owned, IsTrue());
   EXPECT_THAT(owned == std::string{"same"}, IsTrue());
   EXPECT_THAT(owned == "same", IsTrue());
+  EXPECT_THAT(owned <=> borrowed, Eq(std::strong_ordering::equal));
   EXPECT_THAT(owned <=> "z", Eq(std::strong_ordering::less));
   EXPECT_THAT("a" <=> owned, Eq(std::strong_ordering::less));
 }
@@ -213,12 +214,18 @@ TEST_F(StringOrViewTest, CopiesAndReturnsSubstringsAsViews) {
 
 TEST_F(StringOrViewTest, ProvidesStringViewComparisonOverloads) {
   constexpr StringOrView value{"abcdef"};
+  EXPECT_THAT(value.compare(std::string_view{"abcdef"}), Eq(0));
   EXPECT_THAT(value.compare("abcdef"), Eq(0));
   EXPECT_THAT(value.compare(2, 3, std::string_view{"cde"}), Eq(0));
   EXPECT_THAT(value.compare(2, 3, std::string_view{"-cde-"}, 1, 3), Eq(0));
   EXPECT_THAT(value.compare(2, 3, "cde"), Eq(0));
   EXPECT_THAT(value.compare(2, 3, "cde-more", 3), Eq(0));
   EXPECT_THAT(value.compare("abcdee"), Not(Eq(0)));
+}
+
+TEST_F(StringOrViewTest, ConvertsOwnedValueToString) {
+  const StringOrView value{std::string{"owned"}};
+  EXPECT_THAT(static_cast<std::string>(value), Eq("owned"));
 }
 
 TEST_F(StringOrViewTest, ProvidesPrefixSuffixAndContainmentQueries) {

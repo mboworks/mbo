@@ -48,8 +48,9 @@ def version(tag):
     return tag.removeprefix("v")
 
 
-def configuration(source):
-    config = json.loads((source / "release-site.json").read_text())
+def configuration(source, override=None):
+    data = (override if override is not None else source / "release-site.json").read_bytes()
+    config = json.loads(data)
     pages = config["pages"]
     if not pages or pages.get("README.md") != "index.html":
         raise ValueError("README.md must map to index.html")
@@ -68,15 +69,17 @@ def configuration(source):
     for src, dst in config.get("files", {}).items():
         if src in pages:
             raise ValueError(f"Source is mapped as both a page and a file: {src}")
+        if src.lower().endswith(".md"):
+            raise ValueError(f"Markdown must be converted through pages: {src}")
         for path in (src, dst):
             if (not isinstance(path, str) or path.startswith("/")
                     or ".." in Path(path).parts or str(Path(path)) != path
                     or any(char in path for char in "\\?#")):
                 raise ValueError(f"Unsafe asset path: {path!r}")
-        if dst in destinations or dst in ("documents.html", "release.json") or dst.startswith("assets/"):
+        if dst in destinations or dst in ("documents.html", "release.json", "release-site.json") or dst.startswith("assets/"):
             raise ValueError(f"Duplicate or reserved destination: {dst}")
         destinations.add(dst)
-    return config
+    return config, data
 
 
 def headings(body):
@@ -137,13 +140,16 @@ class Links(HTMLParser):
         if local is not None:
             if local == ".." or local.startswith("../"):
                 raise ValueError(f"Link escapes repository: {value}")
-            if local not in self.documents and f"{local.rstrip('/')}/README.md" in self.documents:
-                local = f"{local.rstrip('/')}/README.md"
+            readme = f"{local.rstrip('/')}/README.md"
+            if local not in self.documents and (readme in self.documents or (self.source / readme).is_file()):
+                local = readme
             if local == ".":
                 local = "README.md"
             if local in self.documents and not image:
                 target = posixpath.relpath(self.documents[local], posixpath.dirname(self.documents[self.document]) or ".")
                 return urlunsplit(("", "", quote(target), parsed.query, parsed.fragment))
+            if not image and local.lower().endswith(".md"):
+                raise ValueError(f"{self.document}: linked Markdown has no page mapping: {local}")
             path = self.source / local
             if image:
                 if not path.is_file() or path.resolve() != path.absolute():
@@ -198,7 +204,66 @@ class Links(HTMLParser):
         self.parts.append(f"&#{name};")
 
 
-def build(source, retained, repository, tag, renderer=render):
+class PageReferences(HTMLParser):
+    """Collect browser-visible anchors and links from final HTML."""
+
+    def __init__(self, text):
+        super().__init__()
+        self.anchors = set()
+        self.links = []
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        for key, value in attrs:
+            if value is None:
+                continue
+            if key == "id" or (tag == "a" and key == "name"):
+                self.anchors.add(value)
+            if key in ("href", "src"):
+                self.links.append(value)
+
+    handle_startendtag = handle_starttag
+
+
+def validate_site(output, repository, tag):
+    """Reject broken links inside the snapshot before retaining or deploying it."""
+    owner, repo = repository.split("/")
+    base = f"/{repo}/site/tag/{tag}/"
+    host = f"{owner}.github.io"
+    pages = {path.relative_to(output).as_posix(): PageReferences(path.read_text())
+             for path in output.rglob("*.html")}
+    for document, page in pages.items():
+        for link in page.links:
+            parsed = urlsplit(link)
+            if parsed.scheme or parsed.netloc:
+                if parsed.scheme not in ("http", "https") or parsed.netloc != host:
+                    continue
+                if not parsed.path.startswith(base):
+                    continue
+            path = unquote(parsed.path)
+            if path.startswith("/"):
+                if not path.startswith(base):
+                    continue  # Coverage and other explicitly separate Pages trees.
+                target = posixpath.normpath(path[len(base):])
+            elif path:
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(document), path))
+            else:
+                target = document
+            if target == ".." or target.startswith("../"):
+                raise ValueError(f"{document}: link escapes release snapshot: {link}")
+            destination = output / target
+            if destination.is_dir():
+                target = posixpath.join(target, "index.html")
+                destination = output / target
+            target = posixpath.normpath(target)
+            if not destination.is_file():
+                raise ValueError(f"{document}: missing generated link target: {link}")
+            fragment = unquote(parsed.fragment)
+            if fragment and target in pages and fragment not in pages[target].anchors:
+                raise ValueError(f"{document}: missing generated anchor: {link}")
+
+
+def build(source, retained, repository, tag, renderer=render, config_path=None):
     source = source.resolve()
     release_version = version(tag)
     destination = retained / "site" / "tag" / tag
@@ -208,7 +273,7 @@ def build(source, retained, repository, tag, renderer=render):
         if metadata["commit"] != sha or metadata["tag"] != tag:
             raise ValueError("A retained release cannot be replaced by a different commit or tag")
         return
-    config = configuration(source)
+    config, config_data = configuration(source, config_path)
     documents = config["pages"]
     files = config.get("files", {})
     tracked = set(git(source, "ls-files", "-z").split("\0"))
@@ -251,7 +316,13 @@ def build(source, retained, repository, tag, renderer=render):
             for path in sorted(documents)
         ) + "</ul>"
         (output / "documents.html").write_text(page("Documentation", index))
-        (output / "release.json").write_text(json.dumps({"tag": tag, "commit": sha}) + "\n")
+        (output / "release-site.json").write_bytes(config_data)
+        (output / "release.json").write_text(json.dumps({
+            "tag": tag, "commit": sha,
+            "configuration": {"origin": "override" if config_path is not None else "tag",
+                              "sha256": hashlib.sha256(config_data).hexdigest()},
+        }) + "\n")
+        validate_site(output, repository, tag)
         # Rename only after every document and image has been converted successfully.
         output.rename(destination)
 
@@ -276,8 +347,9 @@ def main():
     parser.add_argument("--repository", required=True)
     parser.add_argument("--tag", required=True)
     parser.add_argument("--latest", required=True)
+    parser.add_argument("--config", type=Path, help="Explicit configuration override for historical tags")
     args = parser.parse_args()
-    build(args.source, args.retained, args.repository, args.tag)
+    build(args.source, args.retained, args.repository, args.tag, config_path=args.config)
     if args.latest:
         redirect(args.retained, args.latest)
 

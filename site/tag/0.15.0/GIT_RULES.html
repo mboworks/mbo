@@ -1,0 +1,260 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GIT_RULES.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="git-and-pull-request-orchestration-rules">Git and pull-request orchestration rules</h1>
+<p dir="auto">These rules apply to every human or automated contributor performing branch, pull-request, CI, or<br>
+merge operations in this repository.</p>
+<p dir="auto">The objective is safe, autonomous, dependency-aware progress with the shortest practical critical<br>
+path. Required repository protections are constraints, never obstacles to bypass.</p>
+<p dir="auto">When these rules conflict with an ad hoc optimization, these rules win.</p>
+<h2 dir="auto" id="goal-preservation">Goal preservation</h2>
+<p dir="auto">Before any state-changing action, verify that its immediate effect advances the stated goal. An<br>
+action that predictably moves the repository away from the goal is prohibited unless it is required<br>
+to resolve a concrete blocker and the user has explicitly authorized that tradeoff.</p>
+<p dir="auto">When an instruction has only two reasonable interpretations, execute it directly or ask for<br>
+clarification. Do not invent a third workflow that creates additional work or invalidates completed<br>
+validation.</p>
+<h2 dir="auto" id="pull-request-readiness-and-merging">Pull-request readiness and merging</h2>
+<p dir="auto">A pull request is <strong>ready</strong> when it is approved, mergeable, and all required checks have completed<br>
+successfully.</p>
+<p dir="auto">When the user says that a pull request is ready or instructs the agent to merge it:</p>
+<ul dir="auto">
+<li>Merge it without changing its head, base, commits, or branch.</li>
+<li>Do not push, rebase, force-push, retarget, update, or merge another branch into it first.</li>
+<li>Do not restart, invalidate, duplicate, bypass, or otherwise replace successful required checks.</li>
+</ul>
+<p dir="auto">If ordering appears ambiguous, first derive it from the current pull-request dependency graph,<br>
+repository rules, and the goal. Ask only when more than one materially different safe outcome<br>
+remains and the intended outcome cannot be inferred.</p>
+<p dir="auto">Required checks are specific to the pull-request context recognized by repository rules. Never try<br>
+to transplant, reuse, spoof, or substitute checks from another pull request or commit, even when<br>
+the Git trees are identical.</p>
+<h2 dir="auto" id="synchronization-before-work-and-validation">Synchronization before work and validation</h2>
+<p dir="auto">Synchronization is a prerequisite, not a publishing step to defer until other work is complete.<br>
+The local worktree and the remote pull-request branch are separate states; proving that the local<br>
+<code class="notranslate">HEAD</code> contains the base does not prove that the pull request is current.</p>
+<p dir="auto">Before starting or resuming work on a pull request:</p>
+<ol dir="auto">
+<li>Fetch the current base branch and the pull request's remote head.</li>
+<li>Read the pull request state from GitHub and determine whether GitHub considers it out of date.</li>
+<li>Verify separately that the local branch contains the current base and that the remote<br>
+pull-request head contains the current base.</li>
+<li>If either branch is behind, synchronize locally and push that synchronization immediately.</li>
+<li>Confirm from GitHub that the pull request is current before doing further implementation work or<br>
+starting validation.</li>
+</ol>
+<p dir="auto">Do not postpone pushing an already-created synchronization commit while waiting for unrelated edits,<br>
+formatting, tests, or commits. A clean synchronization push is independently useful and must happen<br>
+first. Uncommitted work may remain in the worktree while the existing synchronization commit is<br>
+pushed; it is not a reason to leave the remote pull request stale.</p>
+<p dir="auto">Validation is authoritative only when all of the following are true:</p>
+<ul dir="auto">
+<li>the tested tree contains the current base branch;</li>
+<li>the corresponding commit is pushed as the pull request's remote head;</li>
+<li>GitHub recognizes that head and does not report the branch as out of date;</li>
+<li>no later synchronization, rebase, merge, conflict resolution, or implementation change has<br>
+changed the tested tree.</li>
+</ul>
+<p dir="auto">Local tests on an unpushed or out-of-date pull-request head may be useful while developing, but they<br>
+must never be reported as final validation, used to delay synchronization, or counted toward<br>
+readiness. If the base advances before completion, stop treating earlier results as authoritative,<br>
+synchronize and push first, then rerun the affected validation on the new tree.</p>
+<p dir="auto">Before mutating a pull request that is already ready, verify that the action cannot invalidate its<br>
+approval or required checks. If it can, the mutation is prohibited unless it is needed to fix a<br>
+demonstrated failure or conflict and the user explicitly authorizes that consequence.</p>
+<h2 dir="auto" id="stacked-pull-requests">Stacked pull requests</h2>
+<p dir="auto">Never merge a lone child or follow-up pull request into its ready base pull request.</p>
+<p dir="auto">When a ready base has exactly one child, merge the base immediately. Do not wait for the child's<br>
+current CI run; merging the child into the base is prohibited. After GitHub retargets the child to<br>
+the primary branch, treat the resulting CI run as authoritative and merge the child when it becomes<br>
+ready.</p>
+<p dir="auto">Testing the lone child before the base merges may provide early feedback, but it does not replace<br>
+the required post-retarget validation and must not delay the ready base.</p>
+<p dir="auto">A base with multiple independent children may instead be used as an integration branch:</p>
+<ol dir="auto">
+<li>Test the base and every independent child separately and in parallel.</li>
+<li>Require every child selected for integration to be approved, mergeable, and fully green.</li>
+<li>Merge all selected children into the base.</li>
+<li>Run the complete required CI suite on the resulting combined base.</li>
+<li>Merge the combined base into the primary branch only when that integration run is fully green.</li>
+</ol>
+<p dir="auto">Use this fan-in procedure only when there are multiple genuinely independent children. It provides<br>
+parallel fault isolation while the final base run verifies interactions between their combined<br>
+changes.</p>
+<p dir="auto">Do not classify children as independent when one introduces behavior, APIs, files, configuration,<br>
+or assumptions consumed by another. Do not use the fan-in procedure for a single child, because it<br>
+adds another CI cycle without providing parallel integration value.</p>
+<h2 dir="auto" id="large-pull-request-graph-optimization">Large pull-request graph optimization</h2>
+<p dir="auto">When more than four in-scope pull requests are open, treat merge orchestration as a graph-planning<br>
+problem. Build and validate the complete graph before performing any branch mutation or merge.</p>
+<p dir="auto">GitHub base-branch relationships are only one source of dependency information. Inspect the actual<br>
+changes and represent at least these relationships:</p>
+<ul dir="auto">
+<li><strong>hard dependency</strong>: one pull request consumes an API, behavior, file, target, configuration, or<br>
+assumption introduced by another;</li>
+<li><strong>ancestry dependency</strong>: a pull request is based on another pull request's branch;</li>
+<li><strong>content overlap</strong>: pull requests modify the same files or logically coupled code;</li>
+<li><strong>conflict dependency</strong>: merging one pull request is expected to create or remove a conflict in<br>
+another;</li>
+<li><strong>validation dependency</strong>: independently valid changes may interact and require a combined CI<br>
+run;</li>
+<li><strong>workflow dependency</strong>: one pull request changes CI, build, coverage, formatting, enforcement,<br>
+or toolchains applied to another;</li>
+<li><strong>independence</strong>: neither pull request consumes, overlaps, changes validation for, or otherwise<br>
+affects the other.</li>
+</ul>
+<p dir="auto">Do not infer independence merely because pull requests have different base branches or touch<br>
+different files. Shared headers, templates, generated files, repository-wide configuration, build<br>
+rules, and workflows can create dependencies without direct textual overlap.</p>
+<p dir="auto">Before acting, partition the graph into:</p>
+<ul dir="auto">
+<li>ready roots that can merge directly;</li>
+<li>linear dependency chains;</li>
+<li>fan-out groups with multiple independent children;</li>
+<li>mutually interacting groups requiring integration validation;</li>
+<li>conflicted or failing nodes;</li>
+<li>independent components that can progress in parallel.</li>
+</ul>
+<p dir="auto">Choose a merge schedule that satisfies all hard dependencies while optimizing, in order:</p>
+<ol dir="auto">
+<li>Preserve correctness and required repository protections.</li>
+<li>Never invalidate a ready pull request unnecessarily.</li>
+<li>Minimize the number of required CI reruns.</li>
+<li>Minimize the critical path to merging the complete graph.</li>
+<li>Maximize safe parallel validation.</li>
+<li>Minimize repeated conflict resolution and branch rewriting.</li>
+<li>Preserve independently reviewable changes when doing so does not materially lengthen the<br>
+critical path.</li>
+</ol>
+<p dir="auto">Model each head-changing action as invalidating that pull request's existing readiness and requiring<br>
+a new validation cost. A plan that changes a ready head is therefore more expensive than one that<br>
+merges it unchanged. Do not choose a higher-cost plan without a concrete correctness or<br>
+critical-path benefit.</p>
+<p dir="auto">For each candidate schedule, reason about:</p>
+<ul dir="auto">
+<li>which checks remain reusable in their original required context;</li>
+<li>which actions trigger new CI;</li>
+<li>which jobs can run concurrently;</li>
+<li>which merge causes automatic retargeting;</li>
+<li>which conflicts disappear after an ancestor merges;</li>
+<li>which combinations require final integration testing;</li>
+<li>which ready pull requests would become unready;</li>
+<li>the expected number and placement of full CI cycles.</li>
+</ul>
+<p dir="auto">Prefer the schedule with the shortest safe critical path, not merely the smallest number of commands<br>
+or branches.</p>
+<p dir="auto">Record the selected schedule and its dependency rationale in the orchestration ledger. Recompute the<br>
+schedule after every merge, failed check, new commit, retargeting event, review change, or newly<br>
+opened pull request. The plan is a cache of current reasoning, not a fixed sequence to execute after<br>
+its assumptions change.</p>
+<p dir="auto">If graph relationships cannot be established confidently, perform additional read-only inspection.<br>
+Ask only when a semantic or product dependency cannot be determined from the code, repository<br>
+history, pull-request descriptions, tests, or existing instructions.</p>
+<h2 dir="auto" id="autonomous-merge-orchestration">Autonomous merge orchestration</h2>
+<p dir="auto">For four or fewer open pull requests, apply the deterministic rules directly. For more than four,<br>
+first solve and record the dependency-aware merge schedule described above, then execute it while<br>
+recomputing after every state transition.</p>
+<p dir="auto">Merge orchestration must remain fully autonomous, including for large pull-request graphs. Do not<br>
+pause merely because a pull request is waiting for CI, becomes conflicted, is retargeted, or fails<br>
+validation. Continue making safe progress on every other unblocked pull request.</p>
+<p dir="auto">Maintain a current dependency graph for all in-scope pull requests. For each pull request, record:</p>
+<ul dir="auto">
+<li>pull-request number;</li>
+<li>head and base branches;</li>
+<li>current head SHA;</li>
+<li>parent and child pull requests;</li>
+<li>whether each child is independent of its siblings;</li>
+<li>approval and mergeability state;</li>
+<li>required-check state, including the final aggregate check;</li>
+<li>whether auto-merge is enabled;</li>
+<li>the concrete blocker, if any.</li>
+</ul>
+<p dir="auto">Treat GitHub as the source of truth for pull-request state. Refresh the graph after every merge,<br>
+push, rebase, retargeting event, conflict resolution, or completed CI run. Never act from a stale<br>
+snapshot.</p>
+<p dir="auto">Apply these rules repeatedly until every in-scope pull request is merged or has a concrete blocker<br>
+that cannot be resolved without information or authority not already provided:</p>
+<ol dir="auto">
+<li>Merge ready pull requests whose merge cannot invalidate another ready pull request.</li>
+<li>Merge a ready base with exactly one child immediately; do not wait for the child's obsolete<br>
+pre-retarget CI.</li>
+<li>After a base merges, refresh GitHub state and allow dependent pull requests to retarget before<br>
+acting on them.</li>
+<li>Treat post-retarget required checks as authoritative.</li>
+<li>For a base with multiple genuinely independent children, validate the children in parallel,<br>
+merge all ready selected children into the base, and require a complete integration run on the<br>
+combined base.</li>
+<li>Resolve conflicts only on pull requests that are not ready. Never alter a ready pull request to<br>
+resolve another pull request's conflict.</li>
+<li>When one pull request is waiting or blocked, continue with every independent mergeable pull<br>
+request.</li>
+<li>Enable auto-merge only when the pull request has the correct base and head, is approved,<br>
+mergeable, and all currently required checks are successful.</li>
+<li>After every merge into the primary branch, inspect the resulting primary-branch CI and repair<br>
+any regression before treating dependent work as complete.</li>
+<li>Continue until the dependency graph contains no actionable pull request.</li>
+</ol>
+<p dir="auto">A pull request being slow, queued, conflicted, or temporarily red is not a reason to stop processing<br>
+the rest of the graph.</p>
+<h2 dir="auto" id="deterministic-conflict-handling">Deterministic conflict handling</h2>
+<p dir="auto">For each conflicted pull request:</p>
+<ol dir="auto">
+<li>Confirm that it is not already ready.</li>
+<li>Refresh its base and identify the exact conflicting commits and files.</li>
+<li>Resolve the conflict on that pull request's own branch.</li>
+<li>Preserve both changes when they are compatible.</li>
+<li>Run validation appropriate to the combined changes.</li>
+<li>Push the resolution, update the pull-request description, and monitor its replacement CI.</li>
+<li>Recompute dependencies because the new head invalidates all earlier readiness information.</li>
+</ol>
+<p dir="auto">If several pull requests have the same conflict, determine the shared cause before editing any of<br>
+them. Prefer one structural resolution that reduces total repeated work. Do not mechanically resolve<br>
+the same conflict across many branches when merging or reorganizing the dependency graph can remove<br>
+that work safely.</p>
+<h2 dir="auto" id="failure-recovery">Failure recovery</h2>
+<p dir="auto">Recovery must preserve autonomous progress. Do not improvise shortcuts, reuse checks from another<br>
+context, or pause solely to ask what to do when the safe recovery follows from repository state.</p>
+<p dir="auto">If an action accidentally invalidates a ready pull request:</p>
+<ol dir="auto">
+<li>Stop making further mutations to that pull request.</li>
+<li>Refresh its actual head, base, approvals, required checks, and dependency relationships.</li>
+<li>Cancel only runs that are provably obsolete because their head SHA is no longer reachable from<br>
+the pull request.</li>
+<li>Never transplant, spoof, substitute, or rely on checks belonging to another pull-request<br>
+context, even when the Git trees are identical.</li>
+<li>Select the recovery that requires the fewest additional branch mutations and required CI runs<br>
+while preserving repository rules.</li>
+<li>Allow unavoidable required checks to complete, monitor them, fix genuine failures, and resume<br>
+merging automatically when the pull request becomes ready.</li>
+<li>Continue processing every independent unblocked pull request while recovery checks run.</li>
+<li>Record the incident and recovery state in the local orchestration ledger so work survives context<br>
+loss or interruption.</li>
+</ol>
+<p dir="auto">Do not force-push, retarget, merge another branch into the affected branch, or rewrite its history as<br>
+a speculative attempt to recover prior check status. Such actions require a demonstrated<br>
+repository-state reason and must strictly reduce, not increase, the remaining work.</p>
+<p dir="auto">Ask only when progress requires information, authority, or a product decision that cannot be derived<br>
+from the repository, pull-request graph, existing instructions, or prior authorization. Waiting for<br>
+CI, resolving an ordinary conflict, fixing a test failure, retargeting after a merge, and continuing<br>
+with independent work are not reasons to ask or stop.</p>
+<h2 dir="auto" id="orchestration-ledger">Orchestration ledger</h2>
+<p dir="auto">Keep a local, ignored orchestration ledger as a resumable cache, not as a competing source of truth.<br>
+It must contain:</p>
+<ul dir="auto">
+<li>the current objective and scope;</li>
+<li>the last GitHub refresh time;</li>
+<li>the pull-request dependency graph;</li>
+<li>the last observed head SHA and state of every pull request;</li>
+<li>active CI runs;</li>
+<li>completed merges;</li>
+<li>current blockers and the next deterministic action.</li>
+</ul>
+<p dir="auto">Refresh the ledger from GitHub before acting after any interruption. Never assume that its cached<br>
+state is still current.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

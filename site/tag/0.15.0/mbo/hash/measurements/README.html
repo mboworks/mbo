@@ -1,0 +1,218 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/hash/measurements/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbohash-measurements">mbo/hash measurements</h1>
+<p dir="auto">Dev-only tooling to run <code class="notranslate">//mbo/hash:hash_benchmark</code>, store the results with full<br>
+provenance, render the README performance tables, and plot ns-vs-length curves.<br>
+This is a <strong>pure development dependency</strong>: the whole <code class="notranslate">mbo/hash/measurements</code><br>
+directory is stripped from release archives (<code class="notranslate">release_prep.sh</code> EXCLUDES), so it is<br>
+never part of any published/BCR offering and consumers of the library never pull<br>
+any of it in (including any heavier plotting dependencies). It is an ordinary dev<br>
+package of the <code class="notranslate">mboworks_mbo</code> module - built and tested in dev/CI - and a<br>
+pre-commit guard forbids anything outside it from depending on it, so the release<br>
+strip can never leave a dangling reference.</p>
+<p dir="auto">This is a living design doc - update it when the layout or policy changes.</p>
+<h2 dir="auto" id="why-this-exists">Why this exists</h2>
+<p dir="auto">The <code class="notranslate">mbo/hash/README.md</code> numbers are sub-nanosecond and are taken on a shared<br>
+developer machine. A single median run is dominated by run-to-run contention<br>
+noise: a change smaller than ~0.2 ns is invisible, and medians of two runs can<br>
+even invert the true ordering. So we:</p>
+<ul dir="auto">
+<li>Aggregate by the <strong>mean of the k fastest repetitions</strong> (<code class="notranslate">k = reps/3</code>, so 3<br>
+of 9). Contention only ever slows a run down, so the low tail is the<br>
+uncontended cost; taking the <em>mean of the fastest few</em> rejects the<br>
+single-sample noise a pure minimum would keep, while still excluding the<br>
+contended runs the median includes.</li>
+<li>Apply google/benchmark's own precautions (below).</li>
+<li>Store the <strong>full run context</strong> so a number is always attributable to a<br>
+specific machine, load, toolchain, and source revision.</li>
+</ul>
+<h2 dir="auto" id="layout">Layout</h2>
+<pre lang="text" class="notranslate"><code class="notranslate">mbo/hash/measurements/
+  README.md                    # this design doc
+  BUILD.bazel                  # dev-only targets: the quality-table verify test (stripped from releases)
+  run_measurements.py          # per-machine runner: one full sweep + smhasher -&gt; a data bundle (nothing else)
+  hash_benchmark_report.py     # run / store / tables / plot / smhasher / bundle / publish / verify / quality / consistency (stdlib only)
+  hash_algorithms.json         # manual/editorial SOT for the quality tables (role, notice, seeded, starlark, ...; NOT measured data)
+  quality_sh_test.sh           # bazel test: the README quality tables match hash_algorithms.json x a bundle, and bundles agree
+  build_smhasher3.sh           # reproducible SMHasher3 build (clone + fixes + install plugin + container gcc)
+  smhasher3/mbohash.cpp        # in-house mumbo/jumbo and dumbo SMHasher3 registration (includes the real headers)
+  charts/&lt;slug&gt;_&lt;cc&gt;_*.svg     # published per-machine charts (committed; rendered by `publish`, verifiable)
+  data/&lt;slug&gt;_&lt;cc&gt;_*.tgz       # per-machine measurement bundles, Git LFS, flat (see "Data storage")
+</code></pre>
+<p dir="auto">The C++ benchmark itself (<code class="notranslate">mbo/hash/hash_benchmark.cc</code>,<br>
+<code class="notranslate">//mbo/hash:hash_benchmark</code>) stays in the main module - it is tightly coupled to<br>
+the hash internals and is already <code class="notranslate">testonly</code> + <code class="notranslate">tags = ["manual"]</code>, so it is<br>
+dev-only but not shipped. Only the orchestration/storage/reporting lives here.</p>
+<h2 dir="auto" id="what-is-captured-provenance">What is captured (provenance)</h2>
+<p dir="auto">Every stored dataset records, from google/benchmark's <code class="notranslate">context</code> plus a few<br>
+augmentations, enough to know exactly what produced it:</p>
+<ul dir="auto">
+<li><strong>date/time</strong> of the measurement.</li>
+<li><strong>git revision</strong> of the measured source and whether the tree was dirty - a<br>
+number is meaningless without the exact code it measured.</li>
+<li><strong>host name</strong>, <strong>CPU count</strong>, <strong>CPU nominal MHz</strong>, <strong>CPU brand/model</strong>, cache<br>
+sizes.</li>
+<li><strong>OS / kernel</strong> (uname).</li>
+<li><strong>compiler</strong> and version (the benchmark is built <code class="notranslate">-c opt</code>).</li>
+<li><strong>load average</strong> at measurement time (so a noisy run is identifiable).</li>
+<li><strong><code class="notranslate">cpu_scaling_enabled</code></strong>: if frequency scaling is on (it is, on macOS), the<br>
+absolute numbers are unreliable; the tool records it and warns. The min<br>
+aggregate mitigates but does not eliminate this.</li>
+<li>benchmark <strong>parameters</strong>: repetitions, min-time, warmup-time, whether random<br>
+interleaving was on, and the aggregate used (best-<code class="notranslate">k</code> mean) with its <code class="notranslate">k</code>.</li>
+</ul>
+<h2 dir="auto" id="methodology--precautions">Methodology / precautions</h2>
+<ul dir="auto">
+<li>Build <code class="notranslate">-c opt</code>.</li>
+<li><strong>9 repetitions</strong> by default: google/benchmark's <code class="notranslate">tools/compare.py</code> recommends<br>
+at least 9 for its Mann-Whitney U-test, so two stored raw datasets can be<br>
+compared for statistical significance (<code class="notranslate">compare.py benchmarks a.json b.json</code>).</li>
+<li><strong><code class="notranslate">--benchmark_enable_random_interleaving</code></strong>: interleaves the repetitions of<br>
+every case, spreading each case across the run so thermal drift and "first<br>
+case runs cold" bias do not accrue to whichever benchmark ran first.</li>
+<li><strong><code class="notranslate">--benchmark_min_warmup_time</code></strong>: warm caches and CPU frequency before timing.</li>
+<li>Aggregate by the <strong>best-<code class="notranslate">k</code> mean</strong> (see above); we also keep <code class="notranslate">best_cv</code> (spread<br>
+of those <code class="notranslate">k</code>) plus the full-set min / median / mean per case for transparency.</li>
+<li>Fixed RNG seeds in the benchmark give identical key bytes per length across<br>
+runs (so only timing varies). Throughput is hot-cache (the same key is reused<br>
+in the loop) by design; the latency benchmark serializes a dependency chain<br>
+over a fixed 1024-key set - the cost profile a hash table actually pays.</li>
+</ul>
+<h2 dir="auto" id="statistics-stored-per-case">Statistics stored per case</h2>
+<p dir="auto">Per (width, algorithm, length): <code class="notranslate">best</code> (the headline mean of the fastest <code class="notranslate">k</code>),<br>
+<code class="notranslate">best_cv</code> (coefficient of variation <strong>of those <code class="notranslate">k</code> samples</strong> - how stable the<br>
+estimate is; a full-set CV would just re-report the contention we excluded),<br>
+plus <code class="notranslate">min</code>, <code class="notranslate">median</code>, <code class="notranslate">mean</code> (full-set, for context) and the repetition count.<br>
+The README tables use <code class="notranslate">best</code>; <code class="notranslate">best_cv</code> flags a case whose fast tail is itself<br>
+noisy and worth re-measuring.</p>
+<h2 dir="auto" id="data-storage-commit-policy-contributions">Data storage, commit policy, contributions</h2>
+<p dir="auto">Authoritative numbers cannot come from CI (shared, virtualized runners with CPU<br>
+scaling on - see "CI"), so measurements are contributed from real machines<br>
+(Apple M5 Pro, AMD Zen5, Intel, ...). Each run produces a fair amount of data:<br>
+the raw google/benchmark JSON gzips to ~123 KB (fast) / ~340 KB (full), the<br>
+distilled canonical JSON is ~38 KB / ~100 KB, plus the per-algorithm SMHasher3<br>
+logs. Across several machines that accumulates, so:</p>
+<ul dir="auto">
+<li><strong>Per-machine bundle, Git LFS</strong><br>
+(<code class="notranslate">data/&lt;slug&gt;_&lt;cores&gt;c_&lt;compiler&gt;_&lt;gitsha8&gt;_&lt;stamp&gt;.tgz</code>): one<br>
+gzipped tarball per run holds the <em>whole</em> dataset - the canonical<br>
+<code class="notranslate">results.json</code>, the raw <code class="notranslate">*_raw.json.gz</code> (for <code class="notranslate">compare.py</code> U-tests), and the<br>
+<code class="notranslate">smhasher.json</code> + per-algorithm logs. It is Git-LFS-tracked (<code class="notranslate">.gitattributes</code>),<br>
+so the blobs stay out of the main pack; unpack to inspect or A/B. Keep the<br>
+current bundle per machine (replace on re-measure); LFS history retains olds.</li>
+<li><strong>Published charts + tables, plain git</strong> (<code class="notranslate">charts/&lt;slug&gt;_&lt;compiler&gt;_{64,128}.svg</code>
+<ul dir="auto">
+<li>the hash README perf section): rendered by <code class="notranslate">hash_benchmark_report.py publish</code><br>
+from a SELECTED set of committed bundles - one labeled block per machine. Charts<br>
+carry the machine identifier (subtitle); the tables are the curated <code class="notranslate">kReadmeSizes</code><br>
+subset extracted from the FULL dataset via the <code class="notranslate">readme_sizes</code> the benchmark emits<br>
+into its own context (no separate fast run, no second size list to drift). And -<br>
+the point - <em>verifiable</em>: <code class="notranslate">verify</code> re-renders from the same bundles (a manifest<br>
+publish leaves in the README) and diffs, so every figure is provably from<br>
+committed data and cannot be hand-edited (<code class="notranslate">_svg_plot</code> is deterministic). This is<br>
+the ONLY thing that writes to the tree; the measurement run writes nothing but<br>
+the bundle, so it stays authoritative and several runs can go back-to-back.</li>
+</ul>
+</li>
+<li>The loose run outputs in <code class="notranslate">data/</code> are staging only and git-ignored; <code class="notranslate">bundle</code><br>
+packs them into the <code class="notranslate">.tgz</code>. This directory is dev-only and stripped from release<br>
+archives, so it never enters a published/BCR offering (the release archive<br>
+carries LFS pointer files here, which is harmless).</li>
+</ul>
+<h2 dir="auto" id="regenerate--contribute-a-machine">Regenerate / contribute a machine</h2>
+<p dir="auto">Two decoupled steps: each machine produces a data bundle (that is ALL the run<br>
+writes to the tree, so it stays authoritative and runs can go back-to-back), then<br>
+a single <code class="notranslate">publish</code> renders the README from the machines you choose.</p>
+<p dir="auto"><strong>1. Measure, per machine</strong> (repo root, clean <code class="notranslate">main</code> for authoritative provenance):</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> ALWAYS add the machine's `opt_&lt;machine&gt;` config (defined in .bazelrc): without</span>
+<span class="pl-c"><span class="pl-c">#</span> -march/-mcpu the benchmark measures generic codegen, which understates</span>
+<span class="pl-c"><span class="pl-c">#</span> SIMD-heavy competitors (xxh3 +27% at 1 KiB under znver5) and can hide</span>
+<span class="pl-c"><span class="pl-c">#</span> target-specific pathologies (mumbo is 2x slower under clang znver5 &gt;= 1 KiB).</span>
+mbo/hash/measurements/run_measurements.py --config clang --config opt_zen5 --jobs 4      <span class="pl-c"><span class="pl-c">#</span> AMD Zen 5</span>
+mbo/hash/measurements/run_measurements.py --config clang --config opt_apple_m5 --jobs 4  <span class="pl-c"><span class="pl-c">#</span> Apple M5</span>
+<span class="pl-c"><span class="pl-c">#</span> faster: in-house family only, or perf only</span>
+mbo/hash/measurements/run_measurements.py --algos mumbo,jumbo,dumbo --jobs 1
+mbo/hash/measurements/run_measurements.py --skip-smhasher</pre></div>
+<p dir="auto">New machine: add a <code class="notranslate">common:opt_&lt;machine&gt; --copt=-march=...</code> (or <code class="notranslate">-mcpu=...</code>)<br>
+entry to <code class="notranslate">.bazelrc</code> first. The <code class="notranslate">--config</code> values are recorded in the dataset<br>
+context, so the tuning target is part of the bundle's provenance.</p>
+<p dir="auto">ONE full perf sweep runs first and alone (SMHasher3 would contend for CPU and<br>
+skew the sub-ns numbers), then the battery (<code class="notranslate">--jobs</code> at once; pass/fail is<br>
+load-independent, so that only trades cores for wall-clock). SMHasher3 is built<br>
+and run in a container (<code class="notranslate">build_smhasher3.sh</code>, via <code class="notranslate">docker run</code>). The run packs a<br>
+per-machine Git-LFS bundle and prints its path - commit it:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">git add mbo/hash/measurements/data/<span class="pl-k">&lt;</span>bundle<span class="pl-k">&gt;</span>.tgz
+git lfs push origin HEAD <span class="pl-k">&amp;&amp;</span> git push</pre></div>
+<p dir="auto"><strong>2. Publish, once</strong> - render the README from the bundles you want to feature:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">mbo/hash/measurements/hash_benchmark_report.py publish \
+    --bundles data/<span class="pl-k">&lt;</span>m<span class="pl-k">1&gt;</span>.tgz data/<span class="pl-k">&lt;</span>m<span class="pl-k">2&gt;</span>.tgz data/<span class="pl-k">&lt;</span>m<span class="pl-k">3&gt;</span>.tgz
+git add mbo/hash/README.md mbo/hash/measurements/charts</pre></div>
+<p dir="auto"><code class="notranslate">publish</code> cuts the marker region in the hash README and re-appends one labeled<br>
+block per bundle (charts + curated tables), in the listed order; <code class="notranslate">--bundles</code> is<br>
+the selection. <code class="notranslate">verify</code> (no args, from the repo root) re-checks every featured<br>
+bundle against the committed charts, reading the machine list back from the<br>
+README's manifest.</p>
+<p dir="auto">The pipeline steps are also usable individually: <code class="notranslate">run</code> (perf -&gt; canonical JSON),<br>
+<code class="notranslate">bundle</code> (pack a run), <code class="notranslate">tables</code> / <code class="notranslate">plot</code> (render from any canonical JSON <em>or</em> a<br>
+bundle <code class="notranslate">.tgz</code> directly - given positionally or via <code class="notranslate">--results</code>/<code class="notranslate">--bundle</code>),<br>
+<code class="notranslate">publish</code>, <code class="notranslate">verify</code>. <code class="notranslate">plot --kind</code> selects the curves: <code class="notranslate">throughput</code> (the 64- and<br>
+128-bit one-shot charts, default), <code class="notranslate">latency</code> (the mixed-length latency curve, now<br>
+that it sweeps the full size set), or <code class="notranslate">all</code>. <code class="notranslate">plot --scale</code> selects the axes:<br>
+<code class="notranslate">log-log</code> (default - ns spans ~4 decades, so a linear y crushes the fast<br>
+algorithms) or <code class="notranslate">linear-log</code> (linear y, log x, to read absolute ns gaps in a<br>
+narrow range); x is always log since lengths are sampled geometrically.</p>
+<h2 dir="auto" id="smhasher3-quality-smhasher">SMHasher3 quality (<code class="notranslate">smhasher</code>)</h2>
+<p dir="auto"><code class="notranslate">hash_benchmark_report.py smhasher --algos all --smhasher3 &lt;path&gt;</code> runs the<br>
+SMHasher3 battery over a set of algorithms (default <code class="notranslate">all</code>, which <strong>includes the<br>
+legacy <code class="notranslate">dumbo</code></strong>) and stores a pass/fail + failing-family summary as JSON with<br>
+the same provenance, plus each run's full log under <code class="notranslate">data/</code>.</p>
+<p dir="auto">It drives a <strong>built SMHasher3 executable</strong> (<code class="notranslate">--smhasher3</code>). <code class="notranslate">build_smhasher3.sh</code><br>
+is the reproducible build: it clones SMHasher3 at the pinned commit, applies the<br>
+two documented fixes (missing <code class="notranslate">&lt;cstdlib&gt;</code> in <code class="notranslate">lib/AEStest.cpp</code>; replace<br>
+<code class="notranslate">-march=native</code>), and builds it with gcc in a container - matching the<br>
+methodology in <code class="notranslate">../README.md</code>. The third-party algorithms are SMHasher3<br>
+built-ins and work immediately.</p>
+<p dir="auto">The in-house <code class="notranslate">mumbo</code>/<code class="notranslate">jumbo</code> and <code class="notranslate">dumbo</code>, <code class="notranslate">fambo</code> are registered by<br>
+<code class="notranslate">smhasher3/mbohash.cpp</code>,<br>
+which <code class="notranslate">#include</code>s the ACTUAL <code class="notranslate">mbo/hash</code> headers (so the real implementation is<br>
+verified, not a transcription). <code class="notranslate">build_smhasher3.sh</code> copies the headers + plugin<br>
+into the tree and registers the source, so one script run yields a SMHasher3<br>
+that recognizes <code class="notranslate">mumbo-64</code> / <code class="notranslate">jumbo-128</code> and <code class="notranslate">dumbo-64</code>. Registration names live<br>
+in <code class="notranslate">_SMHASHER_NAMES</code> and match <code class="notranslate">SMHasher3 --list</code>.</p>
+<p dir="auto">Last verified run (2026-07): <strong>mumbo-64/jumbo-128</strong> and <strong>dumbo-64</strong> all PASS<br>
+188/188 (dumbo redesigned into a compact single-lane MUM hash).</p>
+<h3 dir="auto" id="generated-quality-tables-quality-consistency">Generated quality tables (<code class="notranslate">quality</code>, <code class="notranslate">consistency</code>)</h3>
+<p dir="auto">The two SMHasher3 tables in <code class="notranslate">../README.md</code> (the "Algorithm overview" and the<br>
+"Results" table) are GENERATED, not hand-edited. <code class="notranslate">hash_benchmark_report.py quality --bundle &lt;bundle&gt;</code> renders both between their <code class="notranslate">&lt;!-- BEGIN/END ... --&gt;</code> markers,<br>
+merging <code class="notranslate">hash_algorithms.json</code> (the manual/editorial columns) with the measured<br>
+verdict/score/failures re-parsed from the bundle's logs (the stored <code class="notranslate">smhasher.json</code><br>
+predates parser fixes, so the LOGS are the truth). <code class="notranslate">quality --check</code> verifies the<br>
+committed tables without writing - the <code class="notranslate">quality_sh_test</code> bazel test / CI gate.</p>
+<p dir="auto">Two names the committed bundles have no real data for (<code class="notranslate">FNV-1a-64</code> /<br>
+<code class="notranslate">MurmurHash3-128</code>, run under invalid short names) are supplied by a hardcoded<br>
+<code class="notranslate">_MISSING_MEASURED</code> stopgap, warned about on every render; delete each once a<br>
+bundle carries the real measurement.</p>
+<p dir="auto"><code class="notranslate">hash_benchmark_report.py consistency</code> cross-checks that all bundles from the same<br>
+source git SHA report identical measurements (a SMHasher3 verdict is a property of<br>
+the algorithm, not the machine), so a divergent or broken run is caught.</p>
+<h2 dir="auto" id="output-filenames">Output filenames</h2>
+<p dir="auto">Loose staging files the tool writes are prefixed <code class="notranslate">YYYYMMDD_HHMMSS_</code> (local wall<br>
+clock, one stamp per invocation) so runs never overwrite each other. The<br>
+committed artifact is the per-machine bundle<br>
+<code class="notranslate">data/&lt;slug&gt;_&lt;cores&gt;c_&lt;compiler&gt;_&lt;gitsha8&gt;_&lt;stamp&gt;.tgz</code> - the slug<br>
+derived from the dataset's own <code class="notranslate">uname</code> + CPU brand, the <code class="notranslate">compiler</code> reported by the<br>
+benchmark binary (<code class="notranslate">clang-NN</code> / <code class="notranslate">gcc-NN</code>, so GCC and Clang builds on one machine<br>
+stay distinct), the SHA from its provenance - so a bundle is self-identifying and<br>
+collision-free across machines and toolchains.</p>
+<h2 dir="auto" id="comparison-charts">Comparison charts</h2>
+<p dir="auto">Multiple measurement bundles can be compared graphically using the <code class="notranslate">diff-charts</code><br>
+sub command of the <code class="notranslate">hash_benchmark_report.py</code> tool. Example:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">./mbo/hash/measurements/hash_benchmark_report.py diff-charts --bundles mbo/hash/measurements/data/linux<span class="pl-k">*</span>.tgz --algos mumbo dumbo rapidhash</pre></div></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

@@ -1,0 +1,203 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/file/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="file-utilities">File utilities</h1>
+<p dir="auto">The <code class="notranslate">mbo::file</code> libraries provide file metadata, whole-file and path operations, recursive globbing,<br>
+and INI parsing. Each target can be used independently.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Bazel target</th>
+<th>Header</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Artefact</td>
+<td><code class="notranslate">//mbo/file:artefact_cc</code></td>
+<td><code class="notranslate">mbo/file/artefact.h</code></td>
+<td>In-memory file data, name, and modified time</td>
+</tr>
+<tr>
+<td>File</td>
+<td><code class="notranslate">//mbo/file:file_cc</code></td>
+<td><code class="notranslate">mbo/file/file.h</code></td>
+<td>File contents, metadata, and path helpers</td>
+</tr>
+<tr>
+<td>Glob</td>
+<td><code class="notranslate">//mbo/file:glob_cc</code></td>
+<td><code class="notranslate">mbo/file/glob.h</code></td>
+<td>Glob translation and recursive traversal</td>
+</tr>
+<tr>
+<td>INI</td>
+<td><code class="notranslate">//mbo/file/ini:ini_file_cc</code></td>
+<td><code class="notranslate">mbo/file/ini/ini_file.h</code></td>
+<td>INI parsing and structured access</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="artefacts">Artefacts</h2>
+<p dir="auto"><code class="notranslate">Artefact</code> groups a file's name, contents, and modification time for APIs that need to transport a<br>
+file as data rather than operate on an open stream or filesystem entry.</p>
+<h2 dir="auto" id="file-and-path-operations">File and path operations</h2>
+<p dir="auto"><code class="notranslate">file.h</code> provides status-returning operations for reading and writing complete files, reading a<br>
+bounded number of lines, retrieving modification times, checking readability, and manipulating<br>
+paths. <code class="notranslate">JoinPathsRespectAbsolute</code> resets the accumulated path when it encounters an absolute<br>
+component; <code class="notranslate">JoinPaths</code> performs ordinary joining. <code class="notranslate">NormalizePath</code> and <code class="notranslate">IsAbsolutePath</code> provide the<br>
+corresponding normalization and classification helpers.</p>
+<h2 dir="auto" id="ini-files">INI files</h2>
+<p dir="auto"><code class="notranslate">ini/ini_file.h</code> provides <code class="notranslate">IniFile</code>, a small INI reader with section and value access. Parsing errors<br>
+are returned as Abseil statuses. The parser is fuzz-tested; its tests also document accepted comment,<br>
+section, key, and value forms.</p>
+<h2 dir="auto" id="glob-patterns">Glob patterns</h2>
+<p dir="auto">The glob implementation is fast, deterministic, locale-independent, and limited to features RE2 can<br>
+express efficiently. It takes useful POSIX pattern-matching behavior, adds path globstar and SHGLOB<br>
+alternatives, and omits locale and general subexpression negation features that RE2 cannot represent<br>
+faithfully.</p>
+<h3 dir="auto" id="semantic-contract">Semantic contract</h3>
+<p dir="auto">The glob syntax is independent of the process locale. Ranges and named classes have the stable<br>
+definitions documented by RE2. Locale-sensitive collation, collating symbols, equivalence classes,<br>
+and locale-sensitive case folding are unsupported.</p>
+<p dir="auto"><code class="notranslate">/</code> is always the path separator on every platform. Component-local operators never consume it.<br>
+Repeated separators are normalized consistently. The historical exact <code class="notranslate">[/]</code> spelling remains a<br>
+documented mbo compatibility spelling for a separator; no other bracket expression consumes <code class="notranslate">/</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>Required behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Literal</td>
+<td>Match itself, escaped for RE2 as necessary</td>
+</tr>
+<tr>
+<td>Backslash</td>
+<td>Escape the following glob character</td>
+</tr>
+<tr>
+<td><code class="notranslate">?</code></td>
+<td>Match one non-<code class="notranslate">/</code> character</td>
+</tr>
+<tr>
+<td><code class="notranslate">*</code></td>
+<td>Match zero or more non-<code class="notranslate">/</code> characters</td>
+</tr>
+<tr>
+<td>Complete-component <code class="notranslate">**</code></td>
+<td>Match zero or more complete path components</td>
+</tr>
+<tr>
+<td>Embedded star run</td>
+<td>Behave as one component-local <code class="notranslate">*</code></td>
+</tr>
+<tr>
+<td>Positive bracket expression</td>
+<td>Match one listed non-<code class="notranslate">/</code> character</td>
+</tr>
+<tr>
+<td>Negated bracket expression</td>
+<td>Match one non-<code class="notranslate">/</code> character not listed</td>
+</tr>
+<tr>
+<td>Named class</td>
+<td>Use the documented RE2 ASCII class with <code class="notranslate">/</code> removed</td>
+</tr>
+<tr>
+<td>GLOB braces</td>
+<td>Remain literal</td>
+</tr>
+<tr>
+<td>SHGLOB braces</td>
+<td>Provide nested alternatives, including empty alternatives</td>
+</tr>
+<tr>
+<td>General negative extglob</td>
+<td>Unsupported because RE2 has no general subexpression complement</td>
+</tr>
+<tr>
+<td>Lookahead and lookbehind</td>
+<td>Unsupported</td>
+</tr>
+<tr>
+<td>Collating/equivalence syntax</td>
+<td>Unsupported</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Negated bracket expressions are supported. They are not general negative lookahead: <code class="notranslate">[!a]</code> becomes<br>
+the equivalent of <code class="notranslate">[^/a]</code>, while a construct such as <code class="notranslate">!(foo|bar)</code> is outside this RE2-native syntax.</p>
+<h3 dir="auto" id="globstar-contract">Globstar contract</h3>
+<p dir="auto">A run of exactly two or more unescaped stars crosses directories only when it occupies a complete<br>
+path component. In other positions it reduces to an ordinary component-local <code class="notranslate">*</code>.</p>
+<p dir="auto"><code class="notranslate">foo/**/bar</code> matches all of:</p>
+<pre lang="text" class="notranslate"><code class="notranslate">foo/bar
+foo/a/bar
+foo/a/b/bar
+foo/a/b/c/bar
+</code></pre>
+<p dir="auto">The following boundary forms have distinct documented behavior:</p>
+<pre lang="text" class="notranslate"><code class="notranslate">**
+**/bar
+foo/**/bar
+foo/**
+foo**bar
+***
+foo/***/bar
+</code></pre>
+<p dir="auto">Trailing <code class="notranslate">foo/**</code> matches descendants of <code class="notranslate">foo</code> but not <code class="notranslate">foo</code> itself. Middle <code class="notranslate">foo/**/bar</code> allows zero<br>
+intervening directory components. Embedded and escaped stars remain component-local, and repeated<br>
+separators are normalized.</p>
+<h3 dir="auto" id="bracket-expressions">Bracket expressions</h3>
+<p dir="auto">Bracket expressions support:</p>
+<ul dir="auto">
+<li>leading <code class="notranslate">]</code>;</li>
+<li>leading and trailing literal <code class="notranslate">-</code>;</li>
+<li>escaped members;</li>
+<li>multiple ranges;</li>
+<li>slash at either range endpoint;</li>
+<li>ranges crossing slash;</li>
+<li>mixed literals, ranges, and named classes;</li>
+<li>classes that become empty after slash removal;</li>
+<li>ascending, descending, malformed, and unterminated ranges;</li>
+<li>named classes that otherwise include slash, including <code class="notranslate">ascii</code>, <code class="notranslate">graph</code>, <code class="notranslate">print</code>, and <code class="notranslate">punct</code>.</li>
+</ul>
+<p dir="auto">Unsupported or malformed syntax returns a precise status instead of being passed to RE2 with changed<br>
+meaning. The translator forms a structural ASCII character set, removes <code class="notranslate">/</code>, and emits normalized<br>
+contiguous RE2 ranges.</p>
+<h3 dir="auto" id="public-api">Public API</h3>
+<p dir="auto">The pure public translator supports GLOB and SHGLOB without requiring another parser:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">enum</span> <span class="pl-k">class</span> <span class="pl-en">GlobSyntax</span> {
+  <span class="pl-c1">kGlob</span>,
+  <span class="pl-c1">kShGlob</span>,
+};
+
+<span class="pl-k">struct</span> <span class="pl-en">Glob2Re2Options</span> {
+  GlobSyntax syntax = GlobSyntax::<span class="pl-c1">kGlob</span>;
+  <span class="pl-k">bool</span> allow_star_star = <span class="pl-c1">true</span>;
+  <span class="pl-k">bool</span> allow_ranges = <span class="pl-c1">true</span>;
+  <span class="pl-c1">RE2</span>::Options re2_options;
+};</pre></div>
+<p dir="auto"><code class="notranslate">Glob2Re2Expression</code> returns the translated expression. <code class="notranslate">Glob2Re2</code> additionally compiles it and<br>
+reports RE2 diagnostics as an <code class="notranslate">absl::Status</code>. <code class="notranslate">GlobSplit</code> separates a filesystem root from its<br>
+pattern. <code class="notranslate">Glob</code> traverses the filesystem and invokes a callback for each matching entry; <code class="notranslate">GlobRe2</code><br>
+does the same with an already compiled expression.</p>
+<p dir="auto">Consumers such as xff can map GLOB and SHGLOB directly while retaining application-specific<br>
+preprocessing for negation, anchoring, and directory-only rules.</p>
+<h3 dir="auto" id="performance-considerations">Performance considerations</h3>
+<p dir="auto">Translation is single-pass apart from nested SHGLOB alternatives. Output is reserved once and<br>
+appended monotonically without allocation per input character or bracket member. Matching retains<br>
+RE2's linear-time behavior; compile a pattern once when matching it repeatedly.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

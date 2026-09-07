@@ -1,0 +1,633 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>STYLE_CPP.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="c-style">C++ Style</h1>
+<p dir="auto">The C++ coding style for MBO Works repositories. It sits on top of two<br>
+machine-enforced config files and adds the human conventions below. When in doubt<br>
+the config files win; this document explains and extends them so a contributor (or<br>
+an AI assistant) can follow them without reverse-engineering the tooling.</p>
+<h2 dir="auto" id="toolchain-machine-enforced">Toolchain (machine-enforced)</h2>
+<ul dir="auto">
+<li>C++20, compiled with <code class="notranslate">clang</code>. Compilation with GCC is kept working on a<br>
+best-effort basis.</li>
+<li><strong><code class="notranslate">clang-format</code></strong> with <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/.clang-format"><code class="notranslate">.clang-format</code></a> formats all C++ code. Run<br>
+it; do not hand-format against it. CI rejects any reformatting diff.</li>
+<li><strong><code class="notranslate">clang-tidy</code></strong> with <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/.clang-tidy"><code class="notranslate">.clang-tidy</code></a> (<code class="notranslate">WarningsAsErrors: '*'</code>) runs via the<br>
+opt-in <code class="notranslate">clang-tidy</code> pre-commit hook (<code class="notranslate">pre-commit run clang-tidy --all-files --hook-stage manual</code>,<br>
+which shells out to <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/tools/clang_tidy.sh"><code class="notranslate">tools/clang_tidy.sh</code></a>) against a <code class="notranslate">compile_commands.json</code><br>
+you generate with <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/compile_commands-update.sh"><code class="notranslate">./compile_commands-update.sh</code></a>. It is report-only<br>
+(never <code class="notranslate">--fix</code>) and needs a hermetic clang-tidy (&gt;= clang-22 for this C++23 code); it skips cleanly<br>
+when either is missing. It is <strong>not</strong> run by <code class="notranslate">trunk</code> (trunk pinned clang-tidy 16, which mis-parses<br>
+C++23 and auto-applied build-breaking fixes - do not re-add it there). In <strong>CI</strong> the dedicated<br>
+<code class="notranslate">clang-tidy</code> job owns it: it builds the compile DB (<code class="notranslate">compile_commands-update.sh</code>, hermetic clang)<br>
+and runs this hook, report-only (<code class="notranslate">continue-on-error</code>) until the finding sweep lands, then a hard<br>
+gate. A branch lints only the sources it changed; <code class="notranslate">main</code> lints the whole tree. The enabled set is<br>
+broad: <code class="notranslate">abseil-*</code>, <code class="notranslate">bugprone-*</code>, <code class="notranslate">cppcoreguidelines-*</code>, <code class="notranslate">google-*</code>, <code class="notranslate">misc-*</code>, <code class="notranslate">modernize-*</code>,<br>
+<code class="notranslate">performance-*</code>, <code class="notranslate">portability-*</code>, <code class="notranslate">readability-*</code>.</li>
+</ul>
+<h3 dir="auto" id="what-clang-format-decides-do-not-fight-it">What <code class="notranslate">.clang-format</code> decides (do not fight it)</h3>
+<ul dir="auto">
+<li>Google base style, <strong>column limit 120</strong>.</li>
+<li><code class="notranslate">AlignAfterOpenBracket: AlwaysBreak</code> + <code class="notranslate">BinPackParameters: false</code>: when arguments<br>
+do not fit, each goes on its own line at one indent (not aligned to the paren).</li>
+<li><code class="notranslate">PointerAlignment: Left</code> (<code class="notranslate">int* p</code>), <code class="notranslate">QualifierAlignment: Left</code> (<code class="notranslate">const int</code>).</li>
+<li><code class="notranslate">IntegerLiteralSeparator</code> decimal every 3: write <code class="notranslate">1'000'000</code>.</li>
+<li><code class="notranslate">RemoveSemicolon</code>, <code class="notranslate">InsertBraces</code> (always brace bodies), <code class="notranslate">SeparateDefinitionBlocks</code>.</li>
+<li><strong><code class="notranslate">InsertTrailingCommas</code> is deliberately OFF</strong> (it would force every aggregate to<br>
+never-bin-pack). That is the lever behind the trailing-comma rule below: a <em>manual</em><br>
+trailing comma opts a <em>single</em> aggregate into one-element-per-line.</li>
+</ul>
+<h3 dir="auto" id="naming-enforced-by-clang-tidy-readability-identifier-naming">Naming (enforced by <code class="notranslate">.clang-tidy readability-identifier-naming</code>)</h3>
+<ul dir="auto">
+<li>Types / classes / structs / enums / aliases / functions: <code class="notranslate">CamelCase</code> (<code class="notranslate">LimitedMap</code>).</li>
+<li>Variables / parameters / data members / namespaces: <code class="notranslate">lower_case</code> (<code class="notranslate">flag_count</code>).</li>
+<li>Private data members: <code class="notranslate">lower_case</code> with a trailing <code class="notranslate">_</code> (<code class="notranslate">flags_</code>).</li>
+<li>constexpr / enum constants / global + static constants: <code class="notranslate">k</code> + <code class="notranslate">CamelCase</code> (<code class="notranslate">kMaxDepth</code>).</li>
+<li>Macros: <code class="notranslate">UPPER_CASE</code>, prefixed <code class="notranslate">MBO_</code> (<code class="notranslate">MBO_...</code>).</li>
+</ul>
+<h2 dir="auto" id="code-organization">Code organization</h2>
+<ul dir="auto">
+<li>All exported code lives under the top library directory (in mbo: <code class="notranslate">mbo/</code>).</li>
+<li>Each subdirectory uses namespace <code class="notranslate">mbo::{dir}</code> (and <code class="notranslate">mbo::{dir}::{sub}</code>).
+<ul dir="auto">
+<li>Internal-only code: <code class="notranslate">mbo::{dir}::{sub}_internal</code>. No namespace component is ever<br>
+just <code class="notranslate">internal</code>.</li>
+<li>Exported-but-detail code may use a <code class="notranslate">detail</code> sub-namespace (fully qualify it, since<br>
+the bare <code class="notranslate">detail</code> name can collide).</li>
+</ul>
+</li>
+<li>Header guards: <code class="notranslate">{PATH}_{FILE}_</code> (path + filename, uppercased, non-alphanumerics -&gt;<br>
+<code class="notranslate">_</code>, trailing <code class="notranslate">_</code>). A file may not start with a sibling directory's basename + <code class="notranslate">_</code>:<br>
+<code class="notranslate">foo/bar.h</code> and <code class="notranslate">foo_bar.h</code> would both yield <code class="notranslate">FOO_BAR_H_</code>.</li>
+<li>Forward-declared symbols must be fully implemented in the same source file (except<br>
+the <code class="notranslate">Impl</code>-in-header / implementation-in-<code class="notranslate">.cc</code> pattern).</li>
+<li>Macros: avoid them. An <strong>exported</strong> macro (defined in a header for other code to use) is<br>
+prefixed <code class="notranslate">MBO_</code> (private impl <code class="notranslate">MBO_PRIVATE_...</code>). A macro <strong>local to one translation unit</strong>
+<ul dir="auto">
+<li>a <code class="notranslate">.cc</code> / test file, or a header helper you <code class="notranslate">#undef</code> right after its last use - may stay<br>
+unprefixed (still <code class="notranslate">UPPER_CASE</code>); <code class="notranslate">#undef</code> a local macro as soon after its last use as<br>
+possible.</li>
+</ul>
+</li>
+<li><strong>C-library names: use the <code class="notranslate">std::</code> form; the unqualified global alias is optional.</strong> A<br>
+<code class="notranslate">&lt;cstddef&gt;</code> / <code class="notranslate">&lt;cXXX&gt;</code> header is only required to declare <code class="notranslate">size_t</code>, <code class="notranslate">int64_t</code>, <code class="notranslate">memcpy</code>,<br>
+... in <code class="notranslate">namespace std</code>; whether it <em>also</em> injects the bare global name is<br>
+implementation-defined, so we never rely on it.
+<ul dir="auto">
+<li>In <strong>headers</strong>, always fully qualify (<code class="notranslate">std::size_t</code>); no namespace-level <code class="notranslate">using</code>.</li>
+<li>In an <strong>implementation file</strong> (<code class="notranslate">.cc</code>), a <code class="notranslate">using std::size_t;</code> (or other <code class="notranslate">using std::...</code>)<br>
+is fine where it reads better - bring the name in explicitly rather than leaning on the<br>
+global alias. Be consistent within a file, but readability outranks consistency.</li>
+</ul>
+</li>
+<li>Library flags are prefixed by their path/namespace (e.g. <code class="notranslate">--mbo_log_timing_min_duration</code><br>
+in <code class="notranslate">mbo/log</code>). Application entry-point binaries (<code class="notranslate">glob</code>, <code class="notranslate">diff</code>, <code class="notranslate">mope</code>) may use bare flag<br>
+names (<code class="notranslate">--depth</code>, <code class="notranslate">--algorithm</code>, <code class="notranslate">--template</code>).</li>
+</ul>
+<h2 dir="auto" id="formatting-conventions-on-top-of-clang-format">Formatting conventions on top of clang-format</h2>
+<p dir="auto">clang-format picks a layout per line; these habits steer it toward the readable one.</p>
+<ol dir="auto">
+<li>
+<p dir="auto"><strong>No comment at the end of a long line.</strong> Put the comment on its own line <em>above</em><br>
+the element. A trailing <code class="notranslate">// ...</code> that pushes a line past 120 makes clang-format<br>
+explode the element across several lines.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">//</span> -exec run in the matched entry's directory</span>
+{.<span class="pl-smi">name</span> = <span class="pl-s"><span class="pl-pds">"</span>-execdir<span class="pl-pds">"</span></span>, .<span class="pl-smi">kind</span> = Kind::<span class="pl-c1">kAction</span>, .<span class="pl-smi">arity</span> = -<span class="pl-c1">1</span>},</pre></div>
+</li>
+<li>
+<p dir="auto"><strong>Trailing comma on the last field of a complex aggregate</strong> breaks it one field per<br>
+line. Because <code class="notranslate">InsertTrailingCommas</code> is off, the comma is your per-aggregate opt-in.<br>
+Use it for long/complex initializers; a short one that reads on a single line stays.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">const</span> Drop drop{
+    .<span class="pl-smi">line</span> = line,
+    .<span class="pl-smi">layer</span> = Source::<span class="pl-c1">kProject</span>,
+    .<span class="pl-smi">safety</span> = Safety::<span class="pl-c1">kSecurity</span>,
+};</pre></div>
+<p dir="auto"><strong>In a long array of struct literals - a registry-style table such as <code class="notranslate">kGlobals</code> or<br>
+<code class="notranslate">kDescriptors</code> - put the trailing comma on <em>every</em> element</strong>, even the short ones that<br>
+would fit on a single line, so clang-format expands the whole table uniformly, one<br>
+field per line. A consistent table you scroll through reads better than a mix of<br>
+one-liners and exploded rows packed to save height. This stays a deliberate, per-table<br>
+choice made element by element: <code class="notranslate">InsertTrailingCommas</code> is off (we do not always want<br>
+trailing commas), so clang-format never forces it for you.</p>
+</li>
+<li>
+<p dir="auto"><strong>Force a line break with a comment rather than let clang-format cram a value at the right<br>
+margin.</strong> A long argument - especially a raw string such as a proto <code class="notranslate">R"pb(...)pb"</code> - otherwise<br>
+gets packed onto the call line and shoved against the 120 column, unreadable. A trailing<br>
+comment makes clang-format keep the element on its own line. Mark it <code class="notranslate">// NL</code> ("new line"):</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-c1">EXPECT_THAT</span>(  <span class="pl-c"><span class="pl-c">//</span> NL</span>
+    message,
+    <span class="pl-en">EqualsProto</span>(<span class="pl-s"><span class="pl-pds">R"pb(</span>name: "n" value: 1<span class="pl-pds">)pb"</span></span>));</pre></div>
+<p dir="auto">When there is a relevant reason, keep the prefix and add it: <code class="notranslate">// NL: &lt;short reason&gt;</code>, preferred<br>
+over a bare <code class="notranslate">// NL</code>. Always keep the <code class="notranslate">NL</code> prefix - do not drop to a bare <code class="notranslate">//</code> or an unprefixed<br>
+comment - for two reasons: it marks the comment as load-bearing for layout, so a reader knows<br>
+that removing it re-crams the line; and the consistent marker is machine-checkable, so a<br>
+pre-commit rule can verify these lines stay broken.</p>
+<p dir="auto">Reserve <code class="notranslate">// clang-format off</code> / <code class="notranslate">on</code> for a genuine table or hand-aligned expression that<br>
+clang-format cannot lay out - <code class="notranslate">// NL</code> only <em>inserts</em> breaks, so it cannot keep an over-120<br>
+line whole or stop a reflow (e.g. a one-line-per-case test table, or a multi-clause<br>
+<code class="notranslate">requires(...)</code>). Do not use it to hand-place ordinary layout, and keep the <code class="notranslate">off</code>/<code class="notranslate">on</code> pair<br>
+tight and adjacent so the <code class="notranslate">on</code> is never forgotten: everything between the two loses every<br>
+formatting guarantee above.</p>
+</li>
+</ol>
+<h2 dir="auto" id="idioms">Idioms</h2>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>A <code class="notranslate">cc_library</code> target is named <code class="notranslate">&lt;thing&gt;_cc</code></strong> (<code class="notranslate">file_cc</code>, <code class="notranslate">diff_options_cc</code>, <code class="notranslate">hash_cc</code>), so a<br>
+label reads as "the C++ library for <code class="notranslate">&lt;thing&gt;</code>" and never collides with the directory,<br>
+header, or binary of the same name. <code class="notranslate">cc_test</code> keeps its <code class="notranslate">_test</code> suffix, and a <code class="notranslate">cc_binary</code><br>
+keeps the plain program name (<code class="notranslate">mope</code>, <code class="notranslate">diff</code>). Enforced by the <code class="notranslate">cc-target-naming</code> pre-commit<br>
+hook (<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/tools/check_cc_target_naming.py"><code class="notranslate">tools/check_cc_target_naming.py</code></a>), so the<br>
+convention cannot drift back the way four extras targets did.</p>
+</li>
+<li>
+<p dir="auto"><strong>Every <code class="notranslate">cc_library</code> has a test in its own package depending on it.</strong> This is the<br>
+Testing section's "all exported code must be tested" stated as a build rule, and it is<br>
+enforced by the <code class="notranslate">check-cc-library-tested</code> pre-commit hook<br>
+(<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/tools/check_cc_library_tested.py"><code class="notranslate">tools/check_cc_library_tested.py</code></a>). Two things<br>
+deliberately do <strong>not</strong> count: <em>transitive</em> coverage (a test of a library that merely<br>
+deps yours) and a non-test dependent (a <code class="notranslate">cc_binary</code>, a <code class="notranslate">bashtest</code>) - neither exercises<br>
+your unit directly. Same-package is part of the rule too: the test belongs next to the<br>
+code it covers. A library with genuinely no testable surface goes into the tool's<br>
+<code class="notranslate">_ALLOWLIST</code> <strong>with its reason recorded there</strong> (today's single entry is<br>
+<code class="notranslate">//mbo/container:limited_set_benchmark_cc</code>, the benchmark harness, which makes no<br>
+correctness claim a test could check).</p>
+</li>
+<li>
+<p dir="auto"><strong>Never range-iterate an inline braced-init-list; iterate a NAMED <code class="notranslate">constexpr std::array</code>.</strong> A loop<br>
+over <code class="notranslate">{a, b, c}</code> hides what the set IS behind the mechanics of visiting it, gives the reader nothing<br>
+to grep for, and puts the data at the point of use so the next case that needs the same set copies it<br>
+instead of sharing it. Build the set with <code class="notranslate">std::to_array&lt;T&gt;({...})</code> (a trailing comma on the last<br>
+element, so <code class="notranslate">clang-format</code> breaks it one per line - see the Formatting section) and give it a <code class="notranslate">k</code><br>
+name that says what the set is, not what the loop does. <code class="notranslate">static constexpr</code> inside a function when it<br>
+is used once; at namespace scope in the anonymous namespace when more than one case needs it.<br>
+Deducing <code class="notranslate">std::array</code> from <code class="notranslate">to_array</code> also keeps the element type in exactly one place, and an<br>
+explicit type stops a literal from being deduced as <code class="notranslate">const char*</code> where <code class="notranslate">std::string_view</code> was meant.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">//</span> POSIX precedence: LC_ALL overrides LC_CTYPE, which overrides LANG.</span>
+<span class="pl-k">static</span> <span class="pl-k">constexpr</span> std::array <span class="pl-c1">kLocaleVars</span> = std::to_array&lt;std::string_view&gt;({
+    <span class="pl-s"><span class="pl-pds">"</span>LC_ALL<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>LC_CTYPE<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>LANG<span class="pl-pds">"</span></span>,
+});
+<span class="pl-k">for</span> (<span class="pl-k">const</span> std::string_view var : <span class="pl-c1">kLocaleVars</span>) {  <span class="pl-c"><span class="pl-c">//</span> not: for (... : {"LC_ALL", "LC_CTYPE", "LANG"})</span></pre></div>
+<p dir="auto">Enforced by the <code class="notranslate">no-braced-init-list-loop</code> pre-commit hook, so it cannot drift back. This is about a<br>
+RANGE-FOR over a literal list; passing a braced list as an argument (<code class="notranslate">ElementsAre</code>, a <code class="notranslate">std::vector</code><br>
+initializer, an aggregate) is untouched by the rule.</p>
+</li>
+<li>
+<p dir="auto"><strong>Prefer range-based loops.</strong> Use an index only when the index is part of the operation. Do not<br>
+scan backward or repeatedly rescan preceding elements; carry the needed state forward.</p>
+</li>
+<li>
+<p dir="auto"><strong>Comparison functions name their parameters <code class="notranslate">lhs</code> and <code class="notranslate">rhs</code></strong> - a sort comparator, an<br>
+<code class="notranslate">operator==</code>/<code class="notranslate">operator&lt;=&gt;</code>, any two-things-of-one-type predicate. Never <code class="notranslate">a</code>/<code class="notranslate">b</code> (which<br>
+<code class="notranslate">readability-identifier-length</code> rejects at under 2 characters) and not <code class="notranslate">x</code>/<code class="notranslate">y</code> either: <code class="notranslate">lhs</code>/<code class="notranslate">rhs</code><br>
+names the ROLE, so <code class="notranslate">lhs.name &lt; rhs.name</code> reads as the ordering it implements.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-en">absl::c_sort</span>(topics, [](<span class="pl-k">const</span> HelpTopic&amp; lhs, <span class="pl-k">const</span> HelpTopic&amp; rhs) { <span class="pl-k">return</span> lhs.<span class="pl-smi">name</span> &lt; rhs.<span class="pl-smi">name</span>; });</pre></div>
+</li>
+<li>
+<p dir="auto"><strong>A defaulted move constructor and move assignment are explicitly <code class="notranslate">noexcept</code>.</strong><br>
+<code class="notranslate">Type(Type&amp;&amp;) noexcept = default;</code> and <code class="notranslate">Type&amp; operator=(Type&amp;&amp;) noexcept = default;</code>. A<br>
+defaulted move is only <em>implicitly</em> <code class="notranslate">noexcept</code> when every base and member move is, so one<br>
+member that is not silently makes the whole type's move throwing - and the standard library<br>
+then quietly downgrades: <code class="notranslate">std::vector</code> reallocation copies instead of moving<br>
+(<code class="notranslate">move_if_noexcept</code>), and <code class="notranslate">std::swap</code> and friends lose their strong guarantee. Spelling<br>
+<code class="notranslate">noexcept</code> out states the intent and turns a violation into a compile error rather than a<br>
+silent performance loss. The same applies to a defaulted destructor's implicit <code class="notranslate">noexcept</code>,<br>
+which needs no annotation.</p>
+</li>
+<li>
+<p dir="auto"><strong>An initialised array constant uses <code class="notranslate">std::to_array</code>, never a hand-counted size.</strong><br>
+<code class="notranslate">static constexpr auto kExamples = std::to_array&lt;DocPair&gt;({...});</code>, not<br>
+<code class="notranslate">static constexpr std::array&lt;DocPair, 6&gt; kExamples = {...}</code>. The literal size is a second<br>
+statement of something the initialiser already says, and the two drift: adding an entry and<br>
+forgetting the count is a compile error at best and a silently truncated or<br>
+default-padded array at worst. <code class="notranslate">to_array</code> deduces the extent, so there is nothing to keep in<br>
+sync. Keep an explicit extent only where the size is part of the CONTRACT rather than a count<br>
+of what was written - a fixed-size buffer, a spec-mandated width (<code class="notranslate">std::array&lt;uint64_t, 8&gt;</code> for<br>
+BLAKE2b's state), or a function parameter type, where the extent IS the type.</p>
+</li>
+<li>
+<p dir="auto"><strong>Pass <code class="notranslate">absl::Status</code> by value</strong>, not <code class="notranslate">const&amp;</code>: it is a tagged pointer, and<br>
+<code class="notranslate">.clang-tidy performance-unnecessary-value-param</code> allowlists it (with <code class="notranslate">absl::StatusOr</code><br>
+and <code class="notranslate">std::string_view</code>). <code class="notranslate">StatusOr&lt;T&gt;</code>'s cost depends on <code class="notranslate">T</code>.</p>
+</li>
+<li>
+<p dir="auto"><strong>Prefer container algorithms</strong> from <code class="notranslate">absl/algorithm/container.h</code> (<code class="notranslate">absl::c_contains</code>,<br>
+<code class="notranslate">c_any_of</code>, <code class="notranslate">c_find</code>, <code class="notranslate">c_equal</code>, <code class="notranslate">c_sort</code>, ...) or C++20 <code class="notranslate">std::ranges</code> over hand-rolled<br>
+loops: range-based (no begin/end), well-named, constexpr-friendly. A loop that returns<br>
+on the first match is an <code class="notranslate">absl::c_any_of</code> with a lambda; a reserve-then-push copy into a<br>
+<code class="notranslate">std::vector</code> is range construction <code class="notranslate">std::vector&lt;T&gt;(src.begin(), src.end())</code>. Keep a raw<br>
+loop only when it builds a non-trivial structure no algorithm expresses cleanly.</p>
+</li>
+<li>
+<p dir="auto"><strong>Container choice: prefer the Abseil containers over the bare <code class="notranslate">std::</code> ones.</strong> The reason is<br>
+in their favor, not against <code class="notranslate">std::</code>: the Abseil variants are faster, support transparent<br>
+(heterogeneous) lookup - find in a <code class="notranslate">std::string</code>-keyed map with a <code class="notranslate">std::string_view</code>, no<br>
+temporary <code class="notranslate">std::string</code> - and <code class="notranslate">flat_hash_*</code> stores elements inline for lower memory.</p>
+<ul dir="auto">
+<li><strong>Never <code class="notranslate">std::unordered_*</code></strong> - no <code class="notranslate">&lt;unordered_map&gt;</code> / <code class="notranslate">&lt;unordered_set&gt;</code> include, and none<br>
+of <code class="notranslate">unordered_map</code> / <code class="notranslate">unordered_set</code> / <code class="notranslate">unordered_multimap</code> / <code class="notranslate">unordered_multiset</code>. Use<br>
+<code class="notranslate">absl::flat_hash_map</code> / <code class="notranslate">flat_hash_set</code>, or the <code class="notranslate">node_hash_map</code> / <code class="notranslate">node_hash_set</code> variants<br>
+when you need pointer/reference stability. This holds in tests too - the one exception is a<br>
+container-compatibility test that deliberately exercises a <code class="notranslate">std::unordered_*</code> input.</li>
+<li><strong>Avoid <code class="notranslate">std::map</code> / <code class="notranslate">std::set</code></strong> (and the <code class="notranslate">multi</code> variants) in library code; prefer<br>
+<code class="notranslate">absl::btree_map</code> / <code class="notranslate">absl::btree_set</code>, which keep the same ordered interface but are<br>
+cache-friendlier. In tests, <code class="notranslate">std::map</code> / <code class="notranslate">std::set</code> are fine.</li>
+<li>Small compile-time tables: <code class="notranslate">mbo::container::LimitedMap</code> / <code class="notranslate">LimitedSet</code>.</li>
+<li>A type-detection trait may name a <code class="notranslate">std::</code> container type freely - it must, to recognize it.</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>A read-only string parameter is <code class="notranslate">std::string_view</code> (by value), not <code class="notranslate">const std::string&amp;</code>.</strong><br>
+This is pretty much always: a <code class="notranslate">std::string_view</code> binds to a <code class="notranslate">std::string</code>, a string literal,<br>
+a <code class="notranslate">char*</code>, or another view with no allocation and no <code class="notranslate">.c_str()</code> dance, so the <code class="notranslate">const&amp;</code> only<br>
+narrows what callers may pass. Keep <code class="notranslate">const std::string&amp;</code> (or <code class="notranslate">std::string</code> by value) only<br>
+when the body genuinely needs a <code class="notranslate">std::string</code> - it calls <code class="notranslate">.c_str()</code> for a C API, stores or<br>
+moves the argument, or passes it to something that itself wants <code class="notranslate">const std::string&amp;</code>.</p>
+</li>
+<li>
+<p dir="auto"><strong>A by-value <code class="notranslate">std::string_view</code> follows ordinary const-correctness: <code class="notranslate">const</code> when you never<br>
+mutate the view, non-<code class="notranslate">const</code> only when you do.</strong> The characters it views are already <code class="notranslate">const</code>,<br>
+but the view itself is a normal local: <code class="notranslate">const</code> documents that you never reslice or reassign it,<br>
+and <code class="notranslate">misc-const-correctness</code> (enabled) flags a never-mutated view that is not <code class="notranslate">const</code>. Drop the<br>
+<code class="notranslate">const</code> exactly when you mutate the view in place - <code class="notranslate">remove_prefix</code>, <code class="notranslate">remove_suffix</code>, or<br>
+reassignment. (This concerns the view; not <code class="notranslate">std::string_view::size_type</code>, which is a <code class="notranslate">size_t</code>,<br>
+nor <code class="notranslate">absl::Span&lt;const std::string_view&gt;</code>, where <code class="notranslate">const</code> is the span's element type.)<br>
+<strong>Corollary: when a loop view needs trimming, iterate a mutable (non-<code class="notranslate">const</code>) by-value view and<br>
+mutate it in place - never <code class="notranslate">const</code> the loop view and then copy it to a mutable local just to<br>
+mutate the copy.</strong></p>
+</li>
+<li>
+<p dir="auto"><strong>This applies to LOCALS, never to PARAMETERS. A by-value parameter is never top-level<br>
+<code class="notranslate">const</code></strong> - not <code class="notranslate">std::string_view</code>, and not any other simple type (<code class="notranslate">int</code>, <code class="notranslate">bool</code>,<br>
+<code class="notranslate">std::size_t</code>, ...). The top-level <code class="notranslate">const</code> is invisible to callers (it is not part of the<br>
+function type, so it does not even change the signature), it is noise in every declaration,<br>
+and on a <code class="notranslate">std::string_view</code> it forbids exactly what the type is designed for: re-slicing the<br>
+parameter in place with <code class="notranslate">remove_prefix</code> / <code class="notranslate">remove_suffix</code> instead of copying it to a mutable<br>
+local first. The characters a view refers to are already <code class="notranslate">const</code>; the view itself is meant to<br>
+be movable over them.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">std::string <span class="pl-en">Write</span>(std::string_view name, std::string_view content);       <span class="pl-c"><span class="pl-c">//</span> yes</span>
+std::string <span class="pl-en">Write</span>(<span class="pl-k">const</span> std::string_view name, <span class="pl-k">const</span> std::string_view c); <span class="pl-c"><span class="pl-c">//</span> no: const by value</span></pre></div>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">const</span> std::string_view name = label.empty() ? id : label;      <span class="pl-c"><span class="pl-c">//</span> read-only: const</span>
+<span class="pl-k">for</span> (std::string_view line : absl::StrSplit(text, <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\n</span><span class="pl-pds">'</span></span>)) {      <span class="pl-c"><span class="pl-c">//</span> mutated: non-const, trim in place</span>
+  <span class="pl-k">if</span> (!line.<span class="pl-c1">empty</span>() &amp;&amp; line.<span class="pl-c1">back</span>() == <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\r</span><span class="pl-pds">'</span></span>) line.<span class="pl-c1">remove_suffix</span>(<span class="pl-c1">1</span>);
+}
+<span class="pl-k">for</span> (<span class="pl-k">const</span> std::string_view raw : absl::StrSplit(text, <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\n</span><span class="pl-pds">'</span></span>)) {  <span class="pl-c"><span class="pl-c">//</span> no: const + copy-to-mutate</span>
+  std::string_view line = raw;
+  <span class="pl-k">if</span> (!line.<span class="pl-c1">empty</span>() &amp;&amp; line.<span class="pl-c1">back</span>() == <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\r</span><span class="pl-pds">'</span></span>) line.<span class="pl-c1">remove_suffix</span>(<span class="pl-c1">1</span>);
+}</pre></div>
+</li>
+<li>
+<p dir="auto"><strong>Do not overload <code class="notranslate">const T*</code> to express "optional" or to conflate omission with value.</strong> A<br>
+raw pointer mixes nullability, the pointed-at value, and ownership/lifetime into one type<br>
+the caller has to second-guess. For an optional reference use<br>
+<code class="notranslate">std::optional&lt;std::reference_wrapper&lt;T&gt;&gt;</code> or, preferably, mbo's <code class="notranslate">mbo::types::OptionalRef&lt;T&gt;</code><br>
+(<code class="notranslate">mbo/types/optional_ref.h</code>) and its related types (e.g. <code class="notranslate">OptionalDataOrRef</code> when it may own<br>
+a value or refer to one).</p>
+</li>
+<li>
+<p dir="auto"><strong>Mark a return value <code class="notranslate">[[nodiscard]]</code></strong> when silently ignoring it is a bug - an<br>
+<code class="notranslate">absl::Status</code> / <code class="notranslate">StatusOr</code>, a parsed result, a <code class="notranslate">Consume...</code> "did it match?" flag, an acquired<br>
+handle. The exception is a function <em>designed</em> for its result to be optionally used: a builder<br>
+method returning <code class="notranslate">*this</code> for chaining, or a mutator that also returns the previous value as a<br>
+convenience. We disable <code class="notranslate">modernize-use-nodiscard</code> in <code class="notranslate">.clang-tidy</code> precisely because it would<br>
+blanket-annotate every const method - apply <code class="notranslate">[[nodiscard]]</code> by judgment instead.</p>
+</li>
+<li>
+<p dir="auto"><strong>switch / case</strong>: order case labels alphabetically. Where the cases are a uniform<br>
+mapping (key -&gt; handler or value), prefer a constexpr <code class="notranslate">mbo::container::LimitedMap</code><br>
+lookup over a switch.</p>
+</li>
+<li>
+<p dir="auto"><strong>No em-dashes</strong> anywhere (code, comments, docs, commit messages). Use a spaced<br>
+hyphen <code class="notranslate">-</code>.</p>
+</li>
+</ul>
+<h2 dir="auto" id="error-handling-abslstatus-and-the-mbo-status-macros">Error handling: <code class="notranslate">absl::Status</code> and the MBO status macros</h2>
+<h3 dir="auto" id="exception-policy">Exception policy</h3>
+<ul dir="auto">
+<li><strong>mbo's own builds are exception-free.</strong> The repository-wide Bazel configuration<br>
+compiles C++ with <code class="notranslate">-fno-exceptions</code>; production mbo code must not depend on<br>
+throwing or catching exceptions for its normal control flow. Use<br>
+<code class="notranslate">absl::Status</code> / <code class="notranslate">absl::StatusOr</code> and the status macros below for recoverable<br>
+errors. <code class="notranslate">MBO_CONFIG_REQUIRE</code> uses fatal logging in this build.</li>
+<li><strong>Public headers must remain compatible with exception-enabled consumers.</strong> A<br>
+downstream project may compile template code with exceptions enabled, and an<br>
+operation supplied by its type <code class="notranslate">T</code> may throw. Do not hide that behind an<br>
+unconditional <code class="notranslate">noexcept</code>: derive the exception specification from the invoked<br>
+construction, assignment, comparison, or callable operation. The mbo type must<br>
+retain a valid state while the exception propagates.</li>
+<li><strong>An exception-enabled test target is a narrow compatibility test.</strong> A test may<br>
+add <code class="notranslate">copts = ["-fexceptions"]</code> when it must execute a throwing user operation to<br>
+verify the public-header contract above. Record that reason next to the target;<br>
+do not enable exceptions for ordinary tests or use such a target as evidence<br>
+that mbo production code itself may throw.</li>
+<li><code class="notranslate">--//mbo/config:require_throws=true</code> selects the throwing<br>
+<code class="notranslate">MBO_CONFIG_REQUIRE</code> behavior only when the consuming compilation also enables<br>
+exceptions. With <code class="notranslate">-fno-exceptions</code>, requirements always use fatal logging.</li>
+</ul>
+<p dir="auto">Propagate errors with the macros from <code class="notranslate">mbo/status/status_macros.h</code><br>
+(<code class="notranslate">@mboworks_mbo//mbo/status:status_macros_cc</code>), not a hand-written<br>
+<code class="notranslate">if (!x.ok()) return x.status();</code>.</p>
+<ul dir="auto">
+<li><strong>A "value or error" type IS <code class="notranslate">absl::StatusOr&lt;T&gt;</code>.</strong> Do not hand-roll a struct that bundles<br>
+a value (or a <code class="notranslate">std::vector</code> / <code class="notranslate">std::optional</code>) with an <code class="notranslate">absl::Status</code> plus an "ok" flag:<br>
+<code class="notranslate">absl::StatusOr&lt;T&gt;</code> is exactly that, enforces the not-ok-has-no-value invariant by<br>
+construction, composes with the macros below, and matches every other API.</li>
+<li><strong><code class="notranslate">MBO_RETURN_IF_ERROR(expr)</code></strong> evaluates a <code class="notranslate">Status</code> or <code class="notranslate">StatusOr</code> and returns early if<br>
+it is not OK. It returns a <code class="notranslate">mbo::status::StatusBuilder</code>, which converts to the calling<br>
+function's <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StatusOr&lt;T&gt;</code>, so it works in both.</li>
+<li><strong><code class="notranslate">MBO_ASSIGN_OR_RETURN(Type var, expr)</code></strong> binds the value of a <code class="notranslate">StatusOr&lt;Type&gt;</code> to<br>
+<code class="notranslate">var</code> (a new declaration - carry the type - or an existing variable) or returns the<br>
+status. After it, <code class="notranslate">var</code> is the value (not a <code class="notranslate">StatusOr</code>); use <code class="notranslate">var</code>, not <code class="notranslate">*var</code>.</li>
+<li><strong><code class="notranslate">MBO_MOVE_TO_OR_RETURN(expr, target)</code></strong> is the variant whose target may contain commas;<br>
+the expression comes first so structured bindings work:<br>
+<code class="notranslate">MBO_MOVE_TO_OR_RETURN(MakePair(), auto [a, b]);</code>.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">absl::StatusOr&lt;Report&gt; <span class="pl-en">Build</span>(std::string_view path) {
+  <span class="pl-c1">MBO_ASSIGN_OR_RETURN</span>(<span class="pl-k">const</span> Config config, <span class="pl-c1">LoadConfig</span>(path));  <span class="pl-c"><span class="pl-c">//</span> value, or return status</span>
+  Report report = <span class="pl-c1">Analyze</span>(config);
+  <span class="pl-c1">MBO_RETURN_IF_ERROR</span>(<span class="pl-c1">Persist</span>(report));                         <span class="pl-c"><span class="pl-c">//</span> Status guard</span>
+  <span class="pl-k">return</span> report;
+}</pre></div>
+<ul dir="auto">
+<li>When you only need the guard but the <code class="notranslate">StatusOr</code> value is large and used later through<br>
+<code class="notranslate">*expr</code>, guard on the status to avoid copying the value: <code class="notranslate">MBO_RETURN_IF_ERROR(big.status());</code><br>
+then use <code class="notranslate">*big</code>.</li>
+<li><strong>Do not force the macros where they do not fit</strong>: a recovery branch (e.g.<br>
+<code class="notranslate">absl::IsNotFound(s)</code> -&gt; return a default value), a function that returns <code class="notranslate">bool</code>/<code class="notranslate">int</code><br>
+rather than a status, or a CLI path that prints a message and returns an exit code.</li>
+<li>Pass <code class="notranslate">absl::Status</code> by value (see Idioms).</li>
+</ul>
+<h2 dir="auto" id="output-logging-and-abslstringify">Output, logging, and <code class="notranslate">AbslStringify</code></h2>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>Never use C strings or <code class="notranslate">.c_str()</code></strong> except to satisfy a C / system API (e.g. building<br>
+<code class="notranslate">char* argv[]</code> for <code class="notranslate">execvp</code>); comment why at that one boundary. Keep <code class="notranslate">std::string</code> /<br>
+<code class="notranslate">std::string_view</code> end to end - the round-trip out to a <code class="notranslate">const char*</code> and back is<br>
+clutter, not interop.</p>
+</li>
+<li>
+<p dir="auto"><strong>Never write output through C stdio</strong> (<code class="notranslate">printf</code> / <code class="notranslate">fprintf</code> / <code class="notranslate">fputs</code> to the <code class="notranslate">stdout</code> /<br>
+<code class="notranslate">stderr</code> <code class="notranslate">FILE*</code>). Use the C++ streams <code class="notranslate">std::cout</code> / <code class="notranslate">std::cerr</code> (or the logging library).<br>
+The anti-pattern to delete on sight: <code class="notranslate">std::fputs(absl::StrCat(...).c_str(), stderr)</code>.</p>
+</li>
+<li>
+<p dir="auto">Format with Abseil: <code class="notranslate">absl::StrCat</code> for plain concatenation, <code class="notranslate">absl::StrFormat</code> for a<br>
+formatted string, and <strong><code class="notranslate">absl::StreamFormat</code> to write a formatted line straight to a<br>
+stream with no temporary</strong>: <code class="notranslate">std::cerr &lt;&lt; absl::StreamFormat("wrote %d entries\n", n);</code>.<br>
+A plain <code class="notranslate">&lt;&lt;</code> is fine for a simple string. Choose per line, but <strong>be consistent within a<br>
+single function</strong> (do not mix a <code class="notranslate">StreamFormat</code> and a <code class="notranslate">&lt;&lt;</code> chain in the same function).</p>
+</li>
+<li>
+<p dir="auto"><strong>Make your types printable with <code class="notranslate">AbslStringify</code>, not a hand-rolled <code class="notranslate">operator&lt;&lt;</code> /<br>
+<code class="notranslate">ToString</code>.</strong> Abseil's string-conversion extension point is a hidden-friend hook:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">struct</span> <span class="pl-en">Point</span> {
+  <span class="pl-k">int</span> x = <span class="pl-c1">0</span>;
+  <span class="pl-k">int</span> y = <span class="pl-c1">0</span>;
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> Sink&gt;
+  <span class="pl-k">friend</span> <span class="pl-k">void</span> <span class="pl-en">AbslStringify</span>(Sink&amp; sink, <span class="pl-k">const</span> Point&amp; p) {
+    <span class="pl-c1">absl::Format</span>(&amp;sink, <span class="pl-s"><span class="pl-pds">"</span>(%d, %d)<span class="pl-pds">"</span></span>, p.<span class="pl-smi">x</span>, p.<span class="pl-smi">y</span>);
+  }
+};</pre></div>
+<p dir="auto">One hook makes the type work with <code class="notranslate">absl::StrCat</code>, <code class="notranslate">absl::StrFormat</code> / <code class="notranslate">StreamFormat</code><br>
+<code class="notranslate">%v</code>, <code class="notranslate">absl::StrJoin</code>, and Abseil logging - and gives GoogleTest readable failure output.<br>
+<code class="notranslate">absl::Status</code> / <code class="notranslate">StatusOr</code> already stringify; print them with <code class="notranslate">%v</code>.</p>
+</li>
+</ul>
+<h2 dir="auto" id="concurrency-and-thread-safety">Concurrency and thread safety</h2>
+<p dir="auto">These are the baseline for any multi-threaded code, not extra credit; threading bugs are<br>
+silent and data-dependent, so the annotations and the sanitizer are the standing guard.<br>
+Most of this repo is single-threaded today, so this section is the standard to apply <em>when<br>
+you add</em> multi-threaded code, not a description of current breadth.</p>
+<ul dir="auto">
+<li><strong>Use <code class="notranslate">absl::Mutex</code> + <code class="notranslate">absl::MutexLock</code></strong>, not <code class="notranslate">std::mutex</code> / <code class="notranslate">std::lock_guard</code> or<br>
+atomics-as-synchronization. Construct the lock from a reference: <code class="notranslate">absl::MutexLock lock(mu_);</code><br>
+(the pointer constructor is deprecated).</li>
+<li><strong>Annotate everything</strong> (<code class="notranslate">absl/base/thread_annotations.h</code>): <code class="notranslate">ABSL_GUARDED_BY(mu_)</code> on<br>
+every member the mutex protects, and <code class="notranslate">ABSL_LOCKS_EXCLUDED</code> /<br>
+<code class="notranslate">ABSL_EXCLUSIVE_LOCKS_REQUIRED</code> on methods. A comment must state <strong>exactly which members a<br>
+given mutex guards</strong>, and call out any shared state deliberately left unguarded together<br>
+with the invariant that keeps it safe (e.g. "each index is handed to exactly one worker,<br>
+so distinct elements never alias").</li>
+<li><strong>If a type has more than one mutex, document their lock-acquisition order</strong> (which is<br>
+taken before which) so the ordering that prevents deadlock is explicit.</li>
+<li><strong>Enforce the annotations</strong>: compile first-party code with clang's <code class="notranslate">-Wthread-safety</code><br>
+(with <code class="notranslate">-Werror</code> an unguarded access becomes a build failure), and add a<br>
+<strong>ThreadSanitizer CI job</strong> that runs the threaded tests so races are also caught at<br>
+runtime. Scope the tsan job to the threaded targets; exclude heavy third-party-linked<br>
+ones so tsan does not rebuild them.</li>
+</ul>
+<h2 dir="auto" id="protocol-buffers">Protocol Buffers</h2>
+<ul dir="auto">
+<li><strong>Generated repeated fields and maps are STL-compatible - range-iterate them</strong>, do not<br>
+index with <code class="notranslate">field_size()</code> + <code class="notranslate">field(i)</code>. <code class="notranslate">field_size()</code> is still fine for <code class="notranslate">reserve()</code> and<br>
+<code class="notranslate">== 0</code> emptiness checks; compare two repeated fields with <code class="notranslate">absl::c_equal</code>.</li>
+<li><strong>Edition 2024</strong>: string accessors default to <code class="notranslate">string_type = VIEW</code> and return<br>
+<code class="notranslate">std::string_view</code> (so the by-value-<code class="notranslate">string_view</code> rule applies to them); singular fields<br>
+have <strong>explicit presence</strong> by default, so <code class="notranslate">set_x(0)</code> serializes a <code class="notranslate">0</code>. To mean "absent",<br>
+leave the field unset (never call its setter) rather than setting the default.</li>
+<li><strong>Build test protos from text, not setters</strong>:<br>
+<code class="notranslate">mbo::proto::ParseTextProtoOrDie(R"pb(field: 1 nested { k: "v" })pb")</code><br>
+(<code class="notranslate">@mboworks_proto//mbo/proto:parse_text_proto_cc</code>). The <code class="notranslate">R"pb(...)pb"</code> raw string is what<br>
+clang-format leaves alone, so the proto stays readable. Do not imperatively <code class="notranslate">set_</code> / <code class="notranslate">add_</code><br>
+your way to a fixture.</li>
+<li><strong>Assert on protos structurally</strong> with <code class="notranslate">mbo::proto::EqualsProto</code><br>
+(<code class="notranslate">@mboworks_proto//mbo/proto:matchers_cc</code>), which also accepts a text-proto string:<br>
+<code class="notranslate">EXPECT_THAT(msg, EqualsProto(R"pb(field: 1)pb"));</code>. Match a subset with<br>
+<code class="notranslate">Partially(EqualsProto(...))</code>. Never compare serialized strings.</li>
+</ul>
+<h2 dir="auto" id="testing-googletest--googlemock">Testing (GoogleTest / GoogleMock)</h2>
+<p dir="auto">All exported code must be tested, at every level (unit, integration, and end-to-end where<br>
+it applies). A one-shot manual check or a script you ran once is planning input, never a<br>
+substitute for a committed test. Tests use GoogleTest + GoogleMock with these conventions.</p>
+<h3 dir="auto" id="structure">Structure</h3>
+<ul dir="auto">
+<li><strong>Always <code class="notranslate">TEST_F</code> with a fixture</strong>, never a bare <code class="notranslate">TEST</code>. Even an empty<br>
+<code class="notranslate">struct FooTest : ::testing::Test {};</code> is preferred, so shared setup has a home.</li>
+<li>One behaviour per test; name the test for the behaviour it asserts.</li>
+</ul>
+<h3 dir="auto" id="bazel-test-sizing">Bazel test sizing</h3>
+<ul dir="auto">
+<li>Every direct Bazel test rule declares <code class="notranslate">size</code> explicitly so scheduling and timeout<br>
+expectations are reviewable. Project test macros may provide a documented default.</li>
+<li>Use <code class="notranslate">size = "small"</code> for quick unit, golden-file, CLI smoke, fuzz-regression, and<br>
+digest-verification tests. Reserve <code class="notranslate">medium</code> or larger sizes for measured runtime needs;<br>
+do not leave a fast test in Bazel's implicit <code class="notranslate">medium</code> class.</li>
+<li><code class="notranslate">tools/check_test_sizes.py</code> enforces the direct-rule declaration mechanically.</li>
+</ul>
+<h3 dir="auto" id="assertions-gmock-matchers-never-comparison-macros">Assertions: gmock matchers, never comparison macros</h3>
+<ul dir="auto">
+<li>
+<p dir="auto">Assert with <strong><code class="notranslate">EXPECT_THAT</code> / <code class="notranslate">ASSERT_THAT</code> + a matcher</strong>, never a GoogleTest comparison macro.<br>
+The prohibited suffixes are <code class="notranslate">EQ</code>, <code class="notranslate">NE</code>, <code class="notranslate">LT</code>, <code class="notranslate">LE</code>, <code class="notranslate">GT</code>, <code class="notranslate">GE</code>, <code class="notranslate">STREQ</code>, <code class="notranslate">STRNE</code>, <code class="notranslate">STRCASEEQ</code>,<br>
+<code class="notranslate">STRCASENE</code>, <code class="notranslate">FLOAT_EQ</code>, <code class="notranslate">DOUBLE_EQ</code>, and <code class="notranslate">NEAR</code>, in both their <code class="notranslate">EXPECT_</code> and <code class="notranslate">ASSERT_</code> forms.<br>
+Matchers compose and give far better failure messages. <strong>There are no exceptions, including string,<br>
+floating-point, and multi-line text comparisons.</strong> The accepted exception is the boolean<br>
+<code class="notranslate">EXPECT_TRUE</code> / <code class="notranslate">EXPECT_FALSE</code> (and <code class="notranslate">ASSERT_TRUE</code> / <code class="notranslate">ASSERT_FALSE</code>), which read fine on their own.<br>
+Within a single test keep one style - do not mix, say, <code class="notranslate">EXPECT_TRUE(x)</code> and<br>
+<code class="notranslate">EXPECT_THAT(y, IsTrue())</code>.</p>
+</li>
+<li>
+<p dir="auto"><strong>Name matchers unqualified - never the <code class="notranslate">::testing::</code> prefix inline.</strong> Bring each matcher in with<br>
+a <code class="notranslate">using ::testing::Foo;</code> (or <code class="notranslate">using ::mbo::testing::Foo;</code>) in the test file's anonymous namespace<br>
+and use the bare name in the <code class="notranslate">EXPECT_THAT</code> / <code class="notranslate">ASSERT_THAT</code> expression; a <code class="notranslate">::testing::Foo(...)</code><br>
+written inline in an assertion is the smell to fix by adding the <code class="notranslate">using</code>. (Fixture utilities such<br>
+as <code class="notranslate">::testing::Test</code> / <code class="notranslate">::testing::TempDir</code> are not matchers and keep their qualification.)</p>
+</li>
+<li>
+<p dir="auto"><strong><code class="notranslate">Eq</code> is optional - a readability choice, not a rule.</strong> <code class="notranslate">EXPECT_THAT(x, value)</code> auto-wraps a<br>
+bare value in <code class="notranslate">Eq</code>, so both forms compile. The value of <code class="notranslate">EXPECT_THAT</code> is that the line reads as<br>
+a sentence - <code class="notranslate">EXPECT_THAT(foo, Eq(25))</code> is "expect that foo equals 25" - so keep <code class="notranslate">Eq</code> where it<br>
+makes the assertion read that way, and drop it where the value already carries the meaning<br>
+(<code class="notranslate">EXPECT_THAT(name, "foo")</code>). Inside composite matchers prefer bare elements<br>
+(<code class="notranslate">ElementsAre(1, 2, 3)</code>); <code class="notranslate">Optional</code> / <code class="notranslate">Pointee</code> are the exception and need the inner <code class="notranslate">Eq</code> (see<br>
+below). Strings sometimes need <code class="notranslate">StrEq</code> (e.g. a <code class="notranslate">char*</code> subject, where bare <code class="notranslate">Eq</code> compares<br>
+pointers). For booleans, <code class="notranslate">IsTrue()</code> / <code class="notranslate">IsFalse()</code> usually read better than a bare <code class="notranslate">true</code> /<br>
+<code class="notranslate">false</code> or <code class="notranslate">Eq(true)</code>: <code class="notranslate">EXPECT_THAT(found, IsTrue())</code>.</p>
+</li>
+<li>
+<p dir="auto"><strong>Multi-line text: <code class="notranslate">mbo::testing::EqualsText</code>, not <code class="notranslate">EXPECT_EQ</code>.</strong> For a multi-line string<br>
+(a rendered table, generated <code class="notranslate">--help</code>, file contents) prefer<br>
+<code class="notranslate">EXPECT_THAT(actual, EqualsText(golden))</code> (<code class="notranslate">//mbo/testing:matchers_cc</code>): it compares line by line<br>
+with unified-diff output, so a mismatch points at the offending line instead of dumping the whole<br>
+blob. Text comparison was the last plausible reason to use <code class="notranslate">EXPECT_EQ</code> / <code class="notranslate">ASSERT_EQ</code>; <code class="notranslate">EqualsText</code><br>
+removes that reason. For non-line-oriented strings use <code class="notranslate">EXPECT_THAT(actual, expected)</code> or <code class="notranslate">StrEq</code><br>
+when the subject is a C string.</p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>Write the golden as a <code class="notranslate">DropIndent</code>-filtered raw string, not concatenated <code class="notranslate">"...\n"</code> literals.</strong><br>
+<code class="notranslate">clang-format</code> shoves adjacent string literals hard against the <code class="notranslate">EqualsText(</code> bracket (aligned to<br>
+the open paren, often at column ~35), which is unreadable and drifts with the call length. Instead<br>
+write the expected block as an indented raw string and strip the source indent with<br>
+<code class="notranslate">WithDropIndent</code>, which <code class="notranslate">clang-format</code> leaves untouched:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">using</span> ::mbo::testing::EqualsText;
+<span class="pl-k">using</span> ::mbo::testing::WithDropIndent;
+<span class="pl-c1">EXPECT_THAT</span>(RenderTable(Format::<span class="pl-c1">kAligned</span>, header, rows), WithDropIndent(EqualsText(<span class="pl-s"><span class="pl-pds">R"out(</span></span>
+<span class="pl-s">    name    size</span>
+<span class="pl-s">    ------  ----</span>
+<span class="pl-s">    a.txt   3</span>
+<span class="pl-s">    <span class="pl-pds">)out"</span></span>)));</pre></div>
+<p dir="auto"><code class="notranslate">mbo::strings::DropIndent</code> (which <code class="notranslate">WithDropIndent</code> applies to the <strong>expected</strong> text only) drops the<br>
+empty first line after <code class="notranslate">R"out(</code>, strips the first content line's indent from every line, and clears<br>
+a whitespace-only last line - so the block reads as the literal expected output. The subject stays<br>
+as-is; only de-indent it too (<code class="notranslate">EXPECT_THAT(DropIndent(actual), WithDropIndent(EqualsText(golden)))</code>,<br>
+<code class="notranslate">//mbo/strings:indent_cc</code>) when the actual is itself an indented literal. Use any raw delimiter<br>
+(<code class="notranslate">R"out(</code>, <code class="notranslate">R"md(</code>); a raw string also needs no <code class="notranslate">\n</code> / <code class="notranslate">\\</code> escaping.</p>
+</li>
+<li>
+<p dir="auto"><strong>Caveat - trailing whitespace.</strong> A raw-string golden cannot carry significant <em>trailing</em> spaces on<br>
+a line: the <code class="notranslate">trim trailing whitespace</code> pre-commit hook strips them, silently changing the golden. If<br>
+the expected output has meaningful trailing whitespace (e.g. right-padded columns), fall back to the<br>
+concatenated-literal form for that case and accept the paren alignment.</p>
+</li>
+<li>
+<p dir="auto"><code class="notranslate">DropIndentAndSplit</code> returns the de-indented lines as a <code class="notranslate">std::vector&lt;std::string_view&gt;</code> for when you<br>
+would rather match them with <code class="notranslate">ElementsAre</code>.</p>
+</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>Floats / doubles</strong>: never <code class="notranslate">Eq</code> / <code class="notranslate">==</code>; use <code class="notranslate">FloatEq</code> / <code class="notranslate">DoubleEq</code> (or <code class="notranslate">Near</code>).</p>
+</li>
+<li>
+<p dir="auto"><strong>Optionals</strong>: <code class="notranslate">EXPECT_THAT(opt, Eq(std::nullopt))</code> for empty, <code class="notranslate">Optional(...)</code> for a<br>
+value. Nested matchers do <strong>not</strong> auto-wrap: <code class="notranslate">Optional(Eq("x"))</code> and <code class="notranslate">Pointee(Eq("x"))</code><br>
+need the explicit inner <code class="notranslate">Eq</code> (a bare value fails to compile there).</p>
+</li>
+<li>
+<p dir="auto"><strong>Containers</strong>: <code class="notranslate">ElementsAre(...)</code> / <code class="notranslate">UnorderedElementsAre(...)</code> / <code class="notranslate">SizeIs(n)</code> /<br>
+<code class="notranslate">IsEmpty()</code> cover size + order + contents in one matcher, instead of an<br>
+<code class="notranslate">ASSERT_EQ(v.size(), n)</code> followed by indexed <code class="notranslate">EXPECT_EQ</code>s. <code class="notranslate">ElementsAre</code> auto-wraps<br>
+each bare element in <code class="notranslate">Eq</code>.</p>
+<ul dir="auto">
+<li><strong>For a longer matcher list, prefer <code class="notranslate">ElementsAreArray({m1, ..., mN,})</code> with a<br>
+trailing comma over <code class="notranslate">ElementsAre(m1, ..., mN)</code>.</strong> <code class="notranslate">ElementsAre</code> is variadic, so<br>
+clang-format bin-packs it into an unreadable run; <code class="notranslate">ElementsAreArray</code> takes a<br>
+braced init-list, so the manual trailing comma opts it into one-matcher-per-line<br>
+(the same trailing-comma lever as any aggregate, see the Formatting section).<br>
+A short list that reads on one line stays <code class="notranslate">ElementsAre</code>.</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>Size and emptiness: match the container, never extract then match.</strong> Use<br>
+<code class="notranslate">SizeIs</code> / <code class="notranslate">IsEmpty</code> on the container itself, not <code class="notranslate">.size()</code> / <code class="notranslate">.empty()</code> fed to a<br>
+scalar matcher or <code class="notranslate">EXPECT_TRUE</code> - the matcher form prints the container on failure<br>
+while the extracted form throws it away. So:</p>
+<ul dir="auto">
+<li><code class="notranslate">EXPECT_THAT(v, SizeIs(3))</code>, not <code class="notranslate">EXPECT_THAT(v.size(), 3)</code> / <code class="notranslate">EXPECT_EQ(v.size(), 3)</code>.</li>
+<li><code class="notranslate">SizeIs</code> composes with a matcher for bounds: <code class="notranslate">EXPECT_THAT(v, SizeIs(Le(90)))</code>,<br>
+not <code class="notranslate">EXPECT_THAT(v.size(), Le(90))</code>.</li>
+<li><code class="notranslate">EXPECT_THAT(v, IsEmpty())</code> / <code class="notranslate">EXPECT_THAT(v, Not(IsEmpty()))</code>, not<br>
+<code class="notranslate">EXPECT_TRUE(v.empty())</code> / <code class="notranslate">EXPECT_FALSE(v.empty())</code> (this is the one place a<br>
+<code class="notranslate">.empty()</code> boolean should still become a matcher).</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>Struct elements</strong>: fold per-field checks into the element matcher with the<br>
+<strong>3-arg, named</strong> <code class="notranslate">Field("member", &amp;T::member, m)</code> + <code class="notranslate">AllOf</code>, ideally via a small<br>
+<code class="notranslate">testing::Matcher&lt;T&gt; FooIs(...)</code> helper, so a mismatch names the field rather than<br>
+reporting "whose given field is...".</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">testing::Matcher&lt;ResolvedFlag&gt; <span class="pl-en">FlagIs</span>(<span class="pl-k">const</span> std::string&amp; flag, Source source) {
+  <span class="pl-k">return</span> <span class="pl-c1">AllOf</span>(<span class="pl-c1">Field</span>(<span class="pl-s"><span class="pl-pds">"</span>flag<span class="pl-pds">"</span></span>, &amp;ResolvedFlag::flag, flag), <span class="pl-c1">Field</span>(<span class="pl-s"><span class="pl-pds">"</span>source<span class="pl-pds">"</span></span>, &amp;ResolvedFlag::source, source));
+}
+<span class="pl-c1">EXPECT_THAT</span>(Resolve(in), ElementsAre(FlagIs(<span class="pl-s"><span class="pl-pds">"</span>--color<span class="pl-pds">"</span></span>, Source::<span class="pl-c1">kUser</span>), FlagIs(<span class="pl-s"><span class="pl-pds">"</span>--sort<span class="pl-pds">"</span></span>, Source::<span class="pl-c1">kUser</span>)));</pre></div>
+</li>
+</ul>
+<h3 dir="auto" id="status-matchers-mbotesting">Status matchers (<code class="notranslate">mbo/testing</code>)</h3>
+<ul dir="auto">
+<li><code class="notranslate">EXPECT_THAT(status_or, mbo::testing::IsOk())</code>, or<br>
+<code class="notranslate">StatusIs(absl::StatusCode::kInvalidArgument)</code> to match a specific code.</li>
+<li><strong><code class="notranslate">IsOkAndHolds(m)</code></strong> matches an OK <code class="notranslate">StatusOr</code> whose value matches <code class="notranslate">m</code> - prefer it over<br>
+<code class="notranslate">IsOk()</code> followed by dereferencing: <code class="notranslate">EXPECT_THAT(Parse(in), IsOkAndHolds(SizeIs(3)))</code>.</li>
+<li>Do not <code class="notranslate">ASSERT_THAT(value, IsOk())</code> and then dereference the same <code class="notranslate">StatusOr</code>; bind it once with<br>
+<code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN</code>, or use <code class="notranslate">IsOkAndHolds</code> when it is inspected only once.</li>
+<li><code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN(const auto value, MakeThing())</code> asserts OK and binds in one step.</li>
+<li><code class="notranslate">MBO_ASSERT_OK_AND_MOVE_TO(MakePair(), auto [a, b])</code> is the move variant whose target may<br>
+contain commas (so the expression comes first) - the test mirror of <code class="notranslate">MBO_MOVE_TO_OR_RETURN</code>,<br>
+for structured bindings and move-only types.</li>
+</ul>
+<h3 dir="auto" id="protocol-buffer-fixtures-and-matchers">Protocol-buffer fixtures and matchers</h3>
+<p dir="auto">Build proto test data with <code class="notranslate">mbo::proto::ParseTextProtoOrDie(R"pb(...)pb")</code> and assert with<br>
+<code class="notranslate">mbo::proto::EqualsProto</code> / <code class="notranslate">Partially(EqualsProto(...))</code> - never imperative setters or<br>
+serialized-string comparison. See the Protocol Buffers section.</p>
+<h3 dir="auto" id="shell--binary-level-tests">Shell / binary-level tests</h3>
+<ul dir="auto">
+<li>Use <strong>mboworks/bashtest</strong> (<code class="notranslate">bazel_dep(name = "mboworks_bashtest")</code>), not a hand-rolled<br>
+<code class="notranslate">sh_test</code>: <code class="notranslate">load("@mboworks_bashtest//bashtest:bashtest.bzl", "bashtest")</code>, then a<br>
+script that <code class="notranslate">source</code>s <code class="notranslate">"${mboworks_bashtest}"</code>, defines <code class="notranslate">test::name()</code> functions using<br>
+the <code class="notranslate">expect_*</code> assertions, and ends with <code class="notranslate">test_runner</code>.</li>
+<li><strong>Assert on captured output with bashtest's content matchers (&gt;= 0.5.0), never a<br>
+hand-rolled <code class="notranslate">grep</code>.</strong> <code class="notranslate">expect_output_contains</code> / <code class="notranslate">expect_output_not_contains</code> for a<br>
+literal substring; <code class="notranslate">expect_matches</code> / <code class="notranslate">expect_not_matches</code> for an ERE. They take the<br>
+pattern / substring <strong>first</strong> and the text <strong>second</strong>, and match via bash's built-in<br>
+<code class="notranslate">[[ =~ ]]</code> (no subprocess), so - unlike <code class="notranslate">printf ... | grep -qE</code> - they cannot misfire<br>
+on SIGPIPE under <code class="notranslate">set -o pipefail</code>. <code class="notranslate">expect_eq</code> / <code class="notranslate">expect_ne</code> stay for scalar checks<br>
+(exit codes, counts); <code class="notranslate">expect_contains</code> / <code class="notranslate">expect_not_contains</code> are <strong>array</strong>-membership,<br>
+not substring. Do not reintroduce a <code class="notranslate">_has</code>-style <code class="notranslate">grep -q</code> wrapper.
+<ul dir="auto">
+<li><strong>Anchoring caveat:</strong> <code class="notranslate">expect_matches</code> matches the <strong>whole</strong> text, so <code class="notranslate">^</code> / <code class="notranslate">$</code> anchor<br>
+the whole output, not a line (unlike <code class="notranslate">grep</code>). For a per-line anchor use a real newline:<br>
+<code class="notranslate">NL=$'\n'</code>, then <code class="notranslate">(^|${NL})X</code> for a line start and <code class="notranslate">X($|${NL})</code> for a line end (<code class="notranslate">\n</code> is<br>
+not a portable ERE escape, so embed the newline via <code class="notranslate">${NL}</code>).</li>
+</ul>
+</li>
+<li><strong>For a whole-output-per-case golden, prefer a golden-file test over scraping.</strong> When a<br>
+test wants to lock an entire rendered output (not just probe for substrings), commit one<br>
+expected-output file per case and diff against it with <code class="notranslate">diff_test</code><br>
+(<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/diff/diff.bzl"><code class="notranslate">//mbo/diff:diff.bzl</code></a>), which fails printing the offending diff.<br>
+This is the output analogue of <code class="notranslate">EqualsText</code> for C++ and reads far better than a pile of<br>
+<code class="notranslate">expect_output_contains</code> probes.</li>
+<li>It runs under macOS bash 3.2: <strong>no <code class="notranslate">mapfile</code> / <code class="notranslate">readarray</code></strong> or other bash-4 features.<br>
+Read lines with <code class="notranslate">while IFS= read -r line; do arr+=("$line"); done &lt;&lt;&lt; "$out"</code>.</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

@@ -1,0 +1,529 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TODO.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="project-todo">Project TODO</h1>
+<p dir="auto">This file is the single source of truth for repository fixes and improvements.<br>
+Each change is implemented and reviewed in its own pull request. An item is<br>
+checked in the pull request that completes it, so merging that pull request<br>
+also updates this file to the completed state.</p>
+<h2 dir="auto" id="correctness">Correctness</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">Required&lt;T&gt;</code> replacement and generic operations correct.
+<ul dir="auto">
+<li>Construct replacement values before destroying the current value so a<br>
+throwing user constructor leaves the wrapper unchanged.</li>
+<li>Require non-throwing relocation for replacement without assignment or<br>
+nullable storage.</li>
+<li>Fix hashing and heterogeneous wrapper comparison when instantiated.</li>
+<li>Derive comparison exception specifications from the wrapped operation.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/362" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/362/hovercard">#362</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">NoDestruct&lt;T&gt;</code> construction and customizations correct.
+<ul dir="auto">
+<li>Derive constructor exception specifications from construction of <code class="notranslate">T</code>.</li>
+<li>Hash and stringify the stored value rather than the backing union.</li>
+<li>Remove the redundant self-reference and its pointer-sized overhead.</li>
+<li>Instantiate customizations and throwing construction in tests.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/363" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/363/hovercard">#363</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Let allocating <code class="notranslate">Json</code> operations propagate failures.
+<ul dir="auto">
+<li>Remove unconditional <code class="notranslate">noexcept</code> from generic and string construction.</li>
+<li>Remove unconditional <code class="notranslate">noexcept</code> from object property access that may<br>
+allocate or invoke the configured throwing requirement handler.</li>
+<li>Exercise a throwing consumer string conversion in an exception-enabled<br>
+compatibility test.</li>
+<li>Keep runtime struct metadata initialization non-throwing by using guarded<br>
+indexing instead of a redundant throwing bounds check.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/364" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/364/hovercard">#364</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make mutable <code class="notranslate">Json::at(property)</code> lookup-only.
+<ul dir="auto">
+<li>Preserve insertion semantics in <code class="notranslate">operator[]</code>.</li>
+<li>Require <code class="notranslate">at()</code> properties to exist for both mutable and const objects.</li>
+<li>Verify missing lookup fails without changing the object.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/365" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/365/hovercard">#365</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">OptionalDataOrRef</code> lifetime and exception handling safe.
+<ul dir="auto">
+<li>Preserve its null, owned-data, and borrowed-reference states with automatic<br>
+lifetime management.</li>
+<li>Handle self-move and return <code class="notranslate">*this</code> from null assignment.</li>
+<li>Use operation-dependent exception specifications and leave a valid empty<br>
+state after failed replacement construction.</li>
+<li>Cover all state transitions, aliasing, and throwing construction.</li>
+<li>Document mbo's exception-free builds and exception-enabled public-header<br>
+compatibility contract.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/359" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/359/hovercard">#359</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make single- and double-quote parsing options independent.
+<ul dir="auto">
+<li>Honor each quote-enable option without coupling it to the other.</li>
+<li>Treat disabled quote characters as ordinary unquoted input.</li>
+<li>Cover all four option combinations with separator-sensitive assertions.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/349" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/349/hovercard">#349</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Correct hexadecimal escape parsing for alphabetic digits.
+<ul dir="auto">
+<li>Map lowercase and uppercase <code class="notranslate">A</code>-<code class="notranslate">F</code> to values 10-15.</li>
+<li>Cover mixed-case, C++23 braced, byte-boundary, and overflow inputs.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/347" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/347/hovercard">#347</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix undefined behavior in <code class="notranslate">mbo/json/json.h</code> iterator assignment.
+<ul dir="auto">
+<li>Replace placement construction over live iterator objects with ordinary<br>
+variant assignment and default same-type special members where possible.</li>
+<li>Cover copy, move, mutable-to-const, self, array, and object assignments.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/326" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/326/hovercard">#326</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Reject truncated glob ranges without accessing an empty pattern.
+<ul dir="auto">
+<li>Cover <code class="notranslate">[</code>, <code class="notranslate">[-</code>, <code class="notranslate">[a-</code>, negative ranges, and trailing escapes.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/327" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/327/hovercard">#327</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix main-branch cache cleanup prefix matching.
+<ul dir="auto">
+<li>Pass the prefix to <code class="notranslate">jq</code> without relying on expansion inside single quotes.</li>
+<li>Add a regression test with representative cache keys.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/328" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/328/hovercard">#328</a>.</li>
+</ul>
+</li>
+</ul>
+<h2 dir="auto" id="api-additions">API additions</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">mbo::StringOrView</code>, a read-only owning-or-borrowing string wrapper.
+<ul dir="auto">
+<li>Add <code class="notranslate">mbo/types/string_or_view.h</code> with default-empty, owning <code class="notranslate">std::string</code>,<br>
+borrowing <code class="notranslate">std::string_view</code>, and borrowing string-literal construction.<br>
+Avoid ambiguous or accidentally unsafe runtime <code class="notranslate">const char*</code> construction.</li>
+<li>Preserve ownership and represented text across copy and move construction<br>
+and assignment. Owning copies must be independent; borrowed copies must<br>
+retain the same view; moves must be nothrow where promised.</li>
+<li>Expose only <code class="notranslate">view()</code> and <code class="notranslate">owns_string()</code> as the core read-only API, and<br>
+explicitly document that borrowed storage must outlive the wrapper.</li>
+<li>Add comparison against <code class="notranslate">StringOrView</code>, <code class="notranslate">std::string_view</code>, <code class="notranslate">std::string</code>,<br>
+and literals, operating solely on <code class="notranslate">view()</code>, plus <code class="notranslate">AbslStringify</code> support<br>
+consistent with comparable mbo value wrappers.</li>
+<li>Add a conventionally named Bazel <code class="notranslate">cc_library</code> and same-package test target,<br>
+exporting the short name as <code class="notranslate">mbo::StringOrView</code> even though the header is<br>
+under <code class="notranslate">mbo/types/</code>.</li>
+<li>Cover default and distinctly owned/borrowed empty values, lvalue copies,<br>
+rvalue moves, pointer preservation for borrowed copies, independent owned<br>
+copies, copy/move assignment for both representations, embedded NUL bytes,<br>
+comparisons, stringification, compile-time empty/non-empty literals, and<br>
+promised type traits.</li>
+<li>Keep the representation suitable for a future shared immutable ownership<br>
+option if measurements justify it, but do not implement copy-on-write now.</li>
+<li>Motivation: let downstream xff field rendering return computed owned text<br>
+or stable registry/context/database views without forcing allocation. A<br>
+later xff dependency-update PR can replace its local <code class="notranslate">FieldValue</code> after an<br>
+mbo release contains this type.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/377" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/377/hovercard">#377</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Complete the read-only string interface and ecosystem integration for<br>
+<code class="notranslate">mbo::StringOrView</code>.
+<ul dir="auto">
+<li>Provide the full non-mutating <code class="notranslate">std::string_view</code>-style surface, including<br>
+element access, iterators, size/capacity queries, copying, substrings,<br>
+comparisons, search, and prefix/suffix/containment queries.</li>
+<li>Preserve the ownership model: operations must not expose mutable storage or<br>
+make a borrowed value appear owned, and returned views retain the documented<br>
+lifetime constraints.</li>
+<li>Integrate with Abseil formatting and hashing through <code class="notranslate">AbslStringify</code> and<br>
+<code class="notranslate">AbslHashValue</code>.</li>
+<li>Integrate with standard-library text output, formatting, and hashing where<br>
+the supported C++ versions provide the necessary customization points.</li>
+<li>Test parity against <code class="notranslate">std::string_view</code>, embedded NUL handling, heterogeneous<br>
+formatting and hashing, constexpr use, and owned versus borrowed values.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/378" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/378/hovercard">#378</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> Provide compiler-independent aggregate field names for <code class="notranslate">Stringify</code>.
+<ul dir="auto">
+<li>Preserve the existing <code class="notranslate">MboTypesStringifyFieldNames</code> extension point while<br>
+making automatic field-name discovery work with supported GCC builds as<br>
+well as Clang.</li>
+<li>Evaluate GCC-specific facilities and well-defined compile-time extraction<br>
+techniques; switching this feature to C++23 or newer is acceptable, but the<br>
+selected language mode alone must not be mistaken for a standard reflection<br>
+facility.</li>
+<li>Define explicit behavior for unsupported compilers and aggregates whose<br>
+names cannot be discovered; never silently produce different output solely<br>
+because CI selected another supported compiler.</li>
+<li>Verify identical C++, JSON, nested-aggregate, and explicit-name-override<br>
+output under the supported Clang and GCC configurations.</li>
+</ul>
+</li>
+</ul>
+<h2 dir="auto" id="file-api-robustness-and-portability">File API robustness and portability</h2>
+<ul class="contains-task-list">
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add strict INI parsing with line-numbered diagnostics.</p>
+</li>
+<li>
+<p dir="auto">Make file reads reject malformed group headers, missing separators, empty<br>
+keys, and duplicate keys.</p>
+</li>
+<li>
+<p dir="auto">Preserve the historical behavior behind an explicit permissive API and a<br>
+compatibility <code class="notranslate">Parse()</code> spelling.</p>
+</li>
+<li>
+<p dir="auto">Define full-line comments and retain comment characters within values.</p>
+</li>
+<li>
+<p dir="auto">PR: <a href="https://github.com/mboworks/mbo/pull/370" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/370/hovercard">#370</a>.</p>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Provide the canonical fast, locale-independent, RE2-native GLOB and<br>
+SHGLOB implementation for mbo and xff.</p>
+<ul dir="auto">
+<li>Implement the complete contract and acceptance criteria in<br>
+<a href="mbo/file/README.html"><code class="notranslate">mbo/file/README.md</code></a> in this single PR.</li>
+<li>Keep component wildcards and bracket expressions within one path component,<br>
+and make complete-component <code class="notranslate">**</code> match zero or more directory levels.</li>
+<li>Expose the translator publicly so xff can replace its parallel parser in one<br>
+follow-up dependency-update PR without losing GLOB, SHGLOB, or gitignore<br>
+behavior.</li>
+<li>Prove the adoption path with a local xff override and its complete test suite.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/371" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/371/hovercard">#371</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">GetContents</code> handle failed seeks and non-seekable inputs safely.</p>
+<ul dir="auto">
+<li>Check <code class="notranslate">seekg</code>/<code class="notranslate">tellg</code> before converting the size.</li>
+<li>Read in binary mode so byte counts remain consistent across platforms.</li>
+<li>Add failure-path tests where practical.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/329" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/329/hovercard">#329</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">GetMaxLines</code> distinguish EOF from an I/O failure.</p>
+<ul dir="auto">
+<li>Return an error when the underlying read fails.</li>
+<li>Add regression coverage.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/330" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/330/hovercard">#330</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">NormalizePath</code> portable across native path character types.</p>
+<ul dir="auto">
+<li>Avoid constructing <code class="notranslate">std::string_view</code> directly from <code class="notranslate">path.c_str()</code>.</li>
+<li>Add or document Windows-oriented behavior and tests.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/331" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/331/hovercard">#331</a>.</li>
+</ul>
+</li>
+</ul>
+<h2 dir="auto" id="build-ci-and-release-engineering">Build, CI, and release engineering</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Preserve review and branch protection for release version bumps.
+<ul dir="auto">
+<li>Never approve the script's own pull request or use an admin merge.</li>
+<li>Enable ordinary auto-merge and leave maintainer approval explicit.</li>
+<li>Protect the exact <code class="notranslate">gh</code> command sequence with a fake-client integration<br>
+test.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/367" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/367/hovercard">#367</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Publish only the requested release tag.
+<ul dir="auto">
+<li>Detect an existing version with an exact ref lookup rather than substring<br>
+matching.</li>
+<li>Push only the newly created tag instead of every local tag.</li>
+<li>Cover exact lookup and selective publication with temporary repositories.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/366" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/366/hovercard">#366</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Cover header-only and compilation-rule changes with clang-tidy.
+<ul dir="auto">
+<li>Keep changed translation-unit runs focused.</li>
+<li>Promote project header, generated-header template, and <code class="notranslate">.bzl</code> changes to a<br>
+full first-party translation-unit sweep.</li>
+<li>Derive that sweep from the compilation database and test scope selection.</li>
+<li>Describe the local and CI checks consistently as enforcing gates.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/368" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/368/hovercard">#368</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make Bazel test scheduling classes explicit and proportional.
+<ul dir="auto">
+<li>Mark quick unit, CLI, golden-file, fuzz-regression, and digest-verification<br>
+tests <code class="notranslate">small</code> while retaining <code class="notranslate">medium</code> for the measured long-running hash suite.</li>
+<li>Give project test macros a documented <code class="notranslate">small</code> default.</li>
+<li>Enforce explicit sizing on direct test rules in pre-commit.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/376" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/376/hovercard">#376</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Avoid an unnecessary Bazel configuration switch while generating the<br>
+clang-tidy compilation database.
+<ul dir="auto">
+<li>Build the extractor with the same <code class="notranslate">clang-tidy</code> configuration used by its<br>
+internal analysis query and the preceding CI build.</li>
+<li>Retain the extractor's intentional feature-only transition, which disables<br>
+parameter files, layering checks, and header-parsing actions for <code class="notranslate">aquery</code>.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/354" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/354/hovercard">#354</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Update the compile-command extractor to deduplicate exec actions before source probing.
+<ul dir="auto">
+<li>Avoid misleading missing-generated-source warnings on cold-cache clang-tidy runs.</li>
+<li>Preserve exec-only generated sources while preferring equivalent target-configuration actions.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/352" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/352/hovercard">#352</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Reduce external dependency warning noise in default builds.
+<ul dir="auto">
+<li>Treat external headers consistently as system headers or apply narrowly<br>
+scoped external-warning suppression.</li>
+<li>Verify project warnings remain errors.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/332" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/332/hovercard">#332</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Document the repository's GitHub Actions versioning policy.
+<ul dir="auto">
+<li>Prefer readable version references and require a documented reason for any<br>
+commit-SHA pin.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/333" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/333/hovercard">#333</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Cancel validation runs superseded by a newer commit.
+<ul dir="auto">
+<li>Use one concurrency group per pull request or ref.</li>
+<li>Preserve every <code class="notranslate">main</code> and release run as a durable integration record.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/374" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/374/hovercard">#374</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Validate changes in pull-request context, including contributions from forks.
+<ul dir="auto">
+<li>Run branch validation for pull requests and pushes to <code class="notranslate">main</code>, avoiding a<br>
+duplicate full matrix for same-repository pull requests.</li>
+<li>Preserve stable pull-request coverage destinations without relying on the<br>
+synthetic merge commit's API association.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/372" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/372/hovercard">#372</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Give every GitHub Actions workflow only the token permissions it needs.
+<ul dir="auto">
+<li>Replace blanket <code class="notranslate">read-all</code> grants with explicit read scopes.</li>
+<li>Default the privileged coverage publisher to no access and retain its<br>
+narrow job-level publishing permissions.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/373" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/373/hovercard">#373</a>.</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Replace <code class="notranslate">mktemp -u</code> in release preparation with a safely created<br>
+temporary resource and cleanup trap.
+<ul dir="auto">
+<li>Exercise the release archive preparation path locally.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/334" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/334/hovercard">#334</a>.</li>
+</ul>
+</li>
+</ul>
+<h2 dir="auto" id="documentation-and-quality-coverage">Documentation and quality coverage</h2>
+<ul class="contains-task-list">
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Raise line-coverage policy to a 90% minimum and 95% high target.</p>
+<ul dir="auto">
+<li>Enforce the high rating for lines while retaining medium enforcement for<br>
+functions and branches.</li>
+<li>Exercise the remaining <code class="notranslate">mbo/types</code> branch alternatives so the module meets<br>
+the 82% branch target without exclusions.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/382" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/382/hovercard">#382</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Keep every persisted GitHub Actions cache below 500 MiB.</p>
+<ul dir="auto">
+<li>Stop persisting Bazel's repository cache between jobs; retain it only for<br>
+reuse within a job.</li>
+<li>Measure each remaining Bazel disk cache before saving and skip the upload<br>
+when its size is at or above the limit.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/382" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/382/hovercard">#382</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Raise <code class="notranslate">mbo/types</code> branch coverage to at least 86%.</p>
+<ul dir="auto">
+<li>Exercise meaningful branch alternatives directly without production-code changes or coverage<br>
+exclusions.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/383" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/383/hovercard">#383</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Enforce the measured coverage baseline in CI.</p>
+<ul dir="auto">
+<li>Reject per-category line, function, or branch regressions exceeding the<br>
+policy-defined tolerance while retaining the absolute and changed-code gates.</li>
+<li>Apply changed-code thresholds only when the patch contains coverable data<br>
+for that metric; do not fail or label an absent metric as <code class="notranslate">NO DATA</code>.</li>
+<li>Record the measurement scope in the baseline so policy scope changes require<br>
+an explicit, reviewed regeneration.</li>
+<li>Keep baseline updates as a deliberate <code class="notranslate">--write-baseline</code> operation.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/369" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/369/hovercard">#369</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Enforce spelling in C and C++ sources as well as Markdown.</p>
+<ul dir="auto">
+<li>Use pre-commit file-type classification rather than a duplicated extension<br>
+expression.</li>
+<li>Correct existing public-comment findings instead of adding broad ignores.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/375" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/375/hovercard">#375</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Unify coverage ratings, enforcement, and presentation, adopting the<br>
+applicable final state of<br>
+<a href="https://github.com/mboworks/xff/pull/639" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/639/hovercard">xff PR #639</a>,<br>
+<a href="https://github.com/mboworks/xff/pull/641" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/641/hovercard">xff PR #641</a>, and<br>
+<a href="https://github.com/mboworks/xff/pull/642" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/642/hovercard">xff PR #642</a>.</p>
+<ul dir="auto">
+<li>Derive the low, medium, and high presentation bands and the independently<br>
+selected enforced rating from one validated policy model.</li>
+<li>Preserve justified per-category exceptions and expose every effective<br>
+policy, reason, and changed-line policy in the published JSON.</li>
+<li>Apply metric-specific colours to the detailed LCOV report and render its<br>
+global policy matrix below the report details.</li>
+<li>Render the compact report as a dense, colour-backed measurement and policy<br>
+matrix with explicit <code class="notranslate">GOOD</code>, <code class="notranslate">OK</code>, and <code class="notranslate">BAD</code> states and JSON links.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/361" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/361/hovercard">#361</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">coverage_policy.json</code> the single source of truth for enforcement<br>
+and LCOV presentation, adopting the applicable final state of<br>
+<a href="https://github.com/mboworks/xff/pull/631" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/631/hovercard">xff PR #631</a>,<br>
+<a href="https://github.com/mboworks/xff/pull/633" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/633/hovercard">xff PR #633</a>, and the<br>
+coverage-related changes from<br>
+<a href="https://github.com/mboworks/xff/pull/634" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/634/hovercard">xff PR #634</a> and<br>
+<a href="https://github.com/mboworks/xff/pull/636" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/636/hovercard">xff PR #636</a>.</p>
+<ul dir="auto">
+<li>Define explicit per-metric enforcement minima and health targets, and<br>
+generate <code class="notranslate">genhtml</code>'s medium and high limits from them. Equal minimum and<br>
+target values must form one pass/fail boundary without a yellow band.</li>
+<li>Pin a verified modern LCOV release that honors metric-specific thresholds,<br>
+accepting only the documented GCC/LLVM producer inconsistencies.</li>
+<li>Replace the generic <code class="notranslate">genhtml</code> legend with a policy-derived, metric-specific<br>
+legend below the summary table. Add depth-independent navigation from every<br>
+LCOV page to the report overview and retained-report index. Keep the compact<br>
+report enforcement-only: values at or above the minimum are <code class="notranslate">OK</code>, and values<br>
+below it fail.</li>
+<li>Use the generated configuration throughout the reusable main, PR, and<br>
+release coverage path, with validation and unit tests for generation, HTML<br>
+augmentation, status rendering, and every metric.</li>
+<li>Keep category floors and health targets inherited and composable so an<br>
+exception names only the metrics it changes.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/360" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/360/hovercard">#360</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Exercise the hash-internal runtime utilities directly (<a href="https://github.com/mboworks/mbo/pull/356" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/356/hovercard">PR #356</a>).</p>
+<ul dir="auto">
+<li>Cover every supported length for <code class="notranslate">LoadTail</code> and <code class="notranslate">LoadSmall</code> with<br>
+volatile-derived runtime inputs.</li>
+<li>Verify both lanes and the folded result of the 128-bit multiplication helpers.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Adopt the shared MBO Works contributor and agent guidance, C++ and shell<br>
+styles, and machine-enforceable style checks.</p>
+<ul dir="auto">
+<li>Adapt the final xff policy set through PR #612 to mbo's human-led workflow.</li>
+<li>Keep project-specific conventions and omit xff-specific CLI rules.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/350" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/350/hovercard">#350</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Publish durable, indexed coverage reports for main, pull requests, and releases.</p>
+<ul dir="auto">
+<li>Group the detailed LCOV tree by the same module categories as the policy report.</li>
+<li>Retain source/run metadata and prevent stale workflow completions from replacing newer reports.</li>
+<li>Provide a browsable index with report source, completion time, commit, workflow run, and metrics.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/351" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/351/hovercard">#351</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Correct existing README and contributing-guide spelling errors and add a<br>
+lightweight documentation spell-checking hook.</p>
+<ul dir="auto">
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/335" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/335/hovercard">#335</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add fuzz targets for glob conversion, string parsing, INI parsing, diff<br>
+inputs/options, and digest checksum-file parsing.</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Glob conversion. PR: <a href="https://github.com/mboworks/mbo/pull/336" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/336/hovercard">#336</a>.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> String parsing. PR: <a href="https://github.com/mboworks/mbo/pull/337" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/337/hovercard">#337</a>.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> INI parsing. PR: <a href="https://github.com/mboworks/mbo/pull/338" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/338/hovercard">#338</a>.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Diff inputs/options. PR: <a href="https://github.com/mboworks/mbo/pull/339" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/339/hovercard">#339</a>.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Digest checksum-file parsing. PR: <a href="https://github.com/mboworks/mbo/pull/340" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/340/hovercard">#340</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add explicit UBSan coverage alongside ASan in CI.</p>
+<ul dir="auto">
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/341" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/341/hovercard">#341</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add coverage reporting focused on uninstantiated templates and malformed<br>
+input branches.</p>
+<ul dir="auto">
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/343" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/343/hovercard">#343</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">mbo/testing</code> meet the general function-coverage minimum.</p>
+<ul dir="auto">
+<li>Count the behaviorally covered <code class="notranslate">CapacityIs</code> description bodies once rather<br>
+than once for every compiler-generated container specialization.</li>
+<li>Remove the category-specific function-coverage override.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/353" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/353/hovercard">#353</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">mbo/types</code> meet the general branch-coverage minimum.</p>
+<ul dir="auto">
+<li>Exclude compiler-expanded branch pairs for the behaviorally covered<br>
+<code class="notranslate">tstring</code> search fold expressions.</li>
+<li>Remove the category-specific branch-coverage override.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/355" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/355/hovercard">#355</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">mbo/hash</code> meet the general branch-coverage minimum.</p>
+<ul dir="auto">
+<li>Directly test the hash-internal runtime utilities before excluding GCC's<br>
+duplicated records for compile-time and non-native-endian alternatives.</li>
+<li>Remove the category-specific branch-coverage override.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/357" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/357/hovercard">#357</a>.</li>
+</ul>
+</li>
+<li class="task-list-item">
+<p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Make <code class="notranslate">mbo/log</code> meet the general function-coverage minimum.</p>
+<ul dir="auto">
+<li>Count behaviorally identical template and generic-lambda specializations<br>
+once per source definition.</li>
+<li>Exclude only quick-exit functions whose process cannot flush coverage data.</li>
+<li>Remove the category-specific function-coverage override.</li>
+<li>PR: <a href="https://github.com/mboworks/mbo/pull/358" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/358/hovercard">#358</a>.</li>
+</ul>
+</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

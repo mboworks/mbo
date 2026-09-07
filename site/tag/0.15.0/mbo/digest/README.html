@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/digest/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbodigest---message-digests">mbo/digest - message digests</h1>
+<p dir="auto">Spec-based, fast, constexpr-compatible, Apache-licensed, no-nonsense message<br>
+digest implementations - the digest counterpart of <a href="../hash/README.html">mbo/hash</a>.</p>
+<p dir="auto">Scope: this library is cryptographic <strong>message digests and MACs</strong> (below). Fast<br>
+hash-table hashing (the <code class="notranslate">GetHash64</code> / <code class="notranslate">Hasher</code> API) lives in<br>
+<a href="../hash/README.html">mbo/hash</a> - and so does <strong>SipHash</strong>, the keyed,<br>
+hash-flooding-resistant PRF: a keyed hash-table hash is not a message digest,<br>
+even though <code class="notranslate">Hmac</code> here is keyed too.</p>
+<h2 dir="auto" id="what-this-library-is">What this library is</h2>
+<ul dir="auto">
+<li><strong>Spec-frozen algorithms, transcribed from their specifications</strong> and pinned<br>
+against independently generated reference vectors (FIPS/RFC examples plus<br>
+padding-boundary and million-byte inputs). Implemented: SHA-224/256,<br>
+SHA-384/512, SHA-512/224, SHA-512/256 (FIPS 180-4), SHA3-224/256/384/512<br>
+(FIPS 202), BLAKE2b (RFC 7693), <code class="notranslate">Hmac&lt;Algo&gt;</code> over any of them (RFC 2104),<br>
+BLAKE3 (XOF, keyed, and derive-key modes; pinned against the official<br>
+test-vector suite), SHAKE128/256 (FIPS 202 XOFs), and SHA-1 + MD5 for<br>
+legacy interop (both loudly marked collision-broken).</li>
+<li><strong>constexpr-safe</strong>: every digest computable at compile time and at run time<br>
+with identical results.</li>
+<li><strong>Apache-2.0, hermetic, verifiable</strong>: original transcriptions with upstream<br>
+attribution where due (see the repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>); reproducible builds;<br>
+no vendored binaries, no live-at-head dependencies.</li>
+</ul>
+<h2 dir="auto" id="why-not-depend-on-a-crypto-library-boringssl-et-al">Why not depend on a crypto library (BoringSSL et al.)</h2>
+<p dir="auto">Digests are pure, spec-frozen functions - they cannot rot, and their<br>
+correctness is mechanically checkable against official vectors. A crypto<br>
+library dependency buys nothing here and costs a lot: BoringSSL is explicitly<br>
+"not intended for general use", unversioned, live-at-head, and has a history<br>
+of non-reproducible release archives - an unverifiable supply chain for<br>
+exactly the code that most needs verifying. We implement the functions<br>
+in-repo, verify them against the published vectors, and ship them under one<br>
+license with one <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a> file.</p>
+<h2 dir="auto" id="the-digest-binary">The <code class="notranslate">digest</code> binary</h2>
+<p dir="auto"><code class="notranslate">bazel run //mbo/digest:digest -- [-a &lt;algorithm&gt;] &lt;file&gt;...</code> prints<br>
+checksum-style <code class="notranslate">&lt;hash&gt;  &lt;file&gt;</code> lines (the <code class="notranslate">sha256sum</code>/<code class="notranslate">shasum</code> format;<br>
+<code class="notranslate">--reverse</code> swaps the columns, <code class="notranslate">-d</code>/<code class="notranslate">--ignore_directories</code> silently skips<br>
+directories, <code class="notranslate">-</code> reads stdin). <code class="notranslate">-c</code>/<code class="notranslate">--check</code> verifies checksum files instead<br>
+(OK/FAILED per listed file, coreutils-interchangeable in both directions;<br>
+companions <code class="notranslate">--quiet</code>, <code class="notranslate">--status</code>, <code class="notranslate">--ignore_missing</code>, <code class="notranslate">--strict</code>). All<br>
+library algorithms are selectable; see <code class="notranslate">--help</code>.</p>
+<h2 dir="auto" id="honest-guidance-per-algorithm">Honest guidance per algorithm</h2>
+<ul dir="auto">
+<li><strong>MD5</strong>: ubiquitous legacy file checksum. Fine for detecting <em>accidental</em><br>
+corruption; <strong>collision-broken against adversaries</strong> (two colliding files<br>
+cost seconds) - never use it where untrusted parties influence content.</li>
+<li><strong>SHA-1</strong>: collision-broken (SHAttered); legacy interop only.</li>
+<li><strong>SHA-2 / SHA-3 / BLAKE</strong>: current-generation; use SHA-256 for adversarial<br>
+integrity, BLAKE3/XXH128 (the latter in <a href="../hash/README.html">mbo/hash</a>) for fast file identity.</li>
+</ul>
+<h2 dir="auto" id="what-this-library-will-never-be">What this library will never be</h2>
+<p dir="auto">AEAD ciphers, signatures, key exchange, RNGs, TLS - actual cryptography with<br>
+keys and side channels - are <strong>permanent non-goals</strong>. That work needs<br>
+maintained implementations and constant-time expertise; a constexpr AES would<br>
+be a footgun. This library is deliberately named <em>digest</em>, not <em>crypto</em>.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

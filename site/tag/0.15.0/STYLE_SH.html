@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>STYLE_SH.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="shell-style">Shell style</h1>
+<p dir="auto">Follow the <a href="https://google.github.io/styleguide/shellguide.html" rel="nofollow">Google Shell Style Guide</a> unless<br>
+this document or repository tooling says otherwise.</p>
+<h2 dir="auto" id="tooling">Tooling</h2>
+<ul dir="auto">
+<li>Use Bash. Executable scripts start with <code class="notranslate">#!/usr/bin/env bash</code>, then the licence header.</li>
+<li>Format with <code class="notranslate">shfmt -bn -ci -i=2 -w</code>; run <code class="notranslate">shellcheck</code> and explain necessary local suppressions.</li>
+<li>Use <code class="notranslate">set -euo pipefail</code>, quote expansions unless splitting is intentional, and make function<br>
+variables <code class="notranslate">local</code>.</li>
+</ul>
+<p dir="auto">The formatter and linter versions are pinned in <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/.pre-commit-config.yaml"><code class="notranslate">.pre-commit-config.yaml</code></a>.</p>
+<h2 dir="auto" id="functions-return-values-they-do-not-mutate-callers">Functions return values; they do not mutate callers</h2>
+<p dir="auto">A function does not return a result by changing a caller variable, global counter, working<br>
+directory, shell option, or trap. Write the result to standard output and capture it:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate"><span class="pl-en">make_tree</span>() {
+  <span class="pl-k">local</span> root
+  root=<span class="pl-s"><span class="pl-pds">"</span><span class="pl-s"><span class="pl-pds">$(</span>test_tmpdir tree<span class="pl-pds">)</span></span><span class="pl-pds">"</span></span>
+  mkdir -p <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">${root}</span>/src<span class="pl-pds">"</span></span>
+  <span class="pl-c1">echo</span> <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">${root}</span><span class="pl-pds">"</span></span>
+}
+
+root=<span class="pl-s"><span class="pl-pds">"</span><span class="pl-s"><span class="pl-pds">$(</span>make_tree<span class="pl-pds">)</span></span><span class="pl-pds">"</span></span></pre></div>
+<p dir="auto">Do not use <code class="notranslate">printf -v</code>, <code class="notranslate">eval</code>, or global counters as hidden return channels. A function whose<br>
+purpose is an external effect may perform that named effect; keep it local and explicit. Send<br>
+diagnostics to standard error.</p>
+<h2 dir="auto" id="tests-and-temporary-files">Tests and temporary files</h2>
+<ul dir="auto">
+<li>Shell tests use <code class="notranslate">mboworks_bashtest</code> and its expectation helpers.</li>
+<li>Put test-owned files below <code class="notranslate">${BASHTEST_TMPDIR}</code>. Do not add cleanup traps or <code class="notranslate">rm -rf</code> calls.</li>
+<li>Allocate retained fixtures with <code class="notranslate">test_tmpdir name</code>; use <code class="notranslate">${TEST_TMPDIR}</code> only when a tool<br>
+specifically requires Bazel's target-level directory.</li>
+<li>Use bashtest content expectations instead of hand-written <code class="notranslate">grep</code> assertions.</li>
+</ul>
+<h2 dir="auto" id="portability">Portability</h2>
+<ul dir="auto">
+<li>Target the Bash available on supported macOS and Linux CI runners.</li>
+<li>Resolve Bazel runfiles through <code class="notranslate">${TEST_SRCDIR}</code> and <code class="notranslate">${TEST_WORKSPACE}</code>.</li>
+<li>Prefer <code class="notranslate">[[ ... ]]</code>, arithmetic <code class="notranslate">(( ... ))</code>, and arrays over legacy tests and stringly argument<br>
+assembly.</li>
+<li>Use lower-case names for local variables and functions. Preserve environment and runfile names.</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

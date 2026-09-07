@@ -1,0 +1,657 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbo-a-c23-library">MBO, a C++23 library</h1>
+<p dir="auto">This C++23 library provides some general useful building blocks and integrates<br>
+with <a href="https://abseil.io/" rel="nofollow">Google's Abseil library</a>.</p>
+<p dir="auto">The library is tested with Clang (22+) and GCC (14+) on Ubuntu and MacOS (arm) using continuous integration: <a href="https://github.com/mboworks/mbo/actions/workflows/main.yml"><img src="assets/ce733292a922c08274cf5a2096f8fa4cf01023bfa51a36ef6beecaaef371a9d9.svg" alt="Test" style="max-width: 100%;"></a>.</p>
+<h2 dir="auto" id="library-organization">Library organization</h2>
+<p dir="auto">The C++ library is organized in functional groups each residing in their own directory:</p>
+<ul dir="auto">
+<li>Config
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::config</code></li>
+<li>mbo/config:config_cc, mbo/config/config.h
+<ul dir="auto">
+<li>Custom Bazel flag <code class="notranslate">--//mbo/config:limited_ordered_max_unroll_capacity</code> which controls the maximum unroll size for <code class="notranslate">LimitedOrdered</code> and thus <code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code>.</li>
+<li>Custom Bazel flag <code class="notranslate">--//mbo/config:require_throws</code> which controls whether <code class="notranslate">MBO_CONFIG_REQUIRE</code> throws exceptions or uses crash logging (the default <code class="notranslate">False</code> or <code class="notranslate">0</code>). The repository itself compiles with <code class="notranslate">-fno-exceptions</code>, where requirements always use crash logging; throwing behavior is available to consumers that enable exceptions. This mostly affects containers.</li>
+</ul>
+</li>
+<li>mbo/config:require_cc, mbo/config/require.h
+<ul dir="auto">
+<li>Macro <code class="notranslate">MBO_CONFIG_REQUIRE(condition, message)</code> which checks a <code class="notranslate">condition</code> and either throws an exception or crashes with Abseil FATAL logging. Throwing requires both <code class="notranslate">--//mbo/config:require_throws=true</code> and an exception-enabled consumer build.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Container
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::container</code></li>
+<li>mbo/container:any_scan_cc, mbo/container/any_scan.h
+<ul dir="auto">
+<li>class <code class="notranslate">AnyScan</code>: A container type independent iteration view - or scan over the container.</li>
+<li>class <code class="notranslate">ConstScan</code>: A container type independent iteration view for const value_types.</li>
+<li>class <code class="notranslate">ConvertingScan</code>: A container scanner that allows for conversions.</li>
+<li>function <code class="notranslate">MakeAnyScan</code>: Helper function to create <code class="notranslate">AnyScan</code> instances.</li>
+<li>function <code class="notranslate">MakeConstScan</code>: Helper function to create <code class="notranslate">ConstScan</code> instances.</li>
+<li>function <code class="notranslate">MakeConvertingScan</code>: Helper function to create <code class="notranslate">ConvertingScan</code> instances.</li>
+</ul>
+</li>
+<li>mbo/container:convert_container_cc, mbo/container/convert_container.h
+<ul dir="auto">
+<li>conversion struct <code class="notranslate">ConvertContainer</code> simplifies copying containers to value convertible containers.</li>
+</ul>
+</li>
+<li>mbo/container:limited_map_cc, mbo/container/limited_map.h
+<ul dir="auto">
+<li>class <code class="notranslate">LimitedMap</code>: A space limited, constexpr compliant <code class="notranslate">map</code>.</li>
+</ul>
+</li>
+<li>mbo/container:limited_options_cc, mbo/container/limited_options.h
+<ul dir="auto">
+<li>class <code class="notranslate">LimitedOptions</code>: A compile time configuration option for <code class="notranslate">LimitedSet</code> and <code class="notranslate">LimitedMap</code>.</li>
+</ul>
+</li>
+<li>mbo/container:limited_set_cc, mbo/container/limited_set.h
+<ul dir="auto">
+<li>class <code class="notranslate">LimitedSet</code>: A space limited, constexpr compliant <code class="notranslate">set</code>.</li>
+</ul>
+</li>
+<li>mbo/container:limited_vector_cc, mbo/container/limited_vector.h
+<ul dir="auto">
+<li>class <code class="notranslate">LimitedVector</code>: A space limited, constexpr compliant <code class="notranslate">vector</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Diff
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::diff</code> - library docs: <a href="mbo/diff/README.html">mbo/diff/README.md</a></li>
+<li>mbo/diff:diff_cc, mbo/diff/diff.h
+<ul dir="auto">
+<li>class <code class="notranslate">Diff</code>: A class that implements line based diffing in unified, context, normal or side-by-side output format (<code class="notranslate">DiffOptions::output_format</code>), using the Myers minimal diff algorithm by default (<code class="notranslate">DiffOptions::algorithm</code> also offers <code class="notranslate">naive</code> and <code class="notranslate">direct</code>).</li>
+</ul>
+</li>
+<li>mbo/diff
+<ul dir="auto">
+<li>binary <code class="notranslate">diff</code>: A binary that diffs two files; defaults to unified format, <code class="notranslate">--format</code> selects <code class="notranslate">unified</code>, <code class="notranslate">context</code>, <code class="notranslate">normal</code> or <code class="notranslate">side-by-side</code> (<code class="notranslate">--width</code>), <code class="notranslate">--algorithm</code> selects <code class="notranslate">myers</code> (default), <code class="notranslate">naive</code> or <code class="notranslate">direct</code>; <code class="notranslate">--minimal</code> guarantees minimal <code class="notranslate">myers</code> diffs.</li>
+</ul>
+</li>
+<li>mbo/diff:diff_bzl, mbo/diff/diff.bzl
+<ul dir="auto">
+<li>bzl-macro <code class="notranslate">diff_test</code>: A test rule that compares an output versus a golden file.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Digest
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::digest</code> - principles and library docs: <a href="mbo/digest/README.html">mbo/digest/README.md</a></li>
+<li>mbo/digest:digest_cc, mbo/digest/digest.h
+<ul dir="auto">
+<li>function <code class="notranslate">&lt;algo&gt;::Digest(std::string_view)</code>: constexpr-safe, spec-transcribed, vector-pinned message digests; one namespace per algorithm: <code class="notranslate">sha224</code>/<code class="notranslate">sha256</code>/<code class="notranslate">sha384</code>/<code class="notranslate">sha512</code>/<code class="notranslate">sha512_224</code>/<code class="notranslate">sha512_256</code> (FIPS 180-4), <code class="notranslate">sha3_224</code>/<code class="notranslate">sha3_256</code>/<code class="notranslate">sha3_384</code>/<code class="notranslate">sha3_512</code> (FIPS 202), <code class="notranslate">blake2b</code>/<code class="notranslate">blake2b_256</code> (RFC 7693), <code class="notranslate">blake3</code>, and <code class="notranslate">sha1</code>/<code class="notranslate">md5</code> (legacy interop only; <strong>collision-broken</strong>).</li>
+<li>function <code class="notranslate">shake128::Digest&lt;N&gt;</code> / <code class="notranslate">shake256::Digest&lt;N&gt;</code>: the FIPS 202 XOFs - any output length (<code class="notranslate">Algorithm&lt;N&gt;</code> for a fixed size; different lengths share their prefix).</li>
+<li>function <code class="notranslate">blake3::DigestXof&lt;N&gt;</code> / <code class="notranslate">blake3::DigestKeyed</code> / <code class="notranslate">blake3::DeriveKey&lt;N&gt;</code>: BLAKE3's XOF, keyed, and KDF modes (official-test-vector pinned).</li>
+<li>function <code class="notranslate">blake2b::Algorithm::DigestKeyed</code> / <code class="notranslate">StreamInitKeyed</code>: BLAKE2b native keying (RFC 7693; keys up to 64 bytes) - BLAKE2 is its own MAC.</li>
+<li>concept <code class="notranslate">IsDigestAlgorithm</code> / <code class="notranslate">HasStreaming</code>: the algorithm plug-in contract (per-algorithm <code class="notranslate">Algorithm</code> structs).</li>
+<li>class <code class="notranslate">Streamer&lt;Algo&gt;</code>: incremental digesting (<code class="notranslate">Update(...).Update(...).Finalize()</code>; peekable finalize), guaranteed equal to the one-shot value.</li>
+<li>struct <code class="notranslate">Hmac&lt;Algo&gt;</code> / class <code class="notranslate">HmacStreamer&lt;Algo&gt;</code>: HMAC (RFC 2104) over any streaming digest (HMAC-SHA3 uses rate-sized blocks per NIST).</li>
+<li>function <code class="notranslate">ToHexString(digest)</code>: lowercase hex, matching <code class="notranslate">hexdigest()</code>/<code class="notranslate">sha256sum</code> presentation.</li>
+</ul>
+</li>
+<li>mbo/digest
+<ul dir="auto">
+<li>binary <code class="notranslate">digest</code>: checksum-style CLI, byte-compatible with <code class="notranslate">sha256sum</code>/<code class="notranslate">shasum</code> output; <code class="notranslate">-a</code>/<code class="notranslate">--algorithm</code> selects any library algorithm, <code class="notranslate">-c</code>/<code class="notranslate">--check</code> verifies checksum files (coreutils-interchangeable; <code class="notranslate">--quiet</code>, <code class="notranslate">--status</code>, <code class="notranslate">--ignore_missing</code>, <code class="notranslate">--strict</code>), <code class="notranslate">--reverse</code> swaps the columns, <code class="notranslate">--cwd</code> changes directory before processing, <code class="notranslate">-d</code>/<code class="notranslate">--ignore_directories</code> skips directories, and <code class="notranslate">-</code> reads stdin.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Files
+<ul dir="auto">
+<li>Library docs: <a href="mbo/file/README.html">mbo/file/README.md</a></li>
+<li><code class="notranslate">namespace mbo::file</code></li>
+<li>mbo/file:artefact_cc, mbo/file/artefact.h
+<ul dir="auto">
+<li>struct <code class="notranslate">Artefact</code>: Holds information about a file (its data content, name, and modified time).</li>
+</ul>
+</li>
+<li>mbo/file:file_cc, mbo/file/file.h
+<ul dir="auto">
+<li>function <code class="notranslate">GetContents</code>: Reads a file and returns its contents or an absl::Status error.</li>
+<li>function <code class="notranslate">GetMTime</code>: Returns the last update/modified time of a file or an absl::Status error.</li>
+<li>function <code class="notranslate">GetMaxLines</code>: Reads at most given number of text lines from a file or returns absl::Status error.</li>
+<li>function <code class="notranslate">IsAbsolutePath</code>: Returns whether a given path is absolute.</li>
+<li>function <code class="notranslate">JoinPaths</code>: Join multiple path elements.</li>
+<li>function <code class="notranslate">JoinPathsRespectAbsolute</code>: Join multiple path elements respecting absolute path elements.</li>
+<li>function <code class="notranslate">NormalizePath</code>: Normalizes a path.</li>
+<li>function <code class="notranslate">Readable</code>: Returns whether a file is readable or an absl::Status error.</li>
+<li>function <code class="notranslate">SetContents</code>: Writes contents to a file.</li>
+</ul>
+</li>
+<li>mbo/file:glob_cc, mbo/file/glob.h
+<ul dir="auto">
+<li>enum <code class="notranslate">GlobSyntax</code>: Selects literal GLOB braces or nested SHGLOB alternatives and sequences.</li>
+<li>struct <code class="notranslate">Glob2Re2Options</code>: Controls conversion of a <a href="https://man7.org/linux/man-pages/man7/glob.7.html" rel="nofollow">glob pattern</a> into a <a href="https://github.com/google/re2/wiki/Syntax">RE2 pattern</a>, including complete-component <code class="notranslate">**</code>, bracket expressions, and GLOB/SHGLOB syntax.</li>
+<li>struct <code class="notranslate">GlobEntry</code>: Stores data for a single globbed entry (file, dir, etc.).</li>
+<li>struct <code class="notranslate">GlobOptions</code>: Controls recursive filesystem traversal and path presentation.</li>
+<li>enum <code class="notranslate">GlobEntryAction</code>: Allows GlobEntryFunc to control further glob progression.</li>
+<li>type <code class="notranslate">GlobEntryFunc</code>: Callback for acceptable glob entries.</li>
+<li>function <code class="notranslate">Glob2Re2Expression</code>: Translates a locale-independent GLOB or SHGLOB pattern into an RE2 expression.</li>
+<li>function <code class="notranslate">Glob2Re2</code>: Translates and compiles a GLOB or SHGLOB pattern as RE2.</li>
+<li>function <code class="notranslate">GlobRe2</code>: Performs recursive glob functionality using a RE2 pattern.</li>
+<li>function <code class="notranslate">Glob</code>: Performs recursive glob functionality using the selected GLOB or SHGLOB syntax.</li>
+<li>function <code class="notranslate">GlobSplit</code>: Splits a pattern into root and pattern parts.</li>
+<li>program <code class="notranslate">glob</code>: A recursive glob, see <code class="notranslate">glob --help</code>.</li>
+</ul>
+</li>
+<li>mbo/file/ini:ini_file_cc, mbo/file/ini/ini_file.h
+<ul dir="auto">
+<li>class <code class="notranslate">IniFile</code>: A simple INI file reader.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Hash
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::hash</code> - principles and library docs: <a href="mbo/hash/README.html">mbo/hash/README.md</a></li>
+<li>mbo/hash:hash_cc, mbo/hash/hash.h
+<ul dir="auto">
+<li>function <code class="notranslate">GetHash64&lt;Algo&gt;(std::string_view, seed)</code> / <code class="notranslate">GetHash128&lt;Algo&gt;(std::string_view, seed)</code>: A constexpr-safe, non-cryptographic hash; the algorithms default to the in-house mumbo/jumbo family (<code class="notranslate">mumbo</code> for 64-bit, <code class="notranslate">jumbo</code> for the native 128-bit - both SMHasher3-clean, see <a href="mbo/hash/README.html">mbo/hash/README.md</a>) and can be replaced by any <code class="notranslate">IsHashAlgorithm</code> struct. Values are not stable across versions and not for persistence. Big-endian targets are supported by construction (byte-assembled loads) but not exercised by CI.</li>
+<li>function <code class="notranslate">GetHash32&lt;Algo&gt;(std::string_view, seed)</code>: 32-bit companion; uses an algorithm's native 32-bit variant where provided, else the XOR-fold of the 64-bit hash.</li>
+<li>concept <code class="notranslate">HasGetHash32</code> / <code class="notranslate">HasGetHash64</code> / <code class="notranslate">HasGetHash128</code>: Detect which static member functions an algorithm struct provides; <code class="notranslate">IsHashAlgorithm</code> requires a 64- or 128-bit one.</li>
+<li>struct <code class="notranslate">Hasher&lt;Algo&gt;</code>: Completes any <code class="notranslate">IsHashAlgorithm</code> struct into the full <code class="notranslate">GetHash64</code>/<code class="notranslate">GetHash128</code>/<code class="notranslate">GetHash32</code> interface, synthesizing what is missing (fold for 64; two decorrelated passes for 128 -- the second skips the first up-to-8 bytes and injects them via the seed). Also a transparent functor over <code class="notranslate">GetHash64</code>, so it drops into <code class="notranslate">absl</code>/<code class="notranslate">std</code> hash containers with heterogeneous <code class="notranslate">string_view</code> lookup.</li>
+<li>algorithm structs <code class="notranslate">mumbo::Algorithm</code>, <code class="notranslate">jumbo::Algorithm</code>, <code class="notranslate">murmur3::Algorithm</code>, <code class="notranslate">siphash::Algorithm</code>, <code class="notranslate">fnv1a::Algorithm</code>, <code class="notranslate">dumbo::Algorithm</code> (plus <code class="notranslate">rapidhash::Algorithm</code>, <code class="notranslate">xxh3::Algorithm</code>, <code class="notranslate">xxh64::Algorithm</code> via <code class="notranslate">hash_extra.h</code>): the per-algorithm plug-ins for <code class="notranslate">GetHash*&lt;Algo&gt;</code> / <code class="notranslate">Hasher&lt;Algo&gt;</code>.</li>
+<li>struct <code class="notranslate">Hash128</code>: The 128-bit result type (<code class="notranslate">h1</code>, <code class="notranslate">h2</code>); ordered (<code class="notranslate">&lt;=&gt;</code>) and Abseil hash/stringify compatible.</li>
+<li>function <code class="notranslate">Hash128To64(Hash128)</code>: Folds a 128-bit hash into a well-mixed 64-bit one, e.g. <code class="notranslate">Hash128To64(murmur3::GetHash128(data))</code>.</li>
+<li>function <code class="notranslate">CombineHashes(uint64_t, uint64_t)</code>: Combines two hashes (order-dependent, well mixed).</li>
+<li>function <code class="notranslate">Hash64To32(uint64_t)</code>: Shrinks a hash to 32 bits by XOR-folding the halves (the correct default for all algorithms, incl. weak-low-bit ones like FNV-1a).</li>
+<li>concept <code class="notranslate">HasStreaming</code> / class <code class="notranslate">Streamer&lt;Algo&gt;</code>: incremental hashing (<code class="notranslate">Update(...).Update(...).Finalize()</code>), guaranteed equal to the one-shot value; provided by <code class="notranslate">mumbo</code>, <code class="notranslate">xxh64</code>, and <code class="notranslate">siphash</code> (rapidhash has no canonical streaming form).</li>
+<li>function <code class="notranslate">dumbo::GetHash64(std::string_view, seed)</code>: the legacy in-house hash (64-bit, weakly seeded, weak mixing; kept for comparison only - use <code class="notranslate">GetHash64</code> / mumbo instead). Formerly <code class="notranslate">mbo::hash::simple</code>.</li>
+<li>function <code class="notranslate">fnv1a::GetHash64(std::string_view, seed)</code>: canonical FNV-1a 64 (constexpr-safe).</li>
+<li>function <code class="notranslate">xxh64::GetHash64(std::string_view, seed)</code>: canonical XXH64 / xxHash 64-bit (constexpr-safe; in <code class="notranslate">hash_extra.h</code>, see below).</li>
+<li>function <code class="notranslate">xxh3::GetHash64/GetHash128(std::string_view, seed)</code>: canonical XXH3 64- and 128-bit (modern xxHash generation, the fast file-checksum format; scalar; constexpr-safe; in <code class="notranslate">hash_extra.h</code>).</li>
+<li>function <code class="notranslate">murmur3::GetHash64/GetHash128(std::string_view, seed)</code>: canonical MurmurHash3 x64 128-bit (constexpr-safe; <code class="notranslate">GetHash64</code> is the customary <code class="notranslate">h1</code> truncation).</li>
+<li>function <code class="notranslate">rapidhash::GetHash64(std::string_view, seed)</code>: canonical rapidhash V3 (wyhash family; SMHasher3-clean; constexpr-safe; in <code class="notranslate">hash_extra.h</code>).</li>
+<li>function <code class="notranslate">mumbo::GetHash64</code> / <code class="notranslate">jumbo::GetHash128</code> (<code class="notranslate">mbo/hash/hash_mumbo.h</code>): the in-house mumbo/jumbo family and default - widening-multiply ("MUM") based, SMHasher3 PASS 188/188 in both widths (the only clean native 128 measured), best mixed-length latency, streaming-capable, notice-free.</li>
+<li>function <code class="notranslate">siphash::GetHash64(std::string_view, key0, key1)</code> / <code class="notranslate">siphash::SipHash&lt;C, D&gt;(...)</code>: canonical SipHash-2-4 (and -1-3 via <code class="notranslate">GetHash64Sip13</code>) - keyed, hash-flooding resistant; adversarial protection requires a secret key.</li>
+</ul>
+</li>
+<li>mbo/hash:hash_mangle_cc, mbo/hash/hash_mangle.h
+<ul dir="auto">
+<li>function <code class="notranslate">GetHash&lt;Algo, Seed&gt;(std::string_view)</code>: as <code class="notranslate">GetHash64</code> but XORed with one build-selected constant, so values deliberately do not compare across independently configured builds (still constexpr).</li>
+<li>function <code class="notranslate">HashMangle(uint64_t)</code>: XORs the build-selected mangle constant into a hash; identity when built with <code class="notranslate">--//mbo/hash:mangle_seed_buckets=0</code> (fully reproducible, <code class="notranslate">GetHash == GetHash64</code>).</li>
+<li>struct <code class="notranslate">MangledHasher&lt;Algo&gt;</code>: <code class="notranslate">Hasher&lt;Algo&gt;</code> extended with the mangled <code class="notranslate">GetHash</code>; the functor form applies the mangle.</li>
+<li>Custom Bazel flag <code class="notranslate">--//mbo/hash:mangle_seed</code>: any printable-ASCII string (user name, release tag, date) selecting the mangle constant; folded - together with the module version from <code class="notranslate">MODULE.bazel</code>, so every release rotates the constant by construction - to a bucket inside the generation rule, so build caches converge. Only <code class="notranslate">hash_mangle_cc</code> dependents rebuild on rotation.</li>
+<li>Custom Bazel flag <code class="notranslate">--//mbo/hash:mangle_seed_buckets</code>: bucket count bounding the variation (default <code class="notranslate">8</code>); <code class="notranslate">0</code> disables the mangle (<code class="notranslate">GetHash == GetHash64</code>), <code class="notranslate">1</code> pins one stable constant across releases and seeds.</li>
+</ul>
+</li>
+<li>mbo/hash:hash_extra_cc, mbo/hash/hash_extra.h
+<ul dir="auto">
+<li>The NOTICE-bearing transcriptions (<code class="notranslate">rapidhash</code> MIT; <code class="notranslate">xxh64</code>/<code class="notranslate">xxh3</code> BSD-2-Clause) as an opt-in target: linking it requires shipping the repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>; the default hash_cc target is notice-free (see "Third-party components").</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Json
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::json</code></li>
+<li>mbo/json:json_cc, mbo/json/json.h
+<ul dir="auto">
+<li>class <code class="notranslate">Json</code>: A JSON value/document that can be built from almost any structured type (see <code class="notranslate">ConvertibleToJson</code>) and serialized to JSON text.</li>
+<li>enum <code class="notranslate">Json::SerializeMode</code>: Selects <code class="notranslate">kCompact</code>, <code class="notranslate">kLine</code>, or <code class="notranslate">kPretty</code> JSON output.</li>
+<li>function <code class="notranslate">Json::Serialize</code>: Returns the JSON value as a <code class="notranslate">std::string</code>.</li>
+<li>function <code class="notranslate">Json::Stream</code>: Writes the JSON value to a <code class="notranslate">std::ostream</code>.</li>
+<li>concept <code class="notranslate">ConvertibleToJson</code>: Determines whether a value can be stored in a <code class="notranslate">Json</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Log
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::log</code></li>
+<li>mbo/log:demangle_cc, mbo/log/demangle.h
+<ul dir="auto">
+<li>functions <code class="notranslate">Demangle</code> to log de-mangled typeid names.</li>
+</ul>
+</li>
+<li>mbo/log:log_timing_cc, mbo/log/log_timing.h
+<ul dir="auto">
+<li>functoin <code class="notranslate">LogTiming([args])</code> a simple timing logger.</li>
+</ul>
+</li>
+<li>mbo/log:scoped_stream_cc, mbo/log/scoped_stream.h
+<ul dir="auto">
+<li>struct <code class="notranslate">VoidStream</code>: A suppressing output stream.</li>
+<li>template struct <code class="notranslate">ScopedStream</code>: A scoped output stream for function location logging.</li>
+<li>enum <code class="notranslate">ScopedStreamMode</code>: Controls how <code class="notranslate">scopedStream</code> handles output.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Mope
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::mope</code></li>
+<li>The <code class="notranslate">MOPE</code> templating engine. Run <code class="notranslate">bazel run //mbo/mope -- --help</code> for detailed documentation.</li>
+<li>mbo/mope
+<ul dir="auto">
+<li>binary <code class="notranslate">mope</code>.</li>
+</ul>
+</li>
+<li>mbo/mope:mope_cc, mbo/mope/mope.h
+<ul dir="auto">
+<li>class <code class="notranslate">Template</code>: The mope template engine and data holder.</li>
+</ul>
+</li>
+<li>mbo/mope:ini_cc, mbo/mope/ini.h
+<ul dir="auto">
+<li>function <code class="notranslate">ReadIniToTemplate</code>: Helper to initialize a mope Template from an INI file.</li>
+</ul>
+</li>
+<li>mbo/mope:mope_bzl, mbo/mope/mope.bzl
+<ul dir="auto">
+<li>bzl-rule <code class="notranslate">mope</code>: A rule that expands a mope template file.</li>
+<li>bzl-macro <code class="notranslate">mope_test</code>: A test rule that compares mope template expansion against golden files. This<br>
+supports <code class="notranslate">clang-format</code> and thus can be used for source-code generation and verification.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Status
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::status</code></li>
+<li>mbo/status:status_builder_cc, mbo/status/status_builder.h
+<ul dir="auto">
+<li>class <code class="notranslate">StatusBuilder</code> which allows to extend the message of an <code class="notranslate">absl::Status</code>.</li>
+</ul>
+</li>
+<li>mbo/status:status_cc, mbo/status/status.h
+<ul dir="auto">
+<li>function <code class="notranslate">GetStatus</code> allows to convert types to an <code class="notranslate">absl::Status</code>.</li>
+</ul>
+</li>
+<li>mbo/status:status_macros_cc, mbo/status/status_macros.h
+<ul dir="auto">
+<li>macro <code class="notranslate">MBO_ASSIGN_OR_RETURN</code>: Macro that simplifies handling functions returning <code class="notranslate">absl::StatusOr&lt;T&gt;</code>.</li>
+<li>macro <code class="notranslate">MBO_MOVE_TO_OR_RETURN</code>: Macro that simplifies handling functions returning <code class="notranslate">absl::StatusOr&lt;T&gt;</code> where the result requires commas, in particular structured bindings.</li>
+<li>macro <code class="notranslate">MBO_RETURN_IF_ERROR</code>: Macro that simplifies handling functions returning <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StausOr&lt;T&gt;</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Strings
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::strings</code></li>
+<li>mbo/strings:contains_cc, mbo/strings/contains.h
+<ul dir="auto">
+<li>function <code class="notranslate">Contains</code>: A constexpr C++20 counterpart to <code class="notranslate">absl::StrContains</code> for string and character needles.</li>
+</ul>
+</li>
+<li>mbo/strings:indent_cc, mbo/strings/indent.h
+<ul dir="auto">
+<li>function <code class="notranslate">DropIndent</code>: Converts a raw-string text block as if it had no indent.</li>
+<li>function <code class="notranslate">DropIndentAndSplit</code>: Variant of <code class="notranslate">DropIndent</code> that returns the result as lines.</li>
+</ul>
+</li>
+<li>mbo/strings:numbers_cc, mbo/strings/numbers.h
+<ul dir="auto">
+<li>function <code class="notranslate">BigNumber</code>: Convert integral number to string with thousands separator.</li>
+<li>function <code class="notranslate">BigNumberLen</code>: Calculate required string length for <code class="notranslate">BigNumer</code>.</li>
+</ul>
+</li>
+<li>mbo/strings:parse_cc, mbo/strings/parse.h
+<ul dir="auto">
+<li>function <code class="notranslate">ParseString</code>: Parses strings respecting C++ and custom escapes as well as quotes (all configurable).</li>
+<li>function <code class="notranslate">ParseStringList</code>: Parses and splits strings respecting C++ and custom escapes as well as quotes (all configurable).</li>
+</ul>
+</li>
+<li>mbo/strings:split_cc, mbo/strings/split.h
+<ul dir="auto">
+<li>struct <code class="notranslate">AtLast</code>: Allows `absl::StrSplit' to split on the last occurrence of a separator.</li>
+</ul>
+</li>
+<li>mbo/strings:strip_cc, mbo/strings/strip.h
+<ul dir="auto">
+<li>function <code class="notranslate">ConsumePrefix</code>: Removes a prefix from a <code class="notranslate">std::string</code> (like <code class="notranslate">absl::ConsumePrefix</code>).</li>
+<li>function <code class="notranslate">ConsumeSuffix</code>: Removes a suffix from a <code class="notranslate">std::string</code> (like <code class="notranslate">absl::ConsumeSuffix</code>).</li>
+<li>function <code class="notranslate">StripPrefix</code>: Removes a prefix from a <code class="notranslate">std::string&amp;&amp;</code> (like <code class="notranslate">absl::StripPrefix</code>).</li>
+<li>function <code class="notranslate">StripSuffix</code>: Removes a suffix from a <code class="notranslate">std::string&amp;&amp;</code> (like <code class="notranslate">absl::StripSuffix</code>).</li>
+<li>struct <code class="notranslate">StripCommentsArgs</code>: Arguments for <code class="notranslate">StripComments</code> and <code class="notranslate">StripLineComments</code>.</li>
+<li>function <code class="notranslate">StripComments</code>: Strips comments from lines.</li>
+<li>function <code class="notranslate">StripLineComments</code>: Strips comments from a single line.</li>
+<li>struct <code class="notranslate">StripParsedCommentsArgs</code>: Arguments for <code class="notranslate">StripParsedComments</code> and <code class="notranslate">StripParsedLineComments</code>.</li>
+<li>function <code class="notranslate">StripParsedComments</code>: Strips comments from parsed lines.</li>
+<li>function <code class="notranslate">StripLineParsedComments</code>: Strips comments from a single parsed line.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Testing
+<ul dir="auto">
+<li>mbo/testing:matchers_cc, mbo/testing/matchers.h
+<ul dir="auto">
+<li>gmock-matcher <code class="notranslate">CapacityIs</code> which checks the capacity of a container.</li>
+<li>gmock-matcher <code class="notranslate">EqualsText</code> which compares text using line by line unified text diff.</li>
+<li>gmock-matcher <code class="notranslate">IsElementOf</code> which checks that a value equals at least one element of a container - the element-on-the-left orientation of gmock's <code class="notranslate">Contains</code>. Subject types do not need to be converted to the container's <code class="notranslate">value_type</code>.</li>
+<li>gmock-matcher <code class="notranslate">IsKeyOf</code> which checks that a value equals at least one key of a map (shorthand for "is this key in the map?").</li>
+<li>gmock-matcher <code class="notranslate">IsNullopt</code> which compares its argument against <code class="notranslate">std::nullopt</code>.</li>
+<li>gmock-matcher <code class="notranslate">IsValueOf</code> which checks that a value equals at least one mapped value of a map (shorthand for "is this value in the map?").</li>
+<li>gmock-matcher <code class="notranslate">WhenTransformedBy</code> which allows to compare containers after transforming them. This sometimes allows for much more concise comparisons where a golden expectation is already available that only differs in a simple transformation.</li>
+<li>gmock-matcher-modifier <code class="notranslate">WithDropIndent</code> which modifies <code class="notranslate">EqualsText</code> so that <code class="notranslate">DropIndent</code> will be applied to the expected text.</li>
+</ul>
+</li>
+<li>mbo/testing:status_cc, mbo/testing/status.h
+<ul dir="auto">
+<li>gmock-matcher <code class="notranslate">IsOk</code>: Tests whether an <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StatusOr</code> is <code class="notranslate">absl::OkStatus</code>.</li>
+<li>gmock-matcher <code class="notranslate">IsOkAndHolds</code>: Tests an <code class="notranslate">absl::StatusOr</code> for <code class="notranslate">absl::OkStatus</code> and contents.</li>
+<li>gmock-matcher <code class="notranslate">StatusIs</code>: Tests an <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StatusOr</code> against a specific status code and message.</li>
+<li>gmock-matcher <code class="notranslate">StatusHasPayload</code>: Tests whether an <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StatusOr</code> payload map has any payload, a specific payload url, or a payload url with specific content.</li>
+<li>gmock-matcher <code class="notranslate">StatusPayloads</code> Tests whether an <code class="notranslate">absl::Status</code> or <code class="notranslate">absl::StatusOr</code> payload map matches.</li>
+<li>macro <code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN</code>: Simplifies testing with functions that return <code class="notranslate">absl::StatusOr&lt;T&gt;</code>.</li>
+<li>macro <code class="notranslate">MBO_ASSERT_OK_AND_MOVE_TO</code>: Simplifies testing with functions that return <code class="notranslate">absl::StatusOr&lt;T&gt;</code> where the result requires commas, in particular structured bindings.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Types
+<ul dir="auto">
+<li><code class="notranslate">namespace mbo::types</code> - <a href="mbo/types/README.html">usage guide</a> and<br>
+<a href="mbo/types/REFLECTION.html">reflection implementation notes</a></li>
+<li>mbo/types:cases_cc, mbo/types/cases.h
+<ul dir="auto">
+<li>meta-type <code class="notranslate">Cases</code>: Allows to switch types based on conditions.</li>
+<li>meta-type <code class="notranslate">CaseIndex</code>: Evaluates the first non zero case (1-based, 0 if all zero).</li>
+<li>meta-type <code class="notranslate">IfThen</code>: Helper type to generate if-then <code class="notranslate">Cases</code> types.</li>
+<li>meta-type <code class="notranslate">IfElse</code>: Helper type to generate else <code class="notranslate">Cases</code> which are always true and must go last.</li>
+<li>meta-type <code class="notranslate">IfFalseThenVoid</code>: Helper type that can be used to skip a case.</li>
+<li>meta-type <code class="notranslate">IfTrueThenVoid</code>: Helper type to inject default cases and to ensure the required type expansion is always possible.</li>
+</ul>
+</li>
+<li>mbo/types:compare_cc, mbo/types/compare.h
+<ul dir="auto">
+<li>function <code class="notranslate">CompareArithmetic</code> which cmpares two values that are scalar-numbers (including foat/double, excluding pointers and references).</li>
+<li>function <code class="notranslate">CompareFloat</code> which can compare two <code class="notranslate">float</code>, <code class="notranslate">double</code> or <code class="notranslate">long double</code> values returning <code class="notranslate">std::strong_ordering</code>.</li>
+<li>function <code class="notranslate">CompareIntegral</code> which compares two values that are integral-numbers (no float/double, no pointers, no references).</li>
+<li>comparator <code class="notranslate">CompareLess</code> which is compatible to std::Less but allows container optimizations.</li>
+<li>function <code class="notranslate">CompareScalar</code> which compares two values that are scalar-numbers (including float/double and pointers, excluding references).</li>
+<li>concept <code class="notranslate">ThreeWayComparableTo</code> which is similar to <code class="notranslate">std::three_way_comparable_with</code> but we only verify that <code class="notranslate">L &lt;=&gt; R</code> can be interpreted as <code class="notranslate">Cat</code> in the presented argument order.</li>
+<li>function <code class="notranslate">WeakToStrong</code> which converts a <code class="notranslate">std::weak_ordering</code> to a <code class="notranslate">std::strong_ordering</code>.</li>
+</ul>
+</li>
+<li>mbo/types:container_proxy_cc, mbo/types/container_proxy.h
+<ul dir="auto">
+<li>struct <code class="notranslate">ContainerProxy</code> which allows to add container access to other types including smart pointers of containers.</li>
+</ul>
+</li>
+<li>mbo/types:extend_cc, mbo/types/extend.h
+<ul dir="auto">
+<li>crtp-struct <code class="notranslate">Extend</code>: Enables extending of struct/class types with basic functionality.</li>
+<li>crtp-struct <code class="notranslate">ExtendNoDefault</code> Like <code class="notranslate">Extend</code> but without default extender functionality.</li>
+<li>crtp-struct <code class="notranslate">ExtendNoPrint</code> Like <code class="notranslate">Extend</code> but without <code class="notranslate">Printable</code> and <code class="notranslate">Streamable</code> extender functionality.</li>
+<li><code class="notranslate">namespace extender</code>
+<ul dir="auto">
+<li>extender-struct <code class="notranslate">AbslStringify</code>: Extender that injects functionality to make an <code class="notranslate">Extend</code>ed type work with abseil format/print functions. See <code class="notranslate">Stringify</code> for various API extension points.</li>
+<li>extender-struct <code class="notranslate">AbslHashable</code>: Extender that injects functionality to make an <code class="notranslate">Extend</code>ed type work with abseil hashing (and also <code class="notranslate">std::hash</code>).</li>
+<li>extender-struct <code class="notranslate">Comparable</code>: Extender that injects functionality to make an <code class="notranslate">Extend</code>ed type comparable. All comparators will be injected: <code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">==</code>, <code class="notranslate">!=</code>, <code class="notranslate">&lt;</code>, <code class="notranslate">&lt;=</code>, <code class="notranslate">&gt;</code>, <code class="notranslate">&gt;=</code>.</li>
+<li>extender-struct <code class="notranslate">Printable</code>:
+<ul dir="auto">
+<li>Extender that injects functionality to make an <code class="notranslate">Extend</code>ed type get a <code class="notranslate">std::string ToString() const</code> function which can be used to convert a type into a <code class="notranslate">std::string</code>.</li>
+<li>The output is a comma separated list of field values, e.g. <code class="notranslate">{ 25, 42 }</code>.</li>
+<li>If available (Clang 16+) this function prints field names <code class="notranslate">{ .first = 25, .second = 42 }</code>.</li>
+</ul>
+</li>
+<li>extender-struct <code class="notranslate">Streamable</code>: Extender that injects functionality to make an <code class="notranslate">Extend</code>ed type streamable. This allows the type to be used directly with <code class="notranslate">std::ostream</code>s.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>mbo/types:no_destruct_cc, mbo/types/no_destruct.h
+<ul dir="auto">
+<li>struct <code class="notranslate">NoDestruct&lt;T&gt;</code>: Implements a type that allows to use any type as a static constant.</li>
+<li>Mainly, this prevents calling the destructor and thus prevents termination issues (initialization order fiasco).</li>
+</ul>
+</li>
+<li>mbo/types:opaque_cc, mbo/types/opaque.h
+<ul dir="auto">
+<li>struct <code class="notranslate">OpaquePtr</code> an opaque alternative to <code class="notranslate">std::unique_ptr</code> which works with forward declared types.</li>
+<li>struct <code class="notranslate">OpaqueValue</code> an <code class="notranslate">OpaquePtr</code> with direct access, comparison and hashing which will not allow a nullptr.</li>
+<li>struct <code class="notranslate">OpaqueContainer</code> an <code class="notranslate">OpaqueValue</code> with direct container access.</li>
+</ul>
+</li>
+<li>mbo/types:optional_ref_cc, mbo/types/optional_data_or_ref.h
+<ul dir="auto">
+<li>concept <code class="notranslate">IsOptionalDataOrRef</code> which determines whether a type is a <code class="notranslate">OptionalDataOrRef</code>.</li>
+<li>struct <code class="notranslate">OptionalDataOrRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code>, a type <code class="notranslate">T</code> or a reference <code class="notranslate">T&amp;</code>/<code class="notranslate">const T&amp;</code>.</li>
+<li>struct <code class="notranslate">OptionalDataOrConstRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code>, a type <code class="notranslate">T</code> or a const reference <code class="notranslate">const T&amp;</code>.</li>
+</ul>
+</li>
+<li>mbo/types:optional_ref_cc, mbo/types/optional_ref.h
+<ul dir="auto">
+<li>concept <code class="notranslate">IsOptionalRef</code> which determines whether a type is a <code class="notranslate">OptionalRef</code>.</li>
+<li>struct <code class="notranslate">OptionalRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code> or a reference <code class="notranslate">T&amp;</code>/<code class="notranslate">const T&amp;</code>.</li>
+</ul>
+</li>
+<li>mbo/types:ref_wrap_cc, mbo/types/ref_wrap.h
+<ul dir="auto">
+<li>template-type <code class="notranslate">RefWrap&lt;T&gt;</code>: similar to <code class="notranslate">std::reference_wrapper</code> but supports operators <code class="notranslate">-&gt;</code> and <code class="notranslate">*</code>.</li>
+</ul>
+</li>
+<li>mbo/types:required_cc, mbo/types/required.h
+<ul dir="auto">
+<li>template-type <code class="notranslate">Required&lt;T&gt;</code>: similar to <code class="notranslate">RefWrap</code> but stores the actual type (and unlike <code class="notranslate">std::optional</code> cannot be reset).</li>
+</ul>
+</li>
+<li>mbo/types:string_or_view_cc, mbo/types/string_or_view.h
+<ul dir="auto">
+<li>class <code class="notranslate">mbo::StringOrView</code>: Read-only text that either owns a <code class="notranslate">std::string</code> or borrows a <code class="notranslate">std::string_view</code>, with the applicable string-view interface plus stream, formatting, comparison, and hashing integration.</li>
+</ul>
+</li>
+<li>mbo/types:stringify_cc, mbo/types/stringify.h
+<ul dir="auto">
+<li>class <code class="notranslate">Stringify</code> a utility to convert structs into strings.</li>
+<li>function <code class="notranslate">StringifyWithFieldNames</code> a format control adapter for <code class="notranslate">Stringify</code>.</li>
+<li>struct <code class="notranslate">StringifyFieldOptions</code> which controls outer and inner options (both a <code class="notranslate">const StringifyOptions&amp;</code>).</li>
+<li>struct <code class="notranslate">StringifyOptions</code> which can be used to control <code class="notranslate">Stringify</code> formatting.</li>
+<li>struct <code class="notranslate">StringifyRootOptions</code> which can be used to control outer/root options for streaming/printing structs.</li>
+<li>API extension point type <code class="notranslate">MboTypesStringifySupport</code> which enables <code class="notranslate">Stringify</code> support even if not otherwise enabled (disables Abseil stringify support in <code class="notranslate">Stringify</code>).</li>
+<li>API extension point function <code class="notranslate">MboTypesStringifyConvert(I, T, V)</code> allows to control conversion based on field types via a static call to the owning type, receiving the field index, the object and the field value.</li>
+<li>API extension point type <code class="notranslate">MboTypesStringifyDisable</code> which disables <code class="notranslate">Stringify</code> support. This allows to prevent<br>
+complex classes (and more importantly fields of complex types) from being printed/streamed using <code class="notranslate">Stringify</code></li>
+<li>API extension point type <code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code> which if present disables field names in <code class="notranslate">Stringify</code>.</li>
+<li>API extension point function <code class="notranslate">MboTypesStringifyFieldNames</code> which adds field names to <code class="notranslate">Stringify</code>.</li>
+<li>API extension point function <code class="notranslate">MboTypesStringifyOptions</code> which adds full format control to <code class="notranslate">Stringify</code>.</li>
+<li>API extension point functoin <code class="notranslate">MboTypesStringifyValueAccess</code> which allows to replace a struct with a single value in <code class="notranslate">Stringify</code> processing.</li>
+</ul>
+</li>
+<li>mbo/types:stringify_ostream_cc, mbo/types/stringify_ostream.h
+<ul dir="auto">
+<li>operator <code class="notranslate">std::ostream&amp; operator&lt;&lt;(std::ostream&amp;, const MboTypesStringifySupport auto&amp; v)</code> - conditioanl automatic ostream support for structs using <code class="notranslate">Stringify</code>.</li>
+<li>function <code class="notranslate">SetStringifyOstreamOutputMode</code> which sets global Stringify stream options by mode.</li>
+<li>function <code class="notranslate">SetStringifyOstreamOptions</code> which sets global Stringify stream options.</li>
+</ul>
+</li>
+<li>mbo/types:traits_cc, mbo/types/traits.h
+<ul dir="auto">
+<li>concept <code class="notranslate">ConstructibleFrom</code> implements a variant of <code class="notranslate">std::constructible_from</code> that works around its limitations to deal with array args.</li>
+<li>concept <code class="notranslate">ConstructibleInto</code> determines whether one type can be constructed from another. Similar to <code class="notranslate">std::convertible_to</code> but with the argument order of <code class="notranslate">std::constructible_from</code>.</li>
+<li>type alias <code class="notranslate">ContainerConstIteratorValueType</code> returned the value-type of the const_iterator of a container.</li>
+<li>concept <code class="notranslate">ContainerIsForwardIteratable</code> determines whether a types can be used in forward iteration.</li>
+<li>concept <code class="notranslate">ContainerHasEmplace</code> determines whether a container has <code class="notranslate">emplace</code>.</li>
+<li>concept <code class="notranslate">ContainerHasEmplaceBack</code> determines whether a container has <code class="notranslate">emplace_back</code>.</li>
+<li>concept <code class="notranslate">ContainerHasInsert</code> determines whether a container has <code class="notranslate">insert</code>.</li>
+<li>concept <code class="notranslate">ContainerHasPushBack</code> determines whether a container has <code class="notranslate">push_back</code>.</li>
+<li>concept <code class="notranslate">ContainerHasForwardIterator</code> determines whether a container has <code class="notranslate">begin</code>, <code class="notranslate">end</code> and <code class="notranslate">std::forward_iterator</code> compliant iterators.</li>
+<li>concept <code class="notranslate">ContainerHasInputIterator</code> determines whether a container has <code class="notranslate">begin</code>, <code class="notranslate">end</code> and <code class="notranslate">std::input_iterator</code> compliant iterators.</li>
+<li>type alias <code class="notranslate">GetDifferenceType</code> is either set to the type's <code class="notranslate">difference_type</code> or <code class="notranslate">std::ptrdiff_t</code>.</li>
+<li>concept <code class="notranslate">HasDifferenceType</code> determines whether a type has a <code class="notranslate">difference_type</code>.</li>
+<li>concept <code class="notranslate">IsAggregate</code> determines whether a type is an aggregate.</li>
+<li>concept <code class="notranslate">IsArithmetic</code> uses <code class="notranslate">std::is_arithmetic_v&lt;T&gt;</code>.</li>
+<li>concept <code class="notranslate">IsBracesConstructibleV</code> determines whether a type can be constructed from given argument types.</li>
+<li>concept <code class="notranslate">IsCharArray</code> determines whether a type is a <code class="notranslate">char*</code> or <code class="notranslate">char[]</code> related type.</li>
+<li>concept <code class="notranslate">IsDecomposable</code> determines whether a type can be used in static-bindings.</li>
+<li>concept <code class="notranslate">IsEmptyType</code> determines whether a type is empty (calls <code class="notranslate">std::is_empty_v</code>).</li>
+<li>concept <code class="notranslate">IsFloatingPoint</code> determines whether a type is a floating point type (uses <code class="notranslate">std::floating_point</code>).</li>
+<li>concept <code class="notranslate">IsInitializerList</code> determines whether a type is `std::initializer type.</li>
+<li>concept <code class="notranslate">IsScalar</code> uses <code class="notranslate">std::is_scalar_v&lt;T&gt;</code>.</li>
+<li>concept <code class="notranslate">IsOptional</code> determines whether a type is a <code class="notranslate">std::optional</code> type.</li>
+<li>concept <code class="notranslate">IsPair</code> determines whether a type is a <code class="notranslate">std::pair</code> type.</li>
+<li>concept <code class="notranslate">IsReferenceWrapper</code> determines whether a type is a <code class="notranslate">std::reference_wrapper</code>.</li>
+<li>concept <code class="notranslate">IsSameAsAnyOf</code> which determines whether a type is the same as one of a list of types. Similar to <code class="notranslate">IsSameAsAnyOfRaw</code> but using exact types. The inversion is available as <code class="notranslate">NotSameAsAnyOf</code>.</li>
+<li>concept <code class="notranslate">IsSameAsAnyOfRaw</code> which determines whether a type is one of a list of types. Similar to <code class="notranslate">IsSameAsAnyOf</code> but applies <code class="notranslate">std::remove_cvref_t</code> on all types. The inversion is available as <code class="notranslate">NotSameAsAnyOfRaw</code>.</li>
+<li>concept <code class="notranslate">IsScalar</code> uses <code class="notranslate">std::is_scalar_v&lt;T&gt;</code>.</li>
+<li>concept <code class="notranslate">IsSet</code> determines whether a type is a <code class="notranslate">std::set</code> type.</li>
+<li>concept <code class="notranslate">IsSmartPtr</code> determines whether a type is a <code class="notranslate">std::shared_ptr</code>, <code class="notranslate">std::unique_ptr</code> or <code class="notranslate">std::weak_ptr</code>.
+<ul dir="auto">
+<li>Can be extended with other smart pointers through <code class="notranslate">IsSmartPtrImpl</code>.</li>
+</ul>
+</li>
+<li>concept <code class="notranslate">IsStringKeyedContainer</code> which determines whether a type is a container whose elements are pairs and whose keys are convertible to a std::string_view.</li>
+<li>concept <code class="notranslate">IsTuple</code> determines whether a type is a <code class="notranslate">std::tuple</code> type.</li>
+<li>concept <code class="notranslate">IsVector</code> determines whether a type is a <code class="notranslate">std::vector</code> type.</li>
+</ul>
+</li>
+<li>mbo/types:template_search_cc, mbo/types/template_search.h:
+<ul dir="auto">
+<li>template struct <code class="notranslate">BinarySearch</code> implements templated binary search algorithm.</li>
+<li>template struct <code class="notranslate">LinearSearch</code> implements templated linear search algorithm.</li>
+<li>template struct <code class="notranslate">ReverseSearch</code> implements templated reverse linear search algorithm.</li>
+<li>template struct <code class="notranslate">MaxSearch</code> implements templated linear search for last match algorithm.</li>
+</ul>
+</li>
+<li>mbo/types:tstring_cc, mbo/types/tstring.h
+<ul dir="auto">
+<li>struct <code class="notranslate">tstring</code>: Implements type <code class="notranslate">tstring</code> a compile time string-literal type.</li>
+<li>operator <code class="notranslate">operator"" _ts</code>: String literal support for Clang, GCC and derived compilers.</li>
+</ul>
+</li>
+<li>mbo/types:tuple_cc, mbo/types/tuple.h
+<ul dir="auto">
+<li>template struct <code class="notranslate">TupleCat</code> which concatenates tuple types.</li>
+</ul>
+</li>
+<li>mbo/types:typed_view_cc, mbo/types/typed_view.h
+<ul dir="auto">
+<li>template struct <code class="notranslate">TypedView</code> a wrapper for STL views that provides type definitions, most importantly <code class="notranslate">value_type</code>. That allows such views to be used with GoogleTest container matchers.</li>
+</ul>
+</li>
+<li>mbo/types:variant_cc, mbo/types/variant.h
+<ul dir="auto">
+<li>concept <code class="notranslate">IsVariant</code> determines whether a type is a <code class="notranslate">std::variant</code> type.</li>
+<li>concept <code class="notranslate">IsVariantMemberType</code> determine whether a <code class="notranslate">Type</code> is any of the types in a <code class="notranslate">Variant</code>.</li>
+<li>struct <code class="notranslate">Overloaded</code> which implements an Overload handler for <code class="notranslate">std::visit(std::variant&lt;...&gt;)</code> and <code class="notranslate">std::variant::visit</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 dir="auto" id="installation-and-requirements">Installation and requirements</h2>
+<p dir="auto">This repository requires a C++23 compiler (in case of macOS Xcode 15 is needed). This allows newer standard-library features to be used directly. Bazel 8 and newer remain supported.</p>
+<p dir="auto">The project only comes with a Bazel BUILD.bazel file and can be added to other Bazel projects.</p>
+<p dir="auto">The project is formatted with specific clang-format settings which require clang 16+ (in case of MacOs LLVM 16+ can be installed using brew). For simplicity in dev mode the project pulls the appropriate clang tools and can be compiled with those tools using <code class="notranslate">bazel [build|test] --config=clang ...</code>.</p>
+<p dir="auto">Lint and format are driven by <a href="https://docs.trunk.io/cli" rel="nofollow">Trunk</a> plus <a href="https://pre-commit.com" rel="nofollow">pre-commit</a>. Devs are <strong>required</strong> to install both - <code class="notranslate">curl https://get.trunk.io -fsSL | bash</code> and <code class="notranslate">pip install pre-commit</code> (or your package manager's equivalent) - then run <code class="notranslate">pre-commit install</code> <strong>once</strong>. pre-commit is this repo's single git-hook entry point and delegates <code class="notranslate">trunk fmt</code> to trunk on every commit; trunk's own git-hook actions are deliberately disabled in <code class="notranslate">.trunk/trunk.yaml</code> so the two cannot fight over <code class="notranslate">.git/hooks</code> (a CI check fails the build if they are re-enabled). CI runs <code class="notranslate">pre-commit</code>, <code class="notranslate">trunk check</code> and <code class="notranslate">clang-tidy</code> as separate jobs and never auto-fixes; failing lint must be fixed locally and re-pushed.</p>
+<p dir="auto"><code class="notranslate">clang-tidy</code> is one of these pre-commit hooks as well - it moved there from trunk, which pinned a version too old to parse this code. It is opt-in for now (<code class="notranslate">pre-commit run clang-tidy --all-files --hook-stage manual</code>) and becomes automatic like the rest once the finding sweep lands. See <a href="STYLE_CPP.html">STYLE_CPP.md</a> for how to run it and how to build the <code class="notranslate">compile_commands.json</code> it needs.</p>
+<h3 dir="auto" id="modulesbazel">MODULES.bazel</h3>
+<p dir="auto">Check <a href="https://github.com/mboworks/mbo/releases">Releases</a> for details. All that is needed is a <code class="notranslate">bazel_dep</code> instruction with the correct version.</p>
+<div class="highlight highlight-source-python" dir="auto"><pre class="notranslate"><span class="pl-en">bazel_dep</span>(<span class="pl-s1">name</span> <span class="pl-c1">=</span> <span class="pl-s">"mboworks_mbo"</span>, <span class="pl-s1">version</span> <span class="pl-c1">=</span> <span class="pl-s">"0.15.0"</span>)</pre></div>
+<p dir="auto">The <a href="https://registry.bazel.build/modules/mboworks_mbo" rel="nofollow">Bazel-Central-Registry</a> installation does not provide the LLVM tools and thus does not come with its own compiler - a restriction in how Bazel handles toolchains under bzlmod. To pull in the bundled toolchain, vendor <code class="notranslate">bazelmod/llvm.MODULE.bazel</code> as described in the release notes. Current versions are tested with GCC 14+ and Clang 22+ on Ubuntu and macOS. Other platforms and compilers are likely to work as well. However, Windows lacks some of the necessary tools and the library as well as its build system mostly assume Unix-style file and path names. That unfortunately means that on Windows some code cannot even be built.</p>
+<h2 dir="auto" id="presentations">Presentations</h2>
+<h3 dir="auto" id="practical-production-proven-constexpr-api-elements">Practical Production-proven Constexpr API Elements</h3>
+<p dir="auto">Presented at <a href="https://cpponsea.uk/2024/session/practical-production-proven-constexpr-api-elements" rel="nofollow">C++ On Sea 2024</a>, this presentation covers the theory behind:</p>
+<ul dir="auto">
+<li><code class="notranslate">mbo::hash::dumbo::GetHash64</code> (presented as <code class="notranslate">mbo::hash::simple::GetHash</code>),</li>
+<li><code class="notranslate">mbo::container::LimitedVector</code>,</li>
+<li><code class="notranslate">mbo::container::LimitedMap</code>, and</li>
+<li><code class="notranslate">mbo::container::LimitedSet</code>.</li>
+</ul>
+<p dir="auto">Slides are available at:<br>
+<br><br>
+<br><br>
+<a href="https://helly25.com/practical-production-proven-constexpr-api-elements/" rel="nofollow"><img src="assets/0ecf303289aa75a7c72bf50a71a32517d6e489294baff30efa05b6aa6b84334e.png" alt="Practical Production Proven constexpr slides" style="max-width: 100%;"></a></p>
+<h2 dir="auto" id="third-party-components">Third-party components</h2>
+<p dir="auto">The hash and digest libraries contain constexpr transcriptions of third-party<br>
+algorithms. The transcriptions are original code, but some closely follow<br>
+their reference implementations; the repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a> file<br>
+reproduces the upstream notices, and the list below tracks exactly which<br>
+headers and Bazel rules make it apply. The project itself is Apache-2.0 (see<br>
+<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/LICENSE">LICENSE</a>).</p>
+<p dir="auto">NOTICE entries required for <strong>license compliance</strong> - for these algorithms the<br>
+licensed reference implementation effectively is the specification, and the<br>
+transcription follows its expression:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel rule</th>
+<th>Upstream</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mbo/hash/hash_rapidhash.h</td>
+<td>//mbo/hash:hash_extra_cc</td>
+<td><a href="https://github.com/Nicoshev/rapidhash">rapidhash</a></td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>mbo/hash/hash_xxh64.h, mbo/hash/hash_xxh3.h</td>
+<td>//mbo/hash:hash_extra_cc</td>
+<td><a href="https://github.com/Cyan4973/xxHash">xxHash</a></td>
+<td>BSD-2-Clause</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">NOTICE entries that are <strong>courtesy attribution only</strong> - public-domain/CC0<br>
+upstreams with no notice obligation, recorded for provenance (and to preempt<br>
+license-scanner findings of structural similarity):</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel rule</th>
+<th>Upstream</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mbo/hash/hash_murmur3.h</td>
+<td>//mbo/hash:hash_cc</td>
+<td>MurmurHash3</td>
+<td>public domain</td>
+</tr>
+<tr>
+<td>mbo/hash/hash_siphash.h</td>
+<td>//mbo/hash:hash_cc</td>
+<td>SipHash</td>
+<td>CC0 / public domain</td>
+</tr>
+<tr>
+<td>mbo/hash/hash_fnv1a.h</td>
+<td>//mbo/hash:hash_cc</td>
+<td>FNV-1a</td>
+<td>public domain</td>
+</tr>
+<tr>
+<td>mbo/digest/digest_blake3.h</td>
+<td>//mbo/digest:digest_cc</td>
+<td>BLAKE3</td>
+<td>CC0-1.0 OR Apache-2.0 (CC0 elected)</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Everything else is original MBO Works code. In particular, all algorithms<br>
+implemented from public standards carry no upstream code and need no notices:<br>
+SHA-1/SHA-2/SHA-3/SHAKE (FIPS 180-4 / FIPS 202), MD5 (RFC 1321), BLAKE2b<br>
+(RFC 7693), and HMAC (RFC 2104), and the default hash algorithms (the<br>
+in-house mumbo/jumbo family) are original code. Practical rule: only a<br>
+distribution that includes code from <code class="notranslate">//mbo/hash:hash_extra_cc</code> - directly or<br>
+transitively - must retain <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>; the default <code class="notranslate">//mbo/hash:hash_cc</code><br>
+and <code class="notranslate">//mbo/digest:digest_cc</code> carry no compliance obligation (the digest<br>
+library's only NOTICE entry is courtesy).</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

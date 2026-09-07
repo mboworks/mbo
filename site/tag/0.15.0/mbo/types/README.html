@@ -1,0 +1,279 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/types/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbotypes"><code class="notranslate">mbo/types</code></h1>
+<p dir="auto"><code class="notranslate">mbo/types</code> combines small value and metaprogramming utilities with <code class="notranslate">Extend</code>: a simple, generic, and<br>
+powerful way to enrich C++ aggregates. A single CRTP base can derive construction, tuple access,<br>
+comparison, hashing, and highly configurable text output from a type's fields. Libraries with many<br>
+record types can replace large amounts of repetitive operators, helpers, and formatting code with<br>
+one consistent mechanism. Across a library, that can eliminate hundreds or thousands of lines of<br>
+boilerplate while reducing both maintenance cost and the opportunity for bugs.</p>
+<p dir="auto"><code class="notranslate">Extend</code> is not a fixed bundle. Its reusable extender mechanism makes project-specific functionality<br>
+easy to define once and apply uniformly to aggregates throughout a codebase. Users can take the<br>
+complete defaults, select only individual behaviors, omit printing, or compose the defaults with<br>
+their own extenders. The framework targets C++23, GCC 14+, and Clang 22+.</p>
+<p dir="auto">This guide describes the public model and common usage. The separate<br>
+<a href="REFLECTION.html">reflection implementation note</a> explains how automatic field-name discovery works,<br>
+its compiler-specific limitations, and how mbo compares with other reflection libraries.</p>
+<h2 dir="auto" id="enriching-aggregates-with-extend">Enriching aggregates with <code class="notranslate">Extend</code></h2>
+<p dir="auto">Derive an aggregate from <code class="notranslate">mbo::types::Extend&lt;T&gt;</code> to install the common CRTP extenders with one<br>
+declaration:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>iostream<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/extend.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">struct</span> <span class="pl-en">Name</span> : mbo::types::Extend&lt;Name&gt; {
+  std::string first;
+  std::string last;
+};
+
+Name name{{}, <span class="pl-s"><span class="pl-pds">"</span>Ada<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Lovelace<span class="pl-pds">"</span></span>};
+std::cout &lt;&lt; name &lt;&lt; <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\n</span><span class="pl-pds">'</span></span>;</pre></div>
+<p dir="auto">That one base gives <code class="notranslate">Name</code> comparison, Abseil and standard hashing, Abseil stringification, stream<br>
+output, <code class="notranslate">ToString()</code>, <code class="notranslate">ToJsonString()</code>, and construction helpers. These implementations remain in<br>
+sync with the aggregate's declared fields instead of duplicating the field list across hand-written<br>
+operators. When field-name reflection supports the aggregate, output can use <code class="notranslate">first</code> and <code class="notranslate">last</code>;<br>
+otherwise it remains positional or uses configured names or numeric fallbacks.</p>
+<p dir="auto"><code class="notranslate">Extend</code> preserves aggregate initialization. It adds neither data members nor virtual dispatch. As<br>
+shown above, the leading <code class="notranslate">{}</code> initializes the empty CRTP base and the remaining initializers map to<br>
+fields in declaration order. The named construction helpers provide the same result without making<br>
+callers spell the base initializer:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">auto</span> name = Name::ConstructFromArgs(<span class="pl-s"><span class="pl-pds">"</span>Grace<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Hopper<span class="pl-pds">"</span></span>);
+<span class="pl-k">auto</span> other = Name::ConstructFromTuple(std::tuple{<span class="pl-s"><span class="pl-pds">"</span>Barbara<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Liskov<span class="pl-pds">"</span></span>});
+<span class="pl-k">auto</span> converted = Name::ConstructFromConversions(<span class="pl-s"><span class="pl-pds">"</span>Margaret<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Hamilton<span class="pl-pds">"</span></span>);</pre></div>
+<h2 dir="auto" id="extender-sets">Extender sets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Base</th>
+<th>Installed behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Extend&lt;T, Extra...&gt;</code></td>
+<td>Default behavior plus any custom extenders.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ExtendNoPrint&lt;T, Extra...&gt;</code></td>
+<td>Comparison, hashing, and Abseil stringification, without <code class="notranslate">ToString()</code> or <code class="notranslate">operator&lt;&lt;</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ExtendNoDefault&lt;T, Extender...&gt;</code></td>
+<td>Only the explicitly selected extenders.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Default</code></td>
+<td><code class="notranslate">AbslStringify</code>, <code class="notranslate">AbslHashable</code>, <code class="notranslate">Comparable</code>, <code class="notranslate">Printable</code>, and <code class="notranslate">Streamable</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::NoPrint</code></td>
+<td><code class="notranslate">AbslStringify</code>, <code class="notranslate">AbslHashable</code>, and <code class="notranslate">Comparable</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Comparable</code></td>
+<td><code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">==</code>, and <code class="notranslate">&lt;</code>, with the remaining relational operators supplied by C++.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::AbslHashable</code></td>
+<td><code class="notranslate">AbslHashValue</code>; extended types also receive <code class="notranslate">std::hash</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::AbslStringify</code></td>
+<td>Abseil formatting backed by <code class="notranslate">Stringify</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Printable</code></td>
+<td><code class="notranslate">ToString()</code> and <code class="notranslate">ToJsonString()</code>; requires <code class="notranslate">AbslStringify</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Streamable</code></td>
+<td><code class="notranslate">operator&lt;&lt;</code>; requires <code class="notranslate">AbslStringify</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Use <code class="notranslate">ExtendNoDefault</code> when a type must expose only a narrow operation set. Use <code class="notranslate">ExtendNoPrint</code> when<br>
+the comparison and hashing semantics are useful but text output has a hand-written implementation.<br>
+Additional extenders can be defined with <code class="notranslate">MakeExtender</code>; dependencies between extenders are checked<br>
+while the CRTP chain is assembled.</p>
+<p dir="auto"><code class="notranslate">extender::Comparable</code> compares fields in declaration order through the aggregate's tuple view. It<br>
+defines <code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">==</code>, and <code class="notranslate">&lt;</code> for two values of the extended type; C++ rewriting supplies <code class="notranslate">!=</code>, <code class="notranslate">&lt;=</code>,<br>
+<code class="notranslate">&gt;</code>, and <code class="notranslate">&gt;=</code>. Member templates also compare an extended value with another decomposable aggregate<br>
+or a compatible <code class="notranslate">std::tuple</code>. Field types must provide the operations needed by the requested<br>
+comparison.</p>
+<h2 dir="auto" id="structural-reflection-and-tuples">Structural reflection and tuples</h2>
+<p dir="auto">The structural layer determines an aggregate's field count and maps its structured binding to a<br>
+tuple of references. It is independent of whether source field names are available.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/tuple_extras.h<span class="pl-pds">"</span></span>
+
+Name name = Name::ConstructFromArgs(<span class="pl-s"><span class="pl-pds">"</span>Katherine<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Johnson<span class="pl-pds">"</span></span>);
+<span class="pl-k">auto</span> fields = mbo::types::StructToTuple(name);
+std::get&lt;<span class="pl-c1">1</span>&gt;(fields) = <span class="pl-s"><span class="pl-pds">"</span>Coleman Goble Johnson<span class="pl-pds">"</span></span>;</pre></div>
+<p dir="auto"><code class="notranslate">StructToTuple</code> preserves reference and cv-qualification appropriate to its argument. The tuple is<br>
+a view of the aggregate, not a detached value. <code class="notranslate">Extend</code> uses the same representation for generated<br>
+comparison and hashing, so those operations follow field declaration order.</p>
+<p dir="auto">The decomposition machinery supports aggregates only up to its generated maximum arity. Anonymous<br>
+structs or unions are not supported as members of an extended type. Other difficult shapes can be<br>
+structurally decomposable even when automatic names are unavailable; callers should not treat<br>
+tuple support and name support as the same capability.</p>
+<h2 dir="auto" id="field-names">Field names</h2>
+<p dir="auto">Automatic names are best-effort metadata because C++23 has no standard field-name reflection:</p>
+<ul dir="auto">
+<li>GCC 14+ extracts constexpr names from field-address expressions and compiler signatures.</li>
+<li>Clang 22+ uses <code class="notranslate">__builtin_dump_struct</code>; eligible types are constexpr, with a runtime path for<br>
+additional types.</li>
+<li>unsupported compilers and unsupported field shapes retain positional traversal;</li>
+<li>explicit application names always remain available and can override compiler names.</li>
+</ul>
+<p dir="auto">The detailed matrix for unions, bit-fields, reference members, constexpr evaluation, and external<br>
+implementations lives in <a href="REFLECTION.html">REFLECTION.md</a>.</p>
+<h2 dir="auto" id="stringification">Stringification</h2>
+<p dir="auto"><code class="notranslate">Stringify</code> recursively handles supported aggregates, strings, characters, pointers, optionals,<br>
+variants, tuples, and containers. Ready-made modes provide default, compact or pretty C++, and<br>
+compact, line-oriented, or pretty JSON-like output:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/stringify.h<span class="pl-pds">"</span></span>
+
+std::string cpp = mbo::types::Stringify::AsCpp().ToString(name);
+std::string pretty = mbo::types::Stringify::AsCppPretty().ToString(name);
+std::string json = mbo::types::Stringify::AsJson().ToString(name);</pre></div>
+<p dir="auto">JSON modes need keys. They use automatic or explicit field names when available and numeric keys as<br>
+a fallback. <code class="notranslate">ToJsonString()</code> is a convenience supplied by <code class="notranslate">extender::Printable</code>.</p>
+<p dir="auto">Formatting is controlled by sparse <code class="notranslate">StringifyOptions</code>. Its groups cover syntax, field inclusion,<br>
+key selection and renaming, value escaping and replacement, container and string limits, and<br>
+special handling for string-keyed pair containers. Outer and nested values can have different<br>
+policies through <code class="notranslate">StringifyFieldOptions</code>; <code class="notranslate">StringifyRootOptions</code> independently controls the root.</p>
+<h3 dir="auto" id="custom-names-and-field-policy">Custom names and field policy</h3>
+<p dir="auto">The simplest stable schema supplies names explicitly:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">struct</span> <span class="pl-en">Credentials</span> : mbo::types::Extend&lt;Credentials&gt; {
+  std::string user;
+  std::string secret;
+
+  <span class="pl-k">friend</span> <span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-en">MboTypesStringifyFieldNames</span>(<span class="pl-k">const</span> Credentials&amp;) {
+    <span class="pl-k">return</span> std::array&lt;std::string_view, <span class="pl-c1">2</span>&gt;{<span class="pl-s"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>secret<span class="pl-pds">"</span></span>};
+  }
+};</pre></div>
+<p dir="auto">For per-field behavior, define <code class="notranslate">MboTypesStringifyOptions</code>. It receives the object plus<br>
+<code class="notranslate">StringifyFieldInfo</code>, including the field index, discovered name, and inherited options. Policy can<br>
+therefore depend on the type, field, surrounding context, or runtime object state.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Extension point</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MboTypesStringifyFieldNames</code></td>
+<td>Supply the complete stable name sequence or replace compiler names.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code></td>
+<td>Suppress compiler-provided names while retaining traversal.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyOptions</code></td>
+<td>Choose formatting and policy for each object and field.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyWithFieldNames</code></td>
+<td>Adapt a name sequence into field options, optionally verifying discovered names.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::FieldControl</code></td>
+<td>Suppress fields, null pointers, empty optionals, or disabled values.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::KeyOverrides</code></td>
+<td>Rename a field statically or through a callback.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::ValueOverrides</code></td>
+<td>Replace or redact string and non-string values.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyConvert</code></td>
+<td>Convert a field using its owner, index, and value before rendering.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyValueAccess</code></td>
+<td>Present a wrapper as a different underlying value.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDisable</code></td>
+<td>Prevent automatic recursive rendering for a type.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifySupport</code></td>
+<td>Opt a non-extended aggregate into <code class="notranslate">Stringify</code> traversal.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Automatic source identifiers are convenient diagnostics, but explicit names are preferable for a<br>
+stable external schema. Formatting JSON-like text does not make <code class="notranslate">Stringify</code> a validating serializer;<br>
+use a serialization library when schema evolution, parsing, or protocol guarantees are required.</p>
+<h2 dir="auto" id="other-value-utilities">Other value utilities</h2>
+<p dir="auto">The package also provides utilities that do not depend on <code class="notranslate">Extend</code>:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Utility</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">StringOrView</code></td>
+<td>Read-only text that either owns a string or borrows a string view.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OptionalRef</code></td>
+<td>Optional non-owning reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OptionalDataOrRef</code></td>
+<td>Optional value that can own data or borrow a reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">Required</code></td>
+<td>Always-engaged value wrapper with configurable requirement failure behavior.</td>
+</tr>
+<tr>
+<td><code class="notranslate">NoDestruct</code></td>
+<td>Static-lifetime storage that deliberately does not invoke the contained destructor.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OpaquePtr</code> / <code class="notranslate">OpaqueValue</code></td>
+<td>Ownership wrappers suitable for forward-declared implementation types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerProxy</code></td>
+<td>Container access forwarding for wrapped values and pointers.</td>
+</tr>
+<tr>
+<td><code class="notranslate">RefWrap</code></td>
+<td>Reference wrapper with <code class="notranslate">*</code> and <code class="notranslate">-&gt;</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">TypedView</code></td>
+<td>View wrapper that supplies container-style type aliases.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareArithmetic</code> and family</td>
+<td>Strong/weak comparison helpers for mixed arithmetic and scalar types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">tstring</code></td>
+<td>Compile-time string-literal type used by the extender machinery and other templates.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The repository's root <a href="../../index.html">README</a> lists the complete header and Bazel target inventory.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

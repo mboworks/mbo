@@ -1,0 +1,789 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CHANGELOG.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="0150">0.15.0</h1>
+<ul dir="auto">
+<li>Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang<br>
+backend while preserving mbo's per-type name overrides and per-field formatting, conversion,<br>
+suppression, and redaction controls. Added a comprehensive <code class="notranslate">mbo/types</code> guide plus reflection<br>
+implementation notes with the support matrix, limitations, and comparison with other libraries.</li>
+<li>Added reproducible ordered-container microbenchmarks for exact lookup and both bounds across<br>
+container kinds, capacities, key positions, ascending/descending order, and comparator types.</li>
+<li>Restored the empty-input guards in log timing's reverse parsers, added direct regression tests,<br>
+and stopped counting unreachable generated <code class="notranslate">index_of</code> expansions as uncovered lines.</li>
+<li>Raised the development baseline to C++23, GCC 14, and Clang/LLVM 22, and updated the default<br>
+Bazel release to 9.2 while retaining Bazel 8 compatibility.</li>
+<li>Switched the bundled LLVM setup from its temporary prerelease override to the published<br>
+<code class="notranslate">toolchains_llvm@1.9.0</code> Bazel Central Registry module.</li>
+<li>Updated Abseil to 20260817.0 and the associated dependency selections and compatibility patches.</li>
+<li>Made the primary Clang toolchain authoritative for coverage while retaining GCC 14 and the<br>
+supported Bazel/compiler combinations in the CI matrix.</li>
+<li>Fixed immutable GitHub releases by assembling standard releases as drafts until their assets<br>
+are uploaded, updated BCR publication, and restored the reviewed post-release version-bump PR.</li>
+</ul>
+<h1 dir="auto" id="0140">0.14.0</h1>
+<ul dir="auto">
+<li>Updated the bundled LLVM setup to the official <code class="notranslate">toolchains_llvm</code> 1.9.0 prerelease commit while<br>
+its BCR publication is pending, removing the remaining <code class="notranslate">helly25/toolchains_llvm</code> fork dependency.</li>
+<li>Added live per-translation-unit clang-tidy progress with parallel worker counts, completion<br>
+percentages, failure-only diagnostics, configurable concurrency, and complete interruption<br>
+cleanup. A fail-closed clang-tidy database removes redundant fuzz-transition commands only when<br>
+their semantic compiler arguments match the ordinary build.</li>
+<li>Transferred the project to <code class="notranslate">mboworks/mbo</code>, renamed the Bazel module to <code class="notranslate">mboworks_mbo</code>, and<br>
+migrated shell tests to <code class="notranslate">mboworks_bashtest@0.6.1</code>. Historical <code class="notranslate">helly25_mbo</code> releases remain<br>
+available unchanged.</li>
+<li>Extended SHGLOB braces with bounded ascending and descending integer and ASCII-letter sequences,<br>
+including signed and zero-padded integers. Expansions above 10,000 terms are rejected, and the<br>
+optional Bash increment form remains literal.</li>
+<li>Replaced the previous glob translation with the canonical fast GLOB/SHGLOB implementation. It<br>
+provides locale-independent structural bracket parsing, positive and negated character classes,<br>
+precise validation, nested SHGLOB alternatives, and complete-component <code class="notranslate">**</code>; notably,<br>
+<code class="notranslate">foo/**/bar</code> matches <code class="notranslate">foo/bar</code> and any number of intervening directory levels.</li>
+<li>Added <code class="notranslate">mbo::StringOrView</code>, a read-only string-like value that either owns a <code class="notranslate">std::string</code> or<br>
+borrows a <code class="notranslate">std::string_view</code>. It exposes the full applicable string/string-view interface,<br>
+comparisons, C++23-style <code class="notranslate">contains</code>/<code class="notranslate">subview</code>, stream and Abseil formatting, plus Abseil and<br>
+<code class="notranslate">std::hash</code> integration.</li>
+<li>Fixed <code class="notranslate">OptionalDataOrRef</code> construction and assignment so borrowed values cannot silently become<br>
+dangling references; added the corresponding lifetime constraints and tests.</li>
+<li>Fixed <code class="notranslate">Required</code> replacement and generic operations, including move-only values and converting<br>
+construction/assignment, while preserving its configurable failure behavior.</li>
+<li>Fixed <code class="notranslate">NoDestruct</code> construction and its formatting/hash customizations for non-copyable and<br>
+explicitly constructed values.</li>
+<li>Added strict INI parsing: malformed sections, missing keys, and invalid trailing content now<br>
+return diagnostics instead of being partially accepted.</li>
+<li>Fixed JSON value-iterator assignment and made JSON's configurable requirement failures testable<br>
+through the exception-enabled configuration without weakening the default fatal behavior.</li>
+<li>Fixed alphabetic hexadecimal escapes so the full accepted digit set is decoded correctly.</li>
+<li>Fixed independently quoted option parsing: quoting one option no longer changes how subsequent<br>
+options are parsed.</li>
+<li>Rejected truncated and structurally malformed glob ranges rather than passing altered semantics<br>
+to RE2.</li>
+<li>Made <code class="notranslate">NormalizePath</code> preserve the filesystem's native character type instead of assuming narrow<br>
+characters.</li>
+<li>Made <code class="notranslate">GetContents</code> report seek failures and <code class="notranslate">GetMaxLines</code> report read failures instead of<br>
+returning incomplete data as success.</li>
+<li>Corrected cache-cleanup prefix matching so one branch or configuration cannot select unrelated<br>
+cache entries.</li>
+<li>Added fuzz targets for glob conversion, string parsing, INI parsing, diff inputs/options, and<br>
+digest checksum parsing.</li>
+<li>Added LCOV line/function/branch coverage enforcement for the overall tree, logical modules, and<br>
+changed code. Reports use a shared policy and baseline, publish durable per-PR HTML detail to<br>
+GitHub Pages, and fail with actionable uncovered-line/branch diagnostics.</li>
+<li>Raised measured coverage across every core module through behavioral tests rather than production<br>
+exclusions: overall coverage is 98.11% lines, 98.63% functions, and 89.32% branches; every module<br>
+is rated <code class="notranslate">GOOD</code>, including <code class="notranslate">mbo/types</code> at 86.12% branch coverage.</li>
+<li>Bounded CI cache entries below 500 MB and made cache cleanup best-effort, so cleanup API failures<br>
+cannot turn an otherwise successful job red.</li>
+<li>Enabled UndefinedBehaviorSanitizer explicitly in the AddressSanitizer configuration.</li>
+<li>Updated the compile-command extractor and reused the clang-tidy Bazel configuration, eliminating<br>
+an avoidable configuration switch while keeping header-only changes in clang-tidy's scope.</li>
+<li>Adopted the shared contributor style guides and enforcement: matcher-based tests, named typed and<br>
+parameterized cases, explicit test sizes, aligned Markdown tables, and pre-commit rejection of<br>
+forbidden GoogleTest comparison macros and spelling errors in C++ and documentation.</li>
+<li>Added repository Git orchestration rules for dependency-graph-aware autonomous PR handling,<br>
+synchronized-head validation, conflict resolution, and safe parent/child merge sequencing.</li>
+<li>Made pull-request validation run in pull-request context, cancel superseded runs, and retain the<br>
+final aggregate <code class="notranslate">done</code> gate.</li>
+<li>Hardened release automation: release bumps retain required review protection, only the requested<br>
+tag is published, and temporary Git indexes use a portable private directory.</li>
+<li>Documented the policy of using readable GitHub Actions version tags rather than commit hashes<br>
+unless a concrete security or reproducibility reason requires pinning.</li>
+<li>Silenced external-header warnings in exec-configuration builds without relaxing warnings for<br>
+first-party code.</li>
+<li>Fixed <code class="notranslate">LimitedVector</code>'s comparison operators, which were declared over <code class="notranslate">std::size_t</code> capacities while the class takes <code class="notranslate">auto</code>: instances spelled via <code class="notranslate">MakeLimitedVector</code>/<code class="notranslate">LimitedOptions</code> or an <code class="notranslate">int</code> literal matched no operator at all and failed to compile.</li>
+<li>Enabled <code class="notranslate">cppcoreguidelines-pro-bounds-avoid-unchecked-container-access</code>: unchecked <code class="notranslate">operator[]</code> is now a clang-tidy error. Containers that bounds-check themselves (<code class="notranslate">LimitedMap</code>, <code class="notranslate">LimitedVector</code>, <code class="notranslate">Json</code>) and insert-semantics maps (absl's) are excluded by class; the hash/digest kernels and other in-range-by-construction code carry scoped <code class="notranslate">NOLINT</code> blocks.</li>
+<li>Fixed <code class="notranslate">LimitedVector</code> comparison operators (<code class="notranslate">==</code>, <code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">&lt;</code>), which looped to <code class="notranslate">min</code> of the CAPACITIES instead of the sizes: comparing partially-filled vectors read uninitialized slots (or threw in a require-throws build). Found by <code class="notranslate">pro-bounds-avoid-unchecked-container-access</code>.</li>
+<li>Converted unchecked <code class="notranslate">operator[]</code> to <code class="notranslate">.at()</code>/<code class="notranslate">std::get</code> (or a reasoned <code class="notranslate">NOLINT</code> in benchmarks' timed loops and compile-time code) across the hash, digest, json, types and container libraries.</li>
+<li>Converted unchecked <code class="notranslate">operator[]</code> to <code class="notranslate">.front()</code>/<code class="notranslate">.at()</code> (or a reasoned <code class="notranslate">NOLINT</code> on hot paths) across the diff, strings, log, mope, file and testing libraries, preparing <code class="notranslate">pro-bounds-avoid-unchecked-container-access</code>.</li>
+<li>Re-measured <code class="notranslate">pro-bounds-avoid-unchecked-container-access</code> (task: attempt to enable): 2,953 findings, ~2,500 in hash/digest kernels where indices are in-range by construction; stays disabled with the data recorded in <code class="notranslate">.clang-tidy</code>.</li>
+<li>Enabled <code class="notranslate">-Wpedantic</code> (as errors) on all first-party code. Two named carve-outs for absl macros expanding in our translation units (<code class="notranslate">ABSL_FLAG</code>'s <code class="notranslate">__COUNTER__</code>, <code class="notranslate">ABSL_CHECK</code>'s <code class="notranslate">_Nullable</code>); the repo's own deliberate GNU extensions (<code class="notranslate">__int128</code>, statement expressions in <code class="notranslate">decompose_count.h</code>) are annotated <code class="notranslate">__extension__</code> in code. The bazel-7/8 compat CI rungs relax it because those bazels half-apply <code class="notranslate">external_include_paths</code> and leak external-header findings.</li>
+<li>Removed the temporary <code class="notranslate">hash_tembo.h</code> allowlist entry from the headers-claimed check; <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5159679456" data-permission-text="Title is private" data-url="https://github.com/mboworks/mbo/issues/311" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/311/hovercard" href="https://github.com/mboworks/mbo/pull/311">#311</a> lists the header in a target again.</li>
+<li>The warning set is now owned by the repo: explicit <code class="notranslate">-Wall -Wextra</code> (as errors) on all first-party code, with <code class="notranslate">missing-field-initializers</code> suppressed as the deliberate designated-init idiom; previously only <code class="notranslate">-Werror</code> was ours and the set came from each toolchain's defaults.</li>
+<li>CI no longer caches the hermetic LLVM (ported from helly25/xff <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5305227391" data-permission-text="Title is private" data-url="https://github.com/mboworks/mbo/issues/409" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/409/hovercard" href="https://github.com/mboworks/mbo/pull/409">#409</a>+<a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5346594365" data-permission-text="Title is private" data-url="https://github.com/mboworks/mbo/issues/411" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/411/hovercard" href="https://github.com/mboworks/mbo/pull/411">#411</a>): jobs cache bazel's disk cache instead of the output root, non-clang cells keep a small repo cache, and the symbolizer wrapper resolves <code class="notranslate">llvm-symbolizer</code> via runfiles so a fresh LLVM fetch location cannot break asan/tsan.</li>
+<li>Added a <code class="notranslate">headers-claimed</code> pre-commit check: every tracked header must be listed in its package's BUILD file. Found <code class="notranslate">hash_tembo.h</code> orphaned since <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5154246031" data-permission-text="Title is private" data-url="https://github.com/mboworks/mbo/issues/306" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/306/hovercard" href="https://github.com/mboworks/mbo/pull/306">#306</a> on its first run (temporarily allowlisted; re-listed by <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5159679456" data-permission-text="Title is private" data-url="https://github.com/mboworks/mbo/issues/311" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/311/hovercard" href="https://github.com/mboworks/mbo/pull/311">#311</a>).</li>
+<li>Replaced the reachability-based <code class="notranslate">library-test-coverage</code> hook with xff's strict rule: every <code class="notranslate">cc_library</code> needs a test in its own package with a direct dependency; exceptions live in the tool's <code class="notranslate">_ALLOWLIST</code> with reasons.</li>
+<li>Converted assert-status-then-dereference in the new tests to <code class="notranslate">IsOkAndHolds</code>/<code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN</code>, and imported four rules from helly25/xff's style guide (<code class="notranslate">_cc</code> naming, per-package tests, no braced-init-list iteration, <code class="notranslate">lhs</code>/<code class="notranslate">rhs</code> comparator parameters).</li>
+<li>Added tests for <code class="notranslate">hash_extra_cc</code>, <code class="notranslate">hash_internal_util_cc</code>, <code class="notranslate">mope_cc</code>, <code class="notranslate">ini_cc</code>, <code class="notranslate">runfiles_dir_cc</code>, <code class="notranslate">extend_cc</code>, <code class="notranslate">extender_cc</code> and <code class="notranslate">test_types_cc</code> - every library now has a test in its own package.</li>
+<li>Added tests for all ten diff libraries: the three algorithms (<code class="notranslate">diff_direct_cc</code>, <code class="notranslate">diff_myers_cc</code>, <code class="notranslate">diff_naive_cc</code>), the shared plumbing (<code class="notranslate">base_diff_cc</code>, <code class="notranslate">chunked_diff_cc</code>) and the internals (<code class="notranslate">chunk_cc</code>, <code class="notranslate">context_cc</code>, <code class="notranslate">data_cc</code>, <code class="notranslate">output_cc</code>, <code class="notranslate">update_absl_log_flags_cc</code>).</li>
+<li>Removed every <code class="notranslate">-stdlib=libc++</code> and every <code class="notranslate">-Wno-unused-command-line-argument</code> suppression: the hermetic toolchain resolves libc++ headers via <code class="notranslate">-cxx-isystem</code> and links libc++ explicitly, so the flag was inert (driver-confirmed) at compile and link alike; the one formerly load-bearing upstream copy is fixed in the official <code class="notranslate">toolchains_llvm</code> 1.9.0 prerelease selected by <code class="notranslate">git_override</code> until BCR publication.</li>
+<li>Removed the redundant <code class="notranslate">--cxxopt=-stdlib=libc++</code> from the <code class="notranslate">clang-tidy</code> bazel config; the hermetic toolchain already passes it, so it appeared twice and produced "unused argument" warnings.</li>
+<li>Fixed <code class="notranslate">mbo::file::GetMTime</code> on libstdc++: it read <code class="notranslate">std::filesystem::file_clock</code> time as Unix seconds, but that clock's epoch is implementation-defined (2174-01-01 on libstdc++), so every file's mtime was ~148 years off on Linux.</li>
+<li>Added <code class="notranslate">mbo/diff:diff_options_test</code>, covering every flag parser including the unknown-value paths.</li>
+<li>Added <code class="notranslate">mbo/file:artefact_test</code>.</li>
+<li>Added tests for <code class="notranslate">container_proxy_cc</code>, <code class="notranslate">cases_cc</code>, <code class="notranslate">traits_cc</code> (internal), <code class="notranslate">config_cc</code> and <code class="notranslate">require_cc</code>.</li>
+<li>Fixed <code class="notranslate">mbo::types::TypedView</code> to derive from <code class="notranslate">std::ranges::view_interface</code> PUBLICLY; private inheritance made every member it supplies inaccessible.</li>
+<li>Added <code class="notranslate">mbo/types:typed_view_test</code>, and normalised colon-less deps in BUILD files.</li>
+<li>Fixed <code class="notranslate">mbo::types::IsVariantMemberType</code>, which was always <code class="notranslate">false</code>: its recursion specialised the out-of-range case, so an in-range index fell through to the <code class="notranslate">false_type</code> primary template.</li>
+<li>Added <code class="notranslate">mbo/types:variant_test</code> and <code class="notranslate">mbo/log:demangle_test</code>.</li>
+<li>Added <code class="notranslate">mbo/types:compare_test</code>, covering <code class="notranslate">CompareLess</code>, <code class="notranslate">CompareFloat</code>'s NaN total order and <code class="notranslate">CompareScalar</code>'s mixed-signedness branches.</li>
+<li>Fixed <code class="notranslate">//mbo/types:compare_cc</code> to declare its dependency on <code class="notranslate">traits_cc</code>, which it includes but never listed.</li>
+<li>Added a <code class="notranslate">cc-target-naming</code> pre-commit check (ported from helly25/xff): <code class="notranslate">cc_library</code> target names must end in <code class="notranslate">_cc</code>. Renamed <code class="notranslate">hash_internal_util</code> and <code class="notranslate">hash_test_util</code> accordingly.</li>
+<li><code class="notranslate">mbo::types::CompareLess</code> now declares <code class="notranslate">is_transparent</code>, so its existing heterogeneous overloads are reachable through <code class="notranslate">LimitedSet</code>/<code class="notranslate">LimitedMap</code> instead of every lookup having to build a key first.</li>
+<li>Extended transparent lookup to every read operation: <code class="notranslate">LimitedMap::at</code>, <code class="notranslate">contains_all</code>/<code class="notranslate">contains_any</code> (which previously rejected foreign keys outright), and <code class="notranslate">index_of</code>, so a foreign key now takes the same unrolled fast path as an exact key instead of falling back to a binary search.</li>
+<li><code class="notranslate">LimitedSet</code>/<code class="notranslate">LimitedMap</code> <code class="notranslate">erase</code> no longer constructs a key when the comparator is transparent, and its template overload is now constrained to foreign keys only.</li>
+<li>Added transparent (heterogeneous) lookup to <code class="notranslate">LimitedSet</code>/<code class="notranslate">LimitedMap</code>: when the comparator declares <code class="notranslate">is_transparent</code>, <code class="notranslate">find</code>, <code class="notranslate">contains</code>, <code class="notranslate">count</code>, <code class="notranslate">index_of</code>, <code class="notranslate">lower_bound</code>, <code class="notranslate">upper_bound</code> and <code class="notranslate">equal_range</code> accept any type the comparator can order against the key, without constructing a key.</li>
+<li>Fixed <code class="notranslate">LimitedOrdered::count</code> which returned <code class="notranslate">last - false</code> instead of <code class="notranslate">last - first</code> and did not compile at all (no test instantiated it).</li>
+<li>Added a <code class="notranslate">library-test-coverage</code> pre-commit check: every <code class="notranslate">cc_library</code> under <code class="notranslate">//mbo/...</code> must be reachable from some test target.</li>
+<li>Added <code class="notranslate">diff-charts</code> sub-command for the <code class="notranslate">hash_benchmark_report.py</code> tool.</li>
+<li>Added <code class="notranslate">bundle-context</code> sub-command for the <code class="notranslate">hash_benchmark_report.py</code> tool.</li>
+<li>Updated <code class="notranslate">mumbo</code> to V5 which aims at improved Instruction-level parallelism (ILP).</li>
+<li>Improved publish for <code class="notranslate">hash_benchmark_report.py</code> which updates README.md with the latest benchmark results, charts and quality tables.</li>
+<li>Added <code class="notranslate">--cwd</code> param to <code class="notranslate">mbo/digest</code> tool.</li>
+<li>Added the public <code class="notranslate">mbo::log::ScopedStream</code> helpers. The accompanying <code class="notranslate">MBO_LOG_CHECK</code> experiment<br>
+remains package-private and is not a supported API.</li>
+<li>Moved <code class="notranslate">clang-tidy</code> from <code class="notranslate">trunk</code> to the opt-in <code class="notranslate">clang-tidy</code> pre-commit hook (<code class="notranslate">tools/clang_tidy.sh</code>).</li>
+<li>Fixed <code class="notranslate">.clang-tidy</code>: <code class="notranslate">WarningsAsErrors</code> never escalated findings, and a misspelled option key was dead.</li>
+<li>Disabled <code class="notranslate">llvm-header-guard</code> and <code class="notranslate">llvm-prefer-static-over-anonymous-namespace</code>, which contradict <code class="notranslate">STYLE_CPP.md</code>.</li>
+<li>Fixed <code class="notranslate">compile_commands-update.sh</code> to record the hermetic clang, so clangd and clang-tidy parse what <code class="notranslate">--config=clang</code> builds.</li>
+<li>Dropped 196 duplicate exec-configuration compile commands via the extractor's new <code class="notranslate">--bcce-prefer-target-config</code>.</li>
+<li>Fixed <code class="notranslate">IniFile::SetKey</code> to move its <code class="notranslate">std::string&amp;&amp;</code> instead of copying it through <code class="notranslate">assign</code>.</li>
+<li>Removed a pointless <code class="notranslate">std::floor</code> over integer division in <code class="notranslate">mbo/strings/numbers.h</code>, which round-tripped a <code class="notranslate">size_t</code> through <code class="notranslate">double</code>.</li>
+<li>Fixed <code class="notranslate">mbo::types::tstring::is</code> to take its ignored argument by const reference rather than by value.</li>
+<li>Promoted <code class="notranslate">clang-tidy</code> to an enforcing pre-commit gate: it now runs automatically on the C++ sources a commit touches, and any finding fails the commit.</li>
+<li>Exempted the standard-mandated container member type names (<code class="notranslate">value_type</code>, <code class="notranslate">size_type</code>, ...) from <code class="notranslate">readability-identifier-naming</code>, which demanded CamelCase the standard does not permit.</li>
+<li>Disabled <code class="notranslate">misc-use-internal-linkage</code> (its only fix is <code class="notranslate">static</code>, while <code class="notranslate">STYLE_CPP.md</code> wants an anonymous namespace) and <code class="notranslate">readability-redundant-parentheses</code> (its fix deletes the <code class="notranslate">__builtin_dump_struct</code> callee).</li>
+</ul>
+<h1 dir="auto" id="0132">0.13.2</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">BmHash128Throughput</code> (128-bit bounded-range throughput) and guarded the 64-/128-bit benchmark paths by <code class="notranslate">HasGetHash64</code>/<code class="notranslate">HasGetHash128</code>.</li>
+<li>Reworked the measurement report around the latency (ns at exact length) / throughput (GiB/s over the Short/Web bounded distributions) split: each renders as chart + table per hash width, absent sections dropped; the report re-distills a bundle from its raw on read, so old bundles still yield latency tables and bundles need no re-packing when the tool changes.</li>
+<li>Reworked the hash mixed-length benchmark: dropped the hash-indexed key walk that collapsed into a rho-cycle (near-zero anomalies) and added <code class="notranslate">BmHash64Throughput</code> reporting bytes/s over two documented length distributions (Short ≤128 B, Web ≤4096 B) truncated to each upper bound; the per-exact-length <code class="notranslate">BmHash64</code>/<code class="notranslate">BmHash128</code> remain the latency view. Distributions are exported as the <code class="notranslate">throughput_dists</code> context.</li>
+<li>Added a <code class="notranslate">compare</code> command reporting per-case Δ% and a geomean between two datasets.</li>
+<li>Made <code class="notranslate">tables</code>/<code class="notranslate">plot</code>/<code class="notranslate">compare</code>/<code class="notranslate">quality</code> accept a bundle <code class="notranslate">.tgz</code> or a results JSON, positionally or via <code class="notranslate">--results</code>/<code class="notranslate">--bundle</code>.</li>
+<li>Added <code class="notranslate">plot --kind</code> (throughput/latency/all) and <code class="notranslate">--scale</code> (log-log/linear-log).</li>
+<li>Expanded the benchmark <code class="notranslate">kFullSizes</code> and swept latency over the full set (dense ns-vs-length latency curve).</li>
+<li>Added a <code class="notranslate">quality</code> command generating the overview + SMHasher3 Results tables from <code class="notranslate">hash_algorithms.json</code> and a measured bundle; <code class="notranslate">--check</code> gates them.</li>
+<li>Added a <code class="notranslate">consistency</code> command verifying same-source-SHA bundles agree on SMHasher3 verdicts.</li>
+<li>Fixed SMHasher3 parsing: a bad name or crash reads as <code class="notranslate">ERROR</code> not a false <code class="notranslate">PASS</code>; score and failing families parse from the Summary; legacy names aliased.</li>
+<li>Integrated <code class="notranslate">mbo/hash/measurements</code> as a normal dev package (still release-stripped) with a <code class="notranslate">quality_sh_test</code> gating the tables; test CI fetches the LFS bundles.</li>
+<li>Added a <code class="notranslate">no-deps-on-measurements</code> pre-commit guard.</li>
+<li>Ported <code class="notranslate">mumbo</code> (64-bit) to Starlark (<code class="notranslate">hash.mumbo</code>), byte-identical to C++; <code class="notranslate">hash.bzl</code> now offers <code class="notranslate">mumbo</code>, <code class="notranslate">dumbo</code>, and <code class="notranslate">fnv1a</code>.</li>
+</ul>
+<h1 dir="auto" id="0131">0.13.1</h1>
+<ul dir="auto">
+<li>Switched the build-seed mangle constant header to per-build generation (no longer committed): removed <code class="notranslate">internal/hash_mangle_seed.h.in</code> and <code class="notranslate">hash_mangle_seed_default_test</code>, so a version bump no longer needs a committed regeneration. <code class="notranslate">hash_mangle.h</code> includes the generated header directly (missing is an <code class="notranslate">#error</code>; clangd falls back under <code class="notranslate">-DIS_CLANGD</code>).</li>
+<li>Added Starlark ports of the <code class="notranslate">dumbo</code> and <code class="notranslate">fnv1a</code> hashes in <code class="notranslate">//mbo/hash:hash.bzl</code> (the public <code class="notranslate">hash</code> struct), byte-identical to C++ and verified against it.</li>
+<li>Switched the mangle version/seed fold from FNV-1a to the in-house <code class="notranslate">dumbo</code> hash.</li>
+<li>Added <code class="notranslate">//mbo/hash:hash_tool</code>, a minimal <code class="notranslate">&lt;algo&gt; [&lt;data&gt;]</code> hash CLI (plain <code class="notranslate">GetHash64</code>, no mangle).</li>
+<li>Excluded dev-only files from the release archive (<code class="notranslate">mbo/hash/measurements</code>, <code class="notranslate">.trunk</code>, and git metadata).</li>
+</ul>
+<h1 dir="auto" id="0130">0.13.0</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">DiffOptions::ignore_missing_final_newline</code> (the <code class="notranslate">--ignore_missing_final_newline</code> flag and the <code class="notranslate">diff_test</code> attribute): a file with and one without a trailing newline compare equal.</li>
+<li>Made an empty <code class="notranslate">DiffOptions::time_format</code> omit the file-header timestamp (git-style <code class="notranslate">--- name</code> / <code class="notranslate">+++ name</code>), so output is reproducible across machines and time zones.</li>
+<li>Added a Myers diff algorithm (<code class="notranslate">DiffMyers</code>, <code class="notranslate">--algorithm=myers</code>) and made it the default: minimal diffs, &gt;2x faster on scattered edits, and the disjoint-files worst case dropped from ~16s to &lt;1ms.</li>
+<li>Sped up the <code class="notranslate">myers</code> tokenizer (<code class="notranslate">string_view</code> interning keys hashed with <code class="notranslate">mbo::hash::GetHash64</code>, single-fold <code class="notranslate">ignore_case</code>): ~16% faster on tokenize-heavy inputs.</li>
+<li>Made the <code class="notranslate">mbo::diff</code> binary follow the POSIX exit-code contract (0 equal, 1 different, 2 trouble) and gave <code class="notranslate">diff_test</code> a <code class="notranslate">minimal</code> attribute.</li>
+<li>Rounded out the <code class="notranslate">mbo::diff</code> CLI/test surface: <code class="notranslate">--minimal</code>, algorithm/format names in the usage message, <code class="notranslate">diff_test</code> <code class="notranslate">width</code>/<code class="notranslate">skip_left_deletions</code> attributes, and a CLI bashtest over the algorithm x format matrix.</li>
+<li>Renamed the previous default <code class="notranslate">mbo::diff</code> algorithm <code class="notranslate">unified</code> to <code class="notranslate">naive</code> (<code class="notranslate">DiffNaive</code>); <code class="notranslate">unified</code> stays a deprecated alias that now selects <code class="notranslate">myers</code>.</li>
+<li>Verified the <code class="notranslate">mbo::diff</code> feature/algorithm support matrix with tests across <code class="notranslate">naive</code>, <code class="notranslate">myers</code>, and <code class="notranslate">direct</code>.</li>
+<li>Added <code class="notranslate">mbo::diff</code> context (<code class="notranslate">diff -c</code>) and normal (plain <code class="notranslate">diff</code>) output formats (<code class="notranslate">--format=unified|context|normal</code>), byte-compatible with GNU diff and <code class="notranslate">patch</code>.</li>
+<li>Fixed <code class="notranslate">mbo::diff</code> unified output for empty ranges so chunk headers match GNU diff (and apply cleanly with <code class="notranslate">patch</code>).</li>
+<li>Split <code class="notranslate">mbo::diff</code> chunk rendering into <code class="notranslate">mbo/diff/internal/output.{h,cc}</code> (<code class="notranslate">AppendChunk</code>).</li>
+<li>Added <code class="notranslate">mbo::hash::GetHash64</code> / <code class="notranslate">GetHash128</code> and the <code class="notranslate">Hash128</code> type: constexpr-safe, non-cryptographic hashing with the in-house <code class="notranslate">mumbo</code> as default.</li>
+<li>Renamed the legacy <code class="notranslate">mbo::hash::simple</code> to <code class="notranslate">mbo::hash::dumbo</code> and redesigned it into a compact single-lane MUM hash (SMHasher3 PASS 188/188); removed the <code class="notranslate">simple</code> namespace outright (pre-1.0, no alias).</li>
+<li>Made all <code class="notranslate">mbo::hash</code> entry points templates over an algorithm struct (per-algorithm <code class="notranslate">Algorithm</code>, the <code class="notranslate">HasGetHash*</code>/<code class="notranslate">IsHashAlgorithm</code> concepts, and <code class="notranslate">Hasher&lt;Algo&gt;</code> fallbacks).</li>
+<li>Added constexpr-safe <code class="notranslate">fnv1a</code>, <code class="notranslate">xxh64</code>, <code class="notranslate">xxh3</code> (64-bit), and <code class="notranslate">murmur3</code> (64/128), all matching published reference values.</li>
+<li>Exposed <code class="notranslate">mbo::hash::Hash128To64(Hash128)</code> to fold a 128-bit hash into a mixed 64-bit one.</li>
+<li>Added the build-seed mangle entry point <code class="notranslate">hash_mangle.h</code> (<code class="notranslate">GetHash</code> / <code class="notranslate">MangledHasher</code>): XORs one build-selected constant (from the module version and the <code class="notranslate">--//mbo/hash:mangle_seed*</code> flags) into <code class="notranslate">GetHash64</code> values, so they deliberately do not compare across independently configured builds.</li>
+<li>Switched runtime loads to <code class="notranslate">memcpy</code> (~3x faster on gcc) with branch-lite overlapping tail reads; kept the byte-assembly path for constant evaluation.</li>
+<li>Made <code class="notranslate">Hasher&lt;Algo&gt;</code> a transparent functor, usable directly by <code class="notranslate">absl</code>/<code class="notranslate">std</code> hash containers with heterogeneous <code class="notranslate">string_view</code> lookup.</li>
+<li>Added <code class="notranslate">mbo::hash::CombineHashes</code> and <code class="notranslate">hash_internal::Mul128Fold64</code>.</li>
+<li>Added seed-bit avalanche and structured/sparse-key distinctness tests.</li>
+<li>Added constexpr-safe <code class="notranslate">xxh3::GetHash128</code> (<code class="notranslate">XXH3_128bits</code>), verified against reference vectors and libxxhash.</li>
+<li>Added constexpr-safe <code class="notranslate">rapidhash::GetHash64</code> (rapidhash V3) and <code class="notranslate">siphash::GetHash64</code> / <code class="notranslate">SipHash&lt;C, D&gt;</code>, verified against reference vectors.</li>
+<li>Added a differential test comparing <code class="notranslate">xxh64</code>/<code class="notranslate">xxh3</code> bit-for-bit against the reference library over randomized inputs.</li>
+<li>Added <code class="notranslate">mbo::hash::Hash64To32</code> (XOR-fold to 32 bits).</li>
+<li>Added <code class="notranslate">GetHash32&lt;Algo&gt;</code> / <code class="notranslate">Hasher&lt;Algo&gt;::GetHash32</code> and the <code class="notranslate">HasGetHash32</code> concept (native variant or synthesized fold).</li>
+<li>Added a mixed-length latency benchmark (<code class="notranslate">BmHash64Latency</code>).</li>
+<li>Added streaming hashing (the <code class="notranslate">HasStreaming</code> concept and <code class="notranslate">Streamer&lt;Algo&gt;</code>) for <code class="notranslate">mumbo</code>, <code class="notranslate">xxh64</code>, and <code class="notranslate">siphash</code>.</li>
+<li>Added a repository-root <code class="notranslate">NOTICE</code> reproducing the upstream notices of the transcribed algorithms.</li>
+<li>Added <code class="notranslate">mumbo</code>, the library's own MUM-based hash and the default behind <code class="notranslate">GetHash*</code>: SMHasher3 PASS 188/188 in both widths, with best-in-class small-key latency and bulk throughput.</li>
+<li>Split the NOTICE-bearing transcriptions into <code class="notranslate">//mbo/hash:hash_extra_cc</code> (<code class="notranslate">rapidhash</code>, <code class="notranslate">xxh64</code>/<code class="notranslate">xxh3</code>); the default <code class="notranslate">//mbo/hash:hash_cc</code> stays notice-free.</li>
+<li>Documented that hash values are not stable across library versions and are not for persistence or cryptographic use.</li>
+<li>Added the <code class="notranslate">mbo/digest</code> library: constexpr-safe message digests (SHA-2 family, SHA-3/SHAKE, BLAKE2b, BLAKE3, and legacy SHA-1/MD5), each pinned against reference vectors.</li>
+<li>Mirrored mbo/hash's plug-in architecture in <code class="notranslate">mbo/digest</code> (per-algorithm <code class="notranslate">Algorithm</code> structs, <code class="notranslate">Streamer</code>, <code class="notranslate">Hmac&lt;Algo&gt;</code>, <code class="notranslate">ToHexString</code>).</li>
+<li>Added the <code class="notranslate">digest</code> binary (<code class="notranslate">//mbo/digest:digest</code>): <code class="notranslate">sha256sum</code>-compatible output, <code class="notranslate">-a</code> selects any of the 17 algorithms, reads stdin, streaming reads.</li>
+<li>Added <code class="notranslate">--check</code> to the <code class="notranslate">digest</code> binary (coreutils-compatible verification with <code class="notranslate">--quiet</code>, <code class="notranslate">--status</code>, <code class="notranslate">--ignore_missing</code>, and <code class="notranslate">--strict</code>).</li>
+<li>Added the bazel <code class="notranslate">verify_digest_test</code> rule (<code class="notranslate">//mbo/digest:digest.bzl</code>): re-digests files against a saved sidecar or inline checksum so they only change when the digest is updated too.</li>
+<li>Factored the shared load primitives into <code class="notranslate">//mbo/hash:hash_internal_util</code> and added the big-endian <code class="notranslate">Load32BE</code> / <code class="notranslate">Load64BE</code> loads.</li>
+</ul>
+<h1 dir="auto" id="0120">0.12.0</h1>
+<ul dir="auto">
+<li>Fixed visibility of already-documented APIs whose Bazel <code class="notranslate">cc_library</code> targets had defaulted to <code class="notranslate">//visibility:private</code> since they were added, so external code could not <code class="notranslate">deps</code> them. Now <code class="notranslate">//visibility:public</code>: <code class="notranslate">//mbo/types:optional_ref_cc</code> (<code class="notranslate">OptionalRef</code>), <code class="notranslate">//mbo/types:optional_data_or_ref_cc</code> (<code class="notranslate">OptionalDataOrRef</code> / <code class="notranslate">OptionalDataOrConstRef</code>), and the <code class="notranslate">//mbo/json:json</code> / <code class="notranslate">:json_cc</code> library - all added in 0.10.0.</li>
+<li>Made <code class="notranslate">//mbo/types:stringify_ostream_cc</code> public (<code class="notranslate">stringify_ostream.h</code>): the ostream <code class="notranslate">&lt;&lt;</code> integration for <code class="notranslate">Stringify</code> / <code class="notranslate">Extend</code> types plus the <code class="notranslate">SetStringifyOstreamOutputMode</code> / <code class="notranslate">SetStringifyOstreamOptions</code> configuration functions.</li>
+<li>Renamed the module repo to <code class="notranslate">helly25_mbo</code> and dropped the <code class="notranslate">com_helly25_mbo</code> alias (<code class="notranslate">repo_name</code>). The last internal user (the <code class="notranslate">ini_file</code> golden test) now resolves its runfiles via the repo-relative <code class="notranslate">//mbo/file/ini:tests/test.ini</code>, so nothing depends on the old name. Consumers referencing <code class="notranslate">@com_helly25_mbo//...</code> must switch to <code class="notranslate">@helly25_mbo//...</code>.</li>
+<li>Bumped <code class="notranslate">helly25_bashtest</code> 0.3.1 -&gt; 0.4.0 and dropped its <code class="notranslate">com_helly25_bashtest</code> repo alias (a WORKSPACE-era compatibility name); BUILD files now <code class="notranslate">load("@helly25_bashtest//bashtest:bashtest.bzl", ...)</code>. mbo is bzlmod-only (<code class="notranslate">--noenable_workspace</code>, no <code class="notranslate">WORKSPACE</code> file).</li>
+<li>Bumped <code class="notranslate">rules_cc</code> 0.2.19 -&gt; 0.2.20.</li>
+</ul>
+<h1 dir="auto" id="0111">0.11.1</h1>
+<ul dir="auto">
+<li>Release/packaging fixes (no API changes): self-contained release archives; hardened <code class="notranslate">trigger_release.sh</code>.</li>
+</ul>
+<h1 dir="auto" id="0110">0.11.0</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">mbo::testing::IsElementOf(container)</code> - element-on-the-left orientation of gmock's <code class="notranslate">Contains</code>. Iterates with raw <code class="notranslate">operator==</code> (with a <code class="notranslate">std::pair</code> component-wise fallback) so heterogeneous subject types (string literals, <code class="notranslate">std::string_view</code>, etc.) compile without caller-side conversion, on both libc++ and libstdc++.</li>
+<li>Added <code class="notranslate">mbo::testing::IsKeyOf(map)</code> - convenience matcher for "is this value among the keys of the map?". Failure messages report <code class="notranslate">"is a key of {…}"</code>.</li>
+<li>Added <code class="notranslate">mbo::testing::IsValueOf(map)</code> - parallel to <code class="notranslate">IsKeyOf</code> for mapped values. Failure messages report <code class="notranslate">"is a value of {…}"</code>.</li>
+<li>Bumped Bazel to 9.1.1 (<code class="notranslate">.bazelversion</code>).</li>
+<li>Updated module dependencies: <code class="notranslate">bazel_skylib</code> 1.8.2 → 1.9.0, <code class="notranslate">platforms</code> 1.0.0 → 1.1.0, <code class="notranslate">rules_cc</code> 0.2.14 → 0.2.21, <code class="notranslate">rules_shell</code> 0.6.1 → 0.8.0, <code class="notranslate">re2</code> 2025-11-05 → 2025-11-05.bcr.1, <code class="notranslate">googletest</code> 1.17.0 → 1.17.0.bcr.2, <code class="notranslate">google_benchmark</code> 1.9.4 → 1.9.5, <code class="notranslate">helly25_bashtest</code> 0.1.0 → 0.5.0, <code class="notranslate">toolchains_llvm</code> 1.5.0 → 1.7.0, <code class="notranslate">depend_on_what_you_use</code> 0.7.0 → 0.16.0, and the <code class="notranslate">hedron_compile_commands</code> pin.</li>
+<li><code class="notranslate">helly25_bashtest</code> 0.3.0 loads the <code class="notranslate">sh_*</code> rules from <code class="notranslate">@rules_shell</code> directly, so Bazel 9 (which no longer autoloads the legacy native <code class="notranslate">sh_*</code> rules) needs no <code class="notranslate">--incompatible_autoload_externally</code> workaround.</li>
+<li>Bumped <code class="notranslate">abseil-cpp</code> 20250814.1 → 20250814.2. Held at the 20250814 series because newer Abseil (20260107+) deprecates the <code class="notranslate">absl::MutexLock(Mutex*)</code> constructor that <code class="notranslate">re2</code> 2025-11-05 still uses, which fails under <code class="notranslate">--cxxopt=-Werror</code>.</li>
+<li>Bumped the pinned LLVM toolchain 17.0.4 → 20.1.8. LLVM 17.0.4's bundled linker segfaults against the macOS 26 SDK when building tools in the exec configuration (e.g. <code class="notranslate">//mbo/diff:diff</code>, which <code class="notranslate">_diff_test</code> builds with <code class="notranslate">cfg=exec</code>); 20.1.x links cleanly and compiles the tree without new <code class="notranslate">-Werror</code> warnings.</li>
+<li>Refreshed the newest rung of the CI clang matrix 22.1.7 → 22.1.8 (the default pin stays at the 20.1.8 minimum baseline; 21.1.8 unchanged).</li>
+<li>Migrated the <code class="notranslate">_diff_test</code> <code class="notranslate">is_windows</code> select off the deprecated <code class="notranslate">@bazel_tools//src/conditions:host_windows</code> to <code class="notranslate">@platforms//os:windows</code>.</li>
+<li>Fixed compilation under clang 21 (e.g. Apple clang on macOS 26): its tightened constexpr rules reject placement-<code class="notranslate">construct_at</code> into a const-qualified object, so <code class="notranslate">struct_names_clang.h</code> and <code class="notranslate">limited_vector.h</code> now store the non-const value type.</li>
+</ul>
+<h1 dir="auto" id="0100">0.10.0</h1>
+<ul dir="auto">
+<li>Bumped minimum GCC to 13.</li>
+<li>Added <code class="notranslate">mbo/json</code> which adds JSon write support for almost any structured type. If anything is missing it can easily be added on the client side.</li>
+<li>Added direct support for <code class="notranslate">-fno-exceptions</code> irrespective of config setting.</li>
+<li>Added support for ASAN symbolizer with <code class="notranslate">--config=clang</code>.</li>
+<li>Added AbslStringify and hash support to <code class="notranslate">NoDestruct</code>, <code class="notranslate">RefWrap</code>, <code class="notranslate">Required</code>.</li>
+<li>Added struct <code class="notranslate">OptionalDataOrRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code>, a type <code class="notranslate">T</code> or a reference <code class="notranslate">T&amp;</code>/<code class="notranslate">const T&amp;</code>.</li>
+<li>Added struct <code class="notranslate">OptionalDataOrConstRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code>, a type <code class="notranslate">T</code> or a const reference <code class="notranslate">const T&amp;</code>.</li>
+<li>Added struct <code class="notranslate">OptionalRef</code> similar to <code class="notranslate">std::optional</code> but can hold <code class="notranslate">std::nullopt</code> or a reference <code class="notranslate">T&amp;</code>/<code class="notranslate">const T&amp;</code>.</li>
+<li>Improved <code class="notranslate">Stringify</code> (breaking change):
+<ul dir="auto">
+<li>Improved control for <code class="notranslate">Stringify</code> with Json output.</li>
+<li>Updated <code class="notranslate">StringifyOptions</code> (breaking change).</li>
+<li>Updated <code class="notranslate">StringifyWithFieldNames</code> (breaking change).</li>
+<li>Moved <code class="notranslate">StringifyOptions</code> factories to <code class="notranslate">Stringify</code> so they can be constexpr even in C++20.</li>
+<li>Modified <code class="notranslate">MboTypesStringifyOptions</code> (breaking change) to be more flexible - but users must deal with the change.</li>
+<li>Added ability to detect bad <code class="notranslate">MboTypesStringifyOptions</code> signatures.</li>
+<li>Added <code class="notranslate">StringifyFieldOptions</code> which holds outer and inner <code class="notranslate">StringifyOptions</code>.</li>
+<li>Added <code class="notranslate">Stringify::AsJsonPretty()</code> and <code class="notranslate">StringifyOptions::AsJsonPretty()</code>.</li>
+<li>Added API extension point functoin <code class="notranslate">MboTypesStringifyValueAccess</code> which allows to replace a struct with a single value in <code class="notranslate">Stringify</code> processing.</li>
+<li>Added <code class="notranslate">Stringify</code> support for empty types and types that match <code class="notranslate">IsStringKeyedContainer</code>.</li>
+<li>Fixed <code class="notranslate">Stringify</code> null* representations to stream as <code class="notranslate">'null'</code> as opposed to <code class="notranslate">0</code>.</li>
+<li>Added ability to sort string keyed containers.</li>
+<li>Added function <code class="notranslate">SetStringifyOstreamOutputMode</code> which sets global Stringify stream options by mode.</li>
+<li>Added function <code class="notranslate">SetStringifyOstreamOptions</code> which sets global Stringify stream options.</li>
+<li>Changed <code class="notranslate">Stringify::ToString</code> and <code class="notranslate">Stringify::Stream</code> to not depend on any mutable member of <code class="notranslate">Stringify</code>.</li>
+</ul>
+</li>
+<li>Improved traits:
+<ul dir="auto">
+<li>Added concept <code class="notranslate">ConstructibleFrom</code> implements a variant of <code class="notranslate">std::constructible_from</code> that works around its limitations to deal with array args.</li>
+<li>Added concept <code class="notranslate">IsEmptyType</code> determines whether a type is empty (calls <code class="notranslate">std::is_empty_v</code>).</li>
+<li>Fixed concept <code class="notranslate">IsAggregate</code> (breaking change).</li>
+<li>Added concept <code class="notranslate">IsStringKeyedContainer</code> which determines whether a type is a container whose elements are pairs and whose keys are convertible to a std::string_view.</li>
+<li>Added concept <code class="notranslate">IsReferenceWrapper</code> determines whether a type is a <code class="notranslate">std::reference_wrapper</code>.</li>
+<li>Added concept <code class="notranslate">IsSameAsAnyOf</code> which determines whether a type is the same as one of a list of types. Similar to <code class="notranslate">IsSameAsAnyOfRaw</code> but using exact types.</li>
+<li>Added template struct <code class="notranslate">TypedView</code> a wrapper for STL views that provides type definitions, most importantly <code class="notranslate">value_type</code>. That allows such views to be used with GoogleTest container matchers.</li>
+<li>Added concept <code class="notranslate">IsOptionalDataOrRef</code> which determines whether a type is a <code class="notranslate">OptionalDataOrRef</code>.</li>
+<li>Added concept <code class="notranslate">IsOptionalRef</code> which determines whether a type is a <code class="notranslate">OptionalRef</code>.</li>
+<li>Added function <code class="notranslate">CompareArithmetic</code> which compares two values that are scalar-numbers (including foat/double, excluding pointers and references).</li>
+<li>Added function <code class="notranslate">CompareIntegral</code> which compares two values that are integral-numbers (no float/double, no pointers, no references).</li>
+<li>Added function <code class="notranslate">CompareScalar</code> which compares two values that are scalar-numbers (including float/double and pointers, excluding references).</li>
+<li>Added concept <code class="notranslate">IsArithmetic</code> uses <code class="notranslate">std::is_arithmetic_v&lt;T&gt;</code>.</li>
+<li>Added concept <code class="notranslate">IsIntegral</code> uses <code class="notranslate">std::integral&lt;T&gt;</code>.</li>
+<li>Added concept <code class="notranslate">IsScalar</code> uses <code class="notranslate">std::is_scalar_v&lt;T&gt;</code>.</li>
+<li>Added concept <code class="notranslate">IsFloatingPoint</code> determines whether a type is a floating point type (uses <code class="notranslate">std::floating_point</code>).</li>
+<li>Added concept <code class="notranslate">ThreeWayComparableTo</code> which is similar to <code class="notranslate">std::three_way_comparable_with</code> but we only verify that <code class="notranslate">L &lt;=&gt; R</code> can be interpreted as <code class="notranslate">Cat</code> in the presented argument order.</li>
+</ul>
+</li>
+<li>Added <code class="notranslate">Demangle</code> to log de-mangled typeid names.</li>
+<li>Added struct <code class="notranslate">Overloaded</code> which implements an Overload handler for <code class="notranslate">std::visit(std::variant&lt;...&gt;)</code> and <code class="notranslate">std::variant::visit</code> (technically moved).</li>
+<li>Added function <code class="notranslate">CompareFloat</code> which can compare two <code class="notranslate">float</code>, <code class="notranslate">double</code> or <code class="notranslate">long double</code> values returning <code class="notranslate">std::strong_ordering</code>.</li>
+<li>Added function <code class="notranslate">WeakToStrong</code> which converts a <code class="notranslate">std::weak_ordering</code> to a <code class="notranslate">std::strong_ordering</code>.</li>
+<li>Fixed some IWYU pragmas.</li>
+<li>Fixed some template requirements.</li>
+<li>Fixed bug in <code class="notranslate">mbo::strings::ParseString</code> with access past end of <code class="notranslate">string_view</code> for illegal hex and oct escape sequences (introduced in 0.9.0).</li>
+<li>Updated various dependencies.</li>
+<li>Renamed old dependency naming styles to new (matching bzlmod and other deps' needs) styles where possible.</li>
+<li>Removed WORKSPACE support.</li>
+</ul>
+<h1 dir="auto" id="090">0.9.0</h1>
+<ul dir="auto">
+<li>Added gmomck-matcher <code class="notranslate">mbo::testing::EqualsText</code> which compares text using line by line unified text diff.</li>
+<li>Added gmock-matcher-modifier <code class="notranslate">mbo::testing::WithDropIndent</code> which modifies <code class="notranslate">EqualsText</code> so that <code class="notranslate">mbo::strings::DropIndent</code> will be applied to the expected text.</li>
+</ul>
+<h1 dir="auto" id="080">0.8.0</h1>
+<ul dir="auto">
+<li>Renamed diff tooling options <code class="notranslate">ignore_space_change</code> to `ignore_trailing_space.</li>
+<li>Renamed <code class="notranslate">lhs_regex_replace</code> and <code class="notranslate">rhs_regex_replace</code> to <code class="notranslate">regex_replace_lhs</code> and <code class="notranslate">regex_replace_rhs</code> respectively.</li>
+<li>Added <code class="notranslate">regex_replace_lhs</code> and <code class="notranslate">regex_replace_rhs</code> to bzl rules <code class="notranslate">//mbo/diff:diff_test</code> and <code class="notranslate">//mbo/diff/tests:diff_test_test</code>.</li>
+<li>Renamed <code class="notranslate">mbo::diff::UnifiedDiff</code> to <code class="notranslate">mbo::diff::Diff</code>.</li>
+<li>Implemented diff algorithm <code class="notranslate">kDirect</code> which performs a direct side by side comparison.</li>
+<li>Renamed <code class="notranslate">//mbo/diff/unified_diff(_main).cc/h</code> to <code class="notranslate">//mbo/diff/diff(_main).cc/h</code>.</li>
+<li>Renamed <code class="notranslate">//mbo/diff:unified_diff</code> to <code class="notranslate">//mbo/diff</code>.</li>
+<li>Renamed <code class="notranslate">unified</code> to <code class="notranslate">context</code> for flags and attributes.</li>
+<li>Reorganized files and rules in directory <code class="notranslate">mbo/diff</code>.</li>
+</ul>
+<h1 dir="auto" id="070">0.7.0</h1>
+<ul dir="auto">
+<li>Added caching for unified <code class="notranslate">mbo::diff::UnifiedDiff</code> algorithm.</li>
+<li>Added <code class="notranslate">--lhs_regex_replace</code> and <code class="notranslate">--rhs_regex_replace</code> flags to <code class="notranslate">//mbo/diff:unified_diff</code>.</li>
+<li>Dropped all <code class="notranslate">using std::size_t</code> declarations.</li>
+</ul>
+<h1 dir="auto" id="060">0.6.0</h1>
+<ul dir="auto">
+<li>Moved bashtest out into <code class="notranslate">@com_helly25_bashtest</code> and used it from there.</li>
+<li>Added dependency on <code class="notranslate">@com_helly25_bashtest</code>.</li>
+<li>Dropped all remaining bashtest components.</li>
+<li>Added concept <code class="notranslate">ConstructibleInto</code> determined whether one type can be constructed from another. Similar to <code class="notranslate">std::convertible_to</code> but with the argument order of <code class="notranslate">std::constructible_from</code>.</li>
+</ul>
+<h1 dir="auto" id="050">0.5.0</h1>
+<ul dir="auto">
+<li>Added CI config LLVM-20.1.0 for Linux-Arm64 and MacOs-Arm64 platforms.</li>
+<li>Applied DWYU cleanup.</li>
+<li>Added field <code class="notranslate">mbo::file::GlobOptions::recursive</code> to select between recursive and flat globbing.</li>
+<li>Added function <code class="notranslate">mbo::file::GlobSplit</code> that splits a pattern into root and pattern.</li>
+<li>Improved program <code class="notranslate">//mbo/file:glob</code> to automatically split a single arg pattern.</li>
+<li>Added API extension point function <code class="notranslate">MboTypesStringifyConvert(I, T, V)</code> which allows to control conversion based on field types via a static call to the owning type, receiving the field index, the object and the field value.</li>
+<li>Added (experimental, removed in 0.6.0, moved to @helly25/bashtest) sh_library bashtest which provides a test runner for complex shell tests involving golden files that provides built-in golden update functionality (see <code class="notranslate">(. mbo/testing/bashtest.sh --help)</code>).</li>
+</ul>
+<h1 dir="auto" id="044">0.4.4</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">--config=cpp23</code> for <code class="notranslate">-std=c++23</code> to bazelrc and CI testing.</li>
+<li>Updated code to comply with current clang-tidy warnings.</li>
+<li>Enabled Bazel layering_check.</li>
+</ul>
+<h1 dir="auto" id="043">0.4.3</h1>
+<ul dir="auto">
+<li>Address const-ness issues in constexpr functions found by Clang 20.1.0.</li>
+<li>Dropped space in front of string-literal notation found by Clang 20.1.0.</li>
+</ul>
+<h1 dir="auto" id="042">0.4.2</h1>
+<ul dir="auto">
+<li>Tweaked automated release tooling.</li>
+<li>Switched to matrix for merge testing that verifies various GCC and Clang setups.</li>
+<li>Fixed <code class="notranslate">mbo::types::ContainerProxy</code> for GCC opt builds (issue with aliasing interpretation).</li>
+<li>Added <code class="notranslate">mbo::strings::StripPrefix</code> and <code class="notranslate">mbo::strings::StripSuffix</code> for temp <code class="notranslate">std::string&amp;&amp;</code>.</li>
+</ul>
+<h1 dir="auto" id="041">0.4.1</h1>
+<ul dir="auto">
+<li>Added load statements for all cc_binary, cc_library, cc_test functions in all bazel files.</li>
+<li>Added <code class="notranslate">mbo::strings::ConsumePrefix</code> and <code class="notranslate">mbo::strings::ConsumeSuffix</code>.</li>
+</ul>
+<h1 dir="auto" id="040">0.4.0</h1>
+<ul dir="auto">
+<li>Added function <code class="notranslate">mbo::strings::BigNumber</code>: Convert integral number to string with thousands separator.</li>
+<li>Added function <code class="notranslate">mbo::strings::BigNumberLen</code>: Calculate required string length for <code class="notranslate">BigNumer</code>.</li>
+<li>Added glob functionality:
+<ul dir="auto">
+<li>Added struct <code class="notranslate">mbo::file::Glob2Re2Options</code>: Control conversion of a <a href="https://man7.org/linux/man-pages/man7/glob.7.html" rel="nofollow">glob pattern</a> into a <a href="https://github.com/google/re2/wiki/Syntax">RE2 pattern</a>.</li>
+<li>Added struct <code class="notranslate">mbo::file::GlobEntry</code>: Stores data for a single globbed entry (file, dir, etc.).</li>
+<li>Added struct <code class="notranslate">mbo::file::GlobOptions</code>: Options for functions <code class="notranslate">Glob2Re2</code> and <code class="notranslate">Glob2Re2Expression</code>.</li>
+<li>Added enum <code class="notranslate">mbo::file::GlobEntryAction</code>: Allows GlobEntryFunc to control further glob progression.</li>
+<li>Added type <code class="notranslate">mbo::file::GlobEntryFunc</code>: Callback for acceptable glob entries.</li>
+<li>Added function <code class="notranslate">mbo::file::GlobRe2</code>: Performs recursive glob functionality using a RE2 pattern.</li>
+<li>Added function <code class="notranslate">mbo::file::Glob</code>: Performs recursive glob functionality using a <code class="notranslate">fnmatch</code> style pattern.</li>
+<li>Added program <code class="notranslate">glob</code>: A recursive glob, see <code class="notranslate">glob --help</code>.</li>
+</ul>
+</li>
+<li>WORKSPACE support:
+<ul dir="auto">
+<li>Added rules_python and brought back com_google_protobuf support.</li>
+</ul>
+</li>
+<li>Fixed <code class="notranslate">RunfilesDir/OrDie</code> to use environment variable <code class="notranslate">TEST_WORKSPACE</code> if present.</li>
+<li>Fixed formatting issue with <code class="notranslate">mbo/types/internal/decompose_count.h</code>.</li>
+<li>Downgraded Clang from 19.1.7 to 19.1.6.</li>
+<li>Updated GitHub workflow to test both Bazel flavors.</li>
+<li>Fixed issue in with struct names generation when compiling with Clang in mode ASAN.</li>
+<li>Added ability for unified_diff tool flag <code class="notranslate">--strip_file_header_prefix</code> to accept re2 expressions.</li>
+<li>Fixed various issues for bazelmod based builds.</li>
+<li>Improved <code class="notranslate">mbo::testing::RunfilesDir/OrDie</code> to support a single param variant that understands bazel labels. Further add support for other repos than the current one by reading the repo mapping.</li>
+<li>Fixed <code class="notranslate">//mbo/file/ini:ini_file_test</code> to be able to pass when run as remote repository.</li>
+<li>Added struct <code class="notranslate">mbo::types::ContainerProxy</code> which allows to add container access to other types including smart pointers of containers.</li>
+<li>Added struct <code class="notranslate">mbo::types::OpaquePtr</code> an opaque alternative to <code class="notranslate">std::unique_ptr</code> which works with forward declared types.</li>
+<li>Added struct <code class="notranslate">mbo::types::OpaqueValue</code> an <code class="notranslate">OpaquePtr</code> with direct access, comparison and hashing which will not allow a nullptr.</li>
+<li>Added struct <code class="notranslate">mbo::types::OpaqueContainer</code> an <code class="notranslate">OpaqueValue</code> with direct container access.</li>
+<li>Changed pre-commit to use clang-format 19.1.6.</li>
+<li>Added ability to construct Extended types from conversions (<code class="notranslate">ConstructFromConversions</code>).</li>
+<li>Removed support for type marker <code class="notranslate">MboTypesExtendDoNotPrintFieldNames</code>.</li>
+</ul>
+<h1 dir="auto" id="030">0.3.0</h1>
+<ul dir="auto">
+<li>Added struct <code class="notranslate">mbo::strings::AtLast</code> which allows `absl::StrSplit' to split on the last occurrence of a separator.</li>
+<li>Added concept <code class="notranslate">mbo::types::IsSet</code>.</li>
+<li>Added concept <code class="notranslate">mbo::types::IsVector</code>.</li>
+<li>Fixed concept <code class="notranslate">mbo::types::IsPair</code> and <code class="notranslate">mbo::types::IsPairFirstString</code> to not remove cvref.</li>
+<li>Fixed function <code class="notranslate">mbo::file::SetContents</code> to explicitly use binary mode.</li>
+<li>Added bazelmod support.</li>
+<li>Updated Clang to 19.1.7 (17.0.4 still ok).</li>
+<li>Fixed error/exception handling in <code class="notranslate">LimitedOrdered/Map/Set</code> to respect the configuration.</li>
+</ul>
+<h1 dir="auto" id="0235">0.2.35</h1>
+<ul dir="auto">
+<li>Added ability to retrieve field names for structs without default constructor (e.g. due to reference fields).</li>
+</ul>
+<h1 dir="auto" id="0234">0.2.34</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">mbo::types::Required</code> which is similar to <code class="notranslate">RefWrap</code> but stores the actual type (and unlike <code class="notranslate">std::optional</code> cannot be reset).</li>
+<li>Added <code class="notranslate">mbo::testing::WhenTransformedBy</code> which allows to compare containers after transforming them.</li>
+<li>Added custom Bazel flag <code class="notranslate">--//mbo/config:require_throws</code> which controls whether <code class="notranslate">MBO_CONFIG_REQUIRE</code> throw exceptions or use crash logging (the default <code class="notranslate">False</code> or <code class="notranslate">0</code>). This mostly affects containers.</li>
+<li>Added custom Bazel flag <code class="notranslate">--//mbo/config:limited_ordered_max_unroll_capacity</code>. This was undocumented as <code class="notranslate">--//mbo/container:limited_ordered_max_unroll_capacity</code> until now (though listed in the changelog). It controls the maximum unroll size for LimitedOrdered/Map/Set.</li>
+</ul>
+<h1 dir="auto" id="0233">0.2.33</h1>
+<ul dir="auto">
+<li>Improved <code class="notranslate">MBO_RETURN_IF_ERROR</code> to correctly accept <code class="notranslate">absl::StatusOr</code> expressions independently of their implementation.</li>
+<li>Added <code class="notranslate">mbo::status::StatusBuilder</code> which allows to modify the message of an <code class="notranslate">absl::Status</code>.</li>
+<li>Added <code class="notranslate">mbo::status::GetStatus</code> which allows to convert its argument to an <code class="notranslate">absl::Status</code> if supported.</li>
+<li>Added macro <code class="notranslate">MBO_MOVE_TO_OR_RETURN</code> which can assign to structured binadings and other complex types.</li>
+<li>Added macro <code class="notranslate">MBO_ASSERT_OK_AND_MOVE_TO</code> which can assign to structured binadings and other complex types.</li>
+<li>Added matcher <code class="notranslate">mbo::testing::StatusHasPayload</code> that matches presence of any, a specific payload url, or a payload url with specific content.</li>
+<li>Added matcher <code class="notranslate">mbo::testing::StatusPayloads</code> that matches against <code class="notranslate">Status</code>/<code class="notranslate">StatusOr&lt;&gt;</code> payload maps.</li>
+</ul>
+<h1 dir="auto" id="0232">0.2.32</h1>
+<ul dir="auto">
+<li>Added support for smart pointer types in <code class="notranslate">Stringify</code>.</li>
+<li>Added support for std::optional in <code class="notranslate">Stringify</code>.</li>
+<li>Added builtin ability to suppress <code class="notranslate">nullptr</code> and <code class="notranslate">nullopt</code> field values (in particular for Json output).</li>
+<li>Added support for move only decomposing in <code class="notranslate">StructToTuple</code>.</li>
+<li>Added (extendable) concept <code class="notranslate">IsSmartPtr</code>.</li>
+<li>Added concept <code class="notranslate">IsOptional</code>.</li>
+<li>Added extension API type <code class="notranslate">MboTypesStringifyDisable</code> which can be used to suppress printing.</li>
+</ul>
+<h1 dir="auto" id="0231">0.2.31</h1>
+<ul dir="auto">
+<li>Prevent clangd indexing issues with <code class="notranslate">DecomposeCount</code> implementation.</li>
+</ul>
+<h1 dir="auto" id="0230">0.2.30</h1>
+<ul dir="auto">
+<li>Added class <code class="notranslate">Stringify</code> which can turn arbitrary structs into strings.</li>
+<li>Added formatting control for <code class="notranslate">AbslStringify</code> externder using struct <code class="notranslate">StringifyOptions</code>.</li>
+<li>Added API extension point type <code class="notranslate">MboTypesStringifySupport</code> which enables <code class="notranslate">Stringify</code> support even if not otherwise enabled (disables Abseil stringify support in <code class="notranslate">Stringify</code>).</li>
+<li>Added API extension point type <code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code> which if present disables field names in <code class="notranslate">Stringify</code>.</li>
+<li>Added <code class="notranslate">AbslStringify</code> ADL API extension entry points <code class="notranslate">MboTypesStringifyFieldNames</code> and <code class="notranslate">MboTypesStringifyOptions</code>.</li>
+<li>Added function <code class="notranslate">StringifyWithFieldNames</code> a format control adapter for <code class="notranslate">AbslStringify</code>.</li>
+<li>Added field name support for non literal types in Clang.</li>
+<li>Added numeric field name (aka key) support and enforced for Json output.</li>
+<li>Added rule <code class="notranslate">mbo/types:stringify_ostream_cc</code> and header <code class="notranslate">mbo/types/stringify_ostream.h</code> for automatic ostream support using <code class="notranslate">Stringify</code>.</li>
+<li>Added static constructors <code class="notranslate">Extend::ConstructFromTuple</code> and <code class="notranslate">Extend::ConstructFromArgs</code>.</li>
+<li>Fixed a bug where Mope did not correctly enable and disable sections.</li>
+<li>Added documentation and tests on how to use a mope's <code class="notranslate">--set</code> flag to enable/disable sections.</li>
+<li>Fixed a bug with <code class="notranslate">DecomposeCount</code>. It must never return 0 (an empty aggregate cannot be decomposed using structured bindings).</li>
+<li>Changed Clang to use more reliable overload sets (they cannot be used in GCC).</li>
+</ul>
+<h1 dir="auto" id="0229">0.2.29</h1>
+<ul dir="auto">
+<li>Added crtp-struct <code class="notranslate">ExtendNoPrint</code> Like <code class="notranslate">Extend</code> but without <code class="notranslate">Printable</code> and <code class="notranslate">Streamable</code> extender functionality.</li>
+<li>Added support for type <code class="notranslate">char</code> in extender <code class="notranslate">AbslStringify</code>.</li>
+<li>Added <code class="notranslate">mbo::types::TupleCat</code> which concatenates tuple types.</li>
+<li>Fixed <code class="notranslate">//mbo/log:log_timing_test</code> for systems with limited <code class="notranslate">std::source_location</code> support (e.g. MacOS).</li>
+</ul>
+<h1 dir="auto" id="0228">0.2.28</h1>
+<ul dir="auto">
+<li>Improved <code class="notranslate">LimitedVector::insert</code> to deal better with conversions and complex types.</li>
+<li>Improved <code class="notranslate">LimitedMap</code>, <code class="notranslate">LimitedOrdered</code>, <code class="notranslate">LimitedSet</code> and <code class="notranslate">LimitedVector</code> ability to handle conversions.</li>
+<li>Added diff tooling options <code class="notranslate">ignore_all_space</code> and <code class="notranslate">ignore_consecutive_space</code>.</li>
+<li>Changed diff tooling options <code class="notranslate">ignore_space_change</code> to only ignore trailing space to match <code class="notranslate">git diff</code>.</li>
+<li>Added <code class="notranslate">mbo::log::LogTiming</code> a simple timing logger.</li>
+<li>Pinned Bazel version to 7.2.1.</li>
+<li>Updated hedron compile commands to include a patch for pre-processed headers.</li>
+</ul>
+<h1 dir="auto" id="0227">0.2.27</h1>
+<ul dir="auto">
+<li>Implemented <code class="notranslate">LimitedVector::insert</code>.</li>
+<li>Fixed a bug in <code class="notranslate">LimitedVector::assign</code>.</li>
+<li>Updated <a href="https://github.com/bazel-contrib/toolchains_llvm">https://github.com/bazel-contrib/toolchains_llvm</a> past version 1.0.0.</li>
+<li>Changed <code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code> to not verify whether input is sorted, if they use <code class="notranslate">kRequireSortedInput</code> and <code class="notranslate">NDEBUG</code> is defined.</li>
+</ul>
+<h1 dir="auto" id="0226">0.2.26</h1>
+<ul dir="auto">
+<li>Fixed comparison of <code class="notranslate">Extend</code> types with other types. Requires the other type can be turned into a tuple.</li>
+<li>Fixed internal consistencies.</li>
+<li>Updated <code class="notranslate">mope</code> to allow comments by setting a section to nothing: <code class="notranslate">{{#section=}}...{{/section}}</code>.</li>
+<li>Added concept <code class="notranslate">IsTuple</code> which determines whether a type is a <code class="notranslate">std::tuple</code>.</li>
+<li>Added <code class="notranslate">mbo::hash::simple::GetHash(std::string_view)</code> which is constexpr safe. (Renamed to <code class="notranslate">mbo::hash::dumbo</code> in 0.13.0.)</li>
+<li>Added hash support to tstring.</li>
+</ul>
+<h1 dir="auto" id="0225">0.2.25</h1>
+<ul dir="auto">
+<li>Added concept <code class="notranslate">mbo::types::IsVariant</code>.</li>
+<li>Added concept <code class="notranslate">mbo::types::HasVariantMember</code>.</li>
+<li>Fixed issue with <code class="notranslate">Extend</code> ability to handle struct names when compiled with Clang.</li>
+<li>Fixed issue with <code class="notranslate">Extend</code> handling move only types when used in decompose assignment.</li>
+<li>Added template struct <code class="notranslate">BinarySearch</code> implements templated binary search algorithm.</li>
+<li>Added template struct <code class="notranslate">LinearSearch</code> implements templated linear search algorithm.</li>
+<li>Added template struct <code class="notranslate">ReverseSearch</code> implements templated reverse linear search algorithm.</li>
+<li>Added template struct <code class="notranslate">MaxSearch</code> implements templated linear search for last match algorithm.</li>
+</ul>
+<h1 dir="auto" id="0224">0.2.24</h1>
+<ul dir="auto">
+<li>Improved <code class="notranslate">Extend</code> support.</li>
+<li>Renamed <code class="notranslate">MboExtendDoNotPrintFieldNames</code> to <code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code> which is the logical naming that follows the internal structure.</li>
+</ul>
+<h1 dir="auto" id="0223">0.2.23</h1>
+<ul dir="auto">
+<li>Added llvm/clang which can be triggered with <code class="notranslate">bazel ... --config=clang</code>.</li>
+<li>Shortened generated extender names drastically (&lt; 1/3rd).</li>
+<li>Added union member identification (enables union members for <code class="notranslate">Extend</code>'s printing/streaming).</li>
+<li>Added ability to suppress field name support in <code class="notranslate">Extend</code> by adding <code class="notranslate">using MboExtendDoNotPrintFieldNames = void;</code>.</li>
+</ul>
+<h1 dir="auto" id="0222">0.2.22</h1>
+<ul dir="auto">
+<li>Changed the way <code class="notranslate">mbo::types::Extend</code> types are constructed to support more complex and deeper nested types.</li>
+<li>Provided a new <code class="notranslate">mbo::extender::Default</code> which wraps all default extenders.</li>
+</ul>
+<h1 dir="auto" id="0221">0.2.21</h1>
+<ul dir="auto">
+<li>Optimized <code class="notranslate">AnyScan</code>, <code class="notranslate">ConstScan</code> and <code class="notranslate">ConvertingScan</code> by dropping clone layer. We also explicitly support multiple iterations on one object.</li>
+</ul>
+<h1 dir="auto" id="0220">0.2.20</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">empty</code> and <code class="notranslate">size</code> to <code class="notranslate">AnyScan</code>, <code class="notranslate">ConstScan</code> and <code class="notranslate">ConvertingScan</code>.</li>
+</ul>
+<h1 dir="auto" id="0219">0.2.19</h1>
+<ul dir="auto">
+<li>Changed <code class="notranslate">Extender</code> print and stream ability to output pointers to containers.</li>
+</ul>
+<h1 dir="auto" id="0218">0.2.18</h1>
+<ul dir="auto">
+<li>Changed <code class="notranslate">LimitedSet</code> and <code class="notranslate">LimitedMap</code>:
+<ul dir="auto">
+<li>Changed to new optimized code for <code class="notranslate">std::less</code> and make that the default.</li>
+<li>Added custom bazel flag <code class="notranslate">--//mbo/container:limited_ordered_max_unroll_capacity=N</code>. This controls the maximum capacity <code class="notranslate">N</code> for which <code class="notranslate">index_of</code> will be unrolled (defaults to 16, range [4...32], see <code class="notranslate">mbo::container::container_internal::kUnrollMaxCapacityDefault</code>.</li>
+</ul>
+</li>
+<li>Changed <code class="notranslate">RefWrap</code>:
+<ul dir="auto">
+<li>Added constexpr support.</li>
+<li>Made constructor implicit.</li>
+</ul>
+</li>
+</ul>
+<h1 dir="auto" id="0217">0.2.17</h1>
+<ul dir="auto">
+<li>Added template-type <code class="notranslate">RefWrap&lt;T&gt;</code>: similar to <code class="notranslate">std::reference_wrapper</code> but supports operators <code class="notranslate">-&gt;</code> and <code class="notranslate">*</code>.</li>
+<li>Fixed double computation in <code class="notranslate">MBO_RETURN_IF_ERROR</code>.</li>
+</ul>
+<h1 dir="auto" id="0216">0.2.16</h1>
+<ul dir="auto">
+<li>Fixed <code class="notranslate">LimitedOptionsFlag::kEmptyDestructor</code> use in <code class="notranslate">LimitedVector</code>.</li>
+</ul>
+<h1 dir="auto" id="0215">0.2.15</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">LimitedOptions</code> support to <code class="notranslate">LimitedVector</code>.</li>
+</ul>
+<h1 dir="auto" id="0214">0.2.14</h1>
+<ul dir="auto">
+<li>Changed <code class="notranslate">tstring::find_first_of</code> and <code class="notranslate">tstring::find_last_of</code> solely with <code class="notranslate">string_view::find</code> to solve ASAN issue.</li>
+<li>Added <code class="notranslate">LimitedSet::at_index</code> and <code class="notranslate">LimitedMap::at_index</code>.</li>
+</ul>
+<h1 dir="auto" id="0213">0.2.13</h1>
+<ul dir="auto">
+<li>Applied several tweaks for <code class="notranslate">*Scan</code>.</li>
+<li>Improved compiler error message when using <code class="notranslate">AnyScan</code> with incompatible pairs due<br>
+to <code class="notranslate">first_type</code> being const on the right side.</li>
+<li>Added concept <code class="notranslate">IsSameAsAnyOfRaw</code> / <code class="notranslate">NotSameAsAnyOfRaw</code> which determine whether type is one of a list of types.</li>
+<li>Added <code class="notranslate">const char* tstring::c_str</code> which is occasionally needed.</li>
+</ul>
+<h1 dir="auto" id="0212">0.2.12</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">ConstScan</code> and <code class="notranslate">MakeConstScan</code>.</li>
+<li>Changed all <code class="notranslate">Make*Scan</code> types to create intermediate adapters.</li>
+<li>Made all <code class="notranslate">*Scan</code> and <code class="notranslate">Make*Scan</code> to accept <code class="notranslate">std::initializer</code> types.</li>
+<li>Added support for move-only types.</li>
+<li>Improved <code class="notranslate">*scan</code> handling of initializer_lists.</li>
+</ul>
+<h1 dir="auto" id="0211">0.2.11</h1>
+<ul dir="auto">
+<li>Made <code class="notranslate">AnyScan</code> constructor private.</li>
+<li>Separated <code class="notranslate">AnyScan</code> and <code class="notranslate">ConvertingScan</code> into distinct type with the same internal base.</li>
+<li>Restricted <code class="notranslate">AnyScanImpl</code> access to <code class="notranslate">MakeAnyScan</code> and <code class="notranslate">MakeConvertingScan</code>.</li>
+<li>Added <code class="notranslate">initializer_list</code> support for <code class="notranslate">AnyScan</code> and <code class="notranslate">ConvertingScan</code>.</li>
+</ul>
+<h1 dir="auto" id="0210">0.2.10</h1>
+<ul dir="auto">
+<li>Added missing <code class="notranslate">LimitedVector</code> non-converting constructor for <code class="notranslate">std::initializer_list</code>.</li>
+<li>Added trait <code class="notranslate">ContainerConstIteratorValueType</code>.</li>
+<li>Added <code class="notranslate">ConvertingScan</code> and <code class="notranslate">MakeConvertingScan</code>.</li>
+</ul>
+<h1 dir="auto" id="029">0.2.9</h1>
+<ul dir="auto">
+<li>Added <code class="notranslate">mbo::container::AnyScan</code> for type erased container views (scanning).</li>
+<li>In <code class="notranslate">//mbo/types:traits_cc</code>:
+<ul dir="auto">
+<li>Added concept <code class="notranslate">ContainerHasForwardIterator</code> determines whether a container has <code class="notranslate">begin</code>, <code class="notranslate">end</code> and <code class="notranslate">std::forward_iterator</code> compliant iterators.</li>
+<li>Added concept <code class="notranslate">ContainerHasInputIterator</code> determines whether a container has <code class="notranslate">begin</code>, <code class="notranslate">end</code> and <code class="notranslate">std::input_iterator</code> compliant iterators.</li>
+<li>Added struct <code class="notranslate">GetDifferenceType</code> is either set to the type's <code class="notranslate">difference_type</code> or <code class="notranslate">std::ptrdiff_t</code>.</li>
+<li>Added concept <code class="notranslate">HasDifferenceType</code> determines whether a type has a <code class="notranslate">difference_type</code>.</li>
+</ul>
+</li>
+</ul>
+<h1 dir="auto" id="028">0.2.8</h1>
+<ul dir="auto">
+<li>Made <code class="notranslate">//mbo/types:traits_cc</code> publicly visible.</li>
+</ul>
+<h1 dir="auto" id="027">0.2.7</h1>
+<ul dir="auto">
+<li>Improved <code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code>:
+<ul dir="auto">
+<li>Better ASAN compatibility for constexpr.</li>
+<li>Allow <code class="notranslate">LimitedOption</code> configuration instead of simple length specification.
+<ul dir="auto">
+<li>Option to suppress calling clear in the destructor for cases where that is not a constexpr.</li>
+<li>Option to require presorted input: Allows much large constexpr <code class="notranslate">LimitedSet</code>/<code class="notranslate">LimitedValue</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Renamed <code class="notranslate">types::AbslFormat</code> to <code class="notranslate">types::AbslStringify</code> to better reflect its purpose.</li>
+<li>Changed <code class="notranslate">types::AbslStringify</code> to print field names prefixed with a dot '.' (requires Clang).</li>
+</ul>
+<h1 dir="auto" id="026">0.2.6</h1>
+<ul dir="auto">
+<li>Made <code class="notranslate">RunfilesDir/OrDie</code> work correctly.</li>
+<li>Added a new comparator <code class="notranslate">mbo::types::CompareLess</code> which allows container optimizations.</li>
+<li>Moved most functionality of <code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code> to new base <code class="notranslate">internal::LimitedOrdered</code>.</li>
+<li>Added <code class="notranslate">LimitedMap::index_of</code> and <code class="notranslate">LimitedSet::index_of</code> (leaves one location to optimize search).</li>
+<li>Optimized <code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code> with <code class="notranslate">mbo::types::CompareLess</code>.</li>
+</ul>
+<h1 dir="auto" id="025">0.2.5</h1>
+<ul dir="auto">
+<li>Made <code class="notranslate">Limited{Map|Set|Vector}</code> iterators compliant with <code class="notranslate">std::contiguous_iterator</code>.</li>
+<li>Added <code class="notranslate">Limited{Map|Set|Vector}::data()</code>.</li>
+</ul>
+<h1 dir="auto" id="024">0.2.4</h1>
+<ul dir="auto">
+<li>Moved <code class="notranslate">CopyConvertContainer</code> to <code class="notranslate">mbo::container::ConvertContainer</code> and add conversion functions.</li>
+<li>Various traits fixes to correctly handle C++ concepts (pretty much every published explanation makes the same mistake).</li>
+<li>Added matcher <code class="notranslate">CapacityIs</code>.</li>
+<li>Added <code class="notranslate">LimitedMap</code>.</li>
+</ul>
+<h1 dir="auto" id="023">0.2.3</h1>
+<ul dir="auto">
+<li>For <code class="notranslate">LimitedVector</code> add an unused sentinel, so that <code class="notranslate">end</code> and other functions do not cause memory issues.</li>
+</ul>
+<h1 dir="auto" id="022">0.2.2</h1>
+<ul dir="auto">
+<li>Made <code class="notranslate">LimitedSet</code> and <code class="notranslate">LimitedVector</code> use C-arrays instead of <code class="notranslate">std::array</code> in order to solve some ASAN issues.</li>
+<li>Made <code class="notranslate">NoDestruct</code> ASAN friendly.</li>
+<li>Made tests PASS in mode ASAN out-of-the-box for Clang.</li>
+<li>Made <code class="notranslate">//mbo/types:tstring_test</code> PASS in ASAN mode.</li>
+</ul>
+<h1 dir="auto" id="021">0.2.1</h1>
+<ul dir="auto">
+<li>Fixed issue with MOPE in case it runs as an external dependency.</li>
+<li>Made tests work when run as external repository dependency.</li>
+<li>Added <code class="notranslate">LimitedSet::contains_all(other)</code> which performs contains-all-of functionality (not part of STL).</li>
+<li>Added <code class="notranslate">LimitedSet::contains_any(other)</code> which performs contains-any-of functionality (not part of STL).</li>
+</ul>
+<h1 dir="auto" id="02">0.2</h1>
+<ul dir="auto">
+<li>Added support for GCC (11.4/Ubuntu 22.04).</li>
+<li>Changed Print Extender's <code class="notranslate">Print</code> to <code class="notranslate">ToString</code> which is a more widely used name.</li>
+<li>Changed Print Extender's <code class="notranslate">ToString</code> to print field names (if available, e.g. Clang 16).</li>
+<li>When compiling with Clang show field names with the <code class="notranslate">AbslStringify</code> extender.</li>
+<li>Enabled <code class="notranslate">static constexpr NoDestruct&lt;&gt;</code> for more cases and compiler versions.</li>
+<li>container:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>class <code class="notranslate">LimitedSet</code>: A space loimited, constexpr compliant set.</li>
+<li>class <code class="notranslate">LimitedVector</code>: A space limited, constexpr compliant vector.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>diff:
+<ul dir="auto">
+<li>Updated <code class="notranslate">unified_diff</code> with many more diff features.</li>
+</ul>
+</li>
+<li>file:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>function <code class="notranslate">GetMaxLines</code>: Reads at most given number of text lines from a file or returns absl::Status error.</li>
+<li>function <code class="notranslate">JoinPathsRespectAbsolute</code>: Join multiple path elements respecting absolute path elements.</li>
+<li>class <code class="notranslate">IniFile</code>: A simple INI file reader.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Mope:
+<ul dir="auto">
+<li>The <code class="notranslate">MOPE</code> templating engine. Run <code class="notranslate">bazel run //mbo/mope -- --help</code> for detailed documentation.</li>
+<li>mbo/mope
+<ul dir="auto">
+<li>binary <code class="notranslate">mope</code>.</li>
+</ul>
+</li>
+<li>mbo/mope:mope_cc, mbo/mope/mope.h
+<ul dir="auto">
+<li>class <code class="notranslate">Template</code>: The mope template engine and data holder.</li>
+</ul>
+</li>
+<li>mbo/mope:ini_cc, mbo/mope/ini.h
+<ul dir="auto">
+<li>function <code class="notranslate">ReadIniToTemlate</code>: Helper to initialize a mope Template from an INI file.</li>
+</ul>
+</li>
+<li>mbo/mope:mope_bzl, mbo/mope/mope.bzl
+<ul dir="auto">
+<li>bzl-rule <code class="notranslate">mope</code>: A rule that expands a mope template file.</li>
+<li>bazl-macro <code class="notranslate">mope_test</code>: A test rule compares mope template expansion against golden files. This<br>
+supports <code class="notranslate">clang-format</code> and thus can be used for source-code generation and verification.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>status:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>macro <code class="notranslate">MBO_RETURN_IF_ERROR</code>: Macro that simplifies handling functions returning <code class="notranslate">absl::Status</code>.</li>
+<li>macro <code class="notranslate">MBO_ASSIGN_OR_RETURN</code>: Macro that simplifies handling functions returning <code class="notranslate">absl::StatusOr&lt;T&gt;</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>strings:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>struct <code class="notranslate">StripCommentsArgs</code>: Arguments for <code class="notranslate">StripComments</code> and <code class="notranslate">StripLineComments</code>.</li>
+<li>function <code class="notranslate">StripComments</code>: Strips comments from lines.</li>
+<li>function <code class="notranslate">StripLineComments</code>: Strips comments from a single line.</li>
+<li>struct <code class="notranslate">StripParsedCommentsArgs</code>: Arguments for <code class="notranslate">StripParsedComments</code> and <code class="notranslate">StripParsedLineComments</code>.</li>
+<li>function <code class="notranslate">StripParsedComments</code>: Strips comments from parsed lines.</li>
+<li>function <code class="notranslate">StripLineParsedComments</code>: Strips comments from a single parsed line.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>testing:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>macro <code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN</code>: Simplifies testing with functions that return <code class="notranslate">absl::StatusOr&lt;T&gt;</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>types:
+<ul dir="auto">
+<li>Added:
+<ul dir="auto">
+<li>concept <code class="notranslate">ContainerIsForwardIteratable</code> determines whether a types can be used in forward iteration.</li>
+<li>concept <code class="notranslate">ContainerHasEmplace</code> determines whether a container has <code class="notranslate">emplace</code>.</li>
+<li>concept <code class="notranslate">ContainerHasEmplaceBack</code> determines whether a container has <code class="notranslate">emplace_back</code>.</li>
+<li>concept <code class="notranslate">ContainerHasInsert</code> determines whether a container has <code class="notranslate">insert</code>.</li>
+<li>concept <code class="notranslate">ContainerHasPushBack</code> determines whether a container has <code class="notranslate">push_back</code>.</li>
+<li>conversion struct <code class="notranslate">CopyConvertContainer</code> simplifies copying containers to value convertible containers.</li>
+<li>concept <code class="notranslate">IsAggregate</code> determines whether a type is an aggregate.</li>
+<li>concept <code class="notranslate">IsDecomposable</code> determines whether a type can be used in static-bindings.</li>
+<li>concept <code class="notranslate">IsBracesConstructibleV</code> determines whether a type can be constructe from given argument types.</li>
+<li>struct <code class="notranslate">NoDestruct&lt;T&gt;</code>: Implements a type that allows to use any type as a static constant.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h1 dir="auto" id="01">0.1</h1>
+<ul dir="auto">
+<li>Initial release: Clang support only.</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

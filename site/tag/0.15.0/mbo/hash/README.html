@@ -1,0 +1,2610 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/hash/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbohash---fast-constexpr-safe-non-cryptographic-hashing">mbo/hash - fast, constexpr-safe, non-cryptographic hashing</h1>
+<p dir="auto">Fast, <code class="notranslate">constexpr</code>-safe, non-cryptographic hashing, built around the in-house<br>
+<strong>mumbo/jumbo and dumbo</strong> family: notice-free, pure Apache-2.0, and MUM-based<br>
+(widening multiply). All three algorithms cleanly pass the quality assessment of<br>
+<a href="https://gitlab.com/fwojcik/smhasher3" rel="nofollow">SMHasher3</a> with a rating of 188/188.</p>
+<p dir="auto">The <code class="notranslate">mumbo</code> algorithm (64-bit) is the all-round default of this library. It is<br>
+among the fastest hashes offered in the library on every machine we measured.<br>
+It is SMHasher3-clean, notice-free Apache-2.0 licensed, and offers both a<br>
+streaming API and a <a href="https://github.com/bazelbuild/starlark">Starlark</a> port so<br>
+you can natively use the algorithm in <a href="https://bazel.build/" rel="nofollow">Bazel</a> projects.<br>
+Its native 128-bit sibling <code class="notranslate">jumbo</code> is the only clean native 128 we measured.<br>
+Last but not least <code class="notranslate">dumbo</code> is a compact single-lane companion with a very<br>
+different profile - fastest (here) on tiny keys, slower on bulk, but still<br>
+passing SMHasher2 and thus offering fully proven hash algorithm quality.</p>
+<p dir="auto">This sub-library also ships a <strong>build-seed mangle</strong> (<code class="notranslate">hash_mangle.h</code>) wrapper<br>
+which offers restricted/limited, <code class="notranslate">constexpr</code>-safe compile-time hash mangling<br>
+with release-time rotation enforcement. That is hash randomization for the<br>
+<code class="notranslate">constexpr</code> world, which compile-time hashing otherwise rules out.</p>
+<p dir="auto">The third-party algorithms (rapidhash, xxh3/xxh64, murmur3, siphash, fnv1a) are<br>
+exact transcriptions. They are provided for interoperability and comparison.</p>
+<h2 dir="auto" id="offerings">Offerings</h2>
+<p dir="auto">Three entry points, split by contract:</p>
+<ul dir="auto">
+<li><strong><code class="notranslate">hash.h</code> / <code class="notranslate">:hash_cc</code> - deterministic hashing.</strong> <code class="notranslate">GetHash64</code> /<br>
+<code class="notranslate">GetHash128</code> / <code class="notranslate">GetHash32&lt;Algo&gt;</code>, the <code class="notranslate">Hasher&lt;Algo&gt;</code> container functor, and<br>
+<code class="notranslate">Streamer&lt;Algo&gt;</code> incremental hashing - all <code class="notranslate">constexpr</code>-safe and fully<br>
+reproducible for a given library version. Designer for use in hash tables<br>
+(heterogeneous string lookup), tokenization/interning, compile-time hashing<br>
+(<code class="notranslate">static_assert</code>, switch-on-hash), and cross-process consistency within one<br>
+build. Values are not appropriate as a persistence mechanism or wire format.</li>
+<li><strong><code class="notranslate">hash_mangle.h</code> / <code class="notranslate">:hash_mangle_cc</code> - deliberately unstable hashing.</strong><br>
+<code class="notranslate">GetHash</code> / <code class="notranslate">MangledHasher&lt;Algo&gt;</code>: <code class="notranslate">GetHash64</code> XORed with one build-selected<br>
+constant, so values do not compare across independently configured builds.<br>
+Use when hash values must not become a dependency (persisted tables, golden<br>
+values, cross-build protocols) - the instability is the feature. While this is<br>
+all still <code class="notranslate">constexpr</code> read up on semantics and design rationale in the below<br>
+section on the build-seed mangling.</li>
+<li><strong><code class="notranslate">hash_extra.h</code> / <code class="notranslate">:hash_extra_cc</code> - NOTICE-brequiring algorithms.</strong> These<br>
+canonical algorithms (rapidhash, xxh3, and xxh64) are completely verified and<br>
+ested transcriptions, for interoperability with externally defined values and<br>
+for comparison. Shipping a binary that links this target requires shipping the<br>
+repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>.</li>
+</ul>
+<h2 dir="auto" id="principles">Principles</h2>
+<ul dir="auto">
+<li><strong>Canonical or honest</strong>: third-party algorithms (rapidhash, XXH64/XXH3,<br>
+MurmurHash3, SipHash, FNV-1a) are transcriptions producing the exact<br>
+published reference values on every platform, pinned by reference vectors<br>
+and differential tests against the reference libraries. The in-house <code class="notranslate">mumbo</code> /<br>
+<code class="notranslate">jumbo</code> and <code class="notranslate">dumbo</code> family of algorithms is documented with its measured<br>
+quality and performance data (below) and its design iterations.</li>
+<li><strong>constexpr-safe single path</strong>: compile-time and run-time evaluation always<br>
+agree; streaming (where provided) equals the one-shot value by contract.</li>
+<li><strong>Apache-2.0 with clean attribution</strong>: transcription notices live in the<br>
+repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>; <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/LICENSE">LICENSE</a> stays pure<br>
+Apache-2.0 and are free of crypto-library dependencies. All hash algorithms<br>
+(and similarly all digest algorithms) are spec-frozen pure functions that we<br>
+verify against official vectors instead of trusting an unverifiable supply<br>
+chain (also see <a href="../digest/README.html">mbo/digest/README.md</a>).</li>
+<li><strong>Non-cryptographic hash-table hashes, with one keyed exception</strong>: the<br>
+defaults and comparison algorithms are fast hashes for hash tables and<br>
+interning. Their values are neither stable across versions nor safe against<br>
+adversaries. The one deliberate exceptions is <code class="notranslate">siphash</code>, a keyed PRF<br>
+(<a href="https://en.wikipedia.org/wiki/Pseudorandom_function_family" rel="nofollow">Pseudo Random Function</a>)<br>
+included as the hash-flooding-resistant choice when the seed is a secret. It<br>
+is still a hash-table hash (<code class="notranslate">GetHash64</code> / <code class="notranslate">Hasher</code>), not a message digest.</li>
+<li><strong>message digests</strong>: Non-cryptographic Digest and MACs (SHA-2/3, MD5 interop,<br>
+BLAKE2/3, HMAC) are a different contract and live in <a href="../digest/README.html">mbo/digest</a>.</li>
+</ul>
+<h2 dir="auto" id="algorithm-overview">Algorithm overview</h2>
+<p dir="auto">This is the at-a-glance overview- map. The <code class="notranslate">SMHasher3</code> column is a PASS/FAIL summary only.<br>
+For the exact score and the failing families see <a href="#quality-smhasher3">Quality: SMHasher3</a>.</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th align="right">Bits</th>
+<th>SMHasher3</th>
+<th>Seeded</th>
+<th>Streaming</th>
+<th>Starlark</th>
+<th>NOTICE</th>
+<th>Available via</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">mumbo</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td><strong>yes</strong></td>
+<td><strong>yes</strong></td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code> (default 64/32)</td>
+</tr>
+<tr>
+<td><code class="notranslate">jumbo</code></td>
+<td align="right">128</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>yes (64)</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code> (default 128)</td>
+</tr>
+<tr>
+<td><code class="notranslate">murmur3</code></td>
+<td align="right">128</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (public domain)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">siphash</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>keyed</td>
+<td><strong>yes</strong></td>
+<td>no</td>
+<td>none (CC0)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">fnv1a</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+<td>none (public domain)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">dumbo</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">fambo</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">rapidhash</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td><strong>MIT - ship NOTICE</strong></td>
+<td><code class="notranslate">hash_extra.h</code> + <code class="notranslate">:hash_extra_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh64</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td><strong>yes</strong></td>
+<td>no</td>
+<td><strong>BSD-2 - ship NOTICE</strong></td>
+<td><code class="notranslate">hash_extra.h</code> + <code class="notranslate">:hash_extra_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh3</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td><strong>BSD-2 - ship NOTICE</strong></td>
+<td><code class="notranslate">hash_extra.h</code> + <code class="notranslate">:hash_extra_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh3</code></td>
+<td align="right">128</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td><strong>BSD-2 - ship NOTICE</strong></td>
+<td><code class="notranslate">hash_extra.h</code> + <code class="notranslate">:hash_extra_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_3_4</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_4_4</code></td>
+<td align="right">64</td>
+<td><strong>PASS</strong></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_5_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_6_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_7_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_8_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_8_8</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_12_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_12_8</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_16_4</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_16_8</code></td>
+<td align="right">64</td>
+<td>FAIL</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>none (in-house)</td>
+<td><code class="notranslate">hash.h</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<p dir="auto">Notes: the <strong>Starlark</strong> column marks the hashes that are also implemented in<br>
+Starlark for direct build-graph construction-time <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/hash.bzl"><code class="notranslate">hash.bzl</code></a> usage.<br>
+Those algorithms are (<code class="notranslate">hash.mumbo</code>, <code class="notranslate">hash.dumbo</code>, <code class="notranslate">hash.fnv1a</code>). They are<br>
+byte-for-byte identical to the C++ prime and verified against it (<code class="notranslate">hash_tool</code>).<br>
+Only the one-shot 64-bit form is ported, so the native 128-bit <code class="notranslate">jumbo</code> and<br>
+streaming stay C++-only.</p>
+<p dir="auto">Note the following algorithm specifics:</p>
+<ul dir="auto">
+<li><code class="notranslate">fnv1a</code> represents the algorithm family many <code class="notranslate">std::hash</code> implementations use<br>
+(e.g. MSVC) and is thus included as the familiar baseline.</li>
+<li><code class="notranslate">siphash</code> is a keyed PRF. It is the DoS-resistant choice when the seed is a<br>
+secret.</li>
+<li><code class="notranslate">dumbo</code> is the compact single-lane member of the mbo MUM family. It is the<br>
+fastest hash here for tiny keys and still SMHasher3-clean, but it is also a<br>
+single-lane implementation and so it slows on large keys. It is a deliberate<br>
+minimal companion to <code class="notranslate">mumbo</code> (not a replacement for it).</li>
+</ul>
+<p dir="auto">Linking <code class="notranslate">:hash_extra_cc</code> requires shipping the repository-root <a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a><br>
+(see "Third-party components" in the <a href="../../index.html">repository README</a>).</p>
+<h2 dir="auto" id="build-seed-mangle-hash_mangleh--hash_mangle_cc">Build-seed mangle (<code class="notranslate">hash_mangle.h</code> / <code class="notranslate">:hash_mangle_cc</code>)</h2>
+<p dir="auto"><code class="notranslate">mbo::hash::GetHash</code> and <code class="notranslate">MangledHasher&lt;Algo&gt;</code> equal <code class="notranslate">GetHash64</code> XORed with<br>
+ONE build-selected constant, so values deliberately do not compare across<br>
+independently configured builds - precomputed tables or persisted values<br>
+cannot silently become load-bearing. Everything stays <code class="notranslate">constexpr</code>: the constant<br>
+is generated into a header by folding the module's own version (from<br>
+<code class="notranslate">MODULE.bazel</code> via <code class="notranslate">native.module_version()</code> - no duplicated version<br>
+declaration anywhere) with two custom Bazel flags (see the<br>
+Configuration section below). Folding the version in means every release<br>
+rotates the constant by construction - at zero marginal cost, since a release<br>
+recompiles all dependents anyway - so "values are not stable across library<br>
+versions" holds by construction even under default flags.</p>
+<p dir="auto">Neither the version nor the raw seed string ever reaches a C++ action key:<br>
+both fold to a bucket inside the header-generation rule, so build/remote<br>
+caches see at most <code class="notranslate">N + 1</code> header variants and converge no matter how often<br>
+the seed rotates (per user, per release, or never - a <code class="notranslate">.bazelrc</code> one-liner<br>
+either way). Only targets depending on <code class="notranslate">:hash_mangle_cc</code> rebuild on rotation;<br>
+<code class="notranslate">hash.h</code> / <code class="notranslate">:hash_cc</code> users are never touched. One constant applies per<br>
+program: linking objects compiled under different flag values is an ODR<br>
+violation (within a single Bazel build consistency is structural).</p>
+<h3 dir="auto" id="design-constexpr-rules-out-aslr-buckets-bound-the-churn">Design: constexpr rules out ASLR, buckets bound the churn</h3>
+<p dir="auto">The mangle wants ASLR-style entropy - values that shift outside anyone's<br>
+control, so nothing can quietly start depending on them. Three constraints<br>
+shape the implementation:</p>
+<ol dir="auto">
+<li>
+<p dir="auto"><strong>constexpr is non-negotiable, which rules out runtime entropy.</strong> Every<br>
+entry point participates in constant evaluation, including <code class="notranslate">GetHash</code>. True<br>
+ASLR (absl-style: mixing in the address of a global) or any startup-time<br>
+random seed cannot appear in a constant expression - adopting one would<br>
+split the API into a <code class="notranslate">constexpr</code> unmangled half and a runtime mangled half.<br>
+The entropy must be a compile-time constant, so it can only be injected at<br>
+build time.</p>
+</li>
+<li>
+<p dir="auto"><strong>Build-time entropy must not defeat caching.</strong> A naive build-time seed<br>
+(hashing <code class="notranslate">__DATE__</code>/<code class="notranslate">__TIME__</code>, as an earlier iteration did) takes a new<br>
+value on every compile: every rotation is a cold miss for build and remote<br>
+caches, and per-TU evaluation can even hand two translation units of one<br>
+binary different constants (an ODR violation). Both problems stem from<br>
+unbounded seed values entering the compiler's inputs.</p>
+</li>
+<li>
+<p dir="auto"><strong>Churn must be bounded and adjustable.</strong> Hence the two-flag design: the<br>
+library version and the seed string are folded to one of <code class="notranslate">N</code> buckets<br>
+inside the header-generation rule, and only the resulting constant reaches<br>
+C++ action keys - a raw value (version, user name, date) never does.<br>
+Caches therefore hold at most <code class="notranslate">N + 1</code><br>
+variants of the mangle-dependent build graph (objects, links, cached test<br>
+results), no matter what rotates through the seed flag.<br>
+<code class="notranslate">--//mbo/hash:mangle_seed_buckets</code> is the dial between entropy and cache<br>
+footprint: <code class="notranslate">0</code> is reproducible (no entropy, no churn), <code class="notranslate">1</code> is one pinned<br>
+constant (distinct from <code class="notranslate">GetHash64</code>, zero churn), larger <code class="notranslate">N</code> buys more<br>
+variation at proportional cache cost. The <code class="notranslate">:hash_cc</code> / <code class="notranslate">:hash_mangle_cc</code><br>
+target split completes the containment: plain hash users sit entirely<br>
+outside the churn.</p>
+</li>
+</ol>
+<h3 dir="auto" id="the-fold-is-the-in-house-dumbo-hash-ported-to-starlark">The fold is the in-house <code class="notranslate">dumbo</code> hash, ported to Starlark</h3>
+<p dir="auto">The version-and-seed fold uses the in-house <code class="notranslate">dumbo</code> hash (SMHasher3-proven -<br>
+<code class="notranslate">fnv1a</code> is not), implemented in Starlark in <code class="notranslate">hash.bzl</code> so the build-time fold<br>
+and the shipped library agree on the algorithm. C++ is the prime<br>
+implementation; the Starlark port is kept byte-for-byte identical to it,<br>
+verified by <code class="notranslate">//mbo/hash:hash_bzl_vs_cpp_dumbo_test</code> (the bzl output diffed<br>
+against the <code class="notranslate">hash_tool</code> C++ binary). <code class="notranslate">mumbo</code> (the default 64-bit hash) and<br>
+<code class="notranslate">dumbo</code> are both offered in Starlark alongside the standard <code class="notranslate">fnv1a</code>, each<br>
+likewise verified against C++; only the one-shot 64-bit form is ported (the<br>
+native 128-bit <code class="notranslate">jumbo</code> and streaming stay C++-only).</p>
+<p dir="auto">Call the ports from your own rules via <code class="notranslate">@mboworks_mbo//mbo/hash:hash.bzl</code> (at load<br>
+time; input is a printable-ASCII string or a list of byte values <code class="notranslate">0..255</code>). The<br>
+seed is an <strong>optional</strong> second argument: omit it and each hash uses its own<br>
+canonical default - the same one the matching C++ <code class="notranslate">GetHash64</code> uses, so the<br>
+values agree by default. <code class="notranslate">mumbo</code> defaults to the library-wide <code class="notranslate">kDefaultSeed</code><br>
+(<code class="notranslate">5381</code>), <code class="notranslate">dumbo</code> to <code class="notranslate">0</code>, and <code class="notranslate">fnv1a</code> to the FNV-1a <strong>offset basis</strong><br>
+(<code class="notranslate">0xCBF29CE484222325</code>, the standard FNV-1a starting constant). Pass a seed<br>
+explicitly to match a specific seeded C++ call. Each returns the 64-bit hash as<br>
+an <code class="notranslate">int</code>:</p>
+<div class="highlight highlight-source-python" dir="auto"><pre class="notranslate"><span class="pl-en">load</span>(<span class="pl-s">"@mboworks_mbo//mbo/hash:hash.bzl"</span>, <span class="pl-s">"hash"</span>)
+
+<span class="pl-s1">_a</span> <span class="pl-c1">=</span> <span class="pl-s1">hash</span>.<span class="pl-c1">mumbo</span>(<span class="pl-s">"my build-time key"</span>)        <span class="pl-c"># default 64-bit hash; default seed kDefaultSeed (5381)</span>
+<span class="pl-s1">_b</span> <span class="pl-c1">=</span> <span class="pl-s1">hash</span>.<span class="pl-c1">dumbo</span>(<span class="pl-s">"my build-time key"</span>)        <span class="pl-c"># dumbo; default seed 0</span>
+<span class="pl-s1">_c</span> <span class="pl-c1">=</span> <span class="pl-s1">hash</span>.<span class="pl-c1">fnv1a</span>([<span class="pl-c1">0x61</span>, <span class="pl-c1">0x62</span>, <span class="pl-c1">0x63</span>])         <span class="pl-c"># fnv1a over bytes; default seed = FNV offset basis</span>
+<span class="pl-s1">_d</span> <span class="pl-c1">=</span> <span class="pl-s1">hash</span>.<span class="pl-c1">mumbo</span>(<span class="pl-s">"my build-time key"</span>, <span class="pl-c1">1234</span>)  <span class="pl-c"># explicit seed == mbo::hash::mumbo::GetHash64(key, 1234)</span></pre></div>
+<h2 dir="auto" id="configuration">Configuration</h2>
+<p dir="auto">All configuration lives on the mangle - the deterministic <code class="notranslate">hash.h</code> and<br>
+<code class="notranslate">hash_extra.h</code> entry points have no knobs. Set the flags on the command line<br>
+or in <code class="notranslate">.bazelrc</code>; prefix them with <code class="notranslate">@mboworks_mbo</code> when the library is<br>
+consumed as a dependency (e.g. <code class="notranslate">--@mboworks_mbo//mbo/hash:mangle_seed=...</code>).</p>
+<ul dir="auto">
+<li><code class="notranslate">--//mbo/hash:mangle_seed</code> (string, default <code class="notranslate">""</code>): any printable-ASCII<br>
+string - user name, release tag, date - folded together with the library<br>
+version to select the mangle constant.</li>
+<li><code class="notranslate">--//mbo/hash:mangle_seed_buckets</code> (int, default <code class="notranslate">8</code>): the entropy/cache<br>
+dial. <code class="notranslate">0</code> disables the mangle (<code class="notranslate">GetHash == GetHash64</code>, fully reproducible<br>
+builds); <code class="notranslate">1</code> pins one stable constant across releases and seeds (<code class="notranslate">GetHash</code><br>
+stays distinct from <code class="notranslate">GetHash64</code>, zero churn); <code class="notranslate">N &gt;= 2</code> bounds the variation<br>
+to <code class="notranslate">N</code> constants at proportional cache footprint.</li>
+</ul>
+<p dir="auto">Example <code class="notranslate">.bazelrc</code> policies:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> Reproducible builds / golden tests: disable the mangle entirely.</span>
+build --//mbo/hash:mangle_seed_buckets=0
+
+<span class="pl-c"><span class="pl-c">#</span> Per-user variation on top of the per-release rotation.</span>
+build --//mbo/hash:mangle_seed=alice</pre></div>
+<p dir="auto">Under default flags the constant still rotates once per release (the library<br>
+version is folded in). The header is generated per build and never committed,<br>
+so nothing can drift out of sync and a version bump needs no manual step. A<br>
+build that lacks the generated header is a hard error, not a silent fallback;<br>
+for clangd (which has no generated header) <code class="notranslate">hash_mangle.h</code> uses a stable<br>
+fallback constant under <code class="notranslate">-DIS_CLANGD</code> purely so the editor can parse it.</p>
+<h2 dir="auto" id="abseil-interop">Abseil interop</h2>
+<p dir="auto">The two frameworks compose rather than compete - pick by contract:<br>
+<code class="notranslate">absl::Hash</code> is per-process randomized and tuned for tiny in-process keys;<br>
+<code class="notranslate">mbo::hash</code> is canonical, cross-platform, <code class="notranslate">constexpr</code>, and streamable.</p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>Containers</strong>: <code class="notranslate">DefaultHasher</code> (any <code class="notranslate">Hasher&lt;Algo&gt;</code> / <code class="notranslate">MangledHasher&lt;Algo&gt;</code>)<br>
+drops into <code class="notranslate">absl</code>/<code class="notranslate">std</code> hash containers as the <code class="notranslate">Hash</code> parameter for string<br>
+keys, with heterogeneous <code class="notranslate">string_view</code> lookup - this replaces absl's native<br>
+hashing for byte keys outright.</p>
+</li>
+<li>
+<p dir="auto"><strong>Injecting mbo values into absl combining</strong>: compute the mbo hash - via<br>
+<code class="notranslate">Streamer</code> for chunked content - and combine the resulting integer like any<br>
+other field. In-repo precedent: <code class="notranslate">Hash128</code> and <code class="notranslate">mbo::types::tstring</code> do<br>
+exactly this.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> H&gt;
+<span class="pl-k">friend</span> H <span class="pl-en">AbslHashValue</span>(H state, <span class="pl-k">const</span> Document&amp; doc) {
+  mbo::hash::Streamer&lt;mbo::hash::DefaultHashAlgorithm&gt; stream;
+  <span class="pl-k">for</span> (std::string_view chunk : doc.<span class="pl-smi">chunks</span>) {
+    stream.<span class="pl-c1">Update</span>(chunk);
+  }
+  <span class="pl-k">return</span> <span class="pl-c1">H::combine</span>(<span class="pl-c1">std::move</span>(state), stream.<span class="pl-c1">Finalize</span>(), doc.<span class="pl-smi">id</span>);
+}</pre></div>
+<p dir="auto">The mbo value itself stays deterministic; the surrounding absl hash remains<br>
+per-process seeded (which is what a container wants). Use the mangled<br>
+<code class="notranslate">GetHash</code> instead of <code class="notranslate">GetHash64</code> where the injected value itself must not be<br>
+comparable across builds.</p>
+</li>
+<li>
+<p dir="auto"><strong>The other direction needs care</strong>: folding <code class="notranslate">absl::HashOf(x)</code> into mbo<br>
+values (e.g. via <code class="notranslate">CombineHashes</code>) imports absl's per-process randomization -<br>
+the result is no longer stable across runs, let alone builds. Only do this<br>
+for values that never leave the process.</p>
+</li>
+<li>
+<p dir="auto"><strong>Replacing <code class="notranslate">absl::Hash</code> for arbitrary types</strong>: possible by design but a<br>
+deliberate project, not a flag. <code class="notranslate">AbslHashValue</code> is framework-agnostic: any<br>
+hash state implementing <code class="notranslate">combine</code> / <code class="notranslate">combine_contiguous</code> (plus unordered<br>
+support) can execute every existing <code class="notranslate">AbslHashValue</code> overload, so a<br>
+mumbo-backed state could swap the algorithm underneath all absl-hashable<br>
+types. Worth it only when structured types need canonical or <code class="notranslate">constexpr</code><br>
+hashing; for byte keys the container functor above already does the job.</p>
+</li>
+</ul>
+<h2 dir="auto" id="performance">Performance</h2>
+<p dir="auto">Measured with the tooling in <a href="measurements/README.html"><code class="notranslate">mbo/hash/measurements/</code></a><br>
+(<code class="notranslate">-c opt</code>). Each block below is one machine and compiler, generated from a<br>
+committed data bundle. Numbers are the mean of the 3 best of 9 runs (with<br>
+interleaving and warmup): on a shared machine the least-contended runs are the<br>
+truest, and averaging a few is steadier than a single extreme. Bold marks the<br>
+winner per row. Tables use a curated set of lengths (straddling the dispatch-tier<br>
+and SSO boundaries); the log-log charts a denser one.</p>
+<p dir="auto">Two views per hash width:</p>
+<ul dir="auto">
+<li><strong>Latency</strong> (ns/hash, lower is better): the cost of hashing one key of an<br>
+<em>exact</em> length in a hot loop - the per-length curve, for spotting the<br>
+size-dispatch and SSO cliffs at specific lengths.</li>
+<li><strong>Throughput</strong> (GiB/s, higher is better): how fast a realistic, upper-<strong>bounded</strong><br>
+mix of key lengths is processed. Keys are drawn from two fixed, reproducible<br>
+length distributions - <strong>Short</strong> (log-normal: identifiers, DB keys, UUIDs) and<br>
+<strong>Web</strong> (heavy-tailed: paths and URLs) - given as inverse-CDF (Cumulative<br>
+Distribution Function, see<br>
+<a href="https://en.wikipedia.org/wiki/Cumulative_distribution_function" rel="nofollow">Wikipedia</a>)<br>
+tables, sampled once with a fixed seed and shared byte-for-byte across all<br>
+algorithms (only the lengths matter; the bytes are filler). Each distribution's<br>
+control-point lengths double as upper <strong>bounds</strong>: the mix is run truncated to<br>
+each bound (the kept buckets renormalized to 100%), giving a<br>
+<code class="notranslate">(max length -&gt; GiB/s)</code> curve. The ceilings are <code class="notranslate">Lmax</code> = <strong>128 B</strong> for Short<br>
+(two L1 cache lines - the AVX-512 / medium-key-to-bulk transition and a<br>
+jemalloc/tcmalloc size-class ceiling) and <strong>4096 B</strong> for Web (one x86/ARM64<br>
+virtual page). One key per bound is pinned to the bound length so the boundary<br>
+is always represented; the unpredictable length order defeats the size-dispatch<br>
+branch predictor, so the cost is measured, not modelled.</li>
+</ul>
+
+
+
+<h3 dir="auto" id="amd-ryzen-9-9950x-16-core-processor--linux--x86_64--10-core--clang-22--2b195ec">AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · <a class="commit-link" data-hovercard-type="commit" data-hovercard-url="https://github.com/mboworks/mbo/commit/2b195ec92fdc85e76935171f1aa377d3ae9c5aa9/hovercard" href="https://github.com/mboworks/mbo/commit/2b195ec92fdc85e76935171f1aa377d3ae9c5aa9"><tt>2b195ec</tt></a></h3>
+
+<h4 dir="auto" id="extra-build-configuration">Extra build configuration</h4>
+<ul dir="auto">
+<li><strong>config</strong>: <code class="notranslate">clang</code></li>
+<li><strong>copt</strong>: <code class="notranslate">-march=znver5</code></li>
+</ul>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_latency64.svg"><img src="../../assets/0b7f4cb578169f834329c334eb80c89bf8d67c9a7e79c8628efa504f257b012c.svg" alt="mbo/hash 64-bit latency, AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-latency-nshash-at-exact-length-mean-of-the-3-best-of-9-reps-lower-is-better">64-bit latency (ns/hash at exact length, mean of the 3 best of 9 reps; lower is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Length</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">1 B</td>
+<td align="right">1.30</td>
+<td align="right">1.51</td>
+<td align="right">1.49</td>
+<td align="right">1.70</td>
+<td align="right">1.80</td>
+<td align="right">3.03</td>
+<td align="right">8.17</td>
+<td align="right"><strong>0.36</strong></td>
+<td align="right">1.48</td>
+</tr>
+<tr>
+<td align="right">3 B</td>
+<td align="right">1.47</td>
+<td align="right">1.67</td>
+<td align="right">1.49</td>
+<td align="right">1.70</td>
+<td align="right">2.44</td>
+<td align="right">3.03</td>
+<td align="right">8.17</td>
+<td align="right"><strong>0.74</strong></td>
+<td align="right">1.48</td>
+</tr>
+<tr>
+<td align="right">5 B</td>
+<td align="right">1.28</td>
+<td align="right">1.65</td>
+<td align="right">1.41</td>
+<td align="right">1.64</td>
+<td align="right">2.13</td>
+<td align="right">2.12</td>
+<td align="right">5.00</td>
+<td align="right"><strong>1.16</strong></td>
+<td align="right">1.19</td>
+</tr>
+<tr>
+<td align="right">7 B</td>
+<td align="right">1.40</td>
+<td align="right">1.65</td>
+<td align="right">1.41</td>
+<td align="right">1.64</td>
+<td align="right">2.78</td>
+<td align="right">2.12</td>
+<td align="right">5.00</td>
+<td align="right">1.57</td>
+<td align="right"><strong>1.19</strong></td>
+</tr>
+<tr>
+<td align="right">8 B</td>
+<td align="right">1.28</td>
+<td align="right">1.46</td>
+<td align="right">1.41</td>
+<td align="right">1.64</td>
+<td align="right">2.09</td>
+<td align="right">2.13</td>
+<td align="right">6.04</td>
+<td align="right">1.27</td>
+<td align="right"><strong>1.19</strong></td>
+</tr>
+<tr>
+<td align="right">11 B</td>
+<td align="right"><strong>1.25</strong></td>
+<td align="right">1.42</td>
+<td align="right">1.41</td>
+<td align="right">1.54</td>
+<td align="right">3.25</td>
+<td align="right">13.68</td>
+<td align="right">10.58</td>
+<td align="right">2.06</td>
+<td align="right">9.01</td>
+</tr>
+<tr>
+<td align="right">15 B</td>
+<td align="right"><strong>1.25</strong></td>
+<td align="right">1.43</td>
+<td align="right">1.41</td>
+<td align="right">1.54</td>
+<td align="right">3.71</td>
+<td align="right">2.58</td>
+<td align="right">6.18</td>
+<td align="right">3.25</td>
+<td align="right">1.76</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right"><strong>1.25</strong></td>
+<td align="right">1.43</td>
+<td align="right">1.41</td>
+<td align="right">1.54</td>
+<td align="right">2.59</td>
+<td align="right">2.86</td>
+<td align="right">7.71</td>
+<td align="right">3.16</td>
+<td align="right">1.76</td>
+</tr>
+<tr>
+<td align="right">19 B</td>
+<td align="right">1.75</td>
+<td align="right">1.70</td>
+<td align="right"><strong>1.65</strong></td>
+<td align="right">1.91</td>
+<td align="right">3.79</td>
+<td align="right">14.39</td>
+<td align="right">10.82</td>
+<td align="right">4.27</td>
+<td align="right">8.67</td>
+</tr>
+<tr>
+<td align="right">22 B</td>
+<td align="right">1.75</td>
+<td align="right">1.70</td>
+<td align="right"><strong>1.65</strong></td>
+<td align="right">1.91</td>
+<td align="right">3.85</td>
+<td align="right">3.47</td>
+<td align="right">7.72</td>
+<td align="right">5.39</td>
+<td align="right">2.13</td>
+</tr>
+<tr>
+<td align="right">27 B</td>
+<td align="right">1.75</td>
+<td align="right">1.70</td>
+<td align="right"><strong>1.66</strong></td>
+<td align="right">1.91</td>
+<td align="right">4.36</td>
+<td align="right">4.62</td>
+<td align="right">11.33</td>
+<td align="right">6.86</td>
+<td align="right">2.81</td>
+</tr>
+<tr>
+<td align="right">32 B</td>
+<td align="right">1.75</td>
+<td align="right">1.70</td>
+<td align="right"><strong>1.65</strong></td>
+<td align="right">1.91</td>
+<td align="right">4.34</td>
+<td align="right">4.04</td>
+<td align="right">10.80</td>
+<td align="right">8.86</td>
+<td align="right">2.52</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right">2.11</td>
+<td align="right">2.08</td>
+<td align="right"><strong>1.94</strong></td>
+<td align="right">2.81</td>
+<td align="right">5.89</td>
+<td align="right">4.58</td>
+<td align="right">10.98</td>
+<td align="right">11.64</td>
+<td align="right">3.09</td>
+</tr>
+<tr>
+<td align="right">47 B</td>
+<td align="right">2.11</td>
+<td align="right">2.08</td>
+<td align="right"><strong>1.94</strong></td>
+<td align="right">2.81</td>
+<td align="right">7.16</td>
+<td align="right">5.11</td>
+<td align="right">12.48</td>
+<td align="right">15.75</td>
+<td align="right">3.57</td>
+</tr>
+<tr>
+<td align="right">48 B</td>
+<td align="right">2.11</td>
+<td align="right">2.08</td>
+<td align="right"><strong>1.94</strong></td>
+<td align="right">2.81</td>
+<td align="right">5.83</td>
+<td align="right">5.11</td>
+<td align="right">14.11</td>
+<td align="right">15.68</td>
+<td align="right">3.58</td>
+</tr>
+<tr>
+<td align="right">63 B</td>
+<td align="right">2.47</td>
+<td align="right">2.47</td>
+<td align="right"><strong>2.24</strong></td>
+<td align="right">2.81</td>
+<td align="right">8.98</td>
+<td align="right">6.31</td>
+<td align="right">15.73</td>
+<td align="right">24.33</td>
+<td align="right">4.49</td>
+</tr>
+<tr>
+<td align="right">64 B</td>
+<td align="right">2.47</td>
+<td align="right">2.62</td>
+<td align="right"><strong>2.25</strong></td>
+<td align="right">2.81</td>
+<td align="right">5.32</td>
+<td align="right">6.44</td>
+<td align="right">17.25</td>
+<td align="right">24.57</td>
+<td align="right">4.49</td>
+</tr>
+<tr>
+<td align="right">127 B</td>
+<td align="right">4.54</td>
+<td align="right">3.82</td>
+<td align="right"><strong>3.61</strong></td>
+<td align="right">4.56</td>
+<td align="right">11.50</td>
+<td align="right">11.17</td>
+<td align="right">28.49</td>
+<td align="right">66.35</td>
+<td align="right">8.72</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right">5.39</td>
+<td align="right"><strong>3.56</strong></td>
+<td align="right">3.60</td>
+<td align="right">4.56</td>
+<td align="right">7.12</td>
+<td align="right">11.48</td>
+<td align="right">30.04</td>
+<td align="right">66.26</td>
+<td align="right">8.71</td>
+</tr>
+<tr>
+<td align="right">256 B</td>
+<td align="right">8.79</td>
+<td align="right"><strong>5.51</strong></td>
+<td align="right">5.85</td>
+<td align="right">28.64</td>
+<td align="right">11.18</td>
+<td align="right">20.99</td>
+<td align="right">55.79</td>
+<td align="right">156.7</td>
+<td align="right">20.09</td>
+</tr>
+<tr>
+<td align="right">1 KiB</td>
+<td align="right">35.83</td>
+<td align="right">18.78</td>
+<td align="right"><strong>17.08</strong></td>
+<td align="right">40.57</td>
+<td align="right">34.94</td>
+<td align="right">79.95</td>
+<td align="right">209.8</td>
+<td align="right">701.9</td>
+<td align="right">104.8</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right">159.6</td>
+<td align="right">75.54</td>
+<td align="right"><strong>64.30</strong></td>
+<td align="right">124.0</td>
+<td align="right">130.9</td>
+<td align="right">316.0</td>
+<td align="right">827.5</td>
+<td align="right">2881</td>
+<td align="right">470.2</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_throughput64_Short.svg"><img src="../../assets/418da7aa04f7954b1f48ad6a816395b41c9d5677bfb215e6834eb946c78a15f1.svg" alt="mbo/hash 64-bit throughput (Short), AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-throughput-short-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better">64-bit throughput, Short lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">8 B</td>
+<td align="right">2.40</td>
+<td align="right">2.09</td>
+<td align="right">1.40</td>
+<td align="right">1.90</td>
+<td align="right">1.46</td>
+<td align="right">1.26</td>
+<td align="right">0.55</td>
+<td align="right"><strong>2.44</strong></td>
+<td align="right">2.11</td>
+</tr>
+<tr>
+<td align="right">12 B</td>
+<td align="right"><strong>4.35</strong></td>
+<td align="right">3.80</td>
+<td align="right">3.88</td>
+<td align="right">3.48</td>
+<td align="right">2.23</td>
+<td align="right">2.02</td>
+<td align="right">0.83</td>
+<td align="right">2.89</td>
+<td align="right">3.02</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right"><strong>6.29</strong></td>
+<td align="right">5.50</td>
+<td align="right">5.56</td>
+<td align="right">5.05</td>
+<td align="right">2.88</td>
+<td align="right">2.85</td>
+<td align="right">1.27</td>
+<td align="right">3.06</td>
+<td align="right">4.15</td>
+</tr>
+<tr>
+<td align="right">23 B</td>
+<td align="right"><strong>7.37</strong></td>
+<td align="right">6.82</td>
+<td align="right">6.88</td>
+<td align="right">6.30</td>
+<td align="right">3.48</td>
+<td align="right">3.34</td>
+<td align="right">1.54</td>
+<td align="right">2.99</td>
+<td align="right">4.98</td>
+</tr>
+<tr>
+<td align="right">31 B</td>
+<td align="right"><strong>8.75</strong></td>
+<td align="right">8.25</td>
+<td align="right">8.34</td>
+<td align="right">7.64</td>
+<td align="right">4.09</td>
+<td align="right">3.95</td>
+<td align="right">1.81</td>
+<td align="right">3.02</td>
+<td align="right">5.85</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right"><strong>8.64</strong></td>
+<td align="right">8.15</td>
+<td align="right">8.25</td>
+<td align="right">7.47</td>
+<td align="right">4.01</td>
+<td align="right">3.88</td>
+<td align="right">1.78</td>
+<td align="right">2.88</td>
+<td align="right">5.81</td>
+</tr>
+<tr>
+<td align="right">53 B</td>
+<td align="right"><strong>9.46</strong></td>
+<td align="right">8.99</td>
+<td align="right">9.14</td>
+<td align="right">8.19</td>
+<td align="right">4.31</td>
+<td align="right">4.23</td>
+<td align="right">1.93</td>
+<td align="right">2.84</td>
+<td align="right">6.34</td>
+</tr>
+<tr>
+<td align="right">80 B</td>
+<td align="right"><strong>9.47</strong></td>
+<td align="right">9.00</td>
+<td align="right">9.13</td>
+<td align="right">8.18</td>
+<td align="right">4.34</td>
+<td align="right">4.23</td>
+<td align="right">1.92</td>
+<td align="right">2.80</td>
+<td align="right">6.31</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right"><strong>9.44</strong></td>
+<td align="right">8.98</td>
+<td align="right">9.12</td>
+<td align="right">8.16</td>
+<td align="right">4.36</td>
+<td align="right">4.21</td>
+<td align="right">1.91</td>
+<td align="right">2.81</td>
+<td align="right">6.29</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_throughput64_Web.svg"><img src="../../assets/b7e3455d669b50d57a74131846234bc5b1ff35e13406877f5dd75794faf87b03.svg" alt="mbo/hash 64-bit throughput (Web), AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-throughput-web-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better">64-bit throughput, Web lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">15 B</td>
+<td align="right"><strong>4.95</strong></td>
+<td align="right">4.32</td>
+<td align="right">4.44</td>
+<td align="right">3.97</td>
+<td align="right">2.51</td>
+<td align="right">2.35</td>
+<td align="right">1.02</td>
+<td align="right">3.06</td>
+<td align="right">3.56</td>
+</tr>
+<tr>
+<td align="right">28 B</td>
+<td align="right"><strong>7.88</strong></td>
+<td align="right">7.54</td>
+<td align="right">7.68</td>
+<td align="right">6.98</td>
+<td align="right">3.89</td>
+<td align="right">3.63</td>
+<td align="right">1.63</td>
+<td align="right">2.87</td>
+<td align="right">5.51</td>
+</tr>
+<tr>
+<td align="right">45 B</td>
+<td align="right">11.8</td>
+<td align="right">11.6</td>
+<td align="right"><strong>12.0</strong></td>
+<td align="right">10.00</td>
+<td align="right">5.08</td>
+<td align="right">5.13</td>
+<td align="right">2.32</td>
+<td align="right">2.71</td>
+<td align="right">7.87</td>
+</tr>
+<tr>
+<td align="right">75 B</td>
+<td align="right">14.6</td>
+<td align="right">14.9</td>
+<td align="right"><strong>15.3</strong></td>
+<td align="right">12.7</td>
+<td align="right">6.13</td>
+<td align="right">6.23</td>
+<td align="right">2.76</td>
+<td align="right">2.42</td>
+<td align="right">9.39</td>
+</tr>
+<tr>
+<td align="right">120 B</td>
+<td align="right">16.4</td>
+<td align="right">17.3</td>
+<td align="right"><strong>17.5</strong></td>
+<td align="right">14.7</td>
+<td align="right">7.17</td>
+<td align="right">6.90</td>
+<td align="right">3.03</td>
+<td align="right">2.14</td>
+<td align="right">9.90</td>
+</tr>
+<tr>
+<td align="right">220 B</td>
+<td align="right">16.8</td>
+<td align="right"><strong>19.1</strong></td>
+<td align="right">19.0</td>
+<td align="right">15.2</td>
+<td align="right">7.82</td>
+<td align="right">7.38</td>
+<td align="right">3.21</td>
+<td align="right">2.04</td>
+<td align="right">10.1</td>
+</tr>
+<tr>
+<td align="right">512 B</td>
+<td align="right">17.2</td>
+<td align="right"><strong>20.8</strong></td>
+<td align="right">20.6</td>
+<td align="right">14.2</td>
+<td align="right">8.60</td>
+<td align="right">7.73</td>
+<td align="right">3.30</td>
+<td align="right">1.89</td>
+<td align="right">9.74</td>
+</tr>
+<tr>
+<td align="right">2 KiB</td>
+<td align="right">18.4</td>
+<td align="right"><strong>23.8</strong></td>
+<td align="right">23.8</td>
+<td align="right">15.1</td>
+<td align="right">10.1</td>
+<td align="right">8.35</td>
+<td align="right">3.52</td>
+<td align="right">1.73</td>
+<td align="right">9.42</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right">18.2</td>
+<td align="right"><strong>23.3</strong></td>
+<td align="right">23.2</td>
+<td align="right">14.7</td>
+<td align="right">9.96</td>
+<td align="right">8.25</td>
+<td align="right">3.47</td>
+<td align="right">1.74</td>
+<td align="right">9.38</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_latency128.svg"><img src="../../assets/66bd854cc68d907115f97d6baa352dcb7ed407895bf16980f7c208a38c1c4ba9.svg" alt="mbo/hash 128-bit latency, AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-latency-nshash-at-exact-length-mean-of-the-3-best-of-9-reps-native-128-only-lower-is-better">128-bit latency (ns/hash at exact length, mean of the 3 best of 9 reps; native-128 only; lower is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Length</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">1 B</td>
+<td align="right"><strong>2.24</strong></td>
+<td align="right">2.33</td>
+<td align="right">3.05</td>
+</tr>
+<tr>
+<td align="right">3 B</td>
+<td align="right">2.36</td>
+<td align="right"><strong>2.33</strong></td>
+<td align="right">3.05</td>
+</tr>
+<tr>
+<td align="right">5 B</td>
+<td align="right">2.18</td>
+<td align="right"><strong>1.95</strong></td>
+<td align="right">2.19</td>
+</tr>
+<tr>
+<td align="right">7 B</td>
+<td align="right">2.17</td>
+<td align="right"><strong>1.95</strong></td>
+<td align="right">2.19</td>
+</tr>
+<tr>
+<td align="right">8 B</td>
+<td align="right">2.19</td>
+<td align="right"><strong>1.95</strong></td>
+<td align="right">2.19</td>
+</tr>
+<tr>
+<td align="right">11 B</td>
+<td align="right"><strong>2.15</strong></td>
+<td align="right">2.33</td>
+<td align="right">13.67</td>
+</tr>
+<tr>
+<td align="right">15 B</td>
+<td align="right"><strong>2.15</strong></td>
+<td align="right">2.33</td>
+<td align="right">2.62</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right"><strong>2.15</strong></td>
+<td align="right">2.33</td>
+<td align="right">2.94</td>
+</tr>
+<tr>
+<td align="right">19 B</td>
+<td align="right"><strong>2.65</strong></td>
+<td align="right">2.93</td>
+<td align="right">14.32</td>
+</tr>
+<tr>
+<td align="right">22 B</td>
+<td align="right"><strong>2.65</strong></td>
+<td align="right">2.93</td>
+<td align="right">3.54</td>
+</tr>
+<tr>
+<td align="right">27 B</td>
+<td align="right"><strong>2.66</strong></td>
+<td align="right">2.94</td>
+<td align="right">4.64</td>
+</tr>
+<tr>
+<td align="right">32 B</td>
+<td align="right"><strong>2.66</strong></td>
+<td align="right">2.93</td>
+<td align="right">4.09</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right"><strong>3.21</strong></td>
+<td align="right">3.83</td>
+<td align="right">4.64</td>
+</tr>
+<tr>
+<td align="right">47 B</td>
+<td align="right"><strong>3.21</strong></td>
+<td align="right">3.82</td>
+<td align="right">5.17</td>
+</tr>
+<tr>
+<td align="right">48 B</td>
+<td align="right"><strong>3.21</strong></td>
+<td align="right">3.82</td>
+<td align="right">5.16</td>
+</tr>
+<tr>
+<td align="right">63 B</td>
+<td align="right"><strong>3.82</strong></td>
+<td align="right">3.82</td>
+<td align="right">6.37</td>
+</tr>
+<tr>
+<td align="right">64 B</td>
+<td align="right">4.36</td>
+<td align="right"><strong>3.82</strong></td>
+<td align="right">6.51</td>
+</tr>
+<tr>
+<td align="right">127 B</td>
+<td align="right">6.08</td>
+<td align="right"><strong>5.77</strong></td>
+<td align="right">11.24</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right"><strong>5.26</strong></td>
+<td align="right">5.77</td>
+<td align="right">11.51</td>
+</tr>
+<tr>
+<td align="right">256 B</td>
+<td align="right"><strong>7.21</strong></td>
+<td align="right">25.77</td>
+<td align="right">21.04</td>
+</tr>
+<tr>
+<td align="right">1 KiB</td>
+<td align="right"><strong>20.75</strong></td>
+<td align="right">37.85</td>
+<td align="right">80.04</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right"><strong>77.35</strong></td>
+<td align="right">119.7</td>
+<td align="right">316.1</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_throughput128_Short.svg"><img src="../../assets/53d9d7caaa3d72936d7a1a9e5005c1acd9cedf6a2387a010d20c97bed14374f2.svg" alt="mbo/hash 128-bit throughput (Short), AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-throughput-short-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better">128-bit throughput, Short lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">8 B</td>
+<td align="right">1.46</td>
+<td align="right"><strong>1.57</strong></td>
+<td align="right">1.26</td>
+</tr>
+<tr>
+<td align="right">12 B</td>
+<td align="right"><strong>2.61</strong></td>
+<td align="right">2.59</td>
+<td align="right">2.02</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right"><strong>3.76</strong></td>
+<td align="right">3.60</td>
+<td align="right">2.84</td>
+</tr>
+<tr>
+<td align="right">23 B</td>
+<td align="right"><strong>4.60</strong></td>
+<td align="right">4.33</td>
+<td align="right">3.33</td>
+</tr>
+<tr>
+<td align="right">31 B</td>
+<td align="right"><strong>5.56</strong></td>
+<td align="right">5.21</td>
+<td align="right">3.93</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right"><strong>5.49</strong></td>
+<td align="right">5.12</td>
+<td align="right">3.86</td>
+</tr>
+<tr>
+<td align="right">53 B</td>
+<td align="right"><strong>6.06</strong></td>
+<td align="right">5.65</td>
+<td align="right">4.21</td>
+</tr>
+<tr>
+<td align="right">80 B</td>
+<td align="right"><strong>6.06</strong></td>
+<td align="right">5.65</td>
+<td align="right">4.21</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right"><strong>6.05</strong></td>
+<td align="right">5.64</td>
+<td align="right">4.18</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/linux-x86-64-amd-ryzen-9-9950x-16-core-processor_clang-22_throughput128_Web.svg"><img src="../../assets/0c19e9485594370316a7dbdc1314fc59096aad2d2d6778abd8a2cea4cba84006.svg" alt="mbo/hash 128-bit throughput (Web), AMD Ryzen 9 9950X 16-Core Processor · Linux · x86_64 · 10-core · clang-22 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-throughput-web-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better">128-bit throughput, Web lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">15 B</td>
+<td align="right"><strong>2.98</strong></td>
+<td align="right">2.96</td>
+<td align="right">2.35</td>
+</tr>
+<tr>
+<td align="right">28 B</td>
+<td align="right"><strong>5.09</strong></td>
+<td align="right">4.82</td>
+<td align="right">3.59</td>
+</tr>
+<tr>
+<td align="right">45 B</td>
+<td align="right"><strong>7.83</strong></td>
+<td align="right">7.08</td>
+<td align="right">5.12</td>
+</tr>
+<tr>
+<td align="right">75 B</td>
+<td align="right"><strong>9.94</strong></td>
+<td align="right">9.14</td>
+<td align="right">6.19</td>
+</tr>
+<tr>
+<td align="right">120 B</td>
+<td align="right"><strong>11.5</strong></td>
+<td align="right">10.8</td>
+<td align="right">6.85</td>
+</tr>
+<tr>
+<td align="right">220 B</td>
+<td align="right"><strong>12.7</strong></td>
+<td align="right">11.7</td>
+<td align="right">7.32</td>
+</tr>
+<tr>
+<td align="right">512 B</td>
+<td align="right"><strong>14.0</strong></td>
+<td align="right">11.6</td>
+<td align="right">7.68</td>
+</tr>
+<tr>
+<td align="right">2 KiB</td>
+<td align="right"><strong>16.5</strong></td>
+<td align="right">12.8</td>
+<td align="right">8.30</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right"><strong>16.2</strong></td>
+<td align="right">12.5</td>
+<td align="right">8.19</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="apple-m5-pro--macos--arm64--18-core--clang-21--2b195ec">Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · <a class="commit-link" data-hovercard-type="commit" data-hovercard-url="https://github.com/mboworks/mbo/commit/2b195ec92fdc85e76935171f1aa377d3ae9c5aa9/hovercard" href="https://github.com/mboworks/mbo/commit/2b195ec92fdc85e76935171f1aa377d3ae9c5aa9"><tt>2b195ec</tt></a></h3>
+
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_latency64.svg"><img src="../../assets/85db46a57192ecfdf1e6ba26160d89078dc169c36d4472f0c7a186433b49e3b7.svg" alt="mbo/hash 64-bit latency, Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-latency-nshash-at-exact-length-mean-of-the-3-best-of-9-reps-lower-is-better-1">64-bit latency (ns/hash at exact length, mean of the 3 best of 9 reps; lower is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Length</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">1 B</td>
+<td align="right">3.16</td>
+<td align="right">3.22</td>
+<td align="right">3.07</td>
+<td align="right">2.92</td>
+<td align="right">3.14</td>
+<td align="right">4.65</td>
+<td align="right">11.17</td>
+<td align="right"><strong>0.73</strong></td>
+<td align="right">2.31</td>
+</tr>
+<tr>
+<td align="right">3 B</td>
+<td align="right">3.63</td>
+<td align="right">3.66</td>
+<td align="right">3.16</td>
+<td align="right">3.02</td>
+<td align="right">4.41</td>
+<td align="right">5.13</td>
+<td align="right">10.23</td>
+<td align="right"><strong>1.39</strong></td>
+<td align="right">2.60</td>
+</tr>
+<tr>
+<td align="right">5 B</td>
+<td align="right">3.58</td>
+<td align="right">3.43</td>
+<td align="right">2.91</td>
+<td align="right">2.89</td>
+<td align="right">3.64</td>
+<td align="right">5.02</td>
+<td align="right">11.03</td>
+<td align="right"><strong>2.30</strong></td>
+<td align="right">2.61</td>
+</tr>
+<tr>
+<td align="right">7 B</td>
+<td align="right">3.52</td>
+<td align="right">3.30</td>
+<td align="right">2.92</td>
+<td align="right">2.71</td>
+<td align="right">4.71</td>
+<td align="right">5.09</td>
+<td align="right">11.14</td>
+<td align="right">3.32</td>
+<td align="right"><strong>2.67</strong></td>
+</tr>
+<tr>
+<td align="right">8 B</td>
+<td align="right">3.08</td>
+<td align="right">3.18</td>
+<td align="right">2.75</td>
+<td align="right">2.86</td>
+<td align="right">3.81</td>
+<td align="right">5.37</td>
+<td align="right">14.22</td>
+<td align="right">4.00</td>
+<td align="right"><strong>2.67</strong></td>
+</tr>
+<tr>
+<td align="right">11 B</td>
+<td align="right">3.06</td>
+<td align="right">3.07</td>
+<td align="right"><strong>2.67</strong></td>
+<td align="right">3.01</td>
+<td align="right">5.14</td>
+<td align="right">5.97</td>
+<td align="right">14.61</td>
+<td align="right">5.95</td>
+<td align="right">3.34</td>
+</tr>
+<tr>
+<td align="right">15 B</td>
+<td align="right">3.19</td>
+<td align="right">3.22</td>
+<td align="right"><strong>2.79</strong></td>
+<td align="right">2.92</td>
+<td align="right">5.97</td>
+<td align="right">6.06</td>
+<td align="right">15.04</td>
+<td align="right">8.83</td>
+<td align="right">3.19</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right">3.08</td>
+<td align="right">3.19</td>
+<td align="right">2.89</td>
+<td align="right"><strong>2.86</strong></td>
+<td align="right">4.31</td>
+<td align="right">6.37</td>
+<td align="right">19.64</td>
+<td align="right">9.53</td>
+<td align="right">3.15</td>
+</tr>
+<tr>
+<td align="right">19 B</td>
+<td align="right">4.42</td>
+<td align="right">3.89</td>
+<td align="right"><strong>3.36</strong></td>
+<td align="right">3.95</td>
+<td align="right">6.73</td>
+<td align="right">7.67</td>
+<td align="right">20.11</td>
+<td align="right">11.36</td>
+<td align="right">4.14</td>
+</tr>
+<tr>
+<td align="right">22 B</td>
+<td align="right">4.40</td>
+<td align="right">3.59</td>
+<td align="right"><strong>3.14</strong></td>
+<td align="right">4.13</td>
+<td align="right">6.27</td>
+<td align="right">7.76</td>
+<td align="right">18.61</td>
+<td align="right">13.71</td>
+<td align="right">4.02</td>
+</tr>
+<tr>
+<td align="right">27 B</td>
+<td align="right">4.33</td>
+<td align="right">3.72</td>
+<td align="right"><strong>3.34</strong></td>
+<td align="right">4.21</td>
+<td align="right">7.68</td>
+<td align="right">8.36</td>
+<td align="right">25.33</td>
+<td align="right">17.73</td>
+<td align="right">4.72</td>
+</tr>
+<tr>
+<td align="right">32 B</td>
+<td align="right">4.51</td>
+<td align="right">3.73</td>
+<td align="right"><strong>3.30</strong></td>
+<td align="right">4.08</td>
+<td align="right">8.00</td>
+<td align="right">8.62</td>
+<td align="right">29.45</td>
+<td align="right">22.84</td>
+<td align="right">4.96</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right">5.02</td>
+<td align="right">4.29</td>
+<td align="right"><strong>4.09</strong></td>
+<td align="right">6.61</td>
+<td align="right">11.78</td>
+<td align="right">10.09</td>
+<td align="right">27.02</td>
+<td align="right">27.88</td>
+<td align="right">5.92</td>
+</tr>
+<tr>
+<td align="right">47 B</td>
+<td align="right">5.19</td>
+<td align="right">4.66</td>
+<td align="right"><strong>3.87</strong></td>
+<td align="right">6.43</td>
+<td align="right">12.81</td>
+<td align="right">10.66</td>
+<td align="right">34.25</td>
+<td align="right">43.32</td>
+<td align="right">6.64</td>
+</tr>
+<tr>
+<td align="right">48 B</td>
+<td align="right">5.29</td>
+<td align="right">4.79</td>
+<td align="right"><strong>4.04</strong></td>
+<td align="right">6.14</td>
+<td align="right">10.83</td>
+<td align="right">10.94</td>
+<td align="right">38.81</td>
+<td align="right">44.93</td>
+<td align="right">6.96</td>
+</tr>
+<tr>
+<td align="right">63 B</td>
+<td align="right">6.23</td>
+<td align="right">5.39</td>
+<td align="right"><strong>4.72</strong></td>
+<td align="right">6.78</td>
+<td align="right">16.51</td>
+<td align="right">13.33</td>
+<td align="right">41.45</td>
+<td align="right">61.64</td>
+<td align="right">9.17</td>
+</tr>
+<tr>
+<td align="right">64 B</td>
+<td align="right">5.77</td>
+<td align="right">5.52</td>
+<td align="right"><strong>4.49</strong></td>
+<td align="right">6.11</td>
+<td align="right">10.65</td>
+<td align="right">14.45</td>
+<td align="right">48.67</td>
+<td align="right">60.42</td>
+<td align="right">9.27</td>
+</tr>
+<tr>
+<td align="right">127 B</td>
+<td align="right">10.18</td>
+<td align="right">8.07</td>
+<td align="right"><strong>7.38</strong></td>
+<td align="right">10.65</td>
+<td align="right">21.99</td>
+<td align="right">24.33</td>
+<td align="right">80.25</td>
+<td align="right">159.3</td>
+<td align="right">20.03</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right">11.09</td>
+<td align="right"><strong>7.49</strong></td>
+<td align="right">7.78</td>
+<td align="right">10.79</td>
+<td align="right">15.26</td>
+<td align="right">24.83</td>
+<td align="right">90.07</td>
+<td align="right">159.9</td>
+<td align="right">19.50</td>
+</tr>
+<tr>
+<td align="right">256 B</td>
+<td align="right">14.32</td>
+<td align="right">12.93</td>
+<td align="right"><strong>12.41</strong></td>
+<td align="right">50.17</td>
+<td align="right">24.57</td>
+<td align="right">49.78</td>
+<td align="right">169.5</td>
+<td align="right">366.3</td>
+<td align="right">46.72</td>
+</tr>
+<tr>
+<td align="right">1 KiB</td>
+<td align="right">39.01</td>
+<td align="right">42.43</td>
+<td align="right"><strong>36.75</strong></td>
+<td align="right">97.07</td>
+<td align="right">81.70</td>
+<td align="right">204.9</td>
+<td align="right">648.4</td>
+<td align="right">1596</td>
+<td align="right">253.7</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right">136.5</td>
+<td align="right">166.8</td>
+<td align="right"><strong>129.6</strong></td>
+<td align="right">285.6</td>
+<td align="right">297.9</td>
+<td align="right">823.6</td>
+<td align="right">2572</td>
+<td align="right">6575</td>
+<td align="right">1095</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_throughput64_Short.svg"><img src="../../assets/8b84dca880652ddc68df1d53d57c732bb58a0f72e853cd3ef94056395e58425d.svg" alt="mbo/hash 64-bit throughput (Short), Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-throughput-short-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better-1">64-bit throughput, Short lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">8 B</td>
+<td align="right">0.68</td>
+<td align="right">0.71</td>
+<td align="right">0.52</td>
+<td align="right">0.62</td>
+<td align="right">0.68</td>
+<td align="right">0.41</td>
+<td align="right">0.29</td>
+<td align="right"><strong>1.14</strong></td>
+<td align="right">1.06</td>
+</tr>
+<tr>
+<td align="right">12 B</td>
+<td align="right">1.26</td>
+<td align="right">1.36</td>
+<td align="right">1.02</td>
+<td align="right">1.39</td>
+<td align="right">1.10</td>
+<td align="right">0.70</td>
+<td align="right">0.45</td>
+<td align="right">1.13</td>
+<td align="right"><strong>1.63</strong></td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right">1.90</td>
+<td align="right">1.95</td>
+<td align="right">1.73</td>
+<td align="right">1.91</td>
+<td align="right">1.46</td>
+<td align="right">1.33</td>
+<td align="right">0.64</td>
+<td align="right">1.04</td>
+<td align="right"><strong>2.37</strong></td>
+</tr>
+<tr>
+<td align="right">23 B</td>
+<td align="right">2.28</td>
+<td align="right">2.49</td>
+<td align="right">2.49</td>
+<td align="right">2.40</td>
+<td align="right">1.74</td>
+<td align="right">1.62</td>
+<td align="right">0.73</td>
+<td align="right">1.02</td>
+<td align="right"><strong>2.75</strong></td>
+</tr>
+<tr>
+<td align="right">31 B</td>
+<td align="right">2.72</td>
+<td align="right">3.11</td>
+<td align="right"><strong>3.13</strong></td>
+<td align="right">2.95</td>
+<td align="right">2.03</td>
+<td align="right">1.83</td>
+<td align="right">0.79</td>
+<td align="right">0.99</td>
+<td align="right">3.12</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right">2.65</td>
+<td align="right"><strong>3.13</strong></td>
+<td align="right">3.10</td>
+<td align="right">2.87</td>
+<td align="right">2.02</td>
+<td align="right">1.82</td>
+<td align="right">0.81</td>
+<td align="right">0.95</td>
+<td align="right">2.93</td>
+</tr>
+<tr>
+<td align="right">53 B</td>
+<td align="right">2.95</td>
+<td align="right"><strong>3.39</strong></td>
+<td align="right">3.32</td>
+<td align="right">3.11</td>
+<td align="right">2.15</td>
+<td align="right">1.90</td>
+<td align="right">0.87</td>
+<td align="right">0.95</td>
+<td align="right">3.13</td>
+</tr>
+<tr>
+<td align="right">80 B</td>
+<td align="right">2.93</td>
+<td align="right"><strong>3.41</strong></td>
+<td align="right">3.36</td>
+<td align="right">3.18</td>
+<td align="right">2.18</td>
+<td align="right">1.91</td>
+<td align="right">0.93</td>
+<td align="right">0.94</td>
+<td align="right">3.24</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right">2.89</td>
+<td align="right"><strong>3.41</strong></td>
+<td align="right">3.37</td>
+<td align="right">3.16</td>
+<td align="right">2.20</td>
+<td align="right">1.96</td>
+<td align="right">0.83</td>
+<td align="right">0.95</td>
+<td align="right">3.13</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_throughput64_Web.svg"><img src="../../assets/e109ba440db76d60f1068e7287bf0c52206ec0db28e797bebf32e83e5f3fc637.svg" alt="mbo/hash 64-bit throughput (Web), Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="64-bit-throughput-web-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better-1">64-bit throughput, Web lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">mumbo</th>
+<th align="right">fambo</th>
+<th align="right">rapidhash</th>
+<th align="right">xxh3</th>
+<th align="right">xxh64</th>
+<th align="right">murmur3</th>
+<th align="right">siphash24</th>
+<th align="right">fnv1a</th>
+<th align="right">dumbo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">15 B</td>
+<td align="right">1.43</td>
+<td align="right">1.57</td>
+<td align="right">1.08</td>
+<td align="right">1.55</td>
+<td align="right">1.17</td>
+<td align="right">0.93</td>
+<td align="right">0.57</td>
+<td align="right">1.23</td>
+<td align="right"><strong>1.84</strong></td>
+</tr>
+<tr>
+<td align="right">28 B</td>
+<td align="right">2.41</td>
+<td align="right">2.74</td>
+<td align="right"><strong>2.80</strong></td>
+<td align="right">2.57</td>
+<td align="right">1.93</td>
+<td align="right">1.69</td>
+<td align="right">0.75</td>
+<td align="right">0.94</td>
+<td align="right">2.74</td>
+</tr>
+<tr>
+<td align="right">45 B</td>
+<td align="right">3.95</td>
+<td align="right">4.28</td>
+<td align="right"><strong>4.29</strong></td>
+<td align="right">3.78</td>
+<td align="right">2.56</td>
+<td align="right">2.54</td>
+<td align="right">0.98</td>
+<td align="right">0.87</td>
+<td align="right">3.91</td>
+</tr>
+<tr>
+<td align="right">75 B</td>
+<td align="right">5.21</td>
+<td align="right"><strong>5.73</strong></td>
+<td align="right">4.90</td>
+<td align="right">4.75</td>
+<td align="right">3.03</td>
+<td align="right">3.12</td>
+<td align="right">1.13</td>
+<td align="right">0.85</td>
+<td align="right">4.46</td>
+</tr>
+<tr>
+<td align="right">120 B</td>
+<td align="right">6.02</td>
+<td align="right"><strong>6.47</strong></td>
+<td align="right">6.20</td>
+<td align="right">5.34</td>
+<td align="right">3.37</td>
+<td align="right">3.30</td>
+<td align="right">1.17</td>
+<td align="right">0.78</td>
+<td align="right">4.68</td>
+</tr>
+<tr>
+<td align="right">220 B</td>
+<td align="right">6.68</td>
+<td align="right"><strong>7.17</strong></td>
+<td align="right">6.75</td>
+<td align="right">5.95</td>
+<td align="right">3.83</td>
+<td align="right">3.62</td>
+<td align="right">1.27</td>
+<td align="right">0.79</td>
+<td align="right">4.79</td>
+</tr>
+<tr>
+<td align="right">512 B</td>
+<td align="right">6.96</td>
+<td align="right"><strong>7.88</strong></td>
+<td align="right">7.33</td>
+<td align="right">5.75</td>
+<td align="right">3.82</td>
+<td align="right">3.63</td>
+<td align="right">1.28</td>
+<td align="right">0.73</td>
+<td align="right">4.04</td>
+</tr>
+<tr>
+<td align="right">2 KiB</td>
+<td align="right">8.08</td>
+<td align="right"><strong>9.11</strong></td>
+<td align="right">8.78</td>
+<td align="right">6.20</td>
+<td align="right">4.89</td>
+<td align="right">3.68</td>
+<td align="right">1.26</td>
+<td align="right">0.70</td>
+<td align="right">4.16</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right">8.01</td>
+<td align="right">8.69</td>
+<td align="right"><strong>8.81</strong></td>
+<td align="right">6.18</td>
+<td align="right">4.58</td>
+<td align="right">3.51</td>
+<td align="right">1.24</td>
+<td align="right">0.70</td>
+<td align="right">4.13</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_latency128.svg"><img src="../../assets/7899db1255f24448487114761caf528d434b75bfb66681571e1c44ed4f10ce97.svg" alt="mbo/hash 128-bit latency, Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-latency-nshash-at-exact-length-mean-of-the-3-best-of-9-reps-native-128-only-lower-is-better-1">128-bit latency (ns/hash at exact length, mean of the 3 best of 9 reps; native-128 only; lower is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Length</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">1 B</td>
+<td align="right">5.18</td>
+<td align="right"><strong>3.78</strong></td>
+<td align="right">4.68</td>
+</tr>
+<tr>
+<td align="right">3 B</td>
+<td align="right">5.55</td>
+<td align="right"><strong>4.07</strong></td>
+<td align="right">5.12</td>
+</tr>
+<tr>
+<td align="right">5 B</td>
+<td align="right">5.08</td>
+<td align="right"><strong>3.69</strong></td>
+<td align="right">5.27</td>
+</tr>
+<tr>
+<td align="right">7 B</td>
+<td align="right">4.94</td>
+<td align="right"><strong>3.88</strong></td>
+<td align="right">5.24</td>
+</tr>
+<tr>
+<td align="right">8 B</td>
+<td align="right">4.96</td>
+<td align="right"><strong>3.38</strong></td>
+<td align="right">5.02</td>
+</tr>
+<tr>
+<td align="right">11 B</td>
+<td align="right">4.92</td>
+<td align="right"><strong>4.62</strong></td>
+<td align="right">6.22</td>
+</tr>
+<tr>
+<td align="right">15 B</td>
+<td align="right"><strong>4.73</strong></td>
+<td align="right">4.89</td>
+<td align="right">5.61</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right">4.98</td>
+<td align="right"><strong>4.67</strong></td>
+<td align="right">6.54</td>
+</tr>
+<tr>
+<td align="right">19 B</td>
+<td align="right">6.27</td>
+<td align="right"><strong>6.04</strong></td>
+<td align="right">7.18</td>
+</tr>
+<tr>
+<td align="right">22 B</td>
+<td align="right">6.38</td>
+<td align="right"><strong>5.72</strong></td>
+<td align="right">7.46</td>
+</tr>
+<tr>
+<td align="right">27 B</td>
+<td align="right">6.35</td>
+<td align="right"><strong>5.93</strong></td>
+<td align="right">8.91</td>
+</tr>
+<tr>
+<td align="right">32 B</td>
+<td align="right">6.13</td>
+<td align="right"><strong>5.64</strong></td>
+<td align="right">8.62</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right"><strong>7.49</strong></td>
+<td align="right">7.87</td>
+<td align="right">9.77</td>
+</tr>
+<tr>
+<td align="right">47 B</td>
+<td align="right"><strong>7.39</strong></td>
+<td align="right">8.22</td>
+<td align="right">10.89</td>
+</tr>
+<tr>
+<td align="right">48 B</td>
+<td align="right"><strong>7.12</strong></td>
+<td align="right">8.18</td>
+<td align="right">11.47</td>
+</tr>
+<tr>
+<td align="right">63 B</td>
+<td align="right">8.92</td>
+<td align="right"><strong>8.86</strong></td>
+<td align="right">13.28</td>
+</tr>
+<tr>
+<td align="right">64 B</td>
+<td align="right">9.66</td>
+<td align="right"><strong>8.61</strong></td>
+<td align="right">13.72</td>
+</tr>
+<tr>
+<td align="right">127 B</td>
+<td align="right">13.89</td>
+<td align="right"><strong>13.29</strong></td>
+<td align="right">22.90</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right"><strong>12.19</strong></td>
+<td align="right">13.77</td>
+<td align="right">25.12</td>
+</tr>
+<tr>
+<td align="right">256 B</td>
+<td align="right"><strong>16.80</strong></td>
+<td align="right">49.84</td>
+<td align="right">49.17</td>
+</tr>
+<tr>
+<td align="right">1 KiB</td>
+<td align="right"><strong>47.17</strong></td>
+<td align="right">103.3</td>
+<td align="right">204.2</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right"><strong>173.0</strong></td>
+<td align="right">288.6</td>
+<td align="right">825.8</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_throughput128_Short.svg"><img src="../../assets/020cc84694cf92eeb26d918c1e6f65f8017178a021a7059bae4cf09fb5f70f00.svg" alt="mbo/hash 128-bit throughput (Short), Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-throughput-short-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better-1">128-bit throughput, Short lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">8 B</td>
+<td align="right">0.52</td>
+<td align="right"><strong>0.56</strong></td>
+<td align="right">0.41</td>
+</tr>
+<tr>
+<td align="right">12 B</td>
+<td align="right">0.97</td>
+<td align="right"><strong>1.20</strong></td>
+<td align="right">0.69</td>
+</tr>
+<tr>
+<td align="right">16 B</td>
+<td align="right">1.34</td>
+<td align="right"><strong>1.52</strong></td>
+<td align="right">1.34</td>
+</tr>
+<tr>
+<td align="right">23 B</td>
+<td align="right">1.89</td>
+<td align="right"><strong>1.90</strong></td>
+<td align="right">1.56</td>
+</tr>
+<tr>
+<td align="right">31 B</td>
+<td align="right"><strong>2.37</strong></td>
+<td align="right">2.24</td>
+<td align="right">1.90</td>
+</tr>
+<tr>
+<td align="right">38 B</td>
+<td align="right"><strong>2.23</strong></td>
+<td align="right">2.20</td>
+<td align="right">1.76</td>
+</tr>
+<tr>
+<td align="right">53 B</td>
+<td align="right">2.42</td>
+<td align="right"><strong>2.45</strong></td>
+<td align="right">1.96</td>
+</tr>
+<tr>
+<td align="right">80 B</td>
+<td align="right">2.47</td>
+<td align="right"><strong>2.56</strong></td>
+<td align="right">1.92</td>
+</tr>
+<tr>
+<td align="right">128 B</td>
+<td align="right">2.46</td>
+<td align="right"><strong>2.47</strong></td>
+<td align="right">1.94</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/hash/measurements/charts/macos-arm64-apple-m5-pro_clang-21_throughput128_Web.svg"><img src="../../assets/f9986033b260e4d1cc19c62ca25387ab35219b12e66e605b4dd319ad53ff9992.svg" alt="mbo/hash 128-bit throughput (Web), Apple M5 Pro · MacOS · arm64 · 18-core · clang-21 · 2b195ec9" style="max-width: 100%;"></a></p>
+<h4 dir="auto" id="128-bit-throughput-web-lengths-gibs-over-lengths--max-mean-of-the-3-best-of-9-reps-higher-is-better-1">128-bit throughput, Web lengths (GiB/s over lengths &lt;= max, mean of the 3 best of 9 reps; higher is better)</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">max len</th>
+<th align="right">jumbo</th>
+<th align="right">xxh3</th>
+<th align="right">murmur3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">15 B</td>
+<td align="right">1.11</td>
+<td align="right"><strong>1.36</strong></td>
+<td align="right">0.99</td>
+</tr>
+<tr>
+<td align="right">28 B</td>
+<td align="right">2.05</td>
+<td align="right"><strong>2.11</strong></td>
+<td align="right">1.66</td>
+</tr>
+<tr>
+<td align="right">45 B</td>
+<td align="right"><strong>3.14</strong></td>
+<td align="right">2.99</td>
+<td align="right">2.60</td>
+</tr>
+<tr>
+<td align="right">75 B</td>
+<td align="right"><strong>4.16</strong></td>
+<td align="right">3.73</td>
+<td align="right">3.08</td>
+</tr>
+<tr>
+<td align="right">120 B</td>
+<td align="right"><strong>4.70</strong></td>
+<td align="right">4.45</td>
+<td align="right">3.45</td>
+</tr>
+<tr>
+<td align="right">220 B</td>
+<td align="right"><strong>4.82</strong></td>
+<td align="right">4.59</td>
+<td align="right">3.45</td>
+</tr>
+<tr>
+<td align="right">512 B</td>
+<td align="right"><strong>5.68</strong></td>
+<td align="right">4.70</td>
+<td align="right">3.69</td>
+</tr>
+<tr>
+<td align="right">2 KiB</td>
+<td align="right"><strong>6.40</strong></td>
+<td align="right">5.54</td>
+<td align="right">3.64</td>
+</tr>
+<tr>
+<td align="right">4 KiB</td>
+<td align="right"><strong>6.62</strong></td>
+<td align="right">5.22</td>
+<td align="right">3.67</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<h3 dir="auto" id="reading-the-results">Reading the results</h3>
+<p dir="auto">Exact numbers are per machine above; the pattern holds across arm64/clang and<br>
+x86_64/gcc. In <strong>latency</strong> (exact length, ns), <code class="notranslate">fnv1a</code> is quickest on 1-3 byte<br>
+keys and <code class="notranslate">xxh3</code> across the small-to-mid range, with <code class="notranslate">mumbo</code> and <code class="notranslate">rapidhash</code> close<br>
+behind; <code class="notranslate">mumbo</code> gives up a little on the 17-64 byte keys - the cost of the extra<br>
+finalizer that earns its clean SMHasher3 pass - and <code class="notranslate">siphash</code> trails throughout,<br>
+the price of being a keyed PRF (Pseudo-Random Function, see<br>
+<a href="https://cr.yp.to/siphash/siphash-20120918.pdf" rel="nofollow">SipHash: a fast short-input PRF</a>).<br>
+In <strong>throughput</strong> (a realistic bounded mix, GiB/s), <code class="notranslate">rapidhash</code> leads as the<br>
+upper bound grows into bulk with <code class="notranslate">mumbo</code> close behind, <code class="notranslate">dumbo</code> is strong on the<br>
+short (identifier) mix but falls off on the long (web) one, and <code class="notranslate">fnv1a</code> and<br>
+<code class="notranslate">siphash</code> trail on the larger mixes. For 128-bit output, <code class="notranslate">xxh3</code> edges <code class="notranslate">jumbo</code> on<br>
+latency, but <code class="notranslate">jumbo</code> is the only native 128-bit hash here that passes SMHasher3<br>
+clean.</p>
+<h2 dir="auto" id="quality-smhasher3">Quality: SMHasher3</h2>
+<p dir="auto"><a href="https://gitlab.com/fwojcik/smhasher3" rel="nofollow">SMHasher3</a> is the research-grade hash<br>
+test battery; passing it is the community bar for a production-quality<br>
+general-purpose hash. All results below are <strong>our own measurements on one<br>
+rig</strong> (same build, container, flags, and machine - see Methodology), so the<br>
+numbers are directly comparable.</p>
+<h3 dir="auto" id="results">Results</h3>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th align="right">Bits</th>
+<th>Role in mbo/hash</th>
+<th>SMHasher3 result</th>
+<th>Failures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">dumbo</code></td>
+<td align="right">64</td>
+<td><code class="notranslate">hash.h</code> (compact MUM)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">fambo</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">fnv1a</code></td>
+<td align="right">64</td>
+<td><code class="notranslate">hash.h</code></td>
+<td>7/186</td>
+<td>Avalanche [3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20, 64, 128], BIC [3, 8, 11, 15], Zeroes [], Cyclic [4 cycles of 3 bytes, 4 cycles of 4 bytes, 4 cycles of 5 bytes, 4 cycles of 8 bytes, 8 cycles of 3 bytes, 8 cycles of 4 bytes, 8 cycles of 5 bytes, 8 cycles of 8 bytes, 12 cycles of 3 bytes, 12 cycles of 4 bytes, 12 cycles of 5 bytes, 12 cycles of 8 bytes, 16 cycles of 3 bytes, 16 cycles of 4 bytes, 16 cycles of 5 bytes, 16 cycles of 8 bytes], Sparse [6/2, 4/3, 4/4, 4/5, 3/6, 3/7, 3/8, 3/9, 3/10, 3/12, 3/14, 10/2, 20/3, 9/4, 5/9, 4/14, 4/16, 3/32, 3/48, 3/64, 3/96, 2/128, 2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">mumbo</code></td>
+<td align="right">64</td>
+<td>default (64/32/streaming)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">rapidhash</code></td>
+<td align="right">64</td>
+<td>extra (<code class="notranslate">hash_extra_cc</code>)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">siphash</code></td>
+<td align="right">64</td>
+<td><code class="notranslate">hash.h</code> (keyed PRF)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh3</code></td>
+<td align="right">64</td>
+<td>extra (<code class="notranslate">hash_extra_cc</code>)</td>
+<td>166/188</td>
+<td>BIC [3, 8, 11], Sparse [20/3], PerlinNoise [2], Bitflip [8], SeedZeroes [1280, 8448], SeedSparse [2, 3], SeedBlockLen [8, 13, 14, 15, 16], SeedBlockOffset [0, 1, 2, 3, 4], SeedBIC [3, 8]</td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh64</code></td>
+<td align="right">64</td>
+<td>extra (<code class="notranslate">hash_extra_cc</code>)</td>
+<td>181/188</td>
+<td>SeedBlockLen [15, 19, 21, 26, 29, 30], SeedBIC [8]</td>
+</tr>
+<tr>
+<td><code class="notranslate">jumbo</code></td>
+<td align="right">128</td>
+<td>default (128)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">murmur3</code></td>
+<td align="right">128</td>
+<td><code class="notranslate">hash.h</code></td>
+<td>123/188</td>
+<td>BIC [3], Zeroes []</td>
+</tr>
+<tr>
+<td><code class="notranslate">xxh3</code></td>
+<td align="right">128</td>
+<td>extra (<code class="notranslate">hash_extra_cc</code>)</td>
+<td>162/188</td>
+<td>BIC [3, 8, 15], Sparse [20/3], PerlinNoise [2], Bitflip [3, 4, 8], SeedZeroes [1280, 8448], SeedSparse [2, 3], SeedBlockLen [8, 12, 13, 14, 15, 16], SeedBlockOffset [0, 1, 2, 3, 4, 5], SeedBIC [3, 8]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_3_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_4_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td><strong>PASS</strong></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_5_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>187/188</td>
+<td>SeedZeroes [1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_6_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>183/188</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_7_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>177/188</td>
+<td>Sparse [2/128, 2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_8_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>171/188</td>
+<td>Sparse [2/128, 2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_8_8</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>183/188</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_12_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>172/188</td>
+<td>Sparse [2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_12_8</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>172/188</td>
+<td>Sparse [2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_16_4</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>170/188</td>
+<td>Zeroes [], Sparse [2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+<tr>
+<td><code class="notranslate">tembo_16_8</code></td>
+<td align="right">64</td>
+<td>fast (64)</td>
+<td>170/188</td>
+<td>Zeroes [], Sparse [2/256, 2/512, 2/1024, 2/1280]</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<p dir="auto">The <code class="notranslate">SMHasher3 result</code> column shows <code class="notranslate">PASS</code> when every test passes, otherwise the failing <code class="notranslate">passed/total</code> count (e.g. <code class="notranslate">7/186</code>).</p>
+<p dir="auto">Reading the results:</p>
+<ul dir="auto">
+<li>SMHasher3 is substantially stricter than the original SMHasher: <code class="notranslate">xxh64</code> and<br>
+<code class="notranslate">xxh3</code> pass the original battery, and most of their failures above are in<br>
+the newer <code class="notranslate">Seed*</code> families (weak seed handling), which the original battery<br>
+does not probe.</li>
+<li><code class="notranslate">mumbo</code>, <code class="notranslate">rapidhash</code>, and <code class="notranslate">dumbo</code> are the clean 64-bit passes (two of the<br>
+three in-house); <code class="notranslate">jumbo</code> (the mumbo family's native 128, "mumbo jumbo") is<br>
+the only clean 128-bit result we have measured on this rig - every other<br>
+tested 128-bit variant fails more of the battery than its 64-bit sibling,<br>
+because the wider output gives the statistics more surface to catch bias and<br>
+lane correlation on.</li>
+<li>Of the classics: <code class="notranslate">siphash</code> (a keyed PRF) is clean, as security designs must<br>
+be; <code class="notranslate">murmur3</code> (2011) fails the modern battery broadly; and <code class="notranslate">fnv1a</code> - the<br>
+algorithm family behind many <code class="notranslate">std::hash</code> implementations - passes 7 of 186<br>
+tests. Numbers worth remembering when defaulting to <code class="notranslate">std::hash</code>.</li>
+<li>When build with <code class="notranslate">-march=znsver5</code> to enable <code class="notranslate">AVX-512</code> and any other instruction<br>
+that may optimize the code on an AMD ZEN 5 CPU, the <code class="notranslate">mumbo/jumbo</code> and <code class="notranslate">dumbo</code><br>
+family actually performs incredibly well as can be seen in the first report<br>
+set which was measured with <code class="notranslate">--config=clang</code> <code class="notranslate">--copt=-march=znver5</code>.</li>
+<li>The <code class="notranslate">mumbo/jumbo</code> family is thus the default in all forms. The extras remain<br>
+available for canonical-value interop via <code class="notranslate">hash_extra.h</code> found in library<br>
+target <code class="notranslate">//mbo/hash:hash_extra_cc</code>. That target carries the third-party<br>
+<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/NOTICE">NOTICE</a>.</li>
+</ul>
+<h3 dir="auto" id="mumbo-the-measured-design-iterations">mumbo: the measured design iterations</h3>
+<p dir="auto">Lineage first: the library's original hash was <code class="notranslate">dumbo</code> (originally named<br>
+<code class="notranslate">simple</code>; the legacy pre-0.13 <code class="notranslate">GetHash</code>, still shipped as <code class="notranslate">mbo::hash::dumbo</code><br>
+and since redesigned into a compact MUM hash - its own iterations are below).<br>
+Its<br>
+intended replacement <code class="notranslate">mh</code> (never released) accumulated hardening rounds -<br>
+sparse-key collision fixes, seed hardening - but its SMHasher3 failure list<br>
+never fully cleared, and rapidhash held the default in the interim. The<br>
+lessons from that failure analysis fed a clean-sheet widening-multiply (MUM)<br>
+redesign under the working name <code class="notranslate">mh2</code>, which is where the measured iterations<br>
+below begin (v1-v3). On reaching 188/188 in both widths it was renamed<br>
+<code class="notranslate">mumbo</code> (MUM + mbo), <code class="notranslate">mh</code> was dropped entirely, and mumbo/jumbo took the<br>
+defaults; v4 landed with that rename.</p>
+<p dir="auto"><code class="notranslate">mumbo</code> reached the clean pass in four measured iterations (each step:<br>
+benchmark plus both SMHasher3 batteries):</p>
+<ol dir="auto">
+<li>v1 (175/188): MUM core with unrolled small-key loads. All failures in<br>
+sparse/short-key families - the finalizer folded the widening product<br>
+early and then multiplied against a constant, leaking quasi-linear deltas.</li>
+<li>v2 (177/188): the finalizer keeps BOTH product halves and mixes them<br>
+against each other. Remaining failures: for &lt;= 8-byte keys the data sat in<br>
+only one product operand, so permuted keys correlate pairwise through the<br>
+shared seed operand.</li>
+<li>v3 (188/188 both widths): data loads into both product operands (products<br>
+quadratic in the data), the length folded into the seed, distinct<br>
+bulk-chain initializers.</li>
+<li>v4 (re-verified PASS 188/188 in both widths): the length moved from the<br>
+seed into<br>
+the finalizer's product operands - equally protective, but known only at<br>
+finalize, which is what makes streaming possible; the 128-bit lane seeds<br>
+derive from secret pairs distinct from the 64-bit chain, so no lane ever<br>
+equals the 64-bit hash. The table above reflects the latest completed<br>
+batteries.</li>
+<li>v5 (188/188 both widths, mbo version 0.14.0): Retains the exact mathematical<br>
+topology of v4 but restructures the runtime execution layer. The sequential<br>
+loops are unrolled and interleaved. This maximizes instruction-level<br>
+parallelism (ILP) and resolves hardware pipeline execution stalls without<br>
+altering the underlying hash values. Unfortunately even in 2026 the algorithm<br>
+uses more registers than compilers can use for full ILP, so either a redesign<br>
+or altogether new algorithm is needed.</li>
+</ol>
+<h3 dir="auto" id="fambo-the-fast-mumbo">fambo: the fast mumbo</h3>
+<p dir="auto">The issue with <code class="notranslate">mumbo</code> is that its concrete implementation needs too many CPU<br>
+registers and thus ILP does not work out as expected. This is due to its use of<br>
+8 lanes. But together with its finalization it has a very good distribution. So<br>
+in order to develop a faster algorithm we need to sacrifice some of the <code class="notranslate">mumbo</code><br>
+advantages. So <code class="notranslate">fambo</code> is derived from <code class="notranslate">mumbo</code> with the primary difference being<br>
+its restriction to 4 lanes.</p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>The Architecture: 8 Lanes vs. 4 Lanes</strong></p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>mumbo (The High-Quality Heavyweight)</strong>: Natively relies on an 8-lane parallel bulk ingestion tier (a 128-byte window). While this provides exceptional diffusion and statistical guarantees, it demands more architectural registers than a standard x86-64 or ARM64 CPU can comfortably provide without spilling state to the stack (rsp/rbp thrashing). This register starvation effectively stalls the CPU's out-of-order execution engine, limiting the real-world instruction-level parallelism (ILP) you can achieve. The best measured algorithm in the mid/long term<br>
+usually is <code class="notranslate">rapidhash</code> which uses 7 lanes. Conventional wisdom suggests that this is not optimal in many ways (due to<br>
+compute-engine layout in concrete CPU architectures) and that it should be possible to take advantage of AVX registers<br>
+and heavy register renaming capabilities. Nonetheless, empirically <code class="notranslate">rapidhash</code> demonstrates 7 as a sweet spot.</p>
+</li>
+<li>
+<p dir="auto"><strong>fambo (The Lean Speed Demon)</strong>: In the first generation <code class="notranslate">fambo</code> intentionally scales the core loop tier down to 4 completely independent lanes, shrinking the bulk window to 64 bytes. This matches standard CPU L1 cache line boundaries perfectly and frees up critical hardware registers. Combined with an explicit read-before-write temporary variable layout, it gives the compiler full clearance to schedule all four Mul128Fold64 pipelines concurrently, maximizing ILP and matching the throughput of ultra-fast hashes like <code class="notranslate">rapidhash</code>. However, measurement shows that after 1 KiB of input both <code class="notranslate">numbo</code> and <code class="notranslate">rapidhash</code> win. Presumably this is the switch from L1 to L2 cache where data fetching takes longer and the higher parallelism wins out. Below 1 KiB <code class="notranslate">fambo</code> 1st gen sits between the two, and for some sizes is outright slower anyway. This indicates that a flexible and compile-time-configurable approach is needed.</p>
+</li>
+<li>
+<p dir="auto"><strong>tail if-ladder and small finalizer</strong>: At the end of the block we have at most one byte less than the block size to process. And have at least the tiny size (16 bytes) to process. So we can use an if-ladder (block count - 1)<br>
+before the final read (backtracked using remaining length). And finally we do an actual finalizer that uses the remainder (instead of size, after bulk processing).</p>
+</li>
+<li>
+<p dir="auto"><strong>further potential</strong>: While 4 lanes provably allow for full ILP, it remains to be proven what maximum<br>
+lane count is that modern CPUs can handle (4, 5, 6, or 7). However, this is a compromise:</p>
+<ul dir="auto">
+<li>More lanes in the bulk block, means faster bulk processing.</li>
+<li>More lanes also have the potential for slower processing of the non-tiny, non-bulk range <code class="notranslate">[17, N * 64]</code>.</li>
+<li>More lanes likely mean fewer mix-in constants can be used (otherwise they would constantly need to be fetched from L1 cache).</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>The Finalization &amp; Distribution Trade-off</strong></p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>Quality Matrix</strong>: mumbo uses a strict, multi-multiply finalizer tree that mixes both halves of widening 128-bit products back against each other. This heavy mathematical overhead ensures it easily passes 188/188 tests in the SMHasher3 battery, making it highly resilient against worst-case, sparse, or structured data distributions.</p>
+</li>
+<li>
+<p dir="auto"><strong>Streamlined Finalization</strong>: fambo optimizes the latency of small keys (≤16 bytes) by dropping to a streamlined, high-efficiency mixing step. While its raw speed is dramatically higher, early iterations risked structural symmetry issues (like the Sanity and Zeroes failures in SMHasher3). By isolating seed transformations from length injection and isolating lane variables using distinct secret primes, fambo maintains its hardware-sympathetic speed edge without dropping its guard on distribution quality.</p>
+</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>Bottom Line</strong></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Metric / Feature</th>
+<th>mumbo</th>
+<th>fambo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bulk Window Size</td>
+<td>128 Bytes</td>
+<td>64 Bytes</td>
+</tr>
+<tr>
+<td>Register Pressure</td>
+<td>High (Potential stack spilling)</td>
+<td>Low (Pure register execution)</td>
+</tr>
+<tr>
+<td>ILP Efficiency</td>
+<td>Restricted by register availability</td>
+<td>Maximum (Concurrent lane dispatch)</td>
+</tr>
+<tr>
+<td>Small Key Latency</td>
+<td>Higher cycle overhead</td>
+<td>Ultra-low cycle overhead</td>
+</tr>
+<tr>
+<td>Primary Target</td>
+<td>General-purpose safety &amp; strict maps</td>
+<td>Hot execution paths &amp; data pipelines</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+</li>
+</ul>
+<h3 dir="auto" id="dumbo-the-measured-design-iterations">dumbo: the measured design iterations</h3>
+<p dir="auto"><code class="notranslate">dumbo</code> was rebuilt from the legacy hash the same measured way (each step:<br>
+both benchmarks plus the SMHasher3 battery). It stays deliberately minimal<br>
+next to <code class="notranslate">mumbo</code> - ONE 64-bit accumulator, ONE 8-byte word folded per step, no<br>
+small-key switch, no parallel lanes, no streaming, and no 128-bit form - so it<br>
+reads as the compact MUM hash rather than a second tuned one:</p>
+<ol dir="auto">
+<li>legacy (40/188): the original <code class="notranslate">simple</code> hash. Silly constants (multiply by<br>
+<code class="notranslate">6571</code>, add <code class="notranslate">17</code>/<code class="notranslate">193</code>, a <code class="notranslate">104729</code> tail) and a multi-op per-4-byte step<br>
+(two small multiplies, two shifts, an add, two XORs). Barely diffused - it<br>
+failed nearly every family - and slow (the op soup, four bytes at a time).</li>
+<li>v1 (132/188, ~2-3x faster than legacy): nothing-up-my-sleeve constants<br>
+(golden ratio, sqrt-prime fractions) and a clean single step over 8-byte<br>
+words - <code class="notranslate">hash = (hash ^ word) * kConst; hash ^= hash &gt;&gt; 29</code> - then <code class="notranslate">fmix64</code>.<br>
+The gross failures cleared, but it caps here: a <strong>constant</strong> multiplier is<br>
+linear, so the collision and distribution families stay red no matter how<br>
+good the constant is. (It also exposed a length-fold bug: folding length at<br>
+init let a single low input bit cancel a length delta -<br>
+<code class="notranslate">(kInit+16)^4 == kInit+12</code> - colliding 1-bit keys with all-zero keys; the<br>
+length now folds in at the end, after every bit is diffused.)</li>
+<li>v2 (186/188): the step becomes the MUM primitive<br>
+<code class="notranslate">Mul128Fold64(word ^ kWord, state ^ kState)</code> - the widening multiply with<br>
+<strong>both operands state/data dependent</strong>, so the product is quadratic (mumbo's<br>
+mixing, single-lane). That clears every avalanche, distribution, keyset and<br>
+full-width collision family. The two residual failures are both in<br>
+<code class="notranslate">SeedZeroes</code>: dumbo is single-lane, so for zero-data keys the seed (folded<br>
+only at init) enters the finalizer weakly mixed and shows marginal low-bit<br>
+collisions.</li>
+<li>v3 (188/188, shipped): the finalizer becomes a two-multiply widening<br>
+avalanche (keep BOTH halves of the first product, multiply them together)<br>
+with the <strong>seed injected directly into a product operand</strong>, not only at<br>
+init. That makes the output quadratic in the seed even for zero-data keys,<br>
+clearing the last two <code class="notranslate">SeedZeroes</code> windows. A single fold measured against a<br>
+seeded 8-lane merge is what lets mumbo pass with its finalizer; dumbo, being<br>
+single-lane, needs the seed at finalize instead. Clean 188/188, and dumbo<br>
+now has strong (not merely reactive) avalanche. Cost: the two widening<br>
+multiplies are ~0.15-0.35 ns slower on tiny keys than v2's <code class="notranslate">fmix64</code>, still<br>
+the fastest hash here at 7-8 B.</li>
+</ol>
+<h3 dir="auto" id="methodology-reproduction">Methodology (reproduction)</h3>
+<ul dir="auto">
+<li>
+<p dir="auto">SMHasher3 @ gitlab.com/fwojcik/smhasher3, commit <code class="notranslate">6ab4343</code> (2026-03-26),<br>
+built with gcc 13 in a linux/arm64 container, <code class="notranslate">-march=armv8-a+crc</code> (two build fixes<br>
+needed: a missing <code class="notranslate">&lt;cstdlib&gt;</code> include in <code class="notranslate">lib/AEStest.cpp</code>, and replacing<br>
+<code class="notranslate">-march=native</code> in CMakeLists.txt, which emits SHA3 <code class="notranslate">eor3</code> instructions the<br>
+container toolchain rejects).</p>
+</li>
+<li>
+<p dir="auto"><code class="notranslate">rapidhash</code>, <code class="notranslate">XXH3-64</code>, <code class="notranslate">XXH-64</code>, <code class="notranslate">XXH3-128</code>, <code class="notranslate">FNV-1a-64</code>,<br>
+<code class="notranslate">MurmurHash3-128</code>, and <code class="notranslate">SipHash-2-4</code> are SMHasher3's built-in<br>
+registrations of the same reference algorithms our headers transcribe<br>
+(transcriptions are vector- and differential-verified equal, so the results<br>
+transfer; the built-in <code class="notranslate">XXH3-128</code> ran its NEON implementation on this rig,<br>
+which produces the identical canonical values).</p>
+</li>
+<li>
+<p dir="auto">The in-house <code class="notranslate">mumbo-64</code>/<code class="notranslate">jumbo-128</code> and <code class="notranslate">dumbo-64</code> are registered by<br>
+<code class="notranslate">mbo/hash/measurements/smhasher3/mbohash.cpp</code>, which <code class="notranslate">#include</code>s the ACTUAL<br>
+<code class="notranslate">mbo/hash</code> headers (so the real implementation is verified, not a<br>
+transcription). <code class="notranslate">mbo/hash/measurements/build_smhasher3.sh</code> clones SMHasher3,<br>
+applies the fixes above, installs the plugin + headers, and builds it (the<br>
+plugin needs C++20). Reproduce all of it with that one script.</p>
+</li>
+<li>
+<p dir="auto">Full default battery per hash: <code class="notranslate">./SMHasher3 &lt;name&gt;</code> (~12 minutes each).<br>
+Full logs are not committed; regenerate as above. Last run (2026-07): all<br>
+three in-house hashes clean - <code class="notranslate">mumbo-64</code>/<code class="notranslate">jumbo-128</code> and <code class="notranslate">dumbo-64</code> PASS<br>
+188 / 188.</p>
+</li>
+<li>
+<p dir="auto">To produce measurements on another machine (or refresh a machine's numbers),<br>
+run the tooling from the repo root (full per-machine and publish steps in<br>
+<a href="measurements/README.html"><code class="notranslate">measurements/README.md</code></a>):</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> On the new machine: one perf sweep + the SMHasher3 battery, packed into a</span>
+<span class="pl-c"><span class="pl-c">#</span> per-machine Git-LFS bundle whose path the script prints.</span>
+mbo/hash/measurements/run_measurements.py --config clang --jobs 4
+git add mbo/hash/measurements/data/<span class="pl-k">&lt;</span>bundle<span class="pl-k">&gt;</span>.tgz
+git lfs push origin HEAD <span class="pl-k">&amp;&amp;</span> git push
+
+<span class="pl-c"><span class="pl-c">#</span> Re-render this README from the chosen bundles, then refresh the SMHasher3</span>
+<span class="pl-c"><span class="pl-c">#</span> Results table from the same bundle's measured data.</span>
+mbo/hash/measurements/hash_benchmark_report.py publish --bundles data/<span class="pl-k">&lt;</span>bundle<span class="pl-k">&gt;</span>.tgz ...
+git add mbo/hash/README.md mbo/hash/measurements/charts</pre></div>
+</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

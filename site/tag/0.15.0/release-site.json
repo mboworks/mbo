@@ -1,0 +1,32 @@
+{
+  "pages": {
+    "README.md": "index.html",
+    "CHANGELOG.md": "CHANGELOG.html",
+    "CONTRIBUTING.md": "CONTRIBUTING.html",
+    "docs/coverage.md": "docs/coverage.html",
+    "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",
+    "mbo/diff/README.md": "mbo/diff/README.html",
+    "mbo/digest/README.md": "mbo/digest/README.html",
+    "mbo/file/README.md": "mbo/file/README.html",
+    "mbo/hash/README.md": "mbo/hash/README.html",
+    "mbo/hash/measurements/README.md": "mbo/hash/measurements/README.html",
+    "mbo/types/README.md": "mbo/types/README.html",
+    ".github/workflows/README.md": ".github/workflows/README.html",
+    "AGENTS.md": "AGENTS.html",
+    "CLAUDE.md": "CLAUDE.html",
+    "CODE_OF_CONDUCT.md": "CODE_OF_CONDUCT.html",
+    "GIT_RULES.md": "GIT_RULES.html",
+    "RULES.md": "RULES.html",
+    "STYLE_CPP.md": "STYLE_CPP.html",
+    "STYLE_SH.md": "STYLE_SH.html",
+    "TODO.md": "TODO.html",
+    "mbo/diff/TODO.md": "mbo/diff/TODO.html",
+    "mbo/types/REFLECTION.md": "mbo/types/REFLECTION.html"
+  },
+  "links": [
+    {
+      "label": "Coverage",
+      "href": "/{repo}/coverage/tag/{version}/"
+    }
+  ]
+}

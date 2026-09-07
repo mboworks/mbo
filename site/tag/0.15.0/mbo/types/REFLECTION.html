@@ -1,0 +1,531 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/types/REFLECTION.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="aggregate-reflection-implementation-and-field-metadata">Aggregate reflection implementation and field metadata</h1>
+<p dir="auto">This document describes mbo's aggregate-introspection facilities, how field names feed the rest of<br>
+the library, and the compiler backends that provide field names. It also records the relevant<br>
+non-standard reflection implementations and their practical limitations.</p>
+<p dir="auto">The implementation described here is reflection in the informal, pre-C++26 sense. C++23 has no<br>
+standard facility for enumerating the non-static data members of an arbitrary type or obtaining<br>
+their identifiers. Every automatic field-name implementation therefore relies on a compiler<br>
+extension or on parsing compiler-generated function signatures.</p>
+<h2 dir="auto" id="summary">Summary</h2>
+<p dir="auto">mbo already separates three related capabilities:</p>
+<ol dir="auto">
+<li><strong>Structural decomposition</strong> determines how many fields an aggregate has and produces a tuple of<br>
+references to them. This underpins comparison, hashing, construction, and printing.</li>
+<li><strong>Field-name discovery</strong> obtains the source identifiers corresponding to those fields. Clang uses<br>
+<code class="notranslate">__builtin_dump_struct</code>; GCC uses field addresses and compiler-signature parsing.</li>
+<li><strong>Field policy and presentation</strong> decide whether and how each discovered field is used. This is<br>
+considerably more sophisticated than merely supplying <code class="notranslate">MboTypesStringifyFieldNames</code>.</li>
+</ol>
+<p dir="auto">GCC 14 provides constexpr names for ordinary decomposable aggregates. The implementation uses an<br>
+undefined external object, obtains the address of each field through structured binding,<br>
+passes that address as a non-type template argument, and extracts the member identifier from<br>
+<code class="notranslate">__PRETTY_FUNCTION__</code> or <code class="notranslate">std::source_location::function_name()</code>.</p>
+<p dir="auto">The dedicated <code class="notranslate">struct_names_gcc.h</code> backend reuses mbo's existing decomposition machinery. It retains<br>
+all manual extension points and reports unsupported field shapes through the existing concepts.</p>
+<h2 dir="auto" id="current-mbo-model">Current mbo model</h2>
+<h3 dir="auto" id="structural-decomposition">Structural decomposition</h3>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/internal/decompose_count.h"><code class="notranslate">internal/decompose_count.h</code></a> determines whether a<br>
+type is decomposable and generates structured-binding implementations for supported arities.<br>
+<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/tuple_extras.h"><code class="notranslate">tuple_extras.h</code></a> exposes <code class="notranslate">StructToTuple</code>, whose result contains<br>
+references to the aggregate fields.</p>
+<p dir="auto">This is useful without names. Positional field access is enough to implement:</p>
+<ul dir="auto">
+<li>equality and ordering;</li>
+<li>Abseil and standard hashing;</li>
+<li>construction from arguments or tuples;</li>
+<li>generic field traversal;</li>
+<li>positional stringification.</li>
+</ul>
+<p dir="auto">The decomposition layer and field-name layer should remain separate. A compiler may support one<br>
+without supporting the other, and some field shapes can be decomposed but cannot be represented as<br>
+an addressable non-type template argument.</p>
+<h3 dir="auto" id="clang-field-name-discovery">Clang field-name discovery</h3>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/internal/struct_names_clang.h"><code class="notranslate">internal/struct_names_clang.h</code></a> uses<br>
+<code class="notranslate">__builtin_dump_struct</code> with a replacement callback. The callback receives the format string and<br>
+arguments that Clang would normally print and records top-level field names instead.</p>
+<p dir="auto">The public internal facade in<br>
+<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/internal/struct_names.h"><code class="notranslate">internal/struct_names.h</code></a> exposes:</p>
+<ul dir="auto">
+<li><code class="notranslate">kStructNameSupport</code>;</li>
+<li><code class="notranslate">SupportsFieldNames&lt;T&gt;</code>;</li>
+<li><code class="notranslate">SupportsFieldNamesConstexpr&lt;T&gt;</code>;</li>
+<li><code class="notranslate">GetFieldNames&lt;T&gt;()</code>.</li>
+</ul>
+<p dir="auto">For eligible literal, default-constructible types, the names are computed at compile time. A<br>
+runtime-initialized specialization supports additional non-literal types and types without a usable<br>
+default constructor. Types containing union members are currently excluded.</p>
+<h3 dir="auto" id="gcc-field-name-discovery">GCC field-name discovery</h3>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/internal/struct_names_gcc.h"><code class="notranslate">internal/struct_names_gcc.h</code></a> uses the address of<br>
+each member of an undefined external object as a non-type template argument. GCC includes that<br>
+address expression in <code class="notranslate">__PRETTY_FUNCTION__</code>, from which the backend extracts and stores the member<br>
+identifier entirely at compile time. No <code class="notranslate">T</code> object is constructed and no field value is read.</p>
+<p dir="auto">The backend validates the parser with a sentinel member and copies each extracted name into compact<br>
+constexpr storage. Types whose fields cannot supply the required address expression, such as<br>
+reference members and bit-fields, do not satisfy <code class="notranslate">SupportsFieldNames</code>.</p>
+<h3 dir="auto" id="field-names-are-metadata-not-the-printing-policy">Field names are metadata, not the printing policy</h3>
+<p dir="auto">Automatic or manually supplied names become inputs to<br>
+<a href="https://github.com/mboworks/mbo/blob/7dcc431112fcd57c79d340fb57ef21766f20b76d/mbo/types/stringify.h"><code class="notranslate">stringify.h</code></a>. They do not determine by themselves whether a<br>
+field is printed, how it is named in the output, or how its value is rendered.</p>
+<p dir="auto">The effective name source has this precedence:</p>
+<ol dir="auto">
+<li><code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code> suppresses automatic names.</li>
+<li><code class="notranslate">MboTypesStringifyFieldNames(const T&amp;)</code> supplies or replaces the complete name sequence.</li>
+<li>The compiler backend supplies names when the type and compiler support them.</li>
+<li><code class="notranslate">StringifyOptions::KeyMode::kNumericFallback</code> can use field indices when no name is available.</li>
+</ol>
+<p dir="auto">After that initial discovery, <code class="notranslate">MboTypesStringifyOptions(const T&amp;, const StringifyFieldInfo&amp;)</code> may<br>
+return policy for every individual field. <code class="notranslate">StringifyFieldInfo</code> provides the owning object's current<br>
+options, the field index, and the discovered name. Because the object is also passed to the ADL<br>
+extension point, policy may depend on runtime object state as well as compile-time type information.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Control surface</th>
+<th>Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code></td>
+<td>Suppress compiler-provided names while retaining positional traversal.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyFieldNames</code></td>
+<td>Supply a complete field-name sequence or override compiler names.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyWithFieldNames</code></td>
+<td>Inject names through field options and either verify or overwrite compiler-discovered names.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyOptions</code></td>
+<td>Select full outer and inner formatting policy per object, field index, and field name.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::FieldControl</code></td>
+<td>Suppress a field, null pointer, empty optional, or disabled value; configure the disabled text.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::KeyControl</code></td>
+<td>Hide keys, use normal keys, or fall back to numeric keys; control key prefix and suffix.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::KeyOverrides</code></td>
+<td>Rename one field with a string or a callback using the complete <code class="notranslate">StringifyFieldInfo</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::ValueControl</code></td>
+<td>Select escaping, null spellings, container bounds, string bounds, and truncation suffixes.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::ValueOverrides</code></td>
+<td>Replace or redact string and non-string values.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::Format</code></td>
+<td>Control message, field, pointer, optional, aggregate, container, character, and string syntax.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyFieldOptions</code></td>
+<td>Apply different policy to a containing field and to values nested inside that field.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::Special</code></td>
+<td>Treat string-keyed pair containers as objects, order their keys, and rename pair elements.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyConvert(index, object, v)</code></td>
+<td>Convert a field based on its owning type, index, object, and value before rendering.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyValueAccess</code></td>
+<td>Present a wrapper or holder as a different underlying value.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDisable</code></td>
+<td>Stop automatic recursive stringification for a type, with configurable suppression.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifySupport</code></td>
+<td>Opt a type into mbo traversal even without the <code class="notranslate">Extend</code> CRTP defaults.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyRootOptions</code></td>
+<td>Control root prefix, suffix, and indentation independently from field formatting.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Consequently, adding GCC field names improves the metadata available to existing policy. It does<br>
+not require replacing mbo's formatting model with a serialization framework, nor does it remove<br>
+the need for explicit names and field policies when the source identifier is not the desired output<br>
+key.</p>
+<h2 dir="auto" id="existing-implementations">Existing implementations</h2>
+<p dir="auto">The following table distinguishes automatic extraction from the broader metadata systems supplied<br>
+by some libraries. “Named union member” means an ordinary aggregate field whose type is a union; it<br>
+does not imply discovering or safely reading the active alternative inside that union.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Implementation</th>
+<th>GCC names</th>
+<th>Constexpr names</th>
+<th>Direct union</th>
+<th>Named union member</th>
+<th>Bit-fields</th>
+<th>Reference members</th>
+<th>Needs real object</th>
+<th>Configurable overrides</th>
+<th>Principal mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>mbo</strong></td>
+<td>Yes</td>
+<td>Yes on GCC; eligible Clang types</td>
+<td>No</td>
+<td>GCC: opaque outer field; Clang: excluded</td>
+<td>GCC address path rejects them; Clang support remains limited</td>
+<td>GCC: rejected; Clang runtime path tested</td>
+<td>Clang only</td>
+<td>Extensive ADL names, field policy, conversion and suppression</td>
+<td>GCC signature parsing; Clang dump callback</td>
+</tr>
+<tr>
+<td><strong>Google Gloop</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No through its extension</td>
+<td>Possible from a valid object</td>
+<td>Builtin can expose names; <code class="notranslate">Unpack</code> may restrict traversal</td>
+<td>Depends on <code class="notranslate">Unpack</code></td>
+<td>Yes</td>
+<td>No field-name override found</td>
+<td>Runtime <code class="notranslate">__builtin_dump_struct</code>, cached after first use</td>
+</tr>
+<tr>
+<td><strong>Boost.PFR</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Explicitly rejected</td>
+<td>Yes as an opaque outer field</td>
+<td>No automatic access: an address cannot be formed</td>
+<td>Generally unsupported for names</td>
+<td>No</td>
+<td>Global parser configuration; no per-type renaming</td>
+<td>Fake object, address NTTP, signature parsing</td>
+</tr>
+<tr>
+<td><strong>Glaze</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Not by ordinary pure reflection</td>
+<td>Generally yes as an outer field</td>
+<td>Automatic address path is limited; metadata is a fallback</td>
+<td>Limited automatically; metadata fallback</td>
+<td>No</td>
+<td>Rich <code class="notranslate">glz::meta</code>, explicit names, modification and rename hooks</td>
+<td>Fake object and signatures, or explicit metadata</td>
+</tr>
+<tr>
+<td><strong>reflect-cpp</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Models tagged unions instead</td>
+<td>Likely as an opaque outer field</td>
+<td>No automatic address extraction</td>
+<td>Generally unsupported automatically</td>
+<td>No</td>
+<td>Rename/flatten processors, named fields and custom reflectors</td>
+<td>Fake object, address NTTP, function-name parsing</td>
+</tr>
+<tr>
+<td><strong>field-reflection</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>Likely as an ordinary outer field</td>
+<td>Type inspection may work; ordinary field access is restricted</td>
+<td>Explicitly not field-nameable</td>
+<td>No</td>
+<td>None</td>
+<td>Fake object/address and signature parsing</td>
+</tr>
+<tr>
+<td><strong>qlibs/reflect</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Limited by aggregate visitation</td>
+<td>Likely as an opaque outer field</td>
+<td>Limited by automatic aggregate visitation</td>
+<td>Implementation-dependent</td>
+<td>No</td>
+<td>Custom visitation can replace automatic visitation</td>
+<td>Signature parsing and aggregate visitation</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">These entries describe the pre-C++26 backends relevant to mbo's GCC 14 baseline. Some projects also<br>
+have experimental C++26 standard-reflection backends with different capabilities.</p>
+<h3 dir="auto" id="google-gloop">Google Gloop</h3>
+<p dir="auto"><a href="https://github.com/abseil/gloop/tree/main/gloop/util/gtl/extend">Gloop's reflection implementation</a><br>
+is close to mbo's current Clang implementation, but it does not provide the missing GCC technique.<br>
+It enables parsing only when <code class="notranslate">ABSL_HAVE_BUILTIN(__builtin_dump_struct)</code> is true and explicitly<br>
+disables it on macOS and Android.</p>
+<p dir="auto">Gloop calls the builtin on an actual object, parses only records at brace depth one, ignores base<br>
+class records, records whether parsing succeeded, and caches the result after the first call. Its<br>
+implementation is runtime-only. Useful ideas for mbo are the explicit success state and robust<br>
+top-level brace tracking, not GCC support.</p>
+<p dir="auto">Relevant sources:</p>
+<ul dir="auto">
+<li><a href="https://github.com/abseil/gloop/blob/main/gloop/util/gtl/extend/internal/reflection.h"><code class="notranslate">internal/reflection.h</code></a></li>
+<li><a href="https://github.com/abseil/gloop/blob/main/gloop/util/gtl/extend/internal/reflection.cc"><code class="notranslate">internal/reflection.cc</code></a></li>
+<li><a href="https://github.com/abseil/gloop/blob/main/gloop/util/gtl/extend/reflection_extension.h"><code class="notranslate">reflection_extension.h</code></a></li>
+</ul>
+<h3 dir="auto" id="boostpfr">Boost.PFR</h3>
+<p dir="auto"><a href="https://github.com/boostorg/pfr/blob/develop/include/boost/pfr/detail/core_name20_static.hpp">Boost.PFR's field-name backend</a><br>
+is the most mature direct precedent. It obtains a reference to each field of an undefined external<br>
+fake object, takes its address, passes that address as a non-type template argument, and parses the<br>
+compiler signature. A sentinel field verifies the configured parser. Extracted substrings are copied<br>
+into constexpr character arrays so complete compiler signatures need not remain in the binary.</p>
+<p dir="auto">Boost.PFR explicitly rejects direct union reflection. This is necessary for operations that might<br>
+read an inactive member. It does not necessarily require rejecting an ordinary outer field merely<br>
+because that field's type is a union.</p>
+<p dir="auto">Relevant sources:</p>
+<ul dir="auto">
+<li><a href="https://github.com/boostorg/pfr/blob/develop/include/boost/pfr/detail/core_name20_static.hpp"><code class="notranslate">core_name20_static.hpp</code></a></li>
+<li><a href="https://github.com/boostorg/pfr/blob/develop/include/boost/pfr/detail/fake_object.hpp"><code class="notranslate">fake_object.hpp</code></a></li>
+<li><a href="https://www.boost.org/doc/libs/latest/doc/html/boost_pfr/tutorial.html" rel="nofollow">field-name and union documentation</a></li>
+</ul>
+<h3 dir="auto" id="glaze">Glaze</h3>
+<p dir="auto"><a href="https://github.com/stephenberry/glaze">Glaze</a> independently implements automatic names with an<br>
+external object and compiler-signature parsing. Its broader reflection model also demonstrates why<br>
+source names and presentation names must remain distinct: <code class="notranslate">glz::meta</code> can explicitly enumerate<br>
+members, attach different names, add computed accessors, or modify automatically reflected metadata.</p>
+<p dir="auto">Glaze therefore resembles mbo at the policy level more than Boost.PFR does, although Glaze primarily<br>
+uses that metadata for serialization and mbo uses its field controls for general stringification and<br>
+related aggregate operations.</p>
+<p dir="auto">Relevant sources:</p>
+<ul dir="auto">
+<li><a href="https://github.com/stephenberry/glaze/blob/main/include/glaze/reflection/get_name.hpp"><code class="notranslate">get_name.hpp</code></a></li>
+<li><a href="https://github.com/stephenberry/glaze#explicit-metadata">Glaze reflection and metadata documentation</a></li>
+</ul>
+<h3 dir="auto" id="reflect-cpp">reflect-cpp</h3>
+<p dir="auto"><a href="https://github.com/getml/reflect-cpp">reflect-cpp</a> also obtains addresses from a fake object and<br>
+extracts names from <code class="notranslate">std::source_location::function_name()</code> where available. Its structured-binding<br>
+field extractors are generated by arity, much like mbo's decomposition helpers. It offers explicit<br>
+named-field wrappers, renaming and flattening processors, and custom reflectors for types outside<br>
+the automatic subset.</p>
+<p dir="auto">Relevant sources:</p>
+<ul dir="auto">
+<li><a href="https://github.com/getml/reflect-cpp/blob/main/include/rfl/internal/get_field_names.hpp"><code class="notranslate">get_field_names.hpp</code></a></li>
+<li><a href="https://github.com/getml/reflect-cpp/blob/main/include/rfl/internal/get_ith_field_from_fake_object.hpp"><code class="notranslate">get_ith_field_from_fake_object.hpp</code></a></li>
+</ul>
+<h3 dir="auto" id="other-independent-implementations">Other independent implementations</h3>
+<ul dir="auto">
+<li><a href="https://github.com/yosh-matsuda/field-reflection">field-reflection</a> documents its capability<br>
+boundary explicitly: GCC 11 or newer, no bases for indexed field references, and practically no<br>
+reference members for field names.</li>
+<li><a href="https://github.com/qlibs/reflect">qlibs/reflect</a> provides C++20 reflection primitives based on<br>
+compiler function-name strings and permits replacing automatic visitation.</li>
+<li><a href="https://gcc.gnu.org/onlinedocs/gcc/Function-Names.html" rel="nofollow">GCC documents</a> that<br>
+<code class="notranslate">__PRETTY_FUNCTION__</code> contains the C++ function signature and is usable in constant expressions.</li>
+</ul>
+<p dir="auto">The implementations are independent enough to establish the technique as reproducible, while their<br>
+different parsers and workarounds also show that it remains compiler-dependent and requires focused<br>
+compatibility tests.</p>
+<h2 dir="auto" id="gcc-backend">GCC backend</h2>
+<p dir="auto"><code class="notranslate">mbo/types/internal/struct_names_gcc.h</code> is selected from <code class="notranslate">struct_names.h</code> when compiling with GCC<br>
+rather than Clang. The backend reuses <code class="notranslate">DecomposeCountImpl&lt;T&gt;</code> and <code class="notranslate">StructToTuple</code> instead of<br>
+introducing another aggregate-decomposition implementation.</p>
+<p dir="auto">For every field index it:</p>
+<ol dir="auto">
+<li>refer to an undefined external fake object of type <code class="notranslate">T</code>;</li>
+<li>obtain field <code class="notranslate">I</code> through mbo's structured-binding tuple;</li>
+<li>take the address with <code class="notranslate">std::addressof</code>;</li>
+<li>pass that address as an <code class="notranslate">auto</code> non-type template argument;</li>
+<li>read <code class="notranslate">__PRETTY_FUNCTION__</code> in a <code class="notranslate">consteval</code> function;</li>
+<li>isolate the final member identifier;</li>
+<li>copy it into compact static constexpr storage.</li>
+</ol>
+<p dir="auto">The undefined object serves as a compile-time expression only. If it is ever needed by the linker,<br>
+that indicates an accidental runtime use and should fail rather than silently construct an object.</p>
+<h3 dir="auto" id="parser-design">Parser design</h3>
+<p dir="auto">Compiler-signature formats are not standardized. The parser should therefore:</p>
+<ul dir="auto">
+<li>derive its relevant prefix and suffix using a private sentinel type and sentinel member;</li>
+<li>verify at compile time that the sentinel extracts exactly the expected identifier;</li>
+<li>avoid fixed offsets where a delimiter-based extraction is reliable;</li>
+<li>copy the final name into compact storage rather than retaining every full signature;</li>
+<li>distinguish “this field shape is unsupported” from “the compiler signature format changed”;</li>
+<li>fail loudly for a backend-format regression instead of returning plausible but incorrect names.</li>
+</ul>
+<p dir="auto"><code class="notranslate">std::source_location::function_name()</code> is standard API but its returned spelling is still<br>
+implementation-defined. It does not remove the need for compiler-specific parsing. Using<br>
+<code class="notranslate">__PRETTY_FUNCTION__</code> directly is simpler and matches mbo's explicit GCC backend boundary.</p>
+<h3 dir="auto" id="capability-contract">Capability contract</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Type shape</th>
+<th>GCC result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ordinary decomposable aggregate</td>
+<td>Constexpr field names.</td>
+</tr>
+<tr>
+<td>Empty aggregate</td>
+<td>Supported with an empty span.</td>
+</tr>
+<tr>
+<td>Non-default-constructible aggregate</td>
+<td>Supported; no construction occurs.</td>
+</tr>
+<tr>
+<td>Aggregate with non-literal member types</td>
+<td>Supported at compile time; member values are not read.</td>
+</tr>
+<tr>
+<td>Array member</td>
+<td>Supported with an explicit decomposition-count override.</td>
+</tr>
+<tr>
+<td>Named field whose type is a union</td>
+<td>Attempt as an opaque outer field; do not inspect members.</td>
+</tr>
+<tr>
+<td>Direct union</td>
+<td>Unsupported.</td>
+</tr>
+<tr>
+<td>Bit-field</td>
+<td>Unsupported automatically because no address can be taken.</td>
+</tr>
+<tr>
+<td>Reference member</td>
+<td>Unsupported unless a safe GCC expression is demonstrated.</td>
+</tr>
+<tr>
+<td>Anonymous union or anonymous struct</td>
+<td>Unsupported, consistent with <code class="notranslate">Extend</code> restrictions.</td>
+</tr>
+<tr>
+<td>Non-empty base classes</td>
+<td>Follow mbo's existing decomposition restrictions.</td>
+</tr>
+<tr>
+<td>Packed or unusually aligned aggregate</td>
+<td>Unsupported until explicitly demonstrated and tested.</td>
+</tr>
+<tr>
+<td>Local or internal-linkage type</td>
+<td>Must be tested; fake-object linkage is compiler-sensitive.</td>
+</tr>
+<tr>
+<td>More fields than mbo's decomposition limit</td>
+<td>Unsupported by the shared decomposition layer.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">GCC cannot infer structured-binding arity unambiguously for every aggregate. In particular,<br>
+aggregate initialization flattens built-in arrays, while treating each array as one binding is<br>
+required for field access. An ambiguous type can state its exact binding count with a hidden friend:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">struct</span> <span class="pl-en">WithArray</span> {
+  <span class="pl-k">int</span> values[<span class="pl-c1">2</span>];
+  <span class="pl-k">int</span> tail;
+
+  <span class="pl-k">friend</span> <span class="pl-k">consteval</span> std::<span class="pl-c1">size_t</span> <span class="pl-en">MboTypesDecomposeCount</span>(<span class="pl-k">const</span> WithArray*) { <span class="pl-k">return</span> <span class="pl-c1">2</span>; }
+};</pre></div>
+<p dir="auto">This override is shared by tuple decomposition and GCC field-name discovery. Its value must exactly<br>
+match the number of identifiers accepted by a structured binding of the type; it is not the number<br>
+of flattened aggregate initializers.</p>
+<p dir="auto">“Expected” and “must be tested” entries are deliberately not promises. They identify the first<br>
+spike's validation work.</p>
+<h3 dir="auto" id="interaction-with-existing-policy">Interaction with existing policy</h3>
+<p dir="auto">The GCC backend should change only the automatic result returned by <code class="notranslate">GetFieldNames&lt;T&gt;()</code> and the two<br>
+support concepts. Existing precedence and overrides remain intact:</p>
+<ul dir="auto">
+<li>explicitly suppressed names remain suppressed;</li>
+<li><code class="notranslate">MboTypesStringifyFieldNames</code> continues to replace automatic names;</li>
+<li><code class="notranslate">StringifyWithFieldNames(..., kVerify)</code> gains useful validation on GCC;</li>
+<li><code class="notranslate">StringifyWithFieldNames(..., kOverwrite)</code> continues to choose presentation names;</li>
+<li><code class="notranslate">MboTypesStringifyOptions</code> receives the GCC-discovered name in <code class="notranslate">StringifyFieldInfo</code>;</li>
+<li>dynamic key overrides, field filtering, conversion, redaction, and value-access hooks continue to<br>
+operate after discovery;</li>
+<li>positional behavior remains available for unsupported types.</li>
+</ul>
+<p dir="auto">This separation is important. A C++ source identifier is useful default metadata, not necessarily a<br>
+stable wire name, JSON key, privacy policy, or user-facing label.</p>
+<h2 dir="auto" id="validation-plan">Validation plan</h2>
+<p dir="auto">The implementation should first be developed as a small backend spike and then tested through the<br>
+public behavior already exercised by <code class="notranslate">struct_names_test.cc</code> and <code class="notranslate">stringify_test.cc</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Area</th>
+<th>Required cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Basic extraction</td>
+<td>Empty, one-field, multi-field, nested aggregate, arrays, cv-qualified input, and templated types.</td>
+</tr>
+<tr>
+<td>Construction independence</td>
+<td>Deleted default constructor, non-trivial destructor, non-literal member, move-only member.</td>
+</tr>
+<tr>
+<td>Identity and linkage</td>
+<td>Namespace-scope, anonymous-namespace, nested, templated, and local types.</td>
+</tr>
+<tr>
+<td>Awkward fields</td>
+<td>Reference members, bit-fields, packed fields, union-valued fields, anonymous unions, and direct unions.</td>
+</tr>
+<tr>
+<td>Inheritance</td>
+<td>Empty CRTP bases used by <code class="notranslate">Extend</code>, multiple empty bases, and rejected non-empty bases.</td>
+</tr>
+<tr>
+<td>Parser integrity</td>
+<td>Sentinel success, punctuation in template spellings, long qualified types, and no full-signature leakage.</td>
+</tr>
+<tr>
+<td>mbo policy</td>
+<td>Manual replacement, suppression, verify/overwrite modes, dynamic key overrides, and numeric fallback.</td>
+</tr>
+<tr>
+<td>Toolchains</td>
+<td>GCC 14 in every supported optimization/sanitizer mode; Clang behavior unchanged.</td>
+</tr>
+<tr>
+<td>Diagnostics</td>
+<td>Unsupported shapes fail concepts cleanly; parser-format changes produce a targeted assertion.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The GCC tests must be compile-time assertions wherever the contract promises constexpr names. A<br>
+runtime stringification test alone would not prove the intended capability.</p>
+<h2 dir="auto" id="future-standard-reflection">Future standard reflection</h2>
+<p dir="auto">C++26 static reflection provides direct metadata operations such as enumerating non-static data<br>
+members and obtaining their identifiers. Once mbo's supported compiler baseline provides a stable<br>
+implementation, a standard backend can replace both dump-struct callbacks and compiler-signature<br>
+parsing while preserving mbo's public internal facade and higher-level field policy.</p>
+<p dir="auto">That migration should not collapse discovery and policy. Even with standard reflection, mbo will<br>
+still need explicit presentation names, suppression, conversion, redaction, value access, and<br>
+per-field formatting. Standard reflection improves the provenance and supported shape of the<br>
+metadata; it does not replace those controls.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

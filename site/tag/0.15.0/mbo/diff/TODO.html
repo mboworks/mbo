@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/diff/TODO.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="mbodiff-roadmap">mbo/diff roadmap</h1>
+<p dir="auto">Gap analysis vs GNU diffutils and git's xdiff, 2026-07-04. The tooling is<br>
+functionally complete for its purpose (golden testing plus human review):<br>
+three engines (<code class="notranslate">myers</code> default, <code class="notranslate">naive</code>, <code class="notranslate">direct</code>) x four output formats<br>
+(<code class="notranslate">unified</code>, <code class="notranslate">context</code>, <code class="notranslate">normal</code>, <code class="notranslate">side-by-side</code>), POSIX exit codes, full<br>
+CLI/bzl parity, and a self-auditing engine x format test matrix<br>
+(<code class="notranslate">diff_cli_sh_test.sh</code>) that fails by name on any untested combination.<br>
+Remove items when done.</p>
+<h2 dir="auto" id="easy">Easy</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong><code class="notranslate">-q</code>/<code class="notranslate">--brief</code></strong>: report only whether files differ (the exit code<br>
+contract already exists; this just suppresses the output).</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong><code class="notranslate">--label</code>/<code class="notranslate">-L</code></strong>: override the header file names beyond<br>
+<code class="notranslate">--file_header_use</code>.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>stdin via <code class="notranslate">-</code></strong>: treat the file name <code class="notranslate">-</code> as standard input.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Binary detection</strong>: print <code class="notranslate">Binary files X and Y differ</code> instead of<br>
+diffing lines containing NUL bytes (today control bytes pass through).</li>
+</ul>
+<h2 dir="auto" id="medium">Medium</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>ed-script (<code class="notranslate">diff -e</code>) and RCS output formats</strong>: the last two classic<br>
+formats. The per-chunk emitter dispatch in <code class="notranslate">internal/output.cc</code> takes<br>
+new formats without structural work; the test matrix forces expected<br>
+outputs per engine.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Hunk sliding (git's indent heuristic)</strong>: cosmetic post-pass moving<br>
+hunk boundaries to visually pleasing positions; changes golden outputs.</li>
+</ul>
+<h2 dir="auto" id="hard--needs-design">Hard / needs design</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Patience / histogram engine variants</strong>: alternative <code class="notranslate">Algorithm</code><br>
+values on top of the token infrastructure; useful where unique-line<br>
+anchoring reads better than minimal scripts.</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Wide-glyph / tab aware side-by-side columns</strong>: column arithmetic by<br>
+display width instead of bytes (GNU expands tabs; wcwidth for CJK).</li>
+</ul>
+<h2 dir="auto" id="non-goals-for-the-record">Non-goals (for the record)</h2>
+<ul dir="auto">
+<li>Recursive directory diff (<code class="notranslate">-r</code>): this is a two-file differ.</li>
+<li>GNU <code class="notranslate">-y</code> tab-stop padding byte-parity: we implement the well-defined<br>
+<code class="notranslate">--expand-tabs</code> layout instead (local BSD and GNU diff differ here anyway).</li>
+<li>CLI flags for <code class="notranslate">max_diff_chunk_length</code> (naive-only safety valve) and<br>
+<code class="notranslate">time_format</code>: intentionally library-only.</li>
+<li>Intra-line word/char highlighting: delta/difftastic territory.</li>
+</ul></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

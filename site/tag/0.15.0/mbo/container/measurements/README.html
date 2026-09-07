@@ -1,0 +1,233 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/measurements/README.md - mbo 0.15.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.15.0/">Home</a><a href="/mbo/site/tag/0.15.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.15.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/7dcc431112fcd57c79d340fb57ef21766f20b76d">Source</a><a href="/mbo/coverage/tag/0.15.0/">Coverage</a></nav><p>mbo 0.15.0</p><main><h1 dir="auto" id="ordered-lookup-microbenchmarks">Ordered lookup microbenchmarks</h1>
+<p dir="auto">The ordered-lookup experiment for mbo pull request 411 measured 648 cases with nine repetitions<br>
+each. It was built with <code class="notranslate">-c opt</code> on an 18-core Apple M5 Pro (Mac17,9, 64 GB) and measured on<br>
+2026-09-04.</p>
+<p dir="auto">The matrix covers <code class="notranslate">LimitedSet</code> and <code class="notranslate">LimitedMap</code>; capacities 2, 4, 8, 16, 17, and 32; ascending<br>
+<code class="notranslate">std::less</code> and <code class="notranslate">CompareLess</code> plus descending <code class="notranslate">std::greater</code>; <code class="notranslate">index_of</code>, <code class="notranslate">lower_bound</code>, and<br>
+<code class="notranslate">upper_bound</code>; and keys before, at the first element, between middle elements, at a middle element,<br>
+at the last element, and after the container.</p>
+<h2 dir="auto" id="measurement-and-comparison-method">Measurement and comparison method</h2>
+<p dir="auto">For each named case, sort the nine raw <code class="notranslate">cpu_time</code> values from lowest to highest and take the<br>
+arithmetic mean of the lowest three. This average-of-best-3-of-9 value is the repository's<br>
+established microbenchmark aggregation. Compare a candidate with its baseline as:</p>
+<pre lang="text" class="notranslate"><code class="notranslate">delta_percent = ((candidate_best3 / baseline_best3) - 1) * 100
+</code></pre>
+<p dir="auto">A negative delta means the candidate is faster. The bounds experiment required every case to be<br>
+equal or faster; any positive delta therefore failed that requirement. Capacities 17 and 32 do not<br>
+select the small-container unrolled implementation and serve as noise controls. Raw and derived<br>
+results are intentionally not tracked because the benchmark and procedure reproduce them.</p>
+<h2 dir="auto" id="reproducing-a-measurement">Reproducing a measurement</h2>
+<p dir="auto">Build the revision to measure and run:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel build -c opt //mbo/container:ordered_lookup_benchmark
+bazel-bin/mbo/container/ordered_lookup_benchmark \
+  --benchmark_repetitions=9 \
+  --benchmark_min_time=0.005s \
+  --benchmark_out=ordered_lookup_result.json \
+  --benchmark_out_format=json</pre></div>
+<p dir="auto">Run competing revisions under otherwise identical conditions on the same idle machine. Do not<br>
+compare the JSON's generated aggregate rows: select the nine raw iteration rows for each benchmark<br>
+name and apply the calculation above. Retain the output only as long as needed to calculate and<br>
+review the comparison.</p>
+<p dir="auto">The baseline was measured from the benchmark-only implementation merged by pull request 412. The<br>
+bounds candidate can be reconstructed at commit <code class="notranslate">023e19c91</code>. To reproduce the non-unrolled<br>
+<code class="notranslate">index_of</code> comparison from the baseline, temporarily replace its <code class="notranslate">kOptimizeIndexOf</code> initializer in<br>
+<code class="notranslate">mbo/container/internal/limited_ordered.h</code> with <code class="notranslate">false</code>, rebuild, and rerun the same command.</p>
+<p dir="auto">Google Benchmark could not read <code class="notranslate">hw.cpufrequency</code> or set thread affinity on macOS. Those limitations<br>
+apply equally to the baseline and comparison runs; comparisons must use repeated samples and treat<br>
+noise statistically rather than relying on a single timing.</p>
+<h2 dir="auto" id="bounds-unrolling-candidate">Bounds-unrolling candidate</h2>
+<p dir="auto">The candidate did not meet the no-regression requirement: 333 of 648 cases regressed, including<br>
+228 by more than 5% and 199 by more than 10%. Lower-bound first/middle cases at capacities 8 and 16<br>
+show repeated large losses, with the worst measured case regressing by 151.2%. The implementation<br>
+must not proceed on these results. <code class="notranslate">lower_bound</code> had a 17.8% median regression across the changed<br>
+capacities. <code class="notranslate">upper_bound</code> improved by 2.0% at the median but was inconsistent, with 63 of 144 cases<br>
+regressing. The conclusion was to retain the standard-library bound algorithms.</p>
+<p dir="auto">The decisive subset is the 288 bounds cases at capacities 2, 4, 8, and 16, where the candidate<br>
+actually selected the unrolled path:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th align="right">Faster or equal</th>
+<th align="right">Slower</th>
+<th align="right">Median delta</th>
+<th align="right">Mean delta</th>
+<th align="right">Worst regression</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">lower_bound</code></td>
+<td align="right">58/144</td>
+<td align="right">86/144</td>
+<td align="right">+17.8%</td>
+<td align="right">+19.2%</td>
+<td align="right">+151.2%</td>
+</tr>
+<tr>
+<td><code class="notranslate">upper_bound</code></td>
+<td align="right">81/144</td>
+<td align="right">63/144</td>
+<td align="right">-2.0%</td>
+<td align="right">-1.6%</td>
+<td align="right">+60.3%</td>
+</tr>
+<tr>
+<td>Combined</td>
+<td align="right">139/288</td>
+<td align="right">149/288</td>
+<td align="right">+4.9%</td>
+<td align="right">+8.8%</td>
+<td align="right">+151.2%</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The capacity breakdown shows why a general bounds optimization was rejected:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th align="right">Capacity</th>
+<th align="right">Faster or equal</th>
+<th align="right">Median delta</th>
+<th align="right">Mean delta</th>
+<th align="right">Worst regression</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">lower_bound</code></td>
+<td align="right">2</td>
+<td align="right">22/36</td>
+<td align="right">-3.2%</td>
+<td align="right">+1.3%</td>
+<td align="right">+40.1%</td>
+</tr>
+<tr>
+<td><code class="notranslate">lower_bound</code></td>
+<td align="right">4</td>
+<td align="right">15/36</td>
+<td align="right">+19.5%</td>
+<td align="right">+12.0%</td>
+<td align="right">+45.6%</td>
+</tr>
+<tr>
+<td><code class="notranslate">lower_bound</code></td>
+<td align="right">8</td>
+<td align="right">8/36</td>
+<td align="right">+27.7%</td>
+<td align="right">+32.6%</td>
+<td align="right">+108.9%</td>
+</tr>
+<tr>
+<td><code class="notranslate">lower_bound</code></td>
+<td align="right">16</td>
+<td align="right">13/36</td>
+<td align="right">+41.0%</td>
+<td align="right">+30.8%</td>
+<td align="right">+151.2%</td>
+</tr>
+<tr>
+<td><code class="notranslate">upper_bound</code></td>
+<td align="right">2</td>
+<td align="right">15/36</td>
+<td align="right">+13.0%</td>
+<td align="right">+9.2%</td>
+<td align="right">+60.3%</td>
+</tr>
+<tr>
+<td><code class="notranslate">upper_bound</code></td>
+<td align="right">4</td>
+<td align="right">23/36</td>
+<td align="right">-3.4%</td>
+<td align="right">+1.5%</td>
+<td align="right">+34.3%</td>
+</tr>
+<tr>
+<td><code class="notranslate">upper_bound</code></td>
+<td align="right">8</td>
+<td align="right">16/36</td>
+<td align="right">+9.3%</td>
+<td align="right">+3.5%</td>
+<td align="right">+59.5%</td>
+</tr>
+<tr>
+<td><code class="notranslate">upper_bound</code></td>
+<td align="right">16</td>
+<td align="right">27/36</td>
+<td align="right">-16.4%</td>
+<td align="right">-20.8%</td>
+<td align="right">+11.5%</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The backward linear scan favored answers near the end: for <code class="notranslate">lower_bound</code>, the median changes were<br>
+-4.6% at the last element and -26.8% after the range. It regressed by 27.8% before the range and by<br>
+30.8% to 31.0% around the middle. The position-dependent linear work explains the loss against the<br>
+standard library's binary search.</p>
+<h2 dir="auto" id="non-unrolled-index_of-comparison">Non-unrolled <code class="notranslate">index_of</code> comparison</h2>
+<p dir="auto">For capacities 2, 4, 8, and 16, which select the optimized implementation normally, the unrolled<br>
+implementation was faster or equal in 143 of 144 cases. Disabling it was 80.6% slower at the<br>
+median. The only apparent loss was 1.0%, while the capacity-17 and capacity-32 controls had a<br>
+combined median movement of 0.4%. The existing <code class="notranslate">index_of</code> optimization should therefore remain.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Capacity</th>
+<th align="right">Unrolled faster or equal</th>
+<th align="right">Median cost of disabling</th>
+<th align="right">Mean cost of disabling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">2</td>
+<td align="right">36/36</td>
+<td align="right">+90.3%</td>
+<td align="right">+79.0%</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td align="right">35/36</td>
+<td align="right">+50.3%</td>
+<td align="right">+55.5%</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td align="right">36/36</td>
+<td align="right">+72.6%</td>
+<td align="right">+122.4%</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td align="right">36/36</td>
+<td align="right">+108.5%</td>
+<td align="right">+164.5%</td>
+</tr>
+<tr>
+<td align="right">Changed capacities combined</td>
+<td align="right">143/144</td>
+<td align="right">+80.6%</td>
+<td align="right">+105.3%</td>
+</tr>
+<tr>
+<td align="right">Capacities 17 and 32 (controls)</td>
+<td align="right">46/72</td>
+<td align="right">+0.4%</td>
+<td align="right">+0.7%</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The improvement held across <code class="notranslate">std::less</code>, <code class="notranslate">std::greater</code>, and <code class="notranslate">CompareLess</code>, and across every lookup<br>
+position. The single 1.0% apparent loss was consistent with the control noise. This is conclusive<br>
+evidence to retain the existing small-container <code class="notranslate">index_of</code> unrolling.</p></main><footer>Release snapshot · 7dcc431112fcd57c79d340fb57ef21766f20b76d</footer></body></html>

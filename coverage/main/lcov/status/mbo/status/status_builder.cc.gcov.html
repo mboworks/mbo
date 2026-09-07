@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -128,17 +128,17 @@
 <span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">           5 :   return std::move(*this);</span></span>
 <span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">           5 : }</span></span>
 <span id="L50"><span class="lineNum">      50</span>                 :             : </span>
-<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">          59 : StatusBuilder::operator absl::Status() const &amp; {</span></span>
-<span id="L52"><span class="lineNum">      52</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 55 times"> + </span>]:<span class="tlaGNC">          59 :   if (!data_) {</span></span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">          70 : StatusBuilder::operator absl::Status() const &amp; {</span></span>
+<span id="L52"><span class="lineNum">      52</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 66 times"> + </span>]:<span class="tlaGNC">          70 :   if (!data_) {</span></span>
 <span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">           4 :     return absl::OkStatus();</span></span>
 <span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">           4 :   }</span></span>
-<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          55 :   absl::Status result(</span></span>
-<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          55 :       data_-&gt;status.code(),</span></span>
-<span id="L57"><span class="lineNum">      57</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 51 times"> + </span>]:<span class="tlaGNC">          55 :       data_-&gt;appended ? data_-&gt;stream.str() : absl::StrCat(data_-&gt;status.message(), data_-&gt;stream.str()));</span></span>
-<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          55 :   data_-&gt;status.ForEachPayload(</span></span>
-<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">          55 :       [&amp;result](std::string_view url, const absl::Cord&amp; payload) { result.SetPayload(url, payload); });</span></span>
-<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          55 :   return result;</span></span>
-<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">          59 : }</span></span>
+<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          66 :   absl::Status result(</span></span>
+<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">          66 :       data_-&gt;status.code(),</span></span>
+<span id="L57"><span class="lineNum">      57</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 62 times"> + </span>]:<span class="tlaGNC">          66 :       data_-&gt;appended ? data_-&gt;stream.str() : absl::StrCat(data_-&gt;status.message(), data_-&gt;stream.str()));</span></span>
+<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          66 :   data_-&gt;status.ForEachPayload(</span></span>
+<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">          66 :       [&amp;result](std::string_view url, const absl::Cord&amp; payload) { result.SetPayload(url, payload); });</span></span>
+<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          66 :   return result;</span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">          70 : }</span></span>
 <span id="L62"><span class="lineNum">      62</span>                 :             : </span>
 <span id="L63"><span class="lineNum">      63</span>                 :             : }  // namespace mbo::status</span>
         </pre>

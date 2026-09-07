@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -2836,25 +2836,25 @@
 <span id="L2756"><span class="lineNum">    2756</span>                 :             : </span>
 <span id="L2757"><span class="lineNum">    2757</span>                 :             :   template&lt;std::size_t kForcedNumFields = kNotDecomposableValue, typename U&gt;</span>
 <span id="L2758"><span class="lineNum">    2758</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every aggregate type.</span>
-<span id="L2759"><span class="lineNum">    2759</span>                 :<span class="tlaGNC">        2262 :   static constexpr auto ToTuple(const U&amp; data) noexcept {</span></span>
-<span id="L2760"><span class="lineNum">    2760</span>                 :<span class="tlaGNC">        2262 :     using UR = std::remove_cvref_t&lt;U&gt;;</span></span>
-<span id="L2761"><span class="lineNum">    2761</span> [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not executed"> # </span><span class="tlaUNC" title="branch &quot;3&quot; was not executed"> # </span>]:<span class="tlaGNC">        2262 :     constexpr bool kIsEmptyAggregate = IsAggregate&lt;UR&gt; &amp;&amp; IsEmptyType&lt;UR&gt;;</span></span>
-<span id="L2762"><span class="lineNum">    2762</span>                 :<span class="tlaGNC">        2262 :     constexpr std::size_t kNumFields =</span></span>
-<span id="L2763"><span class="lineNum">    2763</span>                 :<span class="tlaGNC">        2262 :         kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.</span></span>
-<span id="L2764"><span class="lineNum">    2764</span>                 :<span class="tlaGNC">        2262 :             ? kForcedNumFields</span></span>
-<span id="L2765"><span class="lineNum">    2765</span>                 :<span class="tlaGNC">        2262 :             : (kIsEmptyAggregate ? 0 : DecomposeCountImpl&lt;UR&gt;::value);  // LCOV_EXCL_BR_LINE: constexpr.</span></span>
-<span id="L2766"><span class="lineNum">    2766</span>                 :<span class="tlaGNC">        2262 :     static_assert(kNumFields != kNotDecomposableValue);</span></span>
+<span id="L2759"><span class="lineNum">    2759</span>                 :<span class="tlaGNC">        2264 :   static constexpr auto ToTuple(const U&amp; data) noexcept {</span></span>
+<span id="L2760"><span class="lineNum">    2760</span>                 :<span class="tlaGNC">        2264 :     using UR = std::remove_cvref_t&lt;U&gt;;</span></span>
+<span id="L2761"><span class="lineNum">    2761</span> [<span class="tlaUNC" title="branch 0 was not executed"> # </span><span class="tlaUNC" title="branch 1 was not executed"> # </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not executed"> # </span><span class="tlaUNC" title="branch &quot;3&quot; was not executed"> # </span>]:<span class="tlaGNC">        2264 :     constexpr bool kIsEmptyAggregate = IsAggregate&lt;UR&gt; &amp;&amp; IsEmptyType&lt;UR&gt;;</span></span>
+<span id="L2762"><span class="lineNum">    2762</span>                 :<span class="tlaGNC">        2264 :     constexpr std::size_t kNumFields =</span></span>
+<span id="L2763"><span class="lineNum">    2763</span>                 :<span class="tlaGNC">        2264 :         kForcedNumFields != kNotDecomposableValue  // LCOV_EXCL_BR_LINE: constexpr.</span></span>
+<span id="L2764"><span class="lineNum">    2764</span>                 :<span class="tlaGNC">        2264 :             ? kForcedNumFields</span></span>
+<span id="L2765"><span class="lineNum">    2765</span>                 :<span class="tlaGNC">        2264 :             : (kIsEmptyAggregate ? 0 : DecomposeCountImpl&lt;UR&gt;::value);  // LCOV_EXCL_BR_LINE: constexpr.</span></span>
+<span id="L2766"><span class="lineNum">    2766</span>                 :<span class="tlaGNC">        2264 :     static_assert(kNumFields != kNotDecomposableValue);</span></span>
 <span id="L2767"><span class="lineNum">    2767</span>                 :<span class="tlaGNC">           1 :     if constexpr (kNumFields == 0) {</span></span>
 <span id="L2768"><span class="lineNum">    2768</span>                 :<span class="tlaGNC">           1 :       return std::make_tuple();</span></span>
 <span id="L2769"><span class="lineNum">    2769</span>                 :<span class="tlaGNC">         931 :     } else if constexpr (kNumFields == 1) {</span></span>
 <span id="L2770"><span class="lineNum">    2770</span>                 :<span class="tlaGNC">         931 :       const auto&amp; [a1] = data;</span></span>
 <span id="L2771"><span class="lineNum">    2771</span>                 :<span class="tlaGNC">         931 :       return std::tie(a1);</span></span>
-<span id="L2772"><span class="lineNum">    2772</span>                 :<span class="tlaGNC">         323 :     } else if constexpr (kNumFields == 2) {</span></span>
-<span id="L2773"><span class="lineNum">    2773</span>                 :<span class="tlaGNC">         305 :       const auto&amp; [a1, a2] = data;</span></span>
-<span id="L2774"><span class="lineNum">    2774</span>                 :<span class="tlaGNC">         305 :       return std::tie(a1, a2);</span></span>
-<span id="L2775"><span class="lineNum">    2775</span>                 :<span class="tlaGNC">        1212 :     } else if constexpr (kNumFields == 3) {</span></span>
-<span id="L2776"><span class="lineNum">    2776</span>                 :<span class="tlaGNC">         967 :       const auto&amp; [a1, a2, a3] = data;</span></span>
-<span id="L2777"><span class="lineNum">    2777</span>                 :<span class="tlaGNC">         967 :       return std::tie(a1, a2, a3);</span></span>
+<span id="L2772"><span class="lineNum">    2772</span>                 :<span class="tlaGNC">         324 :     } else if constexpr (kNumFields == 2) {</span></span>
+<span id="L2773"><span class="lineNum">    2773</span>                 :<span class="tlaGNC">         306 :       const auto&amp; [a1, a2] = data;</span></span>
+<span id="L2774"><span class="lineNum">    2774</span>                 :<span class="tlaGNC">         306 :       return std::tie(a1, a2);</span></span>
+<span id="L2775"><span class="lineNum">    2775</span>                 :<span class="tlaGNC">        1213 :     } else if constexpr (kNumFields == 3) {</span></span>
+<span id="L2776"><span class="lineNum">    2776</span>                 :<span class="tlaGNC">         968 :       const auto&amp; [a1, a2, a3] = data;</span></span>
+<span id="L2777"><span class="lineNum">    2777</span>                 :<span class="tlaGNC">         968 :       return std::tie(a1, a2, a3);</span></span>
 <span id="L2778"><span class="lineNum">    2778</span>                 :<span class="tlaGNC">          47 :     } else if constexpr (kNumFields == 4) {</span></span>
 <span id="L2779"><span class="lineNum">    2779</span>                 :<span class="tlaGNC">           6 :       const auto&amp; [a1, a2, a3, a4] = data;</span></span>
 <span id="L2780"><span class="lineNum">    2780</span>                 :<span class="tlaGNC">           6 :       return std::tie(a1, a2, a3, a4);</span></span>
@@ -3023,7 +3023,7 @@
 <span id="L2943"><span class="lineNum">    2943</span>                 :<span class="tlaGNC">           1 :           a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24,</span></span>
 <span id="L2944"><span class="lineNum">    2944</span>                 :<span class="tlaGNC">           1 :           a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a40);</span></span>
 <span id="L2945"><span class="lineNum">    2945</span>                 :<span class="tlaGNC">           1 :     }</span></span>
-<span id="L2946"><span class="lineNum">    2946</span>                 :<span class="tlaGNC">        2262 :   }</span></span>
+<span id="L2946"><span class="lineNum">    2946</span>                 :<span class="tlaGNC">        2264 :   }</span></span>
 <span id="L2947"><span class="lineNum">    2947</span>                 :             : };</span>
 <span id="L2948"><span class="lineNum">    2948</span>                 :             : </span>
 <span id="L2949"><span class="lineNum">    2949</span>                 :             : // NOLINTEND(readability-function-cognitive-complexity)</span>

@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -197,13 +197,13 @@
 <span id="L117"><span class="lineNum">     117</span>                 :             : // Splits a pattern into the root part and the actual pattern for use with `Glob`.</span>
 <span id="L118"><span class="lineNum">     118</span>                 :             : template&lt;typename T&gt;</span>
 <span id="L119"><span class="lineNum">     119</span>                 :             : requires(std::same_as&lt;T, std::filesystem::path&gt; || std::convertible_to&lt;T, std::string_view&gt;)</span>
-<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">          29 : inline absl::StatusOr&lt;RootAndPattern&gt; GlobSplit(const T&amp; pattern, const Glob2Re2Options&amp; options = {}) {</span></span>
-<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">          29 :   if constexpr (std::same_as&lt;T, std::filesystem::path&gt;) {</span></span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">          30 : inline absl::StatusOr&lt;RootAndPattern&gt; GlobSplit(const T&amp; pattern, const Glob2Re2Options&amp; options = {}) {</span></span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">          30 :   if constexpr (std::same_as&lt;T, std::filesystem::path&gt;) {</span></span>
 <span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">           8 :     return file_internal::GlobSplit(pattern.native(), options);</span></span>
-<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          21 :   } else {</span></span>
-<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          21 :     return file_internal::GlobSplit(pattern, options);</span></span>
-<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">          21 :   }</span></span>
-<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">          29 : }</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          22 :   } else {</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          22 :     return file_internal::GlobSplit(pattern, options);</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">          22 :   }</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">          30 : }</span></span>
 <span id="L127"><span class="lineNum">     127</span>                 :             : </span>
 <span id="L128"><span class="lineNum">     128</span>                 :             : struct GlobEntry : mbo::types::Extend&lt;GlobEntry&gt; {</span>
 <span id="L129"><span class="lineNum">     129</span>                 :             :   const std::optional&lt;const std::filesystem::path&gt; rel_path;  // Must be first</span>

@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -215,21 +215,21 @@
 <span id="L144"><span class="lineNum">     144</span>              :   friend struct AbslStringify_;</span>
 <span id="L145"><span class="lineNum">     145</span>              : </span>
 <span id="L146"><span class="lineNum">     146</span>              :   template&lt;typename Sink&gt;</span>
-<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          59 :   friend void AbslStringify(Sink&amp; sink, const Type&amp; value) {</span></span>
-<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          59 :     std::ostringstream os;</span></span>
-<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">          59 :     value.OStreamFields(os);</span></span>
-<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">          59 :     sink.Append(os.str());</span></span>
-<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          59 :   }</span></span>
+<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          61 :   friend void AbslStringify(Sink&amp; sink, const Type&amp; value) {</span></span>
+<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          61 :     std::ostringstream os;</span></span>
+<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">          61 :     value.OStreamFields(os);</span></span>
+<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">          61 :     sink.Append(os.str());</span></span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          61 :   }</span></span>
 <span id="L152"><span class="lineNum">     152</span>              : </span>
 <span id="L153"><span class="lineNum">     153</span>              :  protected:</span>
 <span id="L154"><span class="lineNum">     154</span>              :   // Stream the type to `os` with control via `field_options`.</span>
-<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         115 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
-<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         115 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
-<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         115 :   }</span></span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">         117 :   void OStreamFields(std::ostream&amp; os, const StringifyOptions&amp; default_options = Stringify::OptionsDefault()) const {</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">         117 :     OStreamFieldsStatic(os, static_cast&lt;const Type&amp;&gt;(*this), default_options);</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">         117 :   }</span></span>
 <span id="L158"><span class="lineNum">     158</span>              : </span>
-<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         115 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
-<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         115 :     Stringify(default_options).Stream(os, value);</span></span>
-<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         115 :   }</span></span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">         117 :   static void OStreamFieldsStatic(std::ostream&amp; os, const Type&amp; value, const StringifyOptions&amp; default_options) {</span></span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">         117 :     Stringify(default_options).Stream(os, value);</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">         117 :   }</span></span>
 <span id="L162"><span class="lineNum">     162</span>              : };</span>
 <span id="L163"><span class="lineNum">     163</span>              : </span>
 <span id="L164"><span class="lineNum">     164</span>              : template&lt;typename ExtenderBase&gt;</span>

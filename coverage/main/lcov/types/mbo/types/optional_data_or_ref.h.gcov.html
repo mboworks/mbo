@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -234,11 +234,11 @@
 <span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">        2106 :     return *this;</span></span>
 <span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">        2106 :   }</span></span>
 <span id="L156"><span class="lineNum">     156</span>                 :             : </span>
-<span id="L157"><span class="lineNum">     157</span>                 :<span class="tlaGNC">        4157 :   constexpr explicit operator bool() const noexcept { return has_value(); }</span></span>
+<span id="L157"><span class="lineNum">     157</span>                 :<span class="tlaGNC">        4185 :   constexpr explicit operator bool() const noexcept { return has_value(); }</span></span>
 <span id="L158"><span class="lineNum">     158</span>                 :             : </span>
-<span id="L159"><span class="lineNum">     159</span> [<span class="tlaGBC" title="branch 0 was taken 12262 times"> + </span><span class="tlaGBC" title="branch 1 was taken 592 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 314 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 278 times"> + </span>]:<span class="tlaGNC">       12854 :   constexpr bool has_value() const noexcept { return HoldsData() || HoldsReference(); }</span></span>
+<span id="L159"><span class="lineNum">     159</span> [<span class="tlaGBC" title="branch 0 was taken 12350 times"> + </span><span class="tlaGBC" title="branch 1 was taken 592 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 314 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 278 times"> + </span>]:<span class="tlaGNC">       12942 :   constexpr bool has_value() const noexcept { return HoldsData() || HoldsReference(); }</span></span>
 <span id="L160"><span class="lineNum">     160</span>                 :             : </span>
-<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">       22859 :   constexpr bool HoldsData() const noexcept { return data_.index() == kDataIndex; }</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">       23001 :   constexpr bool HoldsData() const noexcept { return data_.index() == kDataIndex; }</span></span>
 <span id="L162"><span class="lineNum">     162</span>                 :             : </span>
 <span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">          32 :   constexpr bool HoldsNullopt() const noexcept { return !has_value(); }</span></span>
 <span id="L164"><span class="lineNum">     164</span>                 :             : </span>
@@ -250,10 +250,10 @@
 <span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           8 :   }</span></span>
 <span id="L171"><span class="lineNum">     171</span>                 :             : </span>
 <span id="L172"><span class="lineNum">     172</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
-<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">        6747 :   constexpr const_reference value() const noexcept {</span></span>
-<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 13494 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6747 times"> + </span>]:<span class="tlaGNC">       13494 :     MBO_CONFIG_REQUIRE(has_value(), &quot;No value set for: &quot;) &lt;&lt; mbo::log::DemangleV(*this);</span></span>
-<span id="L175"><span class="lineNum">     175</span>         [<span class="tlaGBC" title="branch 0 was taken 6656 times"> + </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">        6747 :     return HoldsData() ? Data() : Reference();</span></span>
-<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">        6747 :   }</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">        6801 :   constexpr const_reference value() const noexcept {</span></span>
+<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 13602 times"> + </span><span class="tlaGBC" title="branch 1 was taken 6801 times"> + </span>]:<span class="tlaGNC">       13602 :     MBO_CONFIG_REQUIRE(has_value(), &quot;No value set for: &quot;) &lt;&lt; mbo::log::DemangleV(*this);</span></span>
+<span id="L175"><span class="lineNum">     175</span>         [<span class="tlaGBC" title="branch 0 was taken 6710 times"> + </span><span class="tlaGBC" title="branch 1 was taken 91 times"> + </span>]:<span class="tlaGNC">        6801 :     return HoldsData() ? Data() : Reference();</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">        6801 :   }</span></span>
 <span id="L177"><span class="lineNum">     177</span>                 :             : </span>
 <span id="L178"><span class="lineNum">     178</span>                 :             : #if __cplusplus &gt;= (20L * 100 + 23) * 100 + 2</span>
 <span id="L179"><span class="lineNum">     179</span>                 :             :   // Returns `value()` if `holds_value()` is true, a reference to static defaults otherwise.</span>
@@ -271,7 +271,7 @@
 <span id="L191"><span class="lineNum">     191</span>                 :             :   // must sit on the line immediately above the declaration - a rationale placed</span>
 <span id="L192"><span class="lineNum">     192</span>                 :             :   // between it and the declaration would bind it to the comment instead.</span>
 <span id="L193"><span class="lineNum">     193</span>                 :             :   // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)</span>
-<span id="L194"><span class="lineNum">     194</span>         [<span class="tlaGBC" title="branch 0 was taken 781 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         781 :   constexpr const_reference get(const T&amp; defaults) const noexcept { return has_value() ? value() : defaults; }</span></span>
+<span id="L194"><span class="lineNum">     194</span>         [<span class="tlaGBC" title="branch 0 was taken 787 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">         787 :   constexpr const_reference get(const T&amp; defaults) const noexcept { return has_value() ? value() : defaults; }</span></span>
 <span id="L195"><span class="lineNum">     195</span>                 :             : </span>
 <span id="L196"><span class="lineNum">     196</span>                 :             :   // Returns a reference to existing data or created data. If the object:</span>
 <span id="L197"><span class="lineNum">     197</span>                 :             :   // * is `std::nullopt`, then a default value will be emplace and is reference returned.</span>
@@ -294,11 +294,11 @@
 <span id="L214"><span class="lineNum">     214</span>                 :             : </span>
 <span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">           2 :   constexpr reference operator*() noexcept { return value(); }</span></span>
 <span id="L216"><span class="lineNum">     216</span>                 :             : </span>
-<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">        1727 :   constexpr const_reference operator*() const noexcept { return value(); }</span></span>
+<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">        1739 :   constexpr const_reference operator*() const noexcept { return value(); }</span></span>
 <span id="L218"><span class="lineNum">     218</span>                 :             : </span>
 <span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           1 :   constexpr pointer operator-&gt;() noexcept { return &amp;value(); }</span></span>
 <span id="L220"><span class="lineNum">     220</span>                 :             : </span>
-<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">        4194 :   constexpr const_pointer operator-&gt;() const noexcept { return &amp;value(); }</span></span>
+<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">        4230 :   constexpr const_pointer operator-&gt;() const noexcept { return &amp;value(); }</span></span>
 <span id="L222"><span class="lineNum">     222</span>                 :             : </span>
 <span id="L223"><span class="lineNum">     223</span>                 :             :   template&lt;std::equality_comparable_with&lt;T&gt; U = T, typename RefU = U&gt;</span>
 <span id="L224"><span class="lineNum">     224</span>                 :             :   constexpr bool operator==(const OptionalDataOrRef&lt;U, RefU&gt;&amp; rhs) const</span>
@@ -403,7 +403,7 @@
 <span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">        1367 :   constexpr T&amp; Data() noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
 <span id="L324"><span class="lineNum">     324</span>                 :             : </span>
 <span id="L325"><span class="lineNum">     325</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
-<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">        7595 :   constexpr const T&amp; Data() const noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
+<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">        7649 :   constexpr const T&amp; Data() const noexcept { return std::get&lt;kDataIndex&gt;(data_); }</span></span>
 <span id="L327"><span class="lineNum">     327</span>                 :             : </span>
 <span id="L328"><span class="lineNum">     328</span>                 :             :   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.</span>
 <span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">         279 :   constexpr reference Reference() const noexcept { return std::get&lt;kRefIndex&gt;(data_).get(); }</span></span>

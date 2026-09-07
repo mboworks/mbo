@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -58,9 +58,9 @@
             <td></td>
             <td></td>
             <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntryHi">89.1&nbsp;%</td>
+            <td class="headerCovTableEntryHi">89.6&nbsp;%</td>
             <td class="headerCovTableEntry">192</td>
-            <td class="headerCovTableEntry">171</td>
+            <td class="headerCovTableEntry">172</td>
           </tr>
                   <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -194,68 +194,68 @@
 <span id="L112"><span class="lineNum">     112</span>                 :             : </span>
 <span id="L113"><span class="lineNum">     113</span>                 :             : enum class Quotes { kNone, kSingle, kDouble };</span>
 <span id="L114"><span class="lineNum">     114</span>                 :             : </span>
-<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">          55 : bool IsEnabledQuote(const ParseOptions&amp; options, char chr) {</span></span>
-<span id="L116"><span class="lineNum">     116</span> [<span class="tlaGBC" title="branch 0 was taken 31 times"> + </span><span class="tlaGBC" title="branch 1 was taken 24 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 29 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 2 times"> + </span>]:<span class="tlaGNC">          55 :   return (chr == '&quot;' &amp;&amp; options.enable_double_quotes) || (chr == '\'' &amp;&amp; options.enable_single_quotes);</span></span>
-<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 21 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 5 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 19 times"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 2 times"> + </span>]
-<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">          55 : }</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">          60 : bool IsEnabledQuote(const ParseOptions&amp; options, char chr) {</span></span>
+<span id="L116"><span class="lineNum">     116</span> [<span class="tlaGBC" title="branch 0 was taken 34 times"> + </span><span class="tlaGBC" title="branch 1 was taken 26 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 32 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 2 times"> + </span>]:<span class="tlaGNC">          60 :   return (chr == '&quot;' &amp;&amp; options.enable_double_quotes) || (chr == '\'' &amp;&amp; options.enable_single_quotes);</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 23 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 5 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 21 times"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 2 times"> + </span>]
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">          60 : }</span></span>
 <span id="L118"><span class="lineNum">     118</span>                 :             : </span>
-<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaGNC">          80 : void HandleQuotes(const ParseOptions&amp; options, char chr, Quotes&amp; quotes, std::string&amp; result) {</span></span>
-<span id="L120"><span class="lineNum">     120</span>         [<span class="tlaGBC" title="branch 0 was taken 80 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          80 :   switch (quotes) {</span></span>
-<span id="L121"><span class="lineNum">     121</span>         [<span class="tlaGBC" title="branch 0 was taken 22 times"> + </span><span class="tlaGBC" title="branch 1 was taken 58 times"> + </span>]:<span class="tlaGNC">          22 :     case Quotes::kDouble:</span></span>
-<span id="L122"><span class="lineNum">     122</span>         [<span class="tlaGBC" title="branch 0 was taken 21 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          22 :       if (chr == '&quot;') {</span></span>
-<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          21 :         quotes = Quotes::kNone;</span></span>
-<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          21 :       } else {</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaGNC">          85 : void HandleQuotes(const ParseOptions&amp; options, char chr, Quotes&amp; quotes, std::string&amp; result) {</span></span>
+<span id="L120"><span class="lineNum">     120</span>         [<span class="tlaGBC" title="branch 0 was taken 85 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          85 :   switch (quotes) {</span></span>
+<span id="L121"><span class="lineNum">     121</span>         [<span class="tlaGBC" title="branch 0 was taken 23 times"> + </span><span class="tlaGBC" title="branch 1 was taken 62 times"> + </span>]:<span class="tlaGNC">          23 :     case Quotes::kDouble:</span></span>
+<span id="L122"><span class="lineNum">     122</span>         [<span class="tlaGBC" title="branch 0 was taken 22 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          23 :       if (chr == '&quot;') {</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          22 :         quotes = Quotes::kNone;</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          22 :       } else {</span></span>
 <span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">           1 :         result += chr;</span></span>
 <span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">           1 :         return;</span></span>
 <span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">           1 :       }</span></span>
-<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">          21 :       break;</span></span>
-<span id="L129"><span class="lineNum">     129</span>         [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="branch 1 was taken 65 times"> + </span>]:<span class="tlaGNC">          29 :     case Quotes::kSingle:</span></span>
-<span id="L130"><span class="lineNum">     130</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          15 :       if (chr == '\'') {</span></span>
-<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">          14 :         quotes = Quotes::kNone;</span></span>
-<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">          14 :       } else {</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">          22 :       break;</span></span>
+<span id="L129"><span class="lineNum">     129</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 69 times"> + </span>]:<span class="tlaGNC">          30 :     case Quotes::kSingle:</span></span>
+<span id="L130"><span class="lineNum">     130</span>         [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          16 :       if (chr == '\'') {</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">          15 :         quotes = Quotes::kNone;</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">          15 :       } else {</span></span>
 <span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">           1 :         result += chr;</span></span>
 <span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaGNC">           1 :         return;</span></span>
 <span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">           1 :       }</span></span>
-<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">          14 :       break;</span></span>
-<span id="L137"><span class="lineNum">     137</span>         [<span class="tlaGBC" title="branch 0 was taken 43 times"> + </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          43 :     case Quotes::kNone:</span></span>
-<span id="L138"><span class="lineNum">     138</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 39 times"> + </span>]:<span class="tlaGNC">          43 :       if (!IsEnabledQuote(options, chr)) {</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">          15 :       break;</span></span>
+<span id="L137"><span class="lineNum">     137</span>         [<span class="tlaGBC" title="branch 0 was taken 46 times"> + </span><span class="tlaGBC" title="branch 1 was taken 39 times"> + </span>]:<span class="tlaGNC">          46 :     case Quotes::kNone:</span></span>
+<span id="L138"><span class="lineNum">     138</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 42 times"> + </span>]:<span class="tlaGNC">          46 :       if (!IsEnabledQuote(options, chr)) {</span></span>
 <span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">           4 :         result += chr;</span></span>
 <span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">           4 :         return;</span></span>
 <span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">           4 :       }</span></span>
-<span id="L142"><span class="lineNum">     142</span>         [<span class="tlaGBC" title="branch 0 was taken 22 times"> + </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span>]:<span class="tlaGNC">          39 :       quotes = chr == '&quot;' ? Quotes::kDouble : Quotes::kSingle;</span></span>
-<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">          39 :       break;</span></span>
-<span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">          80 :   }</span></span>
-<span id="L145"><span class="lineNum">     145</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 58 times"> + </span>]:<span class="tlaGNC">          74 :   if (!options.remove_quotes) {</span></span>
+<span id="L142"><span class="lineNum">     142</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          42 :       quotes = chr == '&quot;' ? Quotes::kDouble : Quotes::kSingle;</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">          42 :       break;</span></span>
+<span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">          85 :   }</span></span>
+<span id="L145"><span class="lineNum">     145</span>         [<span class="tlaGBC" title="branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="branch 1 was taken 63 times"> + </span>]:<span class="tlaGNC">          79 :   if (!options.remove_quotes) {</span></span>
 <span id="L146"><span class="lineNum">     146</span>                 :<span class="tlaGNC">          16 :     result += chr;</span></span>
 <span id="L147"><span class="lineNum">     147</span>                 :<span class="tlaGNC">          16 :   }</span></span>
-<span id="L148"><span class="lineNum">     148</span>                 :<span class="tlaGNC">          74 : }</span></span>
+<span id="L148"><span class="lineNum">     148</span>                 :<span class="tlaGNC">          79 : }</span></span>
 <span id="L149"><span class="lineNum">     149</span>                 :             : </span>
-<span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaGNC">         262 : bool StopParsing(const ParseOptions&amp; options, std::string_view data) {</span></span>
-<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">         262 :   const char chr = data.front();</span></span>
-<span id="L152"><span class="lineNum">     152</span>         [<span class="tlaGBC" title="branch 0 was taken 28 times"> + </span><span class="tlaGBC" title="branch 1 was taken 234 times"> + </span>]:<span class="tlaGNC">         262 :   return absl::StrContains(options.stop_at_any_of, chr)  //</span></span>
-<span id="L153"><span class="lineNum">     153</span>         [<span class="tlaGBC" title="branch 0 was taken 31 times"> + </span><span class="tlaGBC" title="branch 1 was taken 203 times"> + </span>]:<span class="tlaGNC">         234 :          || absl::StrContains(options.split_at_any_of, chr)</span></span>
-<span id="L154"><span class="lineNum">     154</span> [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="branch 1 was taken 188 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 5 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 10 times"> + </span>]:<span class="tlaGNC">         203 :          || (!options.stop_at_str.empty() &amp;&amp; data.starts_with(options.stop_at_str));</span></span>
-<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">         262 : }</span></span>
+<span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaGNC">         269 : bool StopParsing(const ParseOptions&amp; options, std::string_view data) {</span></span>
+<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">         269 :   const char chr = data.front();</span></span>
+<span id="L152"><span class="lineNum">     152</span>         [<span class="tlaGBC" title="branch 0 was taken 29 times"> + </span><span class="tlaGBC" title="branch 1 was taken 240 times"> + </span>]:<span class="tlaGNC">         269 :   return absl::StrContains(options.stop_at_any_of, chr)  //</span></span>
+<span id="L153"><span class="lineNum">     153</span>         [<span class="tlaGBC" title="branch 0 was taken 31 times"> + </span><span class="tlaGBC" title="branch 1 was taken 209 times"> + </span>]:<span class="tlaGNC">         240 :          || absl::StrContains(options.split_at_any_of, chr)</span></span>
+<span id="L154"><span class="lineNum">     154</span> [<span class="tlaGBC" title="branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="branch 1 was taken 194 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 5 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 10 times"> + </span>]:<span class="tlaGNC">         209 :          || (!options.stop_at_str.empty() &amp;&amp; data.starts_with(options.stop_at_str));</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">         269 : }</span></span>
 <span id="L156"><span class="lineNum">     156</span>                 :             : }  // namespace</span>
 <span id="L157"><span class="lineNum">     157</span>                 :             : </span>
-<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">         149 : absl::StatusOr&lt;std::string&gt; ParseString(const ParseOptions&amp; options, std::string_view&amp; data) {</span></span>
-<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">         149 :   std::string result;</span></span>
-<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">         149 :   Quotes quotes = Quotes::kNone;</span></span>
-<span id="L161"><span class="lineNum">     161</span>         [<span class="tlaGBC" title="branch 0 was taken 432 times"> + </span><span class="tlaGBC" title="branch 1 was taken 67 times"> + </span>]:<span class="tlaGNC">         499 :   while (!data.empty()) {</span></span>
-<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">         432 :     char chr = data.front();  // Cannot use `PopChar`, need the char left in-place</span></span>
-<span id="L163"><span class="lineNum">     163</span>         [<span class="tlaGBC" title="branch 0 was taken 262 times"> + </span><span class="tlaGBC" title="branch 1 was taken 170 times"> + </span>]:<span class="tlaGNC">         432 :     if (quotes == Quotes::kNone</span></span>
-<span id="L164"><span class="lineNum">     164</span> [<span class="tlaGBC" title="branch 0 was taken 64 times"> + </span><span class="tlaGBC" title="branch 1 was taken 198 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 12 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 186 times"> + </span>]:<span class="tlaGNC">         262 :         &amp;&amp; (StopParsing(options, data) || (!options.allow_unquoted &amp;&amp; !IsEnabledQuote(options, chr)))) {</span></span>
-<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 3 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 9 times"> + </span>]
-<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">          67 :       return result;</span></span>
-<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">          67 :     }</span></span>
-<span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">         365 :     data.remove_prefix(1);</span></span>
-<span id="L168"><span class="lineNum">     168</span> [<span class="tlaGBC" title="branch 0 was taken 46 times"> + </span><span class="tlaGBC" title="branch 1 was taken 319 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 34 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 285 times"> + </span>]:<span class="tlaGNC">         365 :     if (chr == '&quot;' || chr == '\'') {</span></span>
-<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">          80 :       HandleQuotes(options, chr, quotes, result);</span></span>
-<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">          80 :       continue;</span></span>
-<span id="L171"><span class="lineNum">     171</span>         [<span class="tlaGBC" title="branch 0 was taken 244 times"> + </span><span class="tlaGBC" title="branch 1 was taken 41 times"> + </span>]:<span class="tlaGNC">         285 :     } else if (chr != '\\') {</span></span>
-<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">         244 :       result += chr;</span></span>
-<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">         244 :       continue;</span></span>
-<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 40 times"> + </span>]:<span class="tlaGNC">         244 :     } else if (data.empty()) {</span></span>
+<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">         153 : absl::StatusOr&lt;std::string&gt; ParseString(const ParseOptions&amp; options, std::string_view&amp; data) {</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">         153 :   std::string result;</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">         153 :   Quotes quotes = Quotes::kNone;</span></span>
+<span id="L161"><span class="lineNum">     161</span>         [<span class="tlaGBC" title="branch 0 was taken 468 times"> + </span><span class="tlaGBC" title="branch 1 was taken 70 times"> + </span>]:<span class="tlaGNC">         538 :   while (!data.empty()) {</span></span>
+<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">         468 :     char chr = data.front();  // Cannot use `PopChar`, need the char left in-place</span></span>
+<span id="L163"><span class="lineNum">     163</span>         [<span class="tlaGBC" title="branch 0 was taken 269 times"> + </span><span class="tlaGBC" title="branch 1 was taken 199 times"> + </span>]:<span class="tlaGNC">         468 :     if (quotes == Quotes::kNone</span></span>
+<span id="L164"><span class="lineNum">     164</span> [<span class="tlaGBC" title="branch 0 was taken 65 times"> + </span><span class="tlaGBC" title="branch 1 was taken 204 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 14 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 190 times"> + </span>]:<span class="tlaGNC">         269 :         &amp;&amp; (StopParsing(options, data) || (!options.allow_unquoted &amp;&amp; !IsEnabledQuote(options, chr)))) {</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 3 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 11 times"> + </span>]
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">          68 :       return result;</span></span>
+<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">          68 :     }</span></span>
+<span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">         400 :     data.remove_prefix(1);</span></span>
+<span id="L168"><span class="lineNum">     168</span> [<span class="tlaGBC" title="branch 0 was taken 49 times"> + </span><span class="tlaGBC" title="branch 1 was taken 351 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 36 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 315 times"> + </span>]:<span class="tlaGNC">         400 :     if (chr == '&quot;' || chr == '\'') {</span></span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">          85 :       HandleQuotes(options, chr, quotes, result);</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">          85 :       continue;</span></span>
+<span id="L171"><span class="lineNum">     171</span>         [<span class="tlaGBC" title="branch 0 was taken 274 times"> + </span><span class="tlaGBC" title="branch 1 was taken 41 times"> + </span>]:<span class="tlaGNC">         315 :     } else if (chr != '\\') {</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">         274 :       result += chr;</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">         274 :       continue;</span></span>
+<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 40 times"> + </span>]:<span class="tlaGNC">         274 :     } else if (data.empty()) {</span></span>
 <span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">           1 :       return absl::InvalidArgumentError(&quot;ParseString input ends in '\\'.&quot;);</span></span>
 <span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">           1 :     }</span></span>
 <span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaGNC">          40 :     chr = PopChar(data);</span></span>
@@ -308,42 +308,42 @@
 <span id="L224"><span class="lineNum">     224</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 38 times"> + </span>]:<span class="tlaGNC">           1 :       default: return absl::InvalidArgumentError(&quot;ParseString input has unsupported escape sequence.&quot;);</span></span>
 <span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">          39 :     }  // switch for escape</span></span>
 <span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">          39 :   }</span></span>
-<span id="L227"><span class="lineNum">     227</span>         [<span class="tlaGBC" title="branch 0 was taken 63 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          67 :   if (quotes == Quotes::kNone) {</span></span>
-<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">          63 :     return result;</span></span>
-<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">          63 :   }</span></span>
-<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">           4 :   return absl::InvalidArgumentError(absl::StrFormat(</span></span>
-<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">           4 :       &quot;ParseString input has unterminated %s quotes (%s).&quot;,  //</span></span>
-<span id="L232"><span class="lineNum">     232</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           4 :       quotes == Quotes::kSingle ? &quot;single&quot; : &quot;double&quot;,       //</span></span>
-<span id="L233"><span class="lineNum">     233</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           4 :       quotes == Quotes::kSingle ? &quot;'&quot; : &quot;\&quot;&quot;));</span></span>
-<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">          67 : }</span></span>
+<span id="L227"><span class="lineNum">     227</span>         [<span class="tlaGBC" title="branch 0 was taken 65 times"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          70 :   if (quotes == Quotes::kNone) {</span></span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">          65 :     return result;</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">          65 :   }</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">           5 :   return absl::InvalidArgumentError(absl::StrFormat(</span></span>
+<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">           5 :       &quot;ParseString input has unterminated %s quotes (%s).&quot;,  //</span></span>
+<span id="L232"><span class="lineNum">     232</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           5 :       quotes == Quotes::kSingle ? &quot;single&quot; : &quot;double&quot;,       //</span></span>
+<span id="L233"><span class="lineNum">     233</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           5 :       quotes == Quotes::kSingle ? &quot;'&quot; : &quot;\&quot;&quot;));</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">          70 : }</span></span>
 <span id="L235"><span class="lineNum">     235</span>                 :             : </span>
-<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          22 : absl::StatusOr&lt;std::vector&lt;std::string&gt;&gt; ParseStringList(const ParseOptions&amp; options, std::string_view&amp; data) {</span></span>
-<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          22 :   std::vector&lt;std::string&gt; result;</span></span>
-<span id="L238"><span class="lineNum">     238</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 19 times"> + </span>]:<span class="tlaGNC">          22 :   if (data.empty()) {</span></span>
+<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          24 : absl::StatusOr&lt;std::vector&lt;std::string&gt;&gt; ParseStringList(const ParseOptions&amp; options, std::string_view&amp; data) {</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          24 :   std::vector&lt;std::string&gt; result;</span></span>
+<span id="L238"><span class="lineNum">     238</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 21 times"> + </span>]:<span class="tlaGNC">          24 :   if (data.empty()) {</span></span>
 <span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">           3 :     return result;</span></span>
 <span id="L240"><span class="lineNum">     240</span>                 :<span class="tlaGNC">           3 :   }</span></span>
-<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">          19 :   ParseOptions str_options = options;</span></span>
-<span id="L242"><span class="lineNum">     242</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          19 :   if (str_options.split_at_any_of.empty()) {</span></span>
+<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">          21 :   ParseOptions str_options = options;</span></span>
+<span id="L242"><span class="lineNum">     242</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span>]:<span class="tlaGNC">          21 :   if (str_options.split_at_any_of.empty()) {</span></span>
 <span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">           4 :     str_options.split_at_any_of = &quot;,&quot;;</span></span>
 <span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">           4 :   }</span></span>
-<span id="L245"><span class="lineNum">     245</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">          19 :   if (absl::StrContains(options.stop_at_any_of, data.front())) {</span></span>
+<span id="L245"><span class="lineNum">     245</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 20 times"> + </span>]:<span class="tlaGNC">          21 :   if (absl::StrContains(options.stop_at_any_of, data.front())) {</span></span>
 <span id="L246"><span class="lineNum">     246</span>                 :<span class="tlaGNC">           1 :     return result;</span></span>
 <span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">           1 :   }</span></span>
-<span id="L248"><span class="lineNum">     248</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 17 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaUNC" title="branch &quot;3&quot; was not taken"> - </span>]:<span class="tlaGNC">          18 :   if (data.size() == 1 &amp;&amp; absl::StrContains(str_options.split_at_any_of, data.front())) {</span></span>
+<span id="L248"><span class="lineNum">     248</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 19 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaUNC" title="branch &quot;3&quot; was not taken"> - </span>]:<span class="tlaGNC">          20 :   if (data.size() == 1 &amp;&amp; absl::StrContains(str_options.split_at_any_of, data.front())) {</span></span>
 <span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">           1 :     result.emplace_back(&quot;&quot;);</span></span>
 <span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">           1 :     result.emplace_back(&quot;&quot;);</span></span>
 <span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">           1 :     data.remove_prefix(1);</span></span>
 <span id="L252"><span class="lineNum">     252</span>                 :<span class="tlaGNC">           1 :     return result;</span></span>
 <span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">           1 :   }</span></span>
-<span id="L254"><span class="lineNum">     254</span>         [<span class="tlaGBC" title="branch 0 was taken 37 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          37 :   while (true) {</span></span>
-<span id="L255"><span class="lineNum">     255</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          37 :     MBO_ASSIGN_OR_RETURN(std::string curr, ParseString(str_options, data));</span></span>
-<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          37 :     result.emplace_back(std::move(curr));</span></span>
-<span id="L257"><span class="lineNum">     257</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 31 times"> + </span>]:<span class="tlaGNC">          37 :     if (data.empty()) {</span></span>
+<span id="L254"><span class="lineNum">     254</span>         [<span class="tlaGBC" title="branch 0 was taken 39 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">          39 :   while (true) {</span></span>
+<span id="L255"><span class="lineNum">     255</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 38 times"> + </span>]:<span class="tlaGNC">          39 :     MBO_ASSIGN_OR_RETURN(std::string curr, ParseString(str_options, data));</span></span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          38 :     result.emplace_back(std::move(curr));</span></span>
+<span id="L257"><span class="lineNum">     257</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 32 times"> + </span>]:<span class="tlaGNC">          38 :     if (data.empty()) {</span></span>
 <span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">           6 :       return result;</span></span>
 <span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">           6 :     }</span></span>
-<span id="L260"><span class="lineNum">     260</span>         [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">          31 :     if (absl::StrContains(options.stop_at_any_of, data.front())) {</span></span>
-<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">           9 :       return result;</span></span>
-<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">           9 :     }</span></span>
+<span id="L260"><span class="lineNum">     260</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">          32 :     if (absl::StrContains(options.stop_at_any_of, data.front())) {</span></span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">          10 :       return result;</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">          10 :     }</span></span>
 <span id="L263"><span class="lineNum">     263</span> [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 20 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2 times"> + </span><span class="tlaUNC" title="branch &quot;3&quot; was not taken"> - </span>]:<span class="tlaGNC">          22 :     if (data.size() == 1 &amp;&amp; absl::StrContains(str_options.split_at_any_of, data.front())) {</span></span>
 <span id="L264"><span class="lineNum">     264</span>                 :<span class="tlaGNC">           2 :       result.emplace_back(&quot;&quot;);</span></span>
 <span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">           2 :       data.remove_prefix(1);</span></span>
@@ -352,7 +352,7 @@
 <span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">          20 :     data.remove_prefix(1);</span></span>
 <span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">          20 :   }</span></span>
 <span id="L270"><span class="lineNum">     270</span>                 :<span class="tlaUNC">           0 :   return result;</span></span>
-<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">          17 : }</span></span>
+<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">          19 : }</span></span>
 <span id="L272"><span class="lineNum">     272</span>                 :             : </span>
 <span id="L273"><span class="lineNum">     273</span>                 :             : }  // namespace mbo::strings</span>
         </pre>

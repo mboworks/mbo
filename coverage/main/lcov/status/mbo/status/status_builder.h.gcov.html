@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-07 02:00:29</td>
+            <td class="headerValue">2026-09-07 03:46:43</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryMed">93.3&nbsp;%</td>
@@ -119,7 +119,7 @@
 <span id="L39"><span class="lineNum">      39</span>                 :             : // ```</span>
 <span id="L40"><span class="lineNum">      40</span>                 :             : class StatusBuilder final {</span>
 <span id="L41"><span class="lineNum">      41</span>                 :             :  public:</span>
-<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">          69 :   ~StatusBuilder() noexcept = default;</span></span>
+<span id="L42"><span class="lineNum">      42</span>                 :<span class="tlaGNC">          80 :   ~StatusBuilder() noexcept = default;</span></span>
 <span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">           2 :   StatusBuilder() noexcept = default;</span></span>
 <span id="L44"><span class="lineNum">      44</span>                 :             : </span>
 <span id="L45"><span class="lineNum">      45</span>                 :             :   // `Data` is an aggregate initialised with a designated initialiser, which make_unique cannot</span>
@@ -128,7 +128,7 @@
 <span id="L48"><span class="lineNum">      48</span>                 :             :   // above the one the check REPORTS - the initialiser below, not the signature.</span>
 <span id="L49"><span class="lineNum">      49</span>                 :             :   explicit StatusBuilder(absl::Status status)</span>
 <span id="L50"><span class="lineNum">      50</span>                 :             :       // NOLINTNEXTLINE(modernize-make-unique)</span>
-<span id="L51"><span class="lineNum">      51</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 57 times"> + </span>]:<span class="tlaGNC">          62 :       : data_(status.ok() ? nullptr : std::unique_ptr&lt;Data&gt;(new Data{.status = std::move(status)})) {}</span></span>
+<span id="L51"><span class="lineNum">      51</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 68 times"> + </span>]:<span class="tlaGNC">          73 :       : data_(status.ok() ? nullptr : std::unique_ptr&lt;Data&gt;(new Data{.status = std::move(status)})) {}</span></span>
 <span id="L52"><span class="lineNum">      52</span>                 :             : </span>
 <span id="L53"><span class="lineNum">      53</span>                 :             :   template&lt;typename T&gt;</span>
 <span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">           4 :   explicit StatusBuilder(const absl::StatusOr&lt;T&gt;&amp; status) : StatusBuilder(status.status()) {}</span></span>
@@ -199,9 +199,9 @@
 <span id="L119"><span class="lineNum">     119</span>                 :             : </span>
 <span id="L120"><span class="lineNum">     120</span>                 :             :   explicit operator absl::Status() const &amp;;</span>
 <span id="L121"><span class="lineNum">     121</span>                 :             : </span>
-<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">          48 :   operator absl::Status() &amp;&amp; {  // NOLINT(*-explicit-*)</span></span>
-<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          48 :     return absl::Status{*this};</span></span>
-<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          48 :   }</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">          59 :   operator absl::Status() &amp;&amp; {  // NOLINT(*-explicit-*)</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          59 :     return absl::Status{*this};</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          59 :   }</span></span>
 <span id="L125"><span class="lineNum">     125</span>                 :             : </span>
 <span id="L126"><span class="lineNum">     126</span>                 :             :  private:</span>
 <span id="L127"><span class="lineNum">     127</span>                 :             :   struct Data {</span>

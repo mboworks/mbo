@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-08 13:13:23</td>
+            <td class="headerValue">2026-09-08 23:06:58</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryLo">83.3&nbsp;%</td>
@@ -219,7 +219,7 @@
 <span id="L139"><span class="lineNum">     139</span>                 :             : </span>
 <span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">           2 :   static constexpr size_type length() noexcept { return num_chars; }</span></span>
 <span id="L141"><span class="lineNum">     141</span>                 :             : </span>
-<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">           4 :   static constexpr bool empty() noexcept { return num_chars == 0; }</span></span>
+<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">          32 :   static constexpr bool empty() noexcept { return num_chars == 0; }</span></span>
 <span id="L143"><span class="lineNum">     143</span>                 :             : </span>
 <span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">           2 :   static constexpr iterator begin() noexcept { return str().cbegin(); }</span></span>
 <span id="L145"><span class="lineNum">     145</span>                 :             : </span>
@@ -472,7 +472,7 @@
 <span id="L392"><span class="lineNum">     392</span>                 :             : </span>
 <span id="L393"><span class="lineNum">     393</span>                 :             :   // Concatenation.</span>
 <span id="L394"><span class="lineNum">     394</span>                 :             :   //</span>
-<span id="L395"><span class="lineNum">     395</span>                 :             :   // TODO(helly25): In C++23 or later this could maybe become a static operator.</span>
+<span id="L395"><span class="lineNum">     395</span>                 :             :   // TODO(helly25): With static call operator support this could maybe become a static operator.</span>
 <span id="L396"><span class="lineNum">     396</span>                 :             :   template&lt;char... Other&gt;</span>
 <span id="L397"><span class="lineNum">     397</span>                 :<span class="tlaGNC">          10 :   constexpr auto operator+(tstring&lt;Other...&gt; /* other */) const noexcept {</span></span>
 <span id="L398"><span class="lineNum">     398</span>                 :<span class="tlaGNC">          10 :     return tstring&lt;chars..., Other...&gt;();</span></span>

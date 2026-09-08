@@ -4,13 +4,13 @@
     "overall": {
       "lines": {
         "covered": 10313,
-        "total": 10624,
-        "percent": 97.07
+        "total": 10623,
+        "percent": 97.08
       },
       "functions": {
-        "covered": 1359,
+        "covered": 1360,
         "total": 1384,
-        "percent": 98.19
+        "percent": 98.27
       },
       "branches": {
         "covered": 3297,
@@ -20,8 +20,8 @@
     },
     "config": {
       "lines": {
-        "covered": 11,
-        "total": 11,
+        "covered": 10,
+        "total": 10,
         "percent": 100.0
       },
       "functions": {
@@ -37,14 +37,14 @@
     },
     "container": {
       "lines": {
-        "covered": 1042,
+        "covered": 1043,
         "total": 1075,
-        "percent": 96.93
+        "percent": 97.02
       },
       "functions": {
-        "covered": 241,
+        "covered": 242,
         "total": 250,
-        "percent": 96.4
+        "percent": 96.8
       },
       "branches": {
         "covered": 304,

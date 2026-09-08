@@ -161,6 +161,104 @@ class ReleaseSiteTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "both a page and a file"):
             self.build()
 
+    def test_backfill_uses_old_source_and_retains_exact_override(self):
+        override = self.root / "backfill.json"
+        data = json.dumps(self.config, indent=4).encode() + b"\n"
+        override.write_bytes(data)
+        subprocess.run(["git", "-C", str(self.source), "rm", "-q", "release-site.json"], check=True)
+        subprocess.run(["git", "-C", str(self.source), "-c", "user.name=Test",
+                        "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false",
+                        "commit", "-qm", "Historical source without a site config"], check=True)
+        site.build(self.source, self.retained, "mboworks/mbo", "v1.2.3",
+                   self.render, config_path=override)
+        output = self.retained / "site/tag/v1.2.3"
+        self.assertEqual((output / "release-site.json").read_bytes(), data)
+        metadata = json.loads((output / "release.json").read_text())
+        self.assertEqual(metadata["commit"], site.git(self.source, "rev-parse", "HEAD"))
+        self.assertEqual(metadata["configuration"]["origin"], "override")
+        self.assertEqual(metadata["configuration"]["sha256"], site.hashlib.sha256(data).hexdigest())
+        self.assertFalse((self.source / "release-site.json").exists())
+        before = (output / "index.html").read_bytes()
+        override.write_text("invalid replacement config")
+        site.build(self.source, self.retained, "mboworks/mbo", "v1.2.3",
+                   mock.Mock(side_effect=AssertionError("must not render")), config_path=override)
+        self.assertEqual((output / "index.html").read_bytes(), before)
+        self.assertEqual((output / "release-site.json").read_bytes(), data)
+
+    def test_override_never_reads_missing_content_from_publisher_checkout(self):
+        override = self.root / "backfill.json"
+        self.config["pages"]["newer.md"] = "newer.html"
+        override.write_text(json.dumps(self.config))
+        (self.root / "newer.md").write_text("content only present alongside publisher config")
+        with self.assertRaisesRegex(ValueError, "Missing.*newer.md"):
+            site.build(self.source, self.retained, "mboworks/mbo", "v1.2.3",
+                       mock.Mock(side_effect=AssertionError("must not render")), config_path=override)
+
+    def test_tag_config_remains_default_and_is_retained(self):
+        output = self.build()
+        metadata = json.loads((output / "release.json").read_text())
+        self.assertEqual(metadata["configuration"]["origin"], "tag")
+        self.assertEqual((output / "release-site.json").read_bytes(),
+                         (self.source / "release-site.json").read_bytes())
+
+    def test_unmapped_markdown_links_fail_publication(self):
+        del self.config["pages"]["docs/guide.md"]
+        self.write("release-site.json", json.dumps(self.config))
+        for link in ("docs/guide.md", "/docs/guide.md",
+                     "https://github.com/mboworks/mbo/blob/main/docs/guide.md"):
+            with self.subTest(link=link), self.assertRaisesRegex(ValueError, "no page mapping"):
+                self.build(renderer=lambda *_: f'<a href="{link}">Guide</a>')
+        self.assertFalse((self.retained / "site/tag/v1.2.3").exists())
+
+    def test_directory_readme_requires_a_mapping(self):
+        self.write("docs/README.md", "directory guide")
+        with self.assertRaisesRegex(ValueError, "no page mapping"):
+            self.build(renderer=lambda *_: '<a href="/docs/">Guide</a>')
+
+    def test_missing_generated_anchor_aborts_without_retaining_snapshot(self):
+        with self.assertRaisesRegex(ValueError, "missing generated anchor"):
+            self.build(renderer=lambda *_: '<a href="/docs/guide.md#absent">Guide</a>')
+        self.assertFalse((self.retained / "site/tag/v1.2.3").exists())
+
+    def test_generated_audit_checks_files_anchors_and_snapshot_boundaries(self):
+        output = self.root / "html"
+        output.mkdir()
+        (output / "guide.html").write_text('<h1 id="usage">Guide</h1>')
+        for link, error in (("missing.html", "missing generated link target"),
+                            ("guide.html#absent", "missing generated anchor"),
+                            ("../outside.html", "escapes release snapshot"),
+                            ("/mbo/site/tag/1.2.3/missing.html", "missing generated link target"),
+                            ("https://mboworks.github.io/mbo/site/tag/1.2.3/guide.html#absent",
+                             "missing generated anchor")):
+            with self.subTest(link=link):
+                (output / "index.html").write_text(f'<a href="{link}">Target</a>')
+                with self.assertRaisesRegex(ValueError, error):
+                    site.validate_site(output, "mboworks/mbo", "1.2.3")
+        (output / "index.html").write_text(
+            '<a href="guide.html#usage">Guide</a><a href="#here">Self</a><a name="here"></a>'
+            '<a href="/mbo/coverage/tag/1.2.3/">Coverage</a>'
+            '<a href="https://example.com/">External</a>')
+        site.validate_site(output, "mboworks/mbo", "1.2.3")
+
+    def test_reserved_config_destination_cannot_be_overwritten(self):
+        self.config["files"] = {"image.svg": "release-site.json"}
+        self.write("release-site.json", json.dumps(self.config))
+        with self.assertRaisesRegex(ValueError, "reserved destination"):
+            self.build()
+
+    def test_pages_packaging_exclusions_are_rejected_before_rendering(self):
+        for destination in (".github/guide.html", "guide/.hidden.html", ".hidden/guide.html"):
+            with self.subTest(destination=destination):
+                self.config["pages"]["docs/guide.md"] = destination
+                self.write("release-site.json", json.dumps(self.config))
+                with self.assertRaisesRegex(ValueError, "excludes hidden"):
+                    self.build(renderer=mock.Mock(side_effect=AssertionError("must not render")))
+        self.config["pages"]["docs/guide.md"] = "guide.html"
+        self.config["files"] = {"image.svg": "assets-custom/.hidden.svg"}
+        self.write("release-site.json", json.dumps(self.config))
+        with self.assertRaisesRegex(ValueError, "excludes hidden"):
+            self.build()
+
     def test_invalid_tag_cannot_escape_site_directory(self):
         for tag in ("../bad", "v1.2.3/evil", "1.2.3\nextra", "main"):
             with self.subTest(tag=tag), self.assertRaises(ValueError):

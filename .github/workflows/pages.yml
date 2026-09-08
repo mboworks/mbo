@@ -14,6 +14,11 @@ on:
         type: string
         required: false
 
+      config_path:
+        description: Optional config file on main for backfill (empty uses the tag config)
+        type: string
+        required: false
+
 permissions: {}
 
 # Share the lock and retained branch with coverage: every deployment includes both.
@@ -92,9 +97,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           LATEST_TAG: ${{ steps.release.outputs.latest }}
+          CONFIG_PATH: ${{ inputs.config_path }}
         run: |
+          set -euo pipefail
+          config_args=()
+          if [[ -n "${CONFIG_PATH}" ]]; then
+            config_file="$(realpath --canonicalize-existing "source/${CONFIG_PATH}")"
+            if [[ "${config_file}" != "${GITHUB_WORKSPACE}/source/"* ]]; then
+              echo "Configuration must be a tracked file inside the main checkout" >&2
+              exit 1
+            fi
+            git -C source ls-files --error-unmatch -- "${CONFIG_PATH}" >/dev/null
+            config_args=(--config "${config_file}")
+          fi
           python3 source/tools/release_site.py release site \
-            --repository "${GITHUB_REPOSITORY}" --tag "${RELEASE_TAG}" --latest "${LATEST_TAG}"
+            --repository "${GITHUB_REPOSITORY}" --tag "${RELEASE_TAG}" --latest "${LATEST_TAG}" \
+            "${config_args[@]}"
       - name: Retain and stage complete Pages tree
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}

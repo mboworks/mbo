@@ -14,9 +14,14 @@ Before performing any state-changing Git or GitHub operation, read `GIT_RULES.md
 follow it. State-changing operations include commits, pushes, rebases, branch rewrites, retargeting,
 merges, auto-merge changes, CI reruns, and CI cancellation.
 
-For four or fewer in-scope pull requests, the primary agent may apply `GIT_RULES.md` directly.
+Count in-scope pull requests separately for each repository. Do not add together pull requests
+from different repositories when applying this threshold.
 
-For more than four in-scope pull requests, delegate merge orchestration to one dedicated sub-agent.
+For four or fewer in-scope pull requests in one repository, the primary agent may apply
+`GIT_RULES.md` directly.
+
+For more than four in-scope pull requests in one repository, delegate that repository's merge
+orchestration to one dedicated sub-agent.
 That sub-agent must:
 
 - read `GIT_RULES.md` completely before acting;

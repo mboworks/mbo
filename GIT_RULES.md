@@ -87,7 +87,8 @@ ready.
 Testing the lone child before the base merges may provide early feedback, but it does not replace
 the required post-retarget validation and must not delay the ready base.
 
-A base with multiple independent children may instead be used as an integration branch:
+A base with multiple independent children in the same repository may instead be used as an
+integration branch:
 
 1. Test the base and every independent child separately and in parallel.
 2. Require every child selected for integration to be approved, mergeable, and fully green.
@@ -105,8 +106,14 @@ adds another CI cycle without providing parallel integration value.
 
 ## Large pull-request graph optimization
 
-When more than four in-scope pull requests are open, treat merge orchestration as a graph-planning
-problem. Build and validate the complete graph before performing any branch mutation or merge.
+Count in-scope pull requests separately for each repository. When more than four are open in one
+repository, treat that repository's merge orchestration as a graph-planning problem. Build and
+validate its complete graph before performing any branch mutation or merge.
+
+A rollout across repositories does not combine their pull-request counts or create a shared
+integration branch. For example, one pull request in each of seven repositories remains seven
+separate one-pull-request cases. Track real cross-repository dependencies when they exist, but
+apply the delegation threshold and integration procedures within each repository.
 
 GitHub base-branch relationships are only one source of dependency information. Inspect the actual
 changes and represent at least these relationships:
@@ -178,9 +185,9 @@ history, pull-request descriptions, tests, or existing instructions.
 
 ## Autonomous merge orchestration
 
-For four or fewer open pull requests, apply the deterministic rules directly. For more than four,
-first solve and record the dependency-aware merge schedule described above, then execute it while
-recomputing after every state transition.
+For four or fewer in-scope open pull requests in one repository, apply the deterministic rules
+directly. For more than four in that repository, first solve and record the dependency-aware merge
+schedule described above, then execute it while recomputing after every state transition.
 
 Merge orchestration must remain fully autonomous, including for large pull-request graphs. Do not
 pause merely because a pull request is waiting for CI, becomes conflicted, is retargeted, or fails

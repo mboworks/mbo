@@ -4,7 +4,7 @@ This document describes mbo's aggregate-introspection facilities, how field name
 the library, and the compiler backends that provide field names. It also records the relevant
 non-standard reflection implementations and their practical limitations.
 
-The implementation described here is reflection in the informal, pre-C++26 sense. C++23 has no
+The implementation described here is reflection in the informal, pre-C++26 sense. C++20 has no
 standard facility for enumerating the non-static data members of an arbitrary type or obtaining
 their identifiers. Every automatic field-name implementation therefore relies on a compiler
 extension or on parsing compiler-generated function signatures.

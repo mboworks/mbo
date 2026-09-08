@@ -286,7 +286,7 @@ namespace extender {
 // which must return `struct mbo::types::StringifyOptions`. That struct
 // contains the full documentation. While the function must technically be static
 // its first parameter is the object itself. Not that the correct type for
-// the first parameter `self` in the absence of C++23 is `Type` as provided by
+// the first parameter `self` without explicit object parameter support is `Type` as provided by
 // `Extend`.
 //
 // Example:

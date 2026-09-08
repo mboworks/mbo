@@ -25,7 +25,7 @@ common --features=layering_check,parse_headers
 # Define absl=1 to tell googletest to use absl for backtrace.
 common --define absl=1
 
-common --cxxopt=-std=c++23 --host_cxxopt=-std=c++23 --cxxopt=-Werror --host_cxxopt=-Werror
+common --cxxopt=-std=c++20 --host_cxxopt=-std=c++20 --cxxopt=-Werror --host_cxxopt=-Werror
 
 # Own the warning SET, not just the escalation: -Wall -Wextra explicitly, so the
 # first-party bar does not depend on which toolchain's defaults happen to apply.

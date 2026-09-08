@@ -1,5 +1,8 @@
 # 0.15.1
 
+- Restored C++20 as the project baseline while continuing to use newer standard-library features
+  when they are available.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang
@@ -10,8 +13,9 @@
   container kinds, capacities, key positions, ascending/descending order, and comparator types.
 - Restored the empty-input guards in log timing's reverse parsers, added direct regression tests,
   and stopped counting unreachable generated `index_of` expansions as uncovered lines.
-- Raised the development baseline to C++23, GCC 14, and Clang/LLVM 22, and updated the default
-  Bazel release to 9.2 while retaining Bazel 8 compatibility.
+- Raised the development compiler baseline to GCC 14 and Clang/LLVM 22, selected the newer language
+  mode then used by development, and updated the default Bazel release to 9.2 while retaining Bazel
+  8 compatibility.
 - Switched the bundled LLVM setup from its temporary prerelease override to the published
   `toolchains_llvm@1.9.0` Bazel Central Registry module.
 - Updated Abseil to 20260817.0 and the associated dependency selections and compatibility patches.
@@ -40,7 +44,7 @@
   `foo/**/bar` matches `foo/bar` and any number of intervening directory levels.
 - Added `mbo::StringOrView`, a read-only string-like value that either owns a `std::string` or
   borrows a `std::string_view`. It exposes the full applicable string/string-view interface,
-  comparisons, C++23-style `contains`/`subview`, stream and Abseil formatting, plus Abseil and
+  comparisons, `contains`/`subview`, stream and Abseil formatting, plus Abseil and
   `std::hash` integration.
 - Fixed `OptionalDataOrRef` construction and assignment so borrowed values cannot silently become
   dangling references; added the corresponding lifetime constraints and tests.
@@ -330,7 +334,7 @@
 
 # 0.4.4
 
-- Added `--config=cpp23` for `-std=c++23` to bazelrc and CI testing.
+- Added an opt-in newer-language configuration to bazelrc and CI testing.
 - Updated code to comply with current clang-tidy warnings.
 - Enabled Bazel layering_check.
 

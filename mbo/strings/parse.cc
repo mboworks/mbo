@@ -32,10 +32,10 @@ absl::StatusOr<char> ParseOctal(char first_char, std::string_view& data) {
   if (data.empty()) {
     return absl::InvalidArgumentError("ParseString input has bad octal sequence.");
   }
-  const bool octal_23 = first_char == 'o';
-  if (octal_23) {
+  const bool braced_octal = first_char == 'o';
+  if (braced_octal) {
     if (data.size() < 3 || data.front() != '{') {
-      return absl::InvalidArgumentError("ParseString input has bad octal C++23 sequence.");
+      return absl::InvalidArgumentError("ParseString input has bad braced octal sequence.");
     }
     data.remove_prefix(1);
     first_char = PopChar(data);
@@ -48,9 +48,9 @@ absl::StatusOr<char> ParseOctal(char first_char, std::string_view& data) {
       next_chr = (next_chr * kOctalDigit) + (PopChar(data) - '0');
     }
   }
-  if (octal_23) {
+  if (braced_octal) {
     if (data.empty() || data.front() != '}') {
-      return absl::InvalidArgumentError("ParseString input has bad octal C++23 sequence.");
+      return absl::InvalidArgumentError("ParseString input has bad braced octal sequence.");
     }
     data.remove_prefix(1);
   }
@@ -88,10 +88,10 @@ absl::StatusOr<char> ParseHex(std::string_view& data) {
   if (data.empty()) {
     return absl::InvalidArgumentError("ParseString input has bad hex sequence.");
   }
-  const bool hex_23 = data.front() == '{';
-  if (hex_23) {
+  const bool braced_hex = data.front() == '{';
+  if (braced_hex) {
     if (data.size() < 3) {
-      return absl::InvalidArgumentError("ParseString input has bad hex C++23 sequence.");
+      return absl::InvalidArgumentError("ParseString input has bad braced hex sequence.");
     }
     data.remove_prefix(1);
   }
@@ -101,9 +101,9 @@ absl::StatusOr<char> ParseHex(std::string_view& data) {
   } else {
     return absl::InvalidArgumentError("ParseString input has bad hex sequence.");
   }
-  if (hex_23) {
+  if (braced_hex) {
     if (data.empty() || data.front() != '}') {
-      return absl::InvalidArgumentError("ParseString input has bad hex C++23 sequence.");
+      return absl::InvalidArgumentError("ParseString input has bad braced hex sequence.");
     }
     data.remove_prefix(1);
   }
@@ -204,19 +204,19 @@ absl::StatusOr<std::string> ParseString(const ParseOptions& options, std::string
       case '5':    // octal first digit
       case '6':    // octal first digit
       case '7':    // octal first digit
-      case 'o': {  // octal \o{n...}, C++23
+      case 'o': {  // Braced octal: \o{n...}.
         MBO_ASSIGN_OR_RETURN(const char next_chr, ParseOctal(chr, data));
         result += static_cast<char>(next_chr);
         continue;
       }
       // "Numeric", hex
-      case 'x': {  // \x...: hex, (\x{n...}: C++23
+      case 'x': {  // Hex: \x... or braced \x{n...}.
         MBO_ASSIGN_OR_RETURN(const char next_chr, ParseHex(data));
         result += static_cast<char>(next_chr);
         continue;
       }
       // UNSUPPORTED FOLLOW:
-      case 'u':  // \u{nn..}: unicode 4 hex C++23
+      case 'u':  // \u{nn..}: Unicode 4 hex.
       case 'U':  // Unicode 8-hex
         return absl::UnimplementedError("ParseString input has not yet supported unicode escape sequence.");
       case 'N':  // \N{Name}: Named unicode char

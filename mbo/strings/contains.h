@@ -31,7 +31,7 @@ namespace mbo::strings {
 //
 // These wrappers preserve mbo's existing public API while remaining usable
 // with C++20. `std::string_view::find` is constexpr and has the same required
-// semantics; C++23's `std::string_view::contains` is equivalent here.
+// semantics; newer standard libraries provide an equivalent `std::string_view::contains`.
 //
 // This header deliberately has no dependencies beyond <string_view>, so that
 // `mbo/types` can use it without creating a cycle (`mbo/strings` depends on
@@ -45,18 +45,18 @@ namespace mbo::strings {
 //     whether `str` holds an embedded NUL - it does not mean "empty needle".
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {
-#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202011L
+#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202'011L
   return haystack.contains(needle);
 #else
-  return haystack.find(needle) != std::string_view::npos;
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 #endif
 }
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {
-#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202011L
+#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202'011L
   return haystack.contains(needle);
 #else
-  return haystack.find(needle) != std::string_view::npos;
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 #endif
 }
 

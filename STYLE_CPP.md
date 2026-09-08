@@ -15,9 +15,9 @@ an AI assistant) can follow them without reverse-engineering the tooling.
   opt-in `clang-tidy` pre-commit hook (`pre-commit run clang-tidy --all-files --hook-stage manual`,
   which shells out to [`tools/clang_tidy.sh`](tools/clang_tidy.sh)) against a `compile_commands.json`
   you generate with [`./compile_commands-update.sh`](compile_commands-update.sh). It is report-only
-  (never `--fix`) and needs a hermetic clang-tidy (>= clang-22 for this C++23 code); it skips cleanly
+  (never `--fix`) and needs a hermetic clang-tidy (>= clang-22 for this C++20 code); it skips cleanly
   when either is missing. It is **not** run by `trunk` (trunk pinned clang-tidy 16, which mis-parses
-  C++23 and auto-applied build-breaking fixes - do not re-add it there). In **CI** the dedicated
+  the code and auto-applied build-breaking fixes - do not re-add it there). In **CI** the dedicated
   `clang-tidy` job owns it: it builds the compile DB (`compile_commands-update.sh`, hermetic clang)
   and runs this hook, report-only (`continue-on-error`) until the finding sweep lands, then a hard
   gate. A branch lints only the sources it changed; `main` lints the whole tree. The enabled set is

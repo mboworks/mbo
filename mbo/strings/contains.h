@@ -19,18 +19,6 @@
 #include <string_view>
 
 namespace mbo::strings {
-namespace contains_internal {
-
-template<typename Haystack, typename Needle>
-[[nodiscard]] constexpr bool Contains(Haystack haystack, Needle needle) noexcept {
-  if constexpr (requires { haystack.contains(needle); }) {
-    return haystack.contains(needle);
-  } else {
-    return haystack.find(needle) != Haystack::npos;  // NOLINT(abseil-string-find-str-contains)
-  }
-}
-
-}  // namespace contains_internal
 
 // `constexpr` counterparts to `absl::StrContains`.
 //
@@ -43,7 +31,7 @@ template<typename Haystack, typename Needle>
 //
 // These wrappers preserve mbo's existing public API while remaining usable
 // with C++20. `std::string_view::find` is constexpr and has the same required
-// semantics; newer standard libraries provide an equivalent `std::string_view::contains`.
+// semantics as newer standard libraries' `std::string_view::contains`.
 //
 // This header deliberately has no dependencies beyond <string_view>, so that
 // `mbo/types` can use it without creating a cycle (`mbo/strings` depends on
@@ -57,11 +45,11 @@ template<typename Haystack, typename Needle>
 //     whether `str` holds an embedded NUL - it does not mean "empty needle".
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {
-  return contains_internal::Contains(haystack, needle);
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 }
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {
-  return contains_internal::Contains(haystack, needle);
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 }
 
 }  // namespace mbo::strings

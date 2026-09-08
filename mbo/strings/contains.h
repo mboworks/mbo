@@ -19,6 +19,18 @@
 #include <string_view>
 
 namespace mbo::strings {
+namespace contains_internal {
+
+template<typename Haystack, typename Needle>
+[[nodiscard]] constexpr bool Contains(Haystack haystack, Needle needle) noexcept {
+  if constexpr (requires { haystack.contains(needle); }) {
+    return haystack.contains(needle);
+  } else {
+    return haystack.find(needle) != Haystack::npos;  // NOLINT(abseil-string-find-str-contains)
+  }
+}
+
+}  // namespace contains_internal
 
 // `constexpr` counterparts to `absl::StrContains`.
 //
@@ -45,19 +57,11 @@ namespace mbo::strings {
 //     whether `str` holds an embedded NUL - it does not mean "empty needle".
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {
-#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202'011L
-  return haystack.contains(needle);
-#else
-  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
-#endif
+  return contains_internal::Contains(haystack, needle);
 }
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {
-#if defined(__cpp_lib_string_contains) && __cpp_lib_string_contains >= 202'011L
-  return haystack.contains(needle);
-#else
-  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
-#endif
+  return contains_internal::Contains(haystack, needle);
 }
 
 }  // namespace mbo::strings

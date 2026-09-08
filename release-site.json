@@ -21,7 +21,8 @@
     "STYLE_SH.md": "STYLE_SH.html",
     "TODO.md": "TODO.html",
     "mbo/diff/TODO.md": "mbo/diff/TODO.html",
-    "mbo/types/REFLECTION.md": "mbo/types/REFLECTION.html"
+    "mbo/types/REFLECTION.md": "mbo/types/REFLECTION.html",
+    "docs/release-website.md": "docs/release-website.html"
   },
   "links": [
     {

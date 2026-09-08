@@ -52,8 +52,9 @@ TEST_F(ConfigTest, ValuesAreUsableInAConstantExpression) {
 }
 
 TEST_F(ConfigTest, Constexpr23MacroIsDefined) {
-  // `MBO_CONFIG_CONSTEXPR_23` expands to `constexpr` under C++23 and to nothing
-  // otherwise; either way it must be defined, since declarations use it bare.
+  // `MBO_CONFIG_CONSTEXPR_23` expands to `constexpr` when the selected language mode supports the
+  // required constant evaluation and to nothing otherwise; either way it must be defined, since
+  // declarations use it bare.
 #ifndef MBO_CONFIG_CONSTEXPR_23
   FAIL() << "MBO_CONFIG_CONSTEXPR_23 is not defined";
 #endif

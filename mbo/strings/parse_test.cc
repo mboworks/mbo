@@ -85,10 +85,10 @@ TEST_F(ParseTest, ParseStringHex) {
   EXPECT_THAT(ParseString({}, "\\x{aF}"), IsOkAndHolds(Pair(std::string(1, static_cast<char>(0xAF)), "")));
   EXPECT_THAT(
       ParseString({}, "\\x{423}"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced hex sequence."));
   EXPECT_THAT(
       ParseString({}, "\\x{100}"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced hex sequence."));
 }
 
 TEST_F(ParseTest, ParseStringSimpleAndCustomEscapes) {
@@ -205,23 +205,23 @@ TEST_F(ParseTest, ParseStringErrors) {
       StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad octal sequence."));
   EXPECT_THAT(
       ParseString({}, "\\o{"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad octal C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced octal sequence."));
   EXPECT_THAT(
       ParseString({}, "\\o{}"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad octal C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced octal sequence."));
   EXPECT_THAT(
       ParseString({}, "\\o{12"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad octal C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced octal sequence."));
   EXPECT_THAT(
       ParseString({}, "\\x"), StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex sequence."));
   EXPECT_THAT(
       ParseString({}, "\\xz"), StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex sequence."));
   EXPECT_THAT(
       ParseString({}, "\\x{"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced hex sequence."));
   EXPECT_THAT(
       ParseString({}, "\\x{}"),
-      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad hex C++23 sequence."));
+      StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has bad braced hex sequence."));
   EXPECT_THAT(
       ParseString({}, "'"),
       StatusIs(absl::StatusCode::kInvalidArgument, "ParseString input has unterminated single quotes (')."));

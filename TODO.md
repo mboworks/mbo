@@ -52,7 +52,7 @@ also updates this file to the completed state.
   - PR: [#349](https://github.com/mboworks/mbo/pull/349).
 - [x] Correct hexadecimal escape parsing for alphabetic digits.
   - Map lowercase and uppercase `A`-`F` to values 10-15.
-  - Cover mixed-case, C++23 braced, byte-boundary, and overflow inputs.
+  - Cover mixed-case, braced, byte-boundary, and overflow inputs.
   - PR: [#347](https://github.com/mboworks/mbo/pull/347).
 - [x] Fix undefined behavior in `mbo/json/json.h` iterator assignment.
   - Replace placement construction over live iterator objects with ordinary
@@ -116,7 +116,7 @@ also updates this file to the completed state.
     making automatic field-name discovery work with supported GCC builds as
     well as Clang.
   - Evaluate GCC-specific facilities and well-defined compile-time extraction
-    techniques; switching this feature to C++23 or newer is acceptable, but the
+    techniques; switching this feature to a newer language mode is acceptable, but the
     selected language mode alone must not be mistaken for a standard reflection
     facility.
   - Define explicit behavior for unsupported compilers and aggregates whose

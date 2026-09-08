@@ -29,9 +29,9 @@ namespace mbo::strings {
 // These have the same meaning and are constexpr, so the check is satisfied without
 // giving up compile-time evaluation.
 //
-// C++23 provides `std::string_view::contains` (P1679), which is constexpr and
-// has exactly the required semantics. These wrappers preserve mbo's existing
-// public API while forwarding directly to the standard library.
+// These wrappers preserve mbo's existing public API while remaining usable
+// with C++20. `std::string_view::find` is constexpr and has the same required
+// semantics as newer standard libraries' `std::string_view::contains`.
 //
 // This header deliberately has no dependencies beyond <string_view>, so that
 // `mbo/types` can use it without creating a cycle (`mbo/strings` depends on
@@ -45,11 +45,11 @@ namespace mbo::strings {
 //     whether `str` holds an embedded NUL - it does not mean "empty needle".
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {
-  return haystack.contains(needle);
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 }
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {
-  return haystack.contains(needle);
+  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
 }
 
 }  // namespace mbo::strings

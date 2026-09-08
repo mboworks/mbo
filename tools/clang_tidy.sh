@@ -22,9 +22,9 @@
 # sources that did not themselves change.
 #
 # clang-tidy resolution prefers the hermetic toolchains_llvm binary (so it matches
-# the compile DB's clang flags and understands C++23), then a versioned system
+# the compile DB's clang flags and understands the codebase), then a versioned system
 # clang-tidy on PATH. A resolved clang-tidy older than the minimum below is treated
-# as "not installed" and skipped - clang-tidy 16/17 mis-parse this codebase's C++23
+# as "not installed" and skipped - clang-tidy 16/17 mis-parse this codebase
 # and emit false positives whose fixes break the build. That is not hypothetical:
 # trunk pinned clang-tidy 16 and its `--export-fixes` runs rewrote the working tree
 # with build-breaking "fixes", which is why clang-tidy moved here out of trunk.
@@ -34,7 +34,7 @@
 
 set -euo pipefail
 
-# The minimum clang-tidy major version. Below this, C++23 parsing is unreliable.
+# The minimum clang-tidy major version. Below this, parsing the codebase is unreliable.
 readonly MIN_MAJOR=18
 
 # clang-tidy is an automatic commit gate, so a missing prerequisite is a setup

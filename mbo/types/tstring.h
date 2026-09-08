@@ -392,7 +392,7 @@ struct tstring final {
 
   // Concatenation.
   //
-  // TODO(helly25): In C++23 or later this could maybe become a static operator.
+  // TODO(helly25): With static call operator support this could maybe become a static operator.
   template<char... Other>
   constexpr auto operator+(tstring<Other...> /* other */) const noexcept {
     return tstring<chars..., Other...>();

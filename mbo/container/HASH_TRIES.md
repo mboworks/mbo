@@ -78,7 +78,11 @@ storage, and node allocation. It must specify:
   provides a material advantage for a relevant workload;
 - full-hash collisions and unequal-key resolution;
 - non-throwing hash and equality operations as part of the public concepts;
-- ownership and lifetime of keys and values;
+- immutable keys after insertion;
+- persistent iterators exposing only const elements; transient map iterators may mutate mapped
+  values but never keys;
+- stateful hash and equality objects, including their seeds, stored in the container and preserved
+  exactly across persistent copies and transient conversions;
 - mutation and deletion in both transient and persistent modes, including path-copying persistent
   deletion and in-place mutation of uniquely owned transient nodes;
 - value-semantic persistent mutation that returns a new container and leaves the source unchanged;
@@ -89,6 +93,8 @@ storage, and node allocation. It must specify:
   invalidates the transient structurally and preserves in-place edit ownership until conversion;
 - no repeated snapshot API on the hot path unless benchmarks show that its edit-token rollover and
   subsequent copy-on-write costs are justified;
+- forward iterators that retain container identity for valid comparison but do not own or extend
+  the lifetime of a persistent snapshot;
 - iteration order without an unmeasured deterministic-order guarantee; relevant research and
   benchmarks determine whether a stronger guarantee has enough value to expose;
 - iterator/reference invalidation;
@@ -140,8 +146,9 @@ storage, and node allocation. It must specify:
 
 ## Layout guarantees
 
-- Node layout preserves references to unaffected elements across unrelated mutation.
-- Flat layout prioritizes locality and compactness; mutation may invalidate references according to
-  its documented rules.
+- Node layout preserves references and iterators across insertions and unrelated erasures; erasing
+  an element invalidates only references and iterators to that element.
+- Flat layout prioritizes locality and compactness; mutation may invalidate all iterators and
+  references according to its documented rules.
 - Both layouts are implemented for comparison, but both become public only if each demonstrates a
   material advantage for a relevant workload.

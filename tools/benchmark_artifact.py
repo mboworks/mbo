@@ -21,7 +21,7 @@ SCHEMA = "dev.mboworks.benchmark-artifact"
 SCHEMA_VERSION = 1
 DEFAULT_REPETITIONS = 9
 DEFAULT_MIN_TIME = "1s"
-DEFAULT_WARMUP_TIME = "1s"
+DEFAULT_WARMUP_TIME = 1.0
 
 
 def _run(command, cwd):
@@ -279,7 +279,7 @@ def parser():
     run.add_argument("--config", action="append", default=[])
     run.add_argument("--repetitions", type=int, default=DEFAULT_REPETITIONS)
     run.add_argument("--minimum-time", default=DEFAULT_MIN_TIME)
-    run.add_argument("--warmup-time", default=DEFAULT_WARMUP_TIME)
+    run.add_argument("--warmup-time", type=float, default=DEFAULT_WARMUP_TIME)
     run.add_argument("--cxx-standard", default="c++20")
     run.add_argument("--bazel-version")
     run.add_argument("--validity", choices=("valid", "suspect", "invalid"), default="valid")

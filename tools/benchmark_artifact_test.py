@@ -68,7 +68,7 @@ class BenchmarkArtifactTest(unittest.TestCase):
             controls={
                 "repetitions": 9,
                 "minimum_time": "1s",
-                "warmup_time": "1s",
+                "warmup_time": 1.0,
                 "random_interleaving": True,
             },
             bazel_version="bazel 9.2.0",
@@ -117,6 +117,25 @@ class BenchmarkArtifactTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "must be non-empty"):
             subject.validate(artifact)
+
+    def test_warmup_is_numeric_seconds_as_required_by_google_benchmark(self):
+        args = subject.parser().parse_args(
+            [
+                "run",
+                "--component",
+                "Arena",
+                "--target",
+                "//mbo/memory:arena_benchmark",
+                "--output",
+                "result.json",
+                "--warmup-time",
+                "0.25",
+                "--",
+                "benchmark",
+            ]
+        )
+        self.assertEqual(args.warmup_time, 0.25)
+        self.assertIsInstance(args.warmup_time, float)
 
 
 if __name__ == "__main__":

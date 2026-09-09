@@ -80,6 +80,10 @@ storage, and node allocation. It must specify:
 - ownership and lifetime of keys and values;
 - mutation and deletion in both transient and persistent modes, including path-copying persistent
   deletion and in-place mutation of uniquely owned transient nodes;
+- value-semantic persistent mutation that returns a new container and leaves the source unchanged;
+- persistent insertion returning `{new_container, inserted}` and persistent erasure returning
+  `{new_container, erased}`;
+- STL-like in-place transient mutation returning conventional iterator/bool results or counts;
 - a consuming transient-to-persistent conversion as the baseline fast path: `persistent() &&`
   invalidates the transient structurally and preserves in-place edit ownership until conversion;
 - no repeated snapshot API on the hot path unless benchmarks show that its edit-token rollover and
@@ -89,6 +93,8 @@ storage, and node allocation. It must specify:
 - iterator/reference invalidation;
 - copy, move, swap, and allocator/block-source propagation;
 - bounded and allocation-failure behavior;
+- allocator/block-source selection as part of the template contract from the beginning, including
+  bounded and no-additional-allocation arena-backed configurations;
 - exception-enabled and exception-disabled operation.
 
 ## Measurements required
@@ -100,6 +106,7 @@ storage, and node allocation. It must specify:
 - transient bulk construction with consuming conversion, compared with any repeated-snapshot
   candidate;
 - short and long strings, shared prefixes, and varying duplication ratios;
+- full-hash collision storage using flat inline arrays and separately allocated node lists;
 - node count, pointer count, bitmap density, padding, allocated bytes, and fragmentation;
 - 4-, 5-, 6-, and 7-bit hash fragments; 5 bits gives a 32-way bitmap in one 32-bit word, 6 bits
   gives a 64-way bitmap in one 64-bit word, while 4 trades smaller nodes for greater depth and 7
@@ -121,6 +128,8 @@ storage, and node allocation. It must specify:
    workload, or is consuming `persistent() &&` sufficient?
 3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
    policy rather than internal tuning?
+4. What result type reports allocation exhaustion for persistent and transient mutation in bounded
+   configurations?
 
 ## Layout guarantees
 

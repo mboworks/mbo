@@ -65,9 +65,22 @@ force arena semantics onto the typed container or vice versa.
 
 Segment capacities may be described by a compile-time size list. That permits optimized mapping
 from a dense index to known prefix ranges, for example through unrolled comparisons, while allowing
-small early segments and larger later segments. The design must define what happens after the
-listed capacities: stop at a fixed total capacity, repeat the last capacity, or transition to a
-runtime growth policy.
+small early segments and larger later segments.
+
+After the listed capacities, all three of the following are supported strategies:
+
+- stop at a fixed total capacity;
+- repeat the final segment capacity;
+- transition to another growth policy.
+
+These strategies are selected through a constexpr-compatible policy type. The policy controls
+compile-time code generation, not merely runtime configuration, so unsupported branches can be
+discarded and bounded configurations can remain usable during constant evaluation. Its behavior,
+capacity limits, overflow handling, and generated-code consequences must be fully documented.
+
+Policy complexity is justified only by measured use. The public policy surface must contain only
+strategies and parameters whose relevance is demonstrated by benchmarks; speculative flexibility
+does not become supported API.
 
 Uniform power-of-two segments receive a specialized index-mapping fast path up to a measured size
 threshold. Beyond that threshold, excessively large uniform segments may waste too much tail
@@ -317,7 +330,5 @@ Benchmarks should cover:
 12. Do `SegmentedVector` and arena storage share a public block-chain abstraction, share only a
     private implementation primitive, or remain independent until measurement exposes useful
     commonality?
-13. What follows a compile-time segment-size list: fixed exhaustion, repetition of the last size,
-    or a separate growth policy?
-14. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+13. Can arena descriptors use segment-relative offsets rather than native pointers, and which
     offset width provides the best useful capacity/footprint tradeoff?

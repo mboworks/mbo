@@ -89,6 +89,9 @@ storage, and node allocation. It must specify:
 - persistent insertion returning `{new_container, inserted}` and persistent erasure returning
   `{new_container, erased}`;
 - STL-like in-place transient mutation returning conventional iterator/bool results or counts;
+- persistent maps exposing only const mapped access and producing a new persistent map for mapped
+  updates; transient maps provide mutable mapped access and `operator[]` when the mapped type is
+  default constructible under the non-throwing construction contract;
 - a consuming transient-to-persistent conversion as the baseline fast path: `persistent() &&`
   invalidates the transient structurally and preserves in-place edit ownership until conversion;
 - no repeated snapshot API on the hot path unless benchmarks show that its edit-token rollover and
@@ -102,20 +105,60 @@ storage, and node allocation. It must specify:
 - bounded and allocation-failure behavior;
 - allocator/block-source selection as part of the template contract from the beginning, including
   bounded and no-additional-allocation arena-backed configurations;
+- an explicit deep `clone_to(source)` operation for changing allocation domains; ordinary copies,
+  persistent mutations, and transient conversions stay inside their existing ownership domain and
+  do not add per-node source metadata;
 - explicit lightweight `try_insert`, `try_emplace`, `try_erase`, and persistent equivalents for
   bounded operation, with an error enum rather than exceptions or a heavyweight status type;
 - `try_*` errors initially limited to `allocation_exhausted` and `max_size_exceeded`, with
   source-specific exhaustion mapped to the former;
-- the strong mutation guarantee: failed allocation, hashing, equality, key construction, or value
-  construction leaves the original persistent value or transient container unchanged;
-- exception machinery compiled out for non-throwing types and exception-disabled configurations;
-  support for throwing construction must not impose measurable cost on the non-throwing path;
+- the strong mutation guarantee: failed allocation leaves the original persistent value or
+  transient container unchanged;
+- supported mutation paths require non-throwing hash, equality, key construction, and value
+  construction; the implementation does not carry rollback machinery for throwing user code;
 - transient-to-persistent rvalue conversion leaving the moved-from transient valid and empty, in
   keeping with ordinary moved-from container semantics;
 - exception-enabled and exception-disabled operation.
 
 One block-source concept drives the core implementation. Adapters provide standard allocator, PMR,
 arena, and fixed-buffer integration without multiplying HAMT implementations.
+
+## Precise non-throwing contract
+
+"Non-throwing" is a compile-time API constraint, not advice to users and not a promise that the
+container catches exceptions:
+
+- Every supported call to `Hash` and `KeyEqual` must be statically `noexcept` for the lookup key
+  types used by that call.
+- A modifier overload participates only when constructing the new key and mapped value from that
+  overload's actual arguments is statically `noexcept`.
+- Operations used to place or reorganize existing elements must also be statically `noexcept`.
+  Node layout can normally preserve and share element nodes instead of moving their values. Flat
+  layout additionally requires any moves its representation performs to be non-throwing.
+- Destruction must be non-throwing. A throwing destructor is unsupported.
+- These requirements apply to the expressions an operation actually evaluates, not merely to the
+  declared key and mapped types. A type may therefore support one insertion overload and not
+  another.
+- Unsupported potentially throwing overloads are rejected during constraint checking with a
+  diagnostic; the container does not surround user operations with hidden `try`/`catch`, maintain
+  exception-only rollback state, or silently call `std::terminate` for them.
+- `try_*` reports only block-source exhaustion and maximum-size exhaustion. It never translates a
+  user exception into an error result because supported hash, equality, construction, movement,
+  and destruction cannot throw.
+- Allocation failure is distinct from object construction. A bounded block source reports failure
+  before construction begins, allowing `try_*` to preserve the original container without
+  exception machinery.
+
+This contract has important consequences. For example, constructing a new `std::string` from
+characters can allocate and is generally not `noexcept`, so an insertion overload that performs
+that construction is not supported by the non-throwing HAMT API. Moving an already constructed
+value may be supported when that exact move construction is `noexcept`. Allocator-aware element
+types must satisfy the constraint under the allocator and operation actually selected.
+
+The allocation-exhaustion behavior of ordinary, non-`try_*` modifiers remains a separate API
+decision. Users requiring recoverable bounded operation use `try_*`; the non-throwing contract does
+not by itself decide whether an ordinary operation throws, terminates, or invokes a configured
+failure handler when its block source is exhausted.
 
 ## Measurements required
 
@@ -146,7 +189,8 @@ arena, and fixed-buffer integration without multiplying HAMT implementations.
 
 ## Open questions
 
-1. Which ownership strategy wins for persistent structural sharing: atomic intrusive counts,
+1. Which ownership strategy wins within an allocation domain for persistent structural sharing:
+   atomic intrusive counts,
    constrained non-atomic ownership, an ownership domain, arena/generation retention, or a useful
    combination?
 2. Does a repeated non-consuming transient snapshot operation justify its cost in any measured
@@ -155,9 +199,8 @@ arena, and fixed-buffer integration without multiplying HAMT implementations.
    policy rather than internal tuning?
 4. What exact lightweight result types carry the value/result, mutation flag, and bounded-operation
    error without imposing work on the successful path?
-5. Should changing block-source ownership always be an explicit deep `clone_to(source)` operation,
-   allowing ordinary copies, persistent mutations, and transient conversions to remain inside one
-   ownership domain without per-node source metadata?
+5. Can transient structural mutation preserve node-layout iterators without measurable linked-list
+   or root-search overhead, or should it preserve references while invalidating iterators?
 
 ## Layout guarantees
 

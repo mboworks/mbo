@@ -116,10 +116,10 @@ and optimized specially. Neither benefit should be assumed material until measur
 
 A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
 with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
-integer so applications can trade capacity against memory footprint. Whether signed underlying
-types are useful remains open. Unsigned types expose their full range naturally; signed types only
-provide value if negative sentinels justify sacrificing half the non-negative ID space. ID
-exhaustion must be detected before mutating either storage or the index.
+unsigned integer so applications can trade capacity against memory footprint. These are the
+supported POD representations; other underlying types, including signed integers, are not
+supported without a demonstrated use. ID exhaustion must be detected before mutating either
+storage or the index.
 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 `local_size()` is the number added directly to that interner.
@@ -154,18 +154,51 @@ similar member functions.
 
 Lookup supports both traversal directions, analogous to `find` and `rfind`:
 
-- `find` starts at the beginning of the visible ID space, searching the topmost visible ancestor
-  first and ending with the child;
-- `rfind` starts at the end of the visible ID space, searching the child first and then its visible
-  ancestors in reverse order.
+- `find` traverses forward from the beginning of the topmost visible parent and ends at the child;
+- `rfind` traverses backward from the last visible child ID and ends at the topmost visible parent.
 
 This distinction is observable when the same string acquired different IDs in independently
 mutated ancestors and descendants after a snapshot. Interning an already visible string still
 needs one defined lookup direction; this remains to be selected explicitly.
 
+### Immutability and iteration
+
+Interned strings can never be changed or deleted. An interner is append-only, and every interner's
+visible IDs form the contiguous interval `[0, size())`, regardless of how many parent snapshots
+provide that prefix. Local storage begins at the captured parent cutoff, but `begin()` does not mean
+local begin: it denotes the first ID in the topmost visible parent.
+
+Consequently, `begin()` represents ID zero and `end()` represents ID `size()`. Standard reverse
+iterators derive from the same half-open interval, making `rbegin()` start with `size() - 1` when
+non-empty and making `rbegin() == rend()` when empty. No special reverse-iteration sentinel is
+needed beyond the usual iterator representation.
+
+An iterator must retain interner identity as well as position. Numeric IDs alone are insufficient
+for iterator equality because different snapshot branches can assign the same local ID to different
+strings. Appending must preserve existing element references and iterators; as with other growing
+containers, an iterator that previously represented `end()` need not become the new end.
+
+### Immutability and iteration
+
+Interned strings can never be changed or deleted. An interner is append-only, and every interner's
+visible IDs form the contiguous interval `[0, size())`, regardless of how many parent snapshots
+provide that prefix. Local storage begins at the captured parent cutoff, but `begin()` does not mean
+local begin: it denotes the first ID in the topmost visible parent.
+
+Consequently, `begin()` represents ID zero and `end()` represents ID `size()`. Standard reverse
+iterators derive from the same half-open interval, making `rbegin()` start with `size() - 1` when
+non-empty and making `rbegin() == rend()` when empty. No special reverse-iteration sentinel is
+needed beyond the usual iterator representation.
+
+An iterator must retain interner identity as well as position. Numeric IDs alone are insufficient
+for iterator equality because different snapshot branches can assign the same local ID to different
+strings. Appending must preserve existing element references and iterators; as with other growing
+containers, an iterator that previously represented `end()` need not become the new end.
+
 ## Customization
 
-The public template should permit independent policies or compatible containers for:
+One allocator-shaped abstraction is insufficient because customization covers more than acquiring
+raw memory. The public design should permit separate policies or compatible implementations for:
 
 - the hash function and transparent equality;
 - the string-to-ID index;
@@ -173,9 +206,16 @@ The public template should permit independent policies or compatible containers 
 - the ID-to-view table;
 - the identifier representation and possibly the failure policy.
 
-The eventual constraints must describe behavior rather than require a particular STL spelling.
-In particular, heterogeneous lookup by `std::string_view` is essential: using a container that
-constructs an owning `std::string` for every lookup defeats a central goal.
+Each extension point must have a narrow behavioral contract enforced by a C++ concept. Multiple
+interfaces are acceptable where ownership, block acquisition, indexing, and typed element storage
+have genuinely different requirements. They must compose without requiring inheritance or one
+particular memory-resource model.
+
+The constraints must describe behavior rather than require a particular STL spelling. In
+particular, heterogeneous lookup by `std::string_view` is essential: using a container that
+constructs an owning `std::string` for every lookup defeats a central goal. PMR resources and arenas
+are adapters where they meet the relevant concepts, not fundamental requirements imposed on every
+configuration.
 
 An mbo default should provide excellent performance and stable views. Compatibility adapters can
 make `std::unordered_map` and Abseil flat/node hash containers usable where their invalidation and
@@ -311,24 +351,21 @@ Benchmarks should cover:
    invalid? Which result should the primary API use if measurement finds no meaningful difference?
 2. Which direction does `Intern` use to find an already visible string: `find` from the topmost
    ancestor or `rfind` from the child?
-3. What is the default ID width, and do we support only unsigned 8-, 16-, 32-, and 64-bit types or
-   signed types as well?
-4. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
+3. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
    capacity, allocator failure, and invalid configuration?
-5. Should both the character store and index receive the same `std::pmr::memory_resource`, or
-   should storage be a more general template concept with PMR supplied as one adapter?
-6. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
+4. What is the default unsigned ID width?
+5. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
    or is accepting the overload and copying into the default arena sufficient initially?
-7. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
+6. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
    destruction? Can some operations be deleted to preserve a simpler guarantee?
-8. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.
-9. Is thread safety entirely external, or should there be a read-only frozen form supporting
+7. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.
+8. Is thread safety entirely external, or should there be a read-only frozen form supporting
    concurrent lookup?
-10. Do we need serialization or deterministic reconstruction of the dense ID table?
-11. Should the advanced heterogeneous parent facility be part of version one, experimental, or
+9. Do we need serialization or deterministic reconstruction of the dense ID table?
+10. Should the advanced heterogeneous parent facility be part of version one, experimental, or
     postponed until a concrete optimized organization demonstrates its constraints?
-12. Do `SegmentedVector` and arena storage share a public block-chain abstraction, share only a
+11. Do `SegmentedVector` and arena storage share a public block-chain abstraction, share only a
     private implementation primitive, or remain independent until measurement exposes useful
     commonality?
-13. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+12. Can arena descriptors use segment-relative offsets rather than native pointers, and which
     offset width provides the best useful capacity/footprint tradeoff?

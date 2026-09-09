@@ -60,6 +60,22 @@ backing-source failure are distinct internal conditions; the public error granul
 unsettled. Not expressing failure means a documented hard failure such as termination, not
 undefined behavior or an undersized allocation.
 
+### Existing mbo failure-policy precedent
+
+Existing bounded containers use `MBO_CONFIG_REQUIRE` when an operation cannot satisfy a capacity
+precondition. It throws `std::runtime_error` only when mbo's exception policy is explicitly enabled
+and otherwise terminates through fatal logging. Reusing that mechanism for hard-failing `Allocate`
+would keep the arena consistent with `LimitedVector`, `LimitedMap`, and `LimitedSet`.
+
+Resource exhaustion can also be ordinary control flow, particularly for a caller-supplied bounded
+arena. `TryAllocate` must therefore avoid the requirement mechanism and report failure directly.
+A nullable pointer carries the same success/failure information as `optional<std::byte*>` in a
+smaller conventional representation; a separate diagnostic operation can return a typed reason if
+real callers need it.
+
+This is the current recommendation, not a settled decision: `Allocate` uses the configurable hard
+requirement and `TryAllocate` returns null without logging or throwing.
+
 ## Block sources and growth
 
 A block-source concept should express acquisition, ownership, alignment, and release behavior. It

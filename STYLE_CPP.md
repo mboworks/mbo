@@ -43,6 +43,12 @@ an AI assistant) can follow them without reverse-engineering the tooling.
 - Private data members: `lower_case` with a trailing `_` (`flags_`).
 - constexpr / enum constants / global + static constants: `k` + `CamelCase` (`kMaxDepth`).
 - Macros: `UPPER_CASE`, prefixed `MBO_` (`MBO_...`).
+- Suffix a structural configuration value containing fine-grained fields or flags with `Options`
+  (`LimitedOptions`, `HamtOptions`). Reserve `Policy` for a type that supplies a coherent behavior
+  or strategy through operations and invariants (`GrowthPolicy`, `OwnershipPolicy`). An option may
+  select a strategy without making the complete configuration object a policy. Keep established
+  capability names such as `Hash`, `KeyEqual`, `Allocator`, and `BlockSource` rather than adding a
+  redundant suffix.
 
 ## Code organization
 

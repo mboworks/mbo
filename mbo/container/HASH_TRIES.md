@@ -48,6 +48,10 @@ The implementation must be complete, correct, production-quality, and benchmarke
 prototype implementations are not design targets. They may suggest representation ideas, but do
 not reduce mbo's requirements for correctness, completeness, robustness, or measured performance.
 
+HAMT is a general `mbo/container` facility regardless of whether it ultimately wins the
+StringInterner index benchmarks. StringInterner may consume it through a compatible-index contract;
+HAMT is not a restricted or string-specific implementation detail.
+
 ## Potential roles
 
 | Role                            | HART fit                                      | HAMT fit                                       |
@@ -70,12 +74,14 @@ The mbo HAMT should be expressed through behavioral concepts for hash, equality,
 storage, and node allocation. It must specify:
 
 - both map and set forms over common internal machinery, plus heterogeneous lookup;
-- flat versus node storage as a measured policy or implementation decision rather than an API
-  omission;
+- both flat and node storage implementations for benchmarks, exposing both publicly only if each
+  provides a material advantage for a relevant workload;
 - full-hash collisions and unequal-key resolution;
 - ownership and lifetime of keys and values;
-- mutation, deletion, persistence, and snapshot semantics;
-- iteration order and whether it is deterministic;
+- mutation and deletion in both transient and persistent modes, including path-copying persistent
+  deletion and in-place mutation of uniquely owned transient nodes;
+- iteration order without an unmeasured deterministic-order guarantee; relevant research and
+  benchmarks determine whether a stronger guarantee has enough value to expose;
 - iterator/reference invalidation;
 - copy, move, swap, and allocator/block-source propagation;
 - bounded and allocation-failure behavior;
@@ -97,9 +103,9 @@ storage, and node allocation. It must specify:
 
 ## Open questions
 
-1. Should HAMT expose a flat/node policy publicly, select the representation internally, or offer
-   distinct optimized container aliases after benchmarking both?
-2. Is HAMT deletion required even though the string interner itself is append-only?
-3. Must HAMT iteration be deterministic across processes and hash seeds?
-4. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
-5. Is HAMT a general public container or initially an experimental string-index implementation?
+1. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
+2. What ownership mechanism and API distinguish persistent values from uniquely owned transients?
+3. Does conversion from persistent to transient require unique ownership, copy on first mutation,
+   or an edit-token technique?
+4. Which iterator/reference guarantees can flat and node layouts provide without compromising
+   their respective performance goals?

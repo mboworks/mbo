@@ -14,7 +14,9 @@ and assigns compact dense identifiers. It supports fast lookup in both direction
 - snapshot parent/child interning, allowing related domains to share a stable prefix while adding
   independent local strings;
 - configurable hashing, indexing, and character storage, including arena-backed and bounded
-  allocation-free configurations.
+  allocation-free configurations;
+- a reusable `SegmentedVector` built from fixed-capacity segments for append-oriented stable
+  storage, including but not limited to the interner's dense ID table.
 
 The design should make the efficient configuration easy while allowing users to choose different
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
@@ -32,6 +34,15 @@ Separating these concerns is important. An arena can eliminate per-string charac
 but it does not make a node-based hash table allocation-free. A fully bounded interner must bound
 and supply storage for both the character data and every index/table allocation.
 
+The ordered ID-to-view table naturally wants `SegmentedVector`, an append-oriented container made
+from fixed-capacity segments. It must provide stable element addresses and efficient indexing by
+dense position. Developing this reusable container is an explicit goal of the project, not merely
+a private interner implementation detail. Its API should nevertheless be driven by demonstrated
+requirements and measured behavior rather than speculative generality.
+
+The byte arena has different packing and lifetime needs and should not automatically share the
+`SegmentedVector` abstraction.
+
 ### Identity and equality
 
 Strings are equal by byte content and length. Input view address and the source object's lifetime
@@ -44,17 +55,27 @@ them.
 
 ### Identifiers
 
-Identifiers are dense and monotonically assigned within the visible identifier space. Two layouts
-are still under consideration:
+Identifiers are dense ordinals and are monotonically assigned within the visible identifier space.
+They are not hash values. The selected hash function may therefore produce every value in its
+range, including zero, without colliding with an invalid-ID representation.
+
+Two ID layouts are still under consideration:
 
 | Layout                  | First ID | New ID                 | Failure representation             |
 | ----------------------- | -------: | ---------------------- | ---------------------------------- |
 | Zero-based              |        0 | `size()` before insert | Separate result type               |
 | One-based with sentinel |        1 | `size()` after insert  | Zero can represent invalid/failure |
 
-The one-based layout makes a compact sentinel-returning hot-path API possible. A strong `StringId`
-type should prevent accidental arithmetic and avoid confusing an invalid value with a valid
-integer. ID exhaustion must be detected before mutating either storage or the index.
+The one-based layout makes a compact sentinel-returning hot-path API possible. The zero-based
+layout permits ID zero to identify the empty string, which could be inserted during construction
+and optimized specially. Neither benefit should be assumed material until measured.
+
+A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
+with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
+integer so applications can trade capacity against memory footprint. Whether signed underlying
+types are useful remains open. Unsigned types expose their full range naturally; signed types only
+provide value if negative sentinels justify sacrificing half the non-negative ID space. ID
+exhaustion must be detected before mutating either storage or the index.
 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 `local_size()` is the number added directly to that interner.
@@ -87,10 +108,16 @@ supporting organizations whose parent and child hold strings of substantially di
 Such compatibility must be expressed as a deliberate concept, not inferred from coincidentally
 similar member functions.
 
-Whether lookup checks local entries before the captured parent prefix remains to be settled. Local
-first is the natural rule because it preserves a child's own ID if duplicates can arise after the
-snapshot, but the insertion algorithm should normally avoid a local duplicate of a string already
-visible at child creation.
+Lookup supports both traversal directions, analogous to `find` and `rfind`:
+
+- `find` starts at the beginning of the visible ID space, searching the topmost visible ancestor
+  first and ending with the child;
+- `rfind` starts at the end of the visible ID space, searching the child first and then its visible
+  ancestors in reverse order.
+
+This distinction is observable when the same string acquired different IDs in independently
+mutated ancestors and descendants after a snapshot. Interning an already visible string still
+needs one defined lookup direction; this remains to be selected explicitly.
 
 ## Customization
 
@@ -109,6 +136,24 @@ constructs an owning `std::string` for every lookup defeats a central goal.
 An mbo default should provide excellent performance and stable views. Compatibility adapters can
 make `std::unordered_map` and Abseil flat/node hash containers usable where their invalidation and
 allocation guarantees fit the selected storage arrangement.
+
+### Owning-string insertion
+
+For compatibility with standard-container conventions, insertion should also accept an rvalue
+`std::string`. This must not force the default representation to store one `std::string` object per
+entry or weaken arena support.
+
+The overload is therefore a capability of the selected storage backend:
+
+- an owning-string backend may adopt the moved string's allocation where it can preserve the
+  character address;
+- an arena backend copies the bytes into arena storage, even when its input is an rvalue;
+- a bounded backend succeeds only when its supplied capacity can hold the bytes and index entry.
+
+Small-string optimization means moving a `std::string` does not universally transfer a stable heap
+allocation. An owning-string backend must also choose a representation whose later growth, moves,
+or relocation cannot invalidate views into short strings. This profile is an additional option,
+not a cost paid by the arena-oriented default.
 
 ## Allocation models
 
@@ -152,7 +197,9 @@ Names and exact return types are deliberately provisional:
 
 ```cpp
 StringId Intern(std::string_view value);
+StringId Intern(std::string&& value);
 std::optional<StringId> Find(std::string_view value) const;
+std::optional<StringId> RFind(std::string_view value) const;
 std::optional<std::string_view> Lookup(StringId id) const;
 
 std::size_t size() const;
@@ -160,9 +207,12 @@ std::size_t local_size() const;
 bool empty() const;
 ```
 
-We must decide whether insertion reports whether it created a local entry, for example with an
-`InsertResult { StringId id; bool inserted; }`, and whether the fast sentinel API and diagnostic
-API should have distinct names such as `Intern` and `TryIntern`.
+Insertion follows the standard associative-container convention and reports both the ID and
+whether it created a local entry, for example with
+`InsertResult { StringId id; bool inserted; }`. This result should have no measurable cost over
+returning only the ID. If measurement finds a material cost, or ID-only use is sufficiently common,
+an additional convenience method may return only `StringId`. The fast sentinel API and diagnostic
+API may still need distinct names such as `Intern` and `TryIntern`.
 
 ## Correctness invariants
 
@@ -180,26 +230,35 @@ API should have distinct names such as `Intern` and `TryIntern`.
 
 Benchmarks should cover:
 
-- repeated hits and unique inserts across short, medium, and long strings;
+- repeated hits and unique inserts across short, medium, and long strings, including the empty
+  string and small-string-optimized inputs;
 - high and low duplication ratios;
 - root, shallow-child, and deep-chain lookups, separating local and ancestor hits;
 - adversarial and ordinary hash collisions;
 - allocation count, allocated bytes, resident memory, and fragmentation;
 - arena segment sizes and bounded-capacity exhaustion;
+- ID-table chunk sizes, lookup cost, wasted tail capacity, and traversal/indexing strategies;
 - standard, Abseil, and mbo-provided index implementations;
+- zero-based and one-based ID layouts, including any optimized pre-interned empty string;
+- 8-, 16-, 32-, and 64-bit ID representations where practical;
 - sentinel, optional, status, expected, and throwing adapters where supported;
+- `std::string_view` insertion, moved-string adoption, and moved-string-to-arena copying;
 - lookup and insertion latency distributions, not only throughput averages.
 
 ## Open questions
 
-1. Do we adopt one-based IDs with zero invalid, replacing the earlier zero-based dense-ID rule?
-2. Does `Find` search local entries first and then each captured ancestor prefix?
-3. Does the main insertion API return only `StringId`, or an `{id, inserted}` result?
-4. What is the default ID width: `std::uint32_t`, `std::uint64_t`, or `std::size_t`?
-5. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
+1. Do we use zero-based IDs, possibly with a pre-interned empty string, or one-based IDs with zero
+   invalid? Which result should the primary API use if measurement finds no meaningful difference?
+2. Which direction does `Intern` use to find an already visible string: `find` from the topmost
+   ancestor or `rfind` from the child?
+3. What is the default ID width, and do we support only unsigned 8-, 16-, 32-, and 64-bit types or
+   signed types as well?
+4. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
    capacity, allocator failure, and invalid configuration?
-6. Should both the character store and index receive the same `std::pmr::memory_resource`, or
+5. Should both the character store and index receive the same `std::pmr::memory_resource`, or
    should storage be a more general template concept with PMR supplied as one adapter?
+6. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
+   or is accepting the overload and copying into the default arena sufficient initially?
 7. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
    destruction? Can some operations be deleted to preserve a simpler guarantee?
 8. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.

@@ -129,6 +129,37 @@ storage, and node allocation. It must specify:
 One block-source concept drives the core implementation. Adapters provide standard allocator, PMR,
 arena, and fixed-buffer integration without multiplying HAMT implementations.
 
+## Public type and policy shape
+
+Abseil's `flat_hash_map`, `flat_hash_set`, `node_hash_map`, and `node_hash_set` establish a useful
+precedent: materially different flat and node guarantees are visible in the type name, not hidden
+behind a runtime switch. mbo follows that shape with distinct flat/node and map/set HAMT types over
+one shared implementation. The final spelling, such as `FlatHamtMap` versus `HamtFlatMap`, remains a
+naming decision rather than an architectural one.
+
+The existing `LimitedMap` and `LimitedSet` provide the blueprint for richer compile-time options.
+Their `LimitedOptions` structural constexpr value combines capacity and feature flags in a value
+suitable for a non-type template argument, validates the contract with a concept, and allows
+compile-time branching to remove unused behavior. HAMT follows the same principles:
+
+- a constexpr-compatible structural policy value rather than runtime configuration;
+- concepts that validate the options and behavioral customization types;
+- compile-time selection of fragment width, bitmap/node representation, ownership, persistence,
+  bounded behavior, and any iterator-stability strategy;
+- no runtime branch or stored policy state for choices known at compile time;
+- named public flat/node container families so consequential guarantees remain obvious at use
+  sites;
+- only benchmark-proven choices retained as supported public options.
+
+Map and set forms are views over the same machinery, not separate implementations. Likewise,
+option variation must specialize shared primitives rather than multiply core implementations.
+
+The names distinguish configuration from behavior. `HamtOptions` is the candidate structural
+constexpr value for compile-time configuration. "Policy" is reserved for behavioral customization
+types where useful, such as ownership or block-allocation strategies; hash and equality retain their
+familiar dedicated template roles. This matches the `LimitedOptions` precedent without forcing all
+extension points into one vocabulary.
+
 ## Precise non-throwing contract
 
 "Non-throwing" is a compile-time API constraint, not advice to users and not a promise that the
@@ -205,7 +236,7 @@ This keeps recovery state and result handling out of the ordinary successful pat
 2. Does a repeated non-consuming transient snapshot operation justify its cost in any measured
    workload, or is consuming `persistent() &&` sufficient?
 3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
-   policy rather than internal tuning?
+   options rather than internal tuning?
 4. What exact lightweight result types carry the value/result, mutation flag, and bounded-operation
    error without imposing work on the successful path?
 5. Can transient structural mutation preserve node-layout iterators without measurable linked-list
@@ -215,7 +246,7 @@ This keeps recovery state and result handling out of the ordinary successful pat
 
 - Node layout preserves references across insertions and unrelated erasures; erasing an element
   invalidates references to that element. Transient iterator stability remains benchmark- or
-  policy-selected because preserving it may require extra per-element memory or slower traversal.
+  option-selected because preserving it may require extra per-element memory or slower traversal.
 - Flat layout prioritizes locality and compactness; mutation may invalidate all iterators and
   references according to its documented rules.
 - Both layouts are implemented for comparison, but both become public only if each demonstrates a

@@ -155,10 +155,9 @@ that construction is not supported by the non-throwing HAMT API. Moving an alrea
 value may be supported when that exact move construction is `noexcept`. Allocator-aware element
 types must satisfy the constraint under the allocator and operation actually selected.
 
-The allocation-exhaustion behavior of ordinary, non-`try_*` modifiers remains a separate API
-decision. Users requiring recoverable bounded operation use `try_*`; the non-throwing contract does
-not by itself decide whether an ordinary operation throws, terminates, or invokes a configured
-failure handler when its block source is exhausted.
+Ordinary non-`try_*` modifiers treat allocation exhaustion as a hard failure through mbo's
+configured requirement mechanism. Users requiring recoverable bounded operation must use `try_*`.
+This keeps recovery state and result handling out of the ordinary successful path.
 
 ## Measurements required
 
@@ -182,6 +181,10 @@ failure handler when its block source is exhausted.
 - per-node source/deleter metadata versus a shared ownership domain with explicit deep cloning when
   changing domains; cross-source flexibility must justify its node-footprint and hot-path cost;
 - cache misses, branch behavior, code size, and latency distributions;
+- transient node-layout iterator designs: compact traversal-stack iterators invalidated by
+  structural mutation, per-element iteration links, a separate iteration index, and root-searching
+  increment where credible; measure iterator size, per-element memory, mutation cost, and traversal
+  cost rather than assuming stability is free;
 - comparison with `std::unordered_map`, Abseil hash containers, adaptive radix trees, and a simple
   sorted/dense index where appropriate;
 - single-threaded operation without concurrency overhead;

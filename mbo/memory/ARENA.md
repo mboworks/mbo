@@ -24,12 +24,13 @@ The design separates facilities that are often conflated under the name arena:
 
 1. A block source acquires and releases backing blocks.
 2. A byte arena suballocates aligned byte ranges from those blocks.
-3. An optional object-lifetime layer constructs objects and, when required, records destruction.
+3. A deferred object-lifetime layer constructs objects and, when required, records destruction.
 4. Domain storage, such as the interner's character store, defines record layout and indexing.
 
 This separation permits a minimal character arena without forcing destructor-registration overhead
-onto every allocation. Both layers are supported: byte-oriented users pay no typed-lifetime cost,
-while typed use selects the construction/destruction layer it needs.
+onto every allocation. The initial implementation is the raw byte `Arena`. A distinct `ObjectArena`
+with typed construction and reverse-order destructor registration is deferred until a concrete use
+requires it.
 
 ## Byte-arena contract
 
@@ -53,6 +54,7 @@ std::byte* TryAllocate(std::size_t size, std::size_t alignment = alignof(std::ma
 std::size_t bytes_used() const noexcept;
 std::size_t bytes_reserved() const noexcept;
 void Reset();
+void Release();
 ```
 
 `TryAllocate` returns null on failure in this sketch. The final failure-aware API may instead use an
@@ -74,8 +76,9 @@ A nullable pointer carries the same success/failure information as `optional<std
 smaller conventional representation; a separate diagnostic operation can return a typed reason if
 real callers need it.
 
-This is the current recommendation, not a settled decision: `Allocate` uses the configurable hard
-requirement and `TryAllocate` returns null without logging or throwing.
+`Allocate` uses the configurable hard requirement. `TryAllocate` returns null without logging or
+throwing. Invalid alignment is a programmer precondition failure rather than ordinary resource
+exhaustion.
 
 ## Block sources and growth
 
@@ -88,29 +91,24 @@ must be possible to provide:
 - a source using a constexpr-compatible fixed representation;
 - test and benchmark sources that count every acquired byte and block.
 
-Block growth uses only policies justified by benchmarks. As with `SegmentedSequence`, a constexpr
-policy may stop after a size list, repeat its final size, or transition to another policy. Requests
-larger than the next normal block require a settled oversized-allocation rule: dedicate a block,
-advance the growth sequence, or fail.
+Block growth uses only strategies justified by benchmarks. As with `SegmentedSequence`, constexpr
+options may stop after a size list, repeat its final size, or transition to another growth strategy.
+A request larger than the next normal block receives a dedicated oversized block and does not
+advance or otherwise distort the normal growth sequence.
 
 The policy must guard addition, multiplication, alignment rounding, and representation conversion
 against overflow before acquiring or committing storage.
 
-## Typed object lifetime
+## Deferred `ObjectArena`
 
-A typed adapter could provide `Create<T>(args...)`. Construction failure must not publish the
+A future typed adapter may provide `Create<T>(args...)`. Construction failure must not publish the
 object; whether it may consume otherwise unreachable tail bytes depends on the arena's rollback
 contract.
 
-For trivially destructible objects, no destructor metadata is needed. Non-trivial objects select an
-explicit contract:
-
-- reject them at compile time;
-- construct them but require the caller to destroy them separately;
-- register destructors and invoke them in reverse construction order during reset/destruction.
-
-Destructor registration costs space and time per object and changes reset complexity. It must not
-be imposed on byte/string-only configurations unless measurement and real use justify it.
+For trivially destructible objects, no destructor metadata is needed. `ObjectArena` registers
+non-trivial destructors and invokes them in reverse construction order during reset, release, or
+destruction. Destructor registration costs space and time per object and changes reset complexity;
+none of that state or work is present in raw `Arena`.
 
 ## String-record layouts
 
@@ -137,21 +135,26 @@ Both components can acquire a chain of blocks. Their public contracts remain dis
 A private shared block-chain primitive is plausible. A public common abstraction requires evidence
 that it simplifies real customization without leaking one component's semantics into the other.
 
+`Reset()` retains reusable normal and policy-selected oversized blocks while resetting allocation
+state. `Release()` returns every backing block to its source and restores the arena to its initial
+empty state. The exact automatic retention limits are selected through `ArenaOptions` only when
+benchmarks demonstrate useful alternatives.
+
 ## Required guarantees to settle
 
-| Area                 | Decision required                                                        |
-| -------------------- | ------------------------------------------------------------------------ |
-| Typed lifetime       | Raw bytes only or an optional destructor-registering object layer        |
-| Failure result       | Sentinel, optional, status, expected-like result, or policy-selected API |
-| Reset                | Retain all blocks, retain one block, or release all backing storage      |
-| Rollback             | Whether failed construction/transactions reclaim tail bytes              |
-| Oversized allocation | Dedicated block, growth-sequence interaction, or failure                 |
-| Zero-size allocation | Canonical pointer/range and accounting behavior                          |
-| Maximum alignment    | Supported bound and behavior for over-aligned requests                   |
-| Move/swap            | Address stability, block-source propagation, and invalidation            |
-| Thread safety        | External synchronization or specialized concurrent mode                  |
-| Introspection        | Required byte/block counters without affecting hot paths                 |
-| Constexpr            | Exact fixed-storage operations supported during constant evaluation      |
+| Area                 | Decision required                                                      |
+| -------------------- | ---------------------------------------------------------------------- |
+| Typed lifetime       | Raw `Arena` now; reverse-destruction `ObjectArena` deferred            |
+| Failure result       | Null from `TryAllocate`; configured hard failure from `Allocate`       |
+| Reset                | `Reset` retains reusable blocks; `Release` returns every backing block |
+| Rollback             | Whether failed construction/transactions reclaim tail bytes            |
+| Oversized allocation | Dedicated block without advancing the normal growth sequence           |
+| Zero-size allocation | Canonical pointer/range and accounting behavior                        |
+| Maximum alignment    | Supported bound and behavior for over-aligned requests                 |
+| Move/swap            | Address stability, block-source propagation, and invalidation          |
+| Thread safety        | External synchronization or specialized concurrent mode                |
+| Introspection        | Required byte/block counters without affecting hot paths               |
+| Constexpr            | Exact fixed-storage operations supported during constant evaluation    |
 
 ## Measurements required
 
@@ -169,14 +172,15 @@ that it simplifies real customization without leaking one component's semantics 
 
 ## Open questions
 
-1. Which typed-lifetime contracts ship initially: caller-managed destruction, registered reverse
-   destruction, or both?
-2. Which reset/block-retention strategies are required?
-3. How do oversized allocations affect the normal growth sequence?
-4. What is the primary failure result and which diagnostics are observable?
-5. Is allocation transactional at the byte-tail level, or only at the caller-visible record level?
-6. What maximum alignment must every block source support?
-7. Are move and swap supported while preserving all allocation addresses?
-8. Is thread safety entirely external in version one?
-9. Which counters are always maintained, optional, or benchmark-only?
-10. Does a shared block-chain primitive remain private to `mbo::memory` internals?
+1. Is allocation transactional at the byte-tail level, or only at the caller-visible record level?
+2. What is the canonical behavior for zero-byte allocation?
+3. What maximum alignment must every block source support?
+4. Are move and swap supported while preserving all allocation addresses?
+5. Is thread safety entirely external in version one?
+6. Which counters are always maintained, optional, or benchmark-only?
+7. Does a shared block-chain primitive remain private to `mbo::memory` internals?
+
+## Deferred work
+
+- Implement and benchmark `ObjectArena` with typed construction and reverse-order destruction when
+  a concrete user requires it.

@@ -80,6 +80,10 @@ storage, and node allocation. It must specify:
 - ownership and lifetime of keys and values;
 - mutation and deletion in both transient and persistent modes, including path-copying persistent
   deletion and in-place mutation of uniquely owned transient nodes;
+- a consuming transient-to-persistent conversion as the baseline fast path: `persistent() &&`
+  invalidates the transient structurally and preserves in-place edit ownership until conversion;
+- no repeated snapshot API on the hot path unless benchmarks show that its edit-token rollover and
+  subsequent copy-on-write costs are justified;
 - iteration order without an unmeasured deterministic-order guarantee; relevant research and
   benchmarks determine whether a stronger guarantee has enough value to expose;
 - iterator/reference invalidation;
@@ -93,8 +97,16 @@ storage, and node allocation. It must specify:
 - insertion, replacement, and deletion where supported;
 - persistent snapshot creation and branch-local updates;
 - transient-to-persistent conversion if both modes exist;
+- transient bulk construction with consuming conversion, compared with any repeated-snapshot
+  candidate;
 - short and long strings, shared prefixes, and varying duplication ratios;
 - node count, pointer count, bitmap density, padding, allocated bytes, and fragmentation;
+- 4-, 5-, 6-, and 7-bit hash fragments; 5 bits gives a 32-way bitmap in one 32-bit word, 6 bits
+  gives a 64-way bitmap in one 64-bit word, while 4 trades smaller nodes for greater depth and 7
+  requires multiword occupancy metadata or a wider representation;
+- CHAMP-style combined data/node bitmaps and credible alternative node representations;
+- atomic intrusive reference counts, non-atomic ownership where permitted, and arena/generation
+  lifetime strategies; atomics are not assumed free without measurements under sharing;
 - cache misses, branch behavior, code size, and latency distributions;
 - comparison with `std::unordered_map`, Abseil hash containers, adaptive radix trees, and a simple
   sorted/dense index where appropriate;
@@ -103,9 +115,17 @@ storage, and node allocation. It must specify:
 
 ## Open questions
 
-1. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
-2. What ownership mechanism and API distinguish persistent values from uniquely owned transients?
-3. Does conversion from persistent to transient require unique ownership, copy on first mutation,
-   or an edit-token technique?
-4. Which iterator/reference guarantees can flat and node layouts provide without compromising
-   their respective performance goals?
+1. Which ownership strategy wins for persistent structural sharing: atomic intrusive counts,
+   constrained non-atomic ownership, arena/generation retention, or a useful combination?
+2. Does a repeated non-consuming transient snapshot operation justify its cost in any measured
+   workload, or is consuming `persistent() &&` sufficient?
+3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
+   policy rather than internal tuning?
+
+## Layout guarantees
+
+- Node layout preserves references to unaffected elements across unrelated mutation.
+- Flat layout prioritizes locality and compactness; mutation may invalidate references according to
+  its documented rules.
+- Both layouts are implemented for comparison, but both become public only if each demonstrates a
+  material advantage for a relevant workload.

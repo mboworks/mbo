@@ -280,6 +280,12 @@ repos:
         entry: python3 -m unittest tools/align_markdown_tables_test.py
         files: ^tools/align_markdown_tables(_test)?\.py$
         pass_filenames: false
+      - id: benchmark-artifact-tests
+        name: Test benchmark artifact production and validation
+        language: system
+        entry: python3 -m unittest tools/benchmark_artifact_test.py
+        files: ^tools/benchmark_artifact(_test)?\.py$
+        pass_filenames: false
       - id: clang-tidy
         name: clang-tidy
         description: |

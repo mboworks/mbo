@@ -22,6 +22,9 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
+`SegmentedVector` and the arena are prerequisite components. Each must be implemented and
+benchmarked independently before selecting the interner's default composition.
+
 ## Core model
 
 An interner consists conceptually of three independent facilities:
@@ -64,8 +67,12 @@ Segment capacities may be described by a compile-time size list. That permits op
 from a dense index to known prefix ranges, for example through unrolled comparisons, while allowing
 small early segments and larger later segments. The design must define what happens after the
 listed capacities: stop at a fixed total capacity, repeat the last capacity, or transition to a
-runtime growth policy. These choices should be benchmarked against uniform power-of-two segments,
-which can map indices particularly cheaply.
+runtime growth policy.
+
+Uniform power-of-two segments receive a specialized index-mapping fast path up to a measured size
+threshold. Beyond that threshold, excessively large uniform segments may waste too much tail
+capacity, so a size list or growth policy can take over. The threshold and transition are selected
+from benchmarks rather than fixed by intuition.
 
 ### Identity and equality
 
@@ -193,6 +200,19 @@ A segmented arena is attractive because it drastically reduces allocation count 
 previously returned views stable as the interner grows. A single growing contiguous byte vector is
 not acceptable unless relocation is impossible, because it would invalidate every stored view.
 
+The arena is a separately benchmarked project component. At least two representations must be
+compared for interned strings:
+
+| Representation       | Arena payload              | Dense ID metadata           | Principal tradeoff                  |
+| -------------------- | -------------------------- | --------------------------- | ----------------------------------- |
+| Separate descriptors | Packed character bytes     | `(size, pointer)` or offset | Direct lookup; larger metadata      |
+| Inline records       | Consecutive `(size, data)` | Offset or record index      | Better locality; variable-size scan |
+
+Inline `(size, data)` records remove a content pointer from the record itself, but variable record
+sizes prevent direct O(1) dense-ID lookup unless another offset table is maintained. Relative
+offsets may be narrower than pointers and make arena segments more relocatable. Measurements must
+include lookup latency, insertion throughput, bytes per string, alignment loss, and cache behavior.
+
 The fully bounded mode must perform no hidden allocation. Exhaustion can arise independently from
 character capacity, entry capacity, index capacity, or identifier range. A failed insertion must
 be transactional: no bytes, ID, or index entry become observably committed unless the complete
@@ -263,6 +283,8 @@ Benchmarks should cover:
 - arena segment sizes and bounded-capacity exhaustion;
 - ID-table chunk sizes, lookup cost, wasted tail capacity, and traversal/indexing strategies;
 - compile-time segment-size lists versus uniform and runtime growth policies;
+- the power-of-two fast-path threshold and transition to later growth;
+- separate `(size, pointer/offset)` descriptors versus inline `(size, content)` arena records;
 - standard, Abseil, and mbo-provided index implementations;
 - zero-based and one-based ID layouts, including any optimized pre-interned empty string;
 - 8-, 16-, 32-, and 64-bit ID representations where practical;
@@ -297,3 +319,5 @@ Benchmarks should cover:
     commonality?
 13. What follows a compile-time segment-size list: fixed exhaustion, repetition of the last size,
     or a separate growth policy?
+14. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+    offset width provides the best useful capacity/footprint tradeoff?

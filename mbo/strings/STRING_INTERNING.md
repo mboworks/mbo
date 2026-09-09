@@ -178,23 +178,6 @@ for iterator equality because different snapshot branches can assign the same lo
 strings. Appending must preserve existing element references and iterators; as with other growing
 containers, an iterator that previously represented `end()` need not become the new end.
 
-### Immutability and iteration
-
-Interned strings can never be changed or deleted. An interner is append-only, and every interner's
-visible IDs form the contiguous interval `[0, size())`, regardless of how many parent snapshots
-provide that prefix. Local storage begins at the captured parent cutoff, but `begin()` does not mean
-local begin: it denotes the first ID in the topmost visible parent.
-
-Consequently, `begin()` represents ID zero and `end()` represents ID `size()`. Standard reverse
-iterators derive from the same half-open interval, making `rbegin()` start with `size() - 1` when
-non-empty and making `rbegin() == rend()` when empty. No special reverse-iteration sentinel is
-needed beyond the usual iterator representation.
-
-An iterator must retain interner identity as well as position. Numeric IDs alone are insufficient
-for iterator equality because different snapshot branches can assign the same local ID to different
-strings. Appending must preserve existing element references and iterators; as with other growing
-containers, an iterator that previously represented `end()` need not become the new end.
-
 ## Customization
 
 One allocator-shaped abstraction is insufficient because customization covers more than acquiring

@@ -34,8 +34,15 @@ foundational design.
 HAMTs are particularly relevant in persistent form: updates path-copy changed nodes while sharing
 the unchanged structure. This may align naturally with string-interner parent/child snapshots,
 where a child retains the parent's index root and adds branch-local strings without observing later
-parent mutations. A transient mutable form may be required to avoid path-copying cost during bulk
-construction.
+parent mutations. The planned container supports both persistent and transient modes, with an
+explicit transition between them so bulk construction need not pay unnecessary path-copying cost.
+
+[Hana Dusikova's `hamt4`](https://github.com/hanickadot/hamt4) is a relevant modern C++ design
+reference, particularly for constexpr hash decomposition, bitmap operations, heterogeneous lookup,
+and empty-base/no-unique-address storage. As currently published it is an unfinished prototype:
+node release is marked TODO, iteration and lookup are stubs, and `size()` returns zero. mbo should
+be at least as good as its useful representation ideas, but cannot honestly use it as a throughput
+or completeness baseline until a reproducible completed implementation or benchmark is identified.
 
 ## Potential roles
 
@@ -81,18 +88,20 @@ key access, value storage, and node allocation. It must specify:
 - comparison with `std::unordered_map`, Abseil hash containers, adaptive radix trees, and a simple
   sorted/dense index where appropriate;
 - single-threaded configurations before adding concurrency overhead;
+- concurrent HART read, insert, update, and deletion scalability, including contention and
+  reclamation costs;
 - arena, allocator, and caller-supplied bounded node storage.
 
 ## Open questions
 
-1. Is the intended HART specifically Pan/Xie/Song's concurrent DRAM-PM structure, or a new
-   hash-assisted adaptive-radix design inspired by it without persistence semantics?
-2. Is HAMT persistence and structural sharing required, or is a mutable HAMT the initial target?
-3. Should HAMT provide both transient and persistent modes with an explicit conversion?
-4. Are map and set APIs both required?
-5. Is deletion required even though the string interner itself is append-only?
-6. Must iteration be deterministic across processes and hash seeds?
-7. Which hash fragment width and bitmap/node representations should be benchmarked?
-8. Are HART prefix/range operations required, or only exact heterogeneous lookup?
-9. Is concurrency part of version one for either structure?
-10. Are these general public containers or initially experimental string-index implementations?
+1. Is mbo's HART a concurrent in-memory hash-assisted adaptive radix tree, or must it also provide
+   the paper's persistent-memory placement, ordering, logging, and crash-recovery guarantees?
+2. What progress guarantee does concurrent HART require: thread safety, lock-free reads, lock-free
+   all-operation progress, or a stronger guarantee?
+3. Are HAMT map and set APIs both required?
+4. Is HAMT deletion required even though the string interner itself is append-only?
+5. Must HAMT iteration be deterministic across processes and hash seeds?
+6. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
+7. Are HART prefix/range operations required, or only exact heterogeneous lookup?
+8. Is HAMT concurrency also required, or is concurrency initially specific to HART?
+9. Are these general public containers or initially experimental string-index implementations?

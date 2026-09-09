@@ -29,9 +29,15 @@ Implementation and benchmarks for `SegmentedSequence` precede implementation of 
   compatible growth. `shrink_to_fit()` releases retained unused segments using STL naming.
 - Reuse and eviction are policy-controlled. A compatible retained segment may be reused; unusable
   or sufficiently long-unused segments may be released according to benchmark-proven limits.
+  Intelligent management must not add measurable cost to append, indexed access, or iteration.
+  Expensive reclamation therefore belongs in an explicit maintenance operation or a demonstrably
+  negligible slow path, not in every hot-path operation.
 - `shrink_to_fit()` never relocates live elements and therefore preserves their addresses. A future
-  explicitly invalidating compaction operation or overload is possible only if a demonstrated use
-  outweighs the loss of the container's central stability guarantee.
+  relocating operation must not use that name or masquerade as an STL-compatible operation.
+- A future relocating operation is possible only if a demonstrated use outweighs the loss of the
+  container's central stability guarantee. It must use a conspicuous name such as
+  `relocate_and_compact()` and document pointer, reference, and iterator invalidation at the call
+  site. Omitting it entirely remains preferable unless measurements establish a real use.
 - Element construction and destruction follow normal `T` lifetime rules.
 - The container exposes dense positions in `[0, size())`.
 - Indexed access complexity and iterator category may depend on the selected segment policy; strict
@@ -97,7 +103,7 @@ and result types remain open.
 | Area                  | Decision required                                                                |
 | --------------------- | -------------------------------------------------------------------------------- |
 | Segment reuse         | Compatibility classes and selection among retained unused segments               |
-| Cache eviction        | Retained bytes/count/age limits and handling of unusable segments                |
+| Cache eviction        | Cheap hot-path accounting, explicit maintenance, and retained byte/count limits  |
 | Indexed complexity    | Complexity exposed by each policy and the required upper bound                   |
 | Iterator category     | Policy-dependent category or one common category for the public container        |
 | Iterator identity     | Whether comparisons across different containers are guarded or preconditioned    |
@@ -137,5 +143,8 @@ and result types remain open.
 7. Which failure API is primary when growth or element construction cannot complete?
 8. Does the iterator category vary with policy, or does the class expose the strongest category
    supported by every policy?
-9. Is a separate explicitly invalidating full-compaction operation ever needed, or is stable
-   `shrink_to_fit()` sufficient?
+9. Is a separate `relocate_and_compact()` operation ever needed, or is stable `shrink_to_fit()`
+   sufficient?
+10. Can useful automatic eviction be driven by O(1) counters and occur only when a retained-byte or
+    retained-count boundary is crossed without measurable hot-path cost, or should all eviction be
+    explicit?

@@ -22,8 +22,9 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-`SegmentedVector` and the arena are prerequisite components. Each must be implemented and
-benchmarked independently before selecting the interner's default composition.
+[`SegmentedVector`](../container/SEGMENTED_VECTOR.md) and the
+[`Arena`](../memory/ARENA.md) are prerequisite components. Each must be implemented and benchmarked
+independently before selecting the interner's default composition.
 
 ## Core model
 
@@ -352,3 +353,26 @@ Benchmarks should cover:
     commonality?
 12. Can arena descriptors use segment-relative offsets rather than native pointers, and which
     offset width provides the best useful capacity/footprint tradeoff?
+
+## Final language-baseline decision
+
+After the container, arena, and interner contracts and prototypes are understood, the project must
+make an explicit C++20-versus-C++23 baseline decision. The decision is based on implementation
+simplicity, generated code, compiler support, and consumer cost. The following WG21 papers provide
+the concrete C++23 case:
+
+| Paper                                | Facility                                       | Potential relevance                                      |
+| ------------------------------------ | ---------------------------------------------- | -------------------------------------------------------- |
+| [P2647R1](https://wg21.link/P2647R1) | Static `constexpr` variables in constexpr code | Compile-time policy tables and segment boundaries        |
+| [P2589R1](https://wg21.link/P2589R1) | Static `operator[]`                            | Stateless indexed policy/function objects                |
+| [P1169R4](https://wg21.link/P1169R4) | Static `operator()`                            | Stateless hash, growth, and mapping policy objects       |
+| [P2448R2](https://wg21.link/P2448R2) | Relaxed constexpr restrictions                 | Fewer artificial splits between runtime/constexpr paths  |
+| [P2173R1](https://wg21.link/P2173R1) | Attributes on lambda expressions               | Better attributes on generated/local policy callables    |
+| [P0847R7](https://wg21.link/P0847R7) | Explicit object parameter (`deducing this`)    | Fewer duplicated cv/ref accessors and CRTP-style helpers |
+| [P2797R0](https://wg21.link/P2797R0) | Static/explicit-object wording resolution      | Clearer interaction of static and explicit-object APIs   |
+| [P2201R1](https://wg21.link/P2201R1) | Mixed string-literal concatenation             | Cleaner compile-time string diagnostics and metadata     |
+| [P1938R3](https://wg21.link/P1938R3) | `if consteval`                                 | Direct runtime/constant-evaluation path selection        |
+
+No paper is sufficient by itself. Before raising the baseline, prototypes must show which features
+remove real complexity or improve results, and the supported GCC/Clang/Bazel matrix must compile
+and test those exact uses.

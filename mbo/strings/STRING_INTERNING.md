@@ -277,23 +277,34 @@ generated code, and failure behavior should be measured for each serious candida
 Names and exact return types are deliberately provisional:
 
 ```cpp
-StringId Intern(std::string_view value);
-StringId Intern(std::string&& value);
-std::optional<StringId> Find(std::string_view value) const;
-std::optional<StringId> RFind(std::string_view value) const;
-std::optional<std::string_view> Lookup(StringId id) const;
+struct InsertResult {
+  StringId id;
+  bool inserted;
+};
+
+InsertResult intern(std::string_view value);
+InsertResult intern(std::string&& value);
+
+iterator find(std::string_view value) const;
+reverse_iterator rfind(std::string_view value) const;
+std::optional<std::string_view> lookup(StringId id) const;
 
 std::size_t size() const;
 std::size_t local_size() const;
 bool empty() const;
 ```
 
-Insertion follows the standard associative-container convention and reports both the ID and
-whether it created a local entry, for example with
-`InsertResult { StringId id; bool inserted; }`. This result should have no measurable cost over
-returning only the ID. If measurement finds a material cost, or ID-only use is sufficiently common,
-an additional convenience method may return only `StringId`. The fast sentinel API and diagnostic
-API may still need distinct names such as `Intern` and `TryIntern`.
+Insertion follows the standard associative-container convention and reports both the ID and whether
+it created a local entry. This result should have no measurable cost over returning only the ID. If
+measurement finds a material cost, or ID-only use is sufficiently common, an additional convenience
+method may return only `StringId`. The fast hard-failing API and failure-aware API may still need
+distinct names such as `intern` and `try_intern`.
+
+The iterator-returning `find` and `rfind` signatures above are the STL-like candidates, not yet a
+settled contract. An ID-returning lookup could instead return `optional<StringId>`. The choice
+depends on the iterator's `value_type`: if dereferencing exposes only `string_view`, callers still
+need an efficient way to recover its dense ID; exposing `{id, string_view}` changes the range's
+element type and may be less natural for string iteration.
 
 ## Correctness invariants
 
@@ -353,6 +364,9 @@ Benchmarks should cover:
     commonality?
 12. Can arena descriptors use segment-relative offsets rather than native pointers, and which
     offset width provides the best useful capacity/footprint tradeoff?
+13. Do `find` and `rfind` return iterators, optional IDs, or iterators with a constant-time `id()`
+    accessor?
+14. Does iterator dereference yield `std::string_view` or an entry containing both ID and view?
 
 ## Final language-baseline decision
 

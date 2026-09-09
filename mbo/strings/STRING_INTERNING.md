@@ -153,10 +153,10 @@ Consequently:
 
 The ordinary parent constructor should require the exact same interner specialization. Mixing
 hashers, indexes, or storage policies casually would make invariants and performance surprising.
-An explicitly named advanced facility may later allow compatible but different specializations,
-supporting organizations whose parent and child hold strings of substantially different natures.
-Such compatibility must be expressed as a deliberate concept, not inferred from coincidentally
-similar member functions.
+Heterogeneous parent specializations are deferred because no concrete workload has demonstrated
+their value. Same-specialization chains may be arbitrarily deep subject to ordinary resource and
+recursion/iteration limits; cascading chains are a first-class, useful facility and require only a
+parent reference plus the captured cutoff at each level.
 
 Lookup supports both traversal directions, analogous to `find` and `rfind`:
 
@@ -199,6 +199,17 @@ additional public ID accessor. A caller that needs IDs while traversing can coun
 positions from `begin()`. IDs remain element ordinals; using arena byte offsets as IDs is not the
 default because variable-length storage would make the public representation and capacity less
 efficient.
+
+### Object and view lifetime
+
+StringInterner is non-copyable and non-movable. It provides neither move construction nor move
+assignment, and it cannot be swapped. This anchors every parent reference and avoids a heap control
+block, child registry, relocation tracking, or other overhead solely to make object movement safe.
+
+There is no `clear` or `reset`: the interner is append-only until destruction. Destruction
+invalidates every view and iterator it produced and remains forbidden while any child exists. The
+child-before-parent destruction requirement is a documented lifetime precondition because the
+parent intentionally does not pay to track children.
 
 ## Customization
 
@@ -358,9 +369,9 @@ measurement finds a material cost, or ID-only use is sufficiently common, an add
 method may return only `StringId`. The fast hard-failing API and failure-aware API may still need
 distinct names such as `intern` and `try_intern`.
 
-The iterator-returning `find` and `rfind` signatures above are the STL-like candidates, not yet a
-settled contract. An ID-returning lookup could instead return `optional<StringId>`, but iteration
-itself exposes only `string_view` and callers can count dense ordinal IDs when needed.
+`find` returns a forward iterator and uses `end()` for a miss. `rfind` returns a reverse iterator and
+uses `rend()` for a miss. Iteration itself exposes only `string_view`; callers can count dense
+ordinal IDs when needed.
 
 Search direction and result orientation are independent choices:
 
@@ -372,11 +383,14 @@ Search direction and result orientation are independent choices:
 | Counted forward iteration    | Forward `iterator`      | Natural string-view range; caller counts IDs     |
 
 Because visible strings are unique, a reverse search need not force a reverse-oriented result.
-Returning a forward iterator from both search directions would make found values interchangeable,
-while returning `reverse_iterator` from `rfind` exposes the traversal orientation. The current
-recommendation is a normal forward `find` returning `iterator`, an explicitly named reverse search
-returning `reverse_iterator`, and dereference yielding `string_view`. This remains a recommendation
-until the public role of reverse search is confirmed.
+Returning `reverse_iterator` from `rfind` intentionally exposes its traversal orientation, while
+dereference still yields only `string_view`.
+
+## Serialization
+
+No dedicated serialization format or API is planned initially. Dense iteration already lets a
+caller serialize strings in ID order; reinserting that sequence reconstructs the same dense IDs
+without coupling the public contract to an index or arena representation.
 
 ## Correctness invariants
 
@@ -419,17 +433,11 @@ Benchmarks should cover:
 
 1. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
    or is accepting the overload and copying into the default arena sufficient initially?
-2. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
-   destruction? Can some operations be deleted to preserve a simpler guarantee?
-3. Do we need serialization or deterministic reconstruction of the dense ID table?
-4. Should the advanced heterogeneous parent facility be part of version one, experimental, or
-   postponed until a concrete optimized organization demonstrates its constraints?
-5. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
+2. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
    private implementation primitive, or remain independent until measurement exposes useful
    commonality?
-6. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+3. Can arena descriptors use segment-relative offsets rather than native pointers, and which
    offset width provides the best useful capacity/footprint tradeoff?
-7. Do `find` and `rfind` return iterators or optional IDs?
 
 ## Final language-baseline decision
 

@@ -133,19 +133,23 @@ arena, and fixed-buffer integration without multiplying HAMT implementations.
 
 Abseil's `flat_hash_map`, `flat_hash_set`, `node_hash_map`, and `node_hash_set` establish a useful
 precedent: materially different flat and node guarantees are visible in the type name, not hidden
-behind a runtime switch. mbo follows that shape with distinct flat/node and map/set HAMT types over
-one shared implementation. The final spelling, such as `FlatHamtMap` versus `HamtFlatMap`, remains a
-naming decision rather than an architectural one.
+behind a runtime switch. mbo follows that shape with `HamtFlatMap`, `HamtFlatSet`, `HamtNodeMap`, and
+`HamtNodeSet` over one shared implementation. Flat and node layouts have fundamentally incompatible
+reference, pointer, and invalidation semantics and cannot be selected through `HamtOptions`.
+
+The names above denote persistent containers. Each exposes its transient form as a nested
+`transient_type` returned by `.transient()`, avoiding a second set of four top-level names.
 
 The existing `LimitedMap` and `LimitedSet` provide the blueprint for richer compile-time options.
 Their `LimitedOptions` structural constexpr value combines capacity and feature flags in a value
 suitable for a non-type template argument, validates the contract with a concept, and allows
 compile-time branching to remove unused behavior. HAMT follows the same principles:
 
-- a constexpr-compatible structural policy value rather than runtime configuration;
+- a constexpr-compatible structural options value rather than runtime configuration;
 - concepts that validate the options and behavioral customization types;
-- compile-time selection of fragment width, bitmap/node representation, ownership, persistence,
-  bounded behavior, and any iterator-stability strategy;
+- compile-time selection of fragment width, internal bitmap/node representation, ownership,
+  persistence, bounded behavior, and any iterator-stability strategy, but never the public
+  flat-versus-node layout;
 - no runtime branch or stored policy state for choices known at compile time;
 - named public flat/node container families so consequential guarantees remain obvious at use
   sites;

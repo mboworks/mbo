@@ -77,6 +77,7 @@ storage, and node allocation. It must specify:
 - both flat and node storage implementations for benchmarks, exposing both publicly only if each
   provides a material advantage for a relevant workload;
 - full-hash collisions and unequal-key resolution;
+- non-throwing hash and equality operations as part of the public concepts;
 - ownership and lifetime of keys and values;
 - mutation and deletion in both transient and persistent modes, including path-copying persistent
   deletion and in-place mutation of uniquely owned transient nodes;
@@ -95,6 +96,10 @@ storage, and node allocation. It must specify:
 - bounded and allocation-failure behavior;
 - allocator/block-source selection as part of the template contract from the beginning, including
   bounded and no-additional-allocation arena-backed configurations;
+- explicit lightweight `try_insert`, `try_emplace`, `try_erase`, and persistent equivalents for
+  bounded operation, with an error enum rather than exceptions or a heavyweight status type;
+- the strong mutation guarantee: failed allocation, hashing, equality, key construction, or value
+  construction leaves the original persistent value or transient container unchanged;
 - exception-enabled and exception-disabled operation.
 
 ## Measurements required
@@ -107,6 +112,8 @@ storage, and node allocation. It must specify:
   candidate;
 - short and long strings, shared prefixes, and varying duplication ratios;
 - full-hash collision storage using flat inline arrays and separately allocated node lists;
+- storing the full hash with each entry versus recomputing it during collision handling and
+  structural changes;
 - node count, pointer count, bitmap density, padding, allocated bytes, and fragmentation;
 - 4-, 5-, 6-, and 7-bit hash fragments; 5 bits gives a 32-way bitmap in one 32-bit word, 6 bits
   gives a 64-way bitmap in one 64-bit word, while 4 trades smaller nodes for greater depth and 7
@@ -128,8 +135,8 @@ storage, and node allocation. It must specify:
    workload, or is consuming `persistent() &&` sufficient?
 3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
    policy rather than internal tuning?
-4. What result type reports allocation exhaustion for persistent and transient mutation in bounded
-   configurations?
+4. What exact lightweight result types carry the value/result, mutation flag, and bounded-operation
+   error without imposing work on the successful path?
 
 ## Layout guarantees
 

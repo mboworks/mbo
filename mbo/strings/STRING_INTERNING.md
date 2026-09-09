@@ -104,23 +104,28 @@ Identifiers are dense ordinals and are monotonically assigned within the visible
 They are not hash values. The selected hash function may therefore produce every value in its
 range, including zero, without colliding with an invalid-ID representation.
 
-Two ID layouts are still under consideration:
-
-| Layout                  | First ID | New ID                 | Failure representation             |
-| ----------------------- | -------: | ---------------------- | ---------------------------------- |
-| Zero-based              |        0 | `size()` before insert | Separate result type               |
-| One-based with sentinel |        1 | `size()` after insert  | Zero can represent invalid/failure |
-
-The one-based layout makes a compact sentinel-returning hot-path API possible. The zero-based
-layout permits ID zero to identify the empty string, which could be inserted during construction
-and optimized specially. Neither benefit should be assumed material until measured.
+IDs are zero-based. The first inserted string receives ID zero and every new ID is `size()` before
+insertion. Zero is a valid ID, including for an empty string when that is the first value inserted;
+failure is represented separately and never overloaded onto an ID value.
 
 A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
 with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
 unsigned integer so applications can trade capacity against memory footprint. These are the
 supported POD representations; other underlying types, including signed integers, are not
 supported without a demonstrated use. ID exhaustion must be detected before mutating either
-storage or the index.
+storage or the index. The default underlying representation is `std::uint32_t`.
+
+ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload
+may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output
+bits for routing and collision detection, while the ID remains only the value associated with the
+string. A 64-to-32 reduction such as `mbo::hash::Hash64To32` is used only when a selected index
+explicitly requires a 32-bit hash. Native 32-bit hashing and reduction from a 64-bit hash must be
+benchmarked for such an index rather than coupled to `StringId`.
+
+Possible representation-specific reasons to use 32 bits include packing a 32-bit hash or
+fingerprint with a 32-bit ID in one 64-bit word, satisfying an index backend whose hash interface is
+32-bit, or targeting a 32-bit platform. These are measured backend optimizations, not semantic
+coupling. They must not truncate the default hash merely because the default ID is `std::uint32_t`.
 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 `local_size()` is the number added directly to that interner.
@@ -164,6 +169,11 @@ child's captured prefix. Divergent branches may independently assign different I
 interner can see both branch-local entries. Search direction is therefore a performance and API
 choice, not duplicate precedence, unless the design deliberately introduces an operation that can
 bypass interning and append duplicates.
+
+Both directions are required for lookup and interning. Neither parent-first nor child-first is
+universally hotter: applications may concentrate reuse in a shared root dictionary or in recent
+branch-local additions. Explicit operations expose each direction. A compile-time option selects
+the direction of the unsuffixed convenience operation so the default hot path has no runtime branch.
 
 ### Immutability and iteration
 
@@ -275,6 +285,10 @@ character capacity, entry capacity, index capacity, or identifier range. A faile
 be transactional: no bytes, ID, or index entry become observably committed unless the complete
 operation succeeds.
 
+The lightweight error enum distinguishes `id_exhausted`, `character_storage_exhausted`,
+`entry_storage_exhausted`, and `index_exhausted`. Allocation and block-source failures map to the
+storage component whose capacity could not grow.
+
 ### Failure APIs
 
 The following interfaces are candidates and may coexist as adapters over one implementation:
@@ -369,37 +383,33 @@ Benchmarks should cover:
 - the power-of-two fast-path threshold and transition to later growth;
 - separate `(size, pointer/offset)` descriptors versus inline `(size, content)` arena records;
 - standard, Abseil, and mbo-provided index implementations;
-- zero-based and one-based ID layouts, including any optimized pre-interned empty string;
 - 8-, 16-, 32-, and 64-bit ID representations where practical;
+- 32- and 64-bit index hash outputs where supported, including native 32-bit hashing versus
+  `Hash64To32` reduction when an index requires 32 bits;
 - sentinel, optional, status, expected, and throwing adapters where supported;
 - `std::string_view` insertion, moved-string adoption, and moved-string-to-arena copying;
 - lookup and insertion latency distributions, not only throughput averages.
 
 ## Open questions
 
-1. Do we use zero-based IDs, possibly with a pre-interned empty string, or one-based IDs with zero
-   invalid? Which result should the primary API use if measurement finds no meaningful difference?
-2. Which search direction does `intern` use for performance: forward from the topmost ancestor or
-   backward from the child?
-3. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
-   capacity, allocator failure, and invalid configuration?
-4. What is the default unsigned ID width?
-5. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
+1. What names expose parent-first and child-first interning while leaving `intern` as the
+   compile-time-selected convenience operation?
+2. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
    or is accepting the overload and copying into the default arena sufficient initially?
-6. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
+3. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
    destruction? Can some operations be deleted to preserve a simpler guarantee?
-7. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.
-8. Is thread safety entirely external, or should there be a read-only frozen form supporting
+4. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.
+5. Is thread safety entirely external, or should there be a read-only frozen form supporting
    concurrent lookup?
-9. Do we need serialization or deterministic reconstruction of the dense ID table?
-10. Should the advanced heterogeneous parent facility be part of version one, experimental, or
-    postponed until a concrete optimized organization demonstrates its constraints?
-11. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
-    private implementation primitive, or remain independent until measurement exposes useful
-    commonality?
-12. Can arena descriptors use segment-relative offsets rather than native pointers, and which
-    offset width provides the best useful capacity/footprint tradeoff?
-13. Do `find` and `rfind` return iterators or optional IDs?
+6. Do we need serialization or deterministic reconstruction of the dense ID table?
+7. Should the advanced heterogeneous parent facility be part of version one, experimental, or
+   postponed until a concrete optimized organization demonstrates its constraints?
+8. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
+   private implementation primitive, or remain independent until measurement exposes useful
+   commonality?
+9. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+   offset width provides the best useful capacity/footprint tradeoff?
+10. Do `find` and `rfind` return iterators or optional IDs?
 
 ## Final language-baseline decision
 

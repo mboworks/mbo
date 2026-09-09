@@ -60,10 +60,11 @@ void Release();
 ```
 
 `TryAllocate` returns null on failure in this sketch. The final failure-aware API may instead use an
-optional or typed error result. Invalid alignment, arithmetic overflow, configured exhaustion, and
-backing-source failure are distinct internal conditions; the public error granularity remains
-unsettled. Not expressing failure means a documented hard failure such as termination, not
-undefined behavior or an undersized allocation.
+optional or typed error result only if measurement and a concrete caller justify another adapter.
+Invalid alignment, arithmetic overflow, configured exhaustion, and backing-source failure are
+distinct internal conditions, but the base API deliberately reports only success or failure.
+Not expressing failure means a documented hard failure such as termination, not undefined behavior
+or an undersized allocation.
 
 ### Existing mbo failure-policy precedent
 
@@ -143,8 +144,10 @@ Both components can acquire a chain of blocks. Their public contracts remain dis
 - `SegmentedSequence<T>` owns uniformly typed element slots, manages each `T`, and provides dense
   indexed iteration.
 
-A private shared block-chain primitive is plausible. A public common abstraction requires evidence
-that it simplifies real customization without leaking one component's semantics into the other.
+A shared block-chain primitive should begin as a private implementation detail. It becomes public
+whenever measurements or implementation experience show that direct reuse or customization makes
+the library materially better. Publication is driven by demonstrated value, not by an arbitrary
+minimum number of internal users, and must not leak one component's semantics into another.
 
 `Reset()` retains reusable normal and option-selected oversized blocks while resetting allocation
 state. `Release()` returns every backing block to its source and restores the arena to its initial
@@ -158,7 +161,22 @@ with an inline fixed buffer is immovable and unswappable because moving its embe
 invalidate their addresses. Concepts and conditional special members expose these distinctions at
 compile time.
 
-## Required guarantees to settle
+Arena operations use external synchronization. The implementation adds no locks or atomics;
+concurrent access, including allocation concurrent with observation, requires synchronization by
+the caller.
+
+Three constant-time counters are part of the basic contract:
+
+- `bytes_used()` includes requested bytes and alignment padding consumed in active blocks;
+- `bytes_reserved()` includes all bytes in active and retained reusable blocks;
+- `block_count()` counts active and retained backing blocks.
+
+These values are already inherent in block and cursor management and must not add a per-allocation
+branch or atomic operation. Allocation count and the sum or distribution of requested sizes would
+require additional hot-path updates, so they belong to opt-in diagnostics rather than the base
+representation.
+
+## Required guarantees
 
 | Area                 | Decision required                                                      |
 | -------------------- | ---------------------------------------------------------------------- |
@@ -170,8 +188,8 @@ compile time.
 | Zero-size allocation | Programmer precondition requires a size greater than zero              |
 | Maximum alignment    | At least `max_align_t`; source advertises any higher supported maximum |
 | Move/swap            | Address-preserving for block-backed; forbidden for inline storage      |
-| Thread safety        | External synchronization or specialized concurrent mode                |
-| Introspection        | Required byte/block counters without affecting hot paths               |
+| Thread safety        | External synchronization; no internal locks or atomics                 |
+| Introspection        | `bytes_used`, `bytes_reserved`, and `block_count` in constant time     |
 | Constexpr            | Exact fixed-storage operations supported during constant evaluation    |
 
 ## Measurements required
@@ -186,15 +204,17 @@ compile time.
 - small-string-heavy, mixed, and large-record workloads;
 - interaction with the string index and `SegmentedSequence` metadata table;
 - exception-enabled and exception-disabled builds;
-- single-threaded performance before considering synchronization.
+- single-threaded performance; synchronization remains the caller's responsibility.
 
-## Open questions
-
-1. Is thread safety entirely external in version one?
-2. Which counters are always maintained, optional, or benchmark-only?
-3. Does a shared block-chain primitive remain private to `mbo::memory` internals?
+The initial raw-arena semantic contract has no remaining open questions. Representation choices,
+including pointer versus offset descriptors, growth and retention defaults, and whether the shared
+block-chain merits a public API, remain benchmark decisions rather than missing semantics.
 
 ## Deferred work
 
 - Implement and benchmark `ObjectArena` with typed construction and reverse-order destruction when
   a concrete user requires it.
+- Design opt-in full diagnostics covering allocation-size histograms, requested bytes versus
+  padding, fragmentation, block reuse, oversized allocations, and peak memory. When diagnostics
+  are disabled they must contribute no fields, counter updates, branches, locks, or atomics to the
+  production hot path.

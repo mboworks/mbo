@@ -125,6 +125,10 @@ storage, and node allocation. It must specify:
 - transient-to-persistent rvalue conversion leaving the moved-from transient valid and empty, in
   keeping with ordinary moved-from container semantics;
 - exception-enabled and exception-disabled operation.
+- external synchronization for all mutation and transient conversion; persistent values and other
+  const access may be read concurrently only while no thread mutates the same underlying transient
+  state. The implementation adds no locks solely for container access. Ownership metadata used for
+  persistent structural sharing may still use atomics if benchmarks select that ownership strategy.
 
 One block-source concept drives the core implementation. Adapters provide standard allocator, PMR,
 arena, and fixed-buffer integration without multiplying HAMT implementations.
@@ -231,20 +235,22 @@ This keeps recovery state and result handling out of the ordinary successful pat
 - single-threaded operation without concurrency overhead;
 - arena, allocator, and caller-supplied bounded node storage.
 
-## Open questions
+## Benchmark selections
 
-1. Which ownership strategy wins within an allocation domain for persistent structural sharing:
-   atomic intrusive counts,
-   constrained non-atomic ownership, an ownership domain, arena/generation retention, or a useful
-   combination?
-2. Does a repeated non-consuming transient snapshot operation justify its cost in any measured
-   workload, or is consuming `persistent() &&` sufficient?
-3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
-   options rather than internal tuning?
-4. What exact lightweight result types carry the value/result, mutation flag, and bounded-operation
-   error without imposing work on the successful path?
-5. Can transient structural mutation preserve node-layout iterators without measurable linked-list
-   or root-search overhead, or should it preserve references while invalidating iterators?
+The remaining choices do not leave container semantics unspecified. Benchmarks select:
+
+- ownership within an allocation domain from atomic intrusive counts, constrained non-atomic
+  ownership, ownership-domain or arena/generation retention, or a useful combination;
+- the fragment widths and bitmap/node representations retained as public options rather than
+  internal tuning;
+- exact layouts for lightweight result structs carrying the value or new container, mutation flag,
+  and `HamtError` from `try_*` operations;
+- whether stable transient node-layout iterators justify an `HamtOptions` specialization. The base
+  contract preserves references across unrelated node mutations but permits iterator invalidation.
+
+The initial API provides only consuming `persistent() &&`. A repeated non-consuming transient
+snapshot API is deferred unless a measured workload justifies its edit-token rollover and
+copy-on-write cost.
 
 ## Layout guarantees
 

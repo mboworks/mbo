@@ -252,9 +252,9 @@ public interner iterators come from character storage and the dense sequence res
 
 Owning `std::string` storage is a fundamentally different, viable backend rather than an incidental
 optimization of the arena/string-view design. It is expected to be slower for the primary workload
-and does not become the default without measurements. Accepting an rvalue `std::string` must not
-force the default representation to store one `std::string` object per entry or weaken arena
-support.
+and is not part of version one. Accepting an rvalue `std::string` does not force the default
+representation to store one `std::string` object per entry or weaken arena support; the initial
+arena backend copies the string's bytes into stable character storage.
 
 The overload is therefore a capability of the selected storage backend:
 
@@ -265,8 +265,9 @@ The overload is therefore a capability of the selected storage backend:
 
 Small-string optimization means moving a `std::string` does not universally transfer a stable heap
 allocation. An owning-string backend must also choose a representation whose later growth, moves,
-or relocation cannot invalidate views into short strings. This profile is an additional option,
-not a cost paid by the arena-oriented default.
+or relocation cannot invalidate views into short strings. This profile remains deferred and becomes
+an additional backend only if benchmarks demonstrate a meaningful winning workload. It is never a
+cost paid by the arena-oriented default.
 
 ### Embedded NUL bytes
 
@@ -429,15 +430,29 @@ Benchmarks should cover:
 - embedded-NUL support versus a checked or preconditioned no-NUL specialization;
 - lookup and insertion latency distributions, not only throughput averages.
 
-## Open questions
+### Diagnostic support
 
-1. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
-   or is accepting the overload and copying into the default arena sufficient initially?
-2. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
-   private implementation primitive, or remain independent until measurement exposes useful
-   commonality?
-3. Can arena descriptors use segment-relative offsets rather than native pointers, and which
-   offset width provides the best useful capacity/footprint tradeoff?
+The finished library should provide a deliberately opt-in diagnostic configuration suitable for
+understanding production string populations and tuning the selected representation. It should be
+able to report string-size histograms, hit depth and search direction, parent-versus-local hits,
+hash collisions, table occupancy and probe or trie depth, payload/descriptor/index memory,
+alignment padding, unused capacity, and peak memory.
+
+This is a quality requirement, not permission to tax the ordinary container. Disabled diagnostics
+must add no object fields, counter updates, branches, locks, or atomics. Instrumentation may use a
+separate specialization, observer, or benchmark wrapper after measurements determine the least
+intrusive design. Clearly valuable diagnostics should be implemented even if they are not needed
+by the first internal caller.
+
+## Benchmark selections
+
+The version-one semantic contract has no remaining open questions. Measurements still select:
+
+- whether the initially private block-chain abstraction shared by `SegmentedSequence` and arena
+  storage provides enough general value to publish;
+- native pointers versus segment-relative offsets for arena descriptors, including the best useful
+  offset width;
+- whether a later owning-`std::string` backend has a meaningful winning workload.
 
 ## Final language-baseline decision
 

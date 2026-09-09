@@ -43,6 +43,30 @@ requirements and measured behavior rather than speculative generality.
 The byte arena has different packing and lifetime needs and should not automatically share the
 `SegmentedVector` abstraction.
 
+### Relationship between `SegmentedVector` and an arena
+
+`SegmentedVector` and a segmented arena can share nearly the same block-chain substrate, but they
+provide different contracts:
+
+| Property             | `SegmentedVector<T>`                         | Segmented arena                    |
+| -------------------- | -------------------------------------------- | ---------------------------------- |
+| Allocation unit      | A fixed number of `T` element slots          | Requested bytes plus alignment     |
+| Type knowledge       | Knows `T`, `sizeof(T)`, and `alignof(T)`     | Treats allocations as untyped      |
+| Object lifetime      | Constructs and destroys individual elements  | Usually releases a region at once  |
+| Addressing           | Dense element index                          | Pointer or arena-specific handle   |
+| Contiguous guarantee | Within one segment only                      | Within one allocation only         |
+| Primary operation    | Append/emplace an element and index it later | Allocate an aligned range of bytes |
+
+A common internal segmented-allocation primitive may therefore be worthwhile, provided it does not
+force arena semantics onto the typed container or vice versa.
+
+Segment capacities may be described by a compile-time size list. That permits optimized mapping
+from a dense index to known prefix ranges, for example through unrolled comparisons, while allowing
+small early segments and larger later segments. The design must define what happens after the
+listed capacities: stop at a fixed total capacity, repeat the last capacity, or transition to a
+runtime growth policy. These choices should be benchmarked against uniform power-of-two segments,
+which can map indices particularly cheaply.
+
 ### Identity and equality
 
 Strings are equal by byte content and length. Input view address and the source object's lifetime
@@ -238,6 +262,7 @@ Benchmarks should cover:
 - allocation count, allocated bytes, resident memory, and fragmentation;
 - arena segment sizes and bounded-capacity exhaustion;
 - ID-table chunk sizes, lookup cost, wasted tail capacity, and traversal/indexing strategies;
+- compile-time segment-size lists versus uniform and runtime growth policies;
 - standard, Abseil, and mbo-provided index implementations;
 - zero-based and one-based ID layouts, including any optimized pre-interned empty string;
 - 8-, 16-, 32-, and 64-bit ID representations where practical;
@@ -267,3 +292,8 @@ Benchmarks should cover:
 10. Do we need serialization or deterministic reconstruction of the dense ID table?
 11. Should the advanced heterogeneous parent facility be part of version one, experimental, or
     postponed until a concrete optimized organization demonstrates its constraints?
+12. Do `SegmentedVector` and arena storage share a public block-chain abstraction, share only a
+    private implementation primitive, or remain independent until measurement exposes useful
+    commonality?
+13. What follows a compile-time segment-size list: fixed exhaustion, repetition of the last size,
+    or a separate growth policy?

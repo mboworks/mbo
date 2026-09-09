@@ -24,11 +24,12 @@ The design separates facilities that are often conflated under the name arena:
 
 1. A block source acquires and releases backing blocks.
 2. A byte arena suballocates aligned byte ranges from those blocks.
-3. An optional object-lifetime layer constructs objects and, if required, records destruction.
+3. An optional object-lifetime layer constructs objects and, when required, records destruction.
 4. Domain storage, such as the interner's character store, defines record layout and indexing.
 
 This separation permits a minimal character arena without forcing destructor-registration overhead
-onto every allocation. Whether the typed object-lifetime layer ships in version one remains open.
+onto every allocation. Both layers are supported: byte-oriented users pay no typed-lifetime cost,
+while typed use selects the construction/destruction layer it needs.
 
 ## Byte-arena contract
 
@@ -101,8 +102,8 @@ A typed adapter could provide `Create<T>(args...)`. Construction failure must no
 object; whether it may consume otherwise unreachable tail bytes depends on the arena's rollback
 contract.
 
-For trivially destructible objects, no destructor metadata is needed. Non-trivial objects require
-one of these explicitly selected contracts:
+For trivially destructible objects, no destructor metadata is needed. Non-trivial objects select an
+explicit contract:
 
 - reject them at compile time;
 - construct them but require the caller to destroy them separately;
@@ -168,14 +169,14 @@ that it simplifies real customization without leaking one component's semantics 
 
 ## Open questions
 
-1. Does version one expose raw aligned bytes only, or also typed object construction?
-2. If typed construction is included, are non-trivial destructors registered automatically?
-3. Which reset/block-retention strategies are required?
-4. How do oversized allocations affect the normal growth sequence?
-5. What is the primary failure result and which diagnostics are observable?
-6. Is allocation transactional at the byte-tail level, or only at the caller-visible record level?
-7. What maximum alignment must every block source support?
-8. Are move and swap supported while preserving all allocation addresses?
-9. Is thread safety entirely external in version one?
-10. Which counters are always maintained, optional, or benchmark-only?
-11. Does a shared block-chain primitive remain private to `mbo::memory` internals?
+1. Which typed-lifetime contracts ship initially: caller-managed destruction, registered reverse
+   destruction, or both?
+2. Which reset/block-retention strategies are required?
+3. How do oversized allocations affect the normal growth sequence?
+4. What is the primary failure result and which diagnostics are observable?
+5. Is allocation transactional at the byte-tail level, or only at the caller-visible record level?
+6. What maximum alignment must every block source support?
+7. Are move and swap supported while preserving all allocation addresses?
+8. Is thread safety entirely external in version one?
+9. Which counters are always maintained, optional, or benchmark-only?
+10. Does a shared block-chain primitive remain private to `mbo::memory` internals?

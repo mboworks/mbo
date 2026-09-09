@@ -182,6 +182,12 @@ for iterator equality because different snapshot branches can assign the same lo
 strings. Appending must preserve existing element references and iterators; as with other growing
 containers, an iterator that previously represented `end()` need not become the new end.
 
+Dereferencing an iterator yields only `std::string_view`. It does not expose an entry pair or an
+additional public ID accessor. A caller that needs IDs while traversing can count dense ordinal
+positions from `begin()`. IDs remain element ordinals; using arena byte offsets as IDs is not the
+default because variable-length storage would make the public representation and capacity less
+efficient.
+
 ## Customization
 
 One allocator-shaped abstraction is insufficient because customization covers more than acquiring
@@ -304,10 +310,8 @@ method may return only `StringId`. The fast hard-failing API and failure-aware A
 distinct names such as `intern` and `try_intern`.
 
 The iterator-returning `find` and `rfind` signatures above are the STL-like candidates, not yet a
-settled contract. An ID-returning lookup could instead return `optional<StringId>`. The choice
-depends on the iterator's `value_type`: if dereferencing exposes only `string_view`, callers still
-need an efficient way to recover its dense ID; exposing `{id, string_view}` changes the range's
-element type and may be less natural for string iteration.
+settled contract. An ID-returning lookup could instead return `optional<StringId>`, but iteration
+itself exposes only `string_view` and callers can count dense ordinal IDs when needed.
 
 Search direction and result orientation are independent choices:
 
@@ -316,14 +320,14 @@ Search direction and result orientation are independent choices:
 | Associative-container `find` | Forward `iterator`      | Familiar `end()` miss; direction stays internal  |
 | Reverse-range search         | `reverse_iterator`      | Miss compares with `rend()`                      |
 | String-like position lookup  | Optional or sentinel ID | Direct dense ID; not associative-container style |
-| Forward iterator with `id()` | Forward `iterator`      | Natural range plus constant-time ID recovery     |
+| Counted forward iteration    | Forward `iterator`      | Natural string-view range; caller counts IDs     |
 
 Because visible strings are unique, a reverse search need not force a reverse-oriented result.
 Returning a forward iterator from both search directions would make found values interchangeable,
 while returning `reverse_iterator` from `rfind` exposes the traversal orientation. The current
 recommendation is a normal forward `find` returning `iterator`, an explicitly named reverse search
-returning `reverse_iterator`, dereference yielding `string_view`, and `id()` on both iterator types.
-This remains a recommendation until the public role of reverse search is confirmed.
+returning `reverse_iterator`, and dereference yielding `string_view`. This remains a recommendation
+until the public role of reverse search is confirmed.
 
 ## Correctness invariants
 
@@ -384,11 +388,7 @@ Benchmarks should cover:
     commonality?
 12. Can arena descriptors use segment-relative offsets rather than native pointers, and which
     offset width provides the best useful capacity/footprint tradeoff?
-13. Do `find` and `rfind` return iterators, optional IDs, or iterators with a constant-time `id()`
-    accessor?
-14. Does iterator dereference yield `std::string_view` or an entry containing both ID and view?
-15. Is there any intended operation that may append a duplicate string to one visible interner
-    view? Without one, `find` and `rfind` differ only in traversal direction and cost.
+13. Do `find` and `rfind` return iterators or optional IDs?
 
 ## Final language-baseline decision
 

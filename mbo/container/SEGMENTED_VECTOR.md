@@ -21,9 +21,16 @@ Implementation and benchmarks for `SegmentedVector` precede implementation of th
 - Uniform power-of-two segments have a specialized index-mapping fast path up to a benchmarked
   threshold.
 - Only strategies and tuning parameters proven relevant by benchmarks become public API.
+- Mutation is limited to append, pop, and whole-container operations. Arbitrary insertion and
+  erasure are intentionally unsupported; containers such as C++26 `std::hive` address different
+  stable-erasure requirements.
 - Existing elements, references, and iterators remain valid when another segment is appended.
+- When popping empties a segment, that segment is retained in an unused-segment pool for later
+  compatible growth. `shrink_to_fit()` releases retained unused segments using STL naming.
 - Element construction and destruction follow normal `T` lifetime rules.
 - The container exposes dense positions in `[0, size())`.
+- Indexed access complexity and iterator category may depend on the selected segment policy; strict
+  O(1) random access is not required of every supported policy.
 - Bounded configurations detect capacity and arithmetic exhaustion before committing an element.
 - The implementation is C++20 and supports constant evaluation wherever its selected storage and
   element operations permit it.
@@ -73,6 +80,7 @@ class SegmentedVector {
   constexpr void push_back(T&& value);
   constexpr void pop_back();
   constexpr void clear();
+  constexpr void shrink_to_fit();
 };
 ```
 
@@ -83,9 +91,9 @@ and result types remain open.
 
 | Area                  | Decision required                                                                |
 | --------------------- | -------------------------------------------------------------------------------- |
-| Mutation              | Append/pop only, or arbitrary insertion and erasure                              |
-| Indexed complexity    | Strict O(1), policy-bounded O(1), or logarithmic for arbitrary size lists        |
-| Iterator category     | Random access or a weaker segmented iterator                                     |
+| Segment reuse         | Compatibility classes and selection among retained unused segments               |
+| Indexed complexity    | Complexity exposed by each policy and the required upper bound                   |
+| Iterator category     | Policy-dependent category or one common category for the public container        |
 | Iterator identity     | Whether comparisons across different containers are guarded or preconditioned    |
 | Exception guarantee   | Strong guarantee for allocation and element-construction failures                |
 | Allocation            | Allocator, PMR adapter, block-source concept, caller-owned segments, or a subset |
@@ -101,6 +109,7 @@ and result types remain open.
 - iteration compared with `std::vector`, `std::deque`, and relevant Abseil containers;
 - append throughput for trivial, movable, and non-trivial element types;
 - allocation count, bytes retained, metadata overhead, and unused tail capacity;
+- retained-segment reuse hit rate and `shrink_to_fit()` cost;
 - small, medium, and very large element sizes and alignments;
 - power-of-two mapping thresholds and generated code size;
 - compile-time cost and constexpr evaluation limits;
@@ -110,12 +119,16 @@ and result types remain open.
 
 ## Open questions
 
-1. Is mutation append/pop only, or are insertion and erasure required?
-2. Must arbitrary policy configurations preserve O(1) indexed access and random-access iterators?
+1. Is `SegmentedVector` still the correct name when arbitrary policies need not provide O(1)
+   random-access iterators?
+2. How does a growth request select a compatible retained segment: exact capacity, smallest fit,
+   policy identity, or another size-class rule?
 3. What block-source and ownership models are required in version one?
-4. Does `capacity()` report currently allocated slots, the policy maximum, or are both operations
-   needed?
-5. Does `clear()` retain segments for reuse or release them?
+4. Does `capacity()` report currently active and reusable slots, the policy maximum, or are
+   multiple operations needed?
+5. Does `clear()` retain all segments for reuse while `shrink_to_fit()` releases them?
 6. Are copy construction and copy assignment required, and what allocation policy does a copy use?
 7. Are segment-local spans useful enough to expose publicly?
 8. Which failure API is primary when growth or element construction cannot complete?
+9. Does the iterator category vary with policy, or does the class expose the strongest category
+   supported by every policy?

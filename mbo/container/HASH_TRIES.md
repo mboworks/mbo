@@ -52,6 +52,12 @@ HAMT is a general `mbo/container` facility regardless of whether it ultimately w
 StringInterner index benchmarks. StringInterner may consume it through a compatible-index contract;
 HAMT is not a restricted or string-specific implementation detail.
 
+StringInterner does not expose HAMT iterators. Its public iteration follows dense IDs through its
+separate stable ID-to-view sequence, while HAMT is only a replaceable content-to-ID lookup index.
+Consequently, StringInterner requires stable character storage and stable dense-sequence iteration,
+not stable transient HAMT iterators. HAMT iterator stability is a general-container design choice
+and must justify its own speed and memory cost.
+
 ## Potential roles
 
 | Role                            | HART fit                                      | HAMT fit                                       |
@@ -207,8 +213,9 @@ This keeps recovery state and result handling out of the ordinary successful pat
 
 ## Layout guarantees
 
-- Node layout preserves references and iterators across insertions and unrelated erasures; erasing
-  an element invalidates only references and iterators to that element.
+- Node layout preserves references across insertions and unrelated erasures; erasing an element
+  invalidates references to that element. Transient iterator stability remains benchmark- or
+  policy-selected because preserving it may require extra per-element memory or slower traversal.
 - Flat layout prioritizes locality and compactness; mutation may invalidate all iterators and
   references according to its documented rules.
 - Both layouts are implemented for comparison, but both become public only if each demonstrates a

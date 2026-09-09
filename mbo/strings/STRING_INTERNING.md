@@ -214,10 +214,16 @@ An mbo default should provide excellent performance and stable views. Compatibil
 make `std::unordered_map` and Abseil flat/node hash containers usable where their invalidation and
 allocation guarantees fit the selected storage arrangement.
 
-The independent [HART/HAMT study](../container/HASH_TRIES.md) evaluates additional index backends.
-A persistent HAMT may align with parent/child snapshots through structural sharing, while HART is a
-mutable exact-key candidate with substantially different persistent-memory origins. Neither is a
-default or prerequisite until measurements justify it.
+The independent [HART/HAMT study](../container/HASH_TRIES.md) selects HAMT as a general container
+implementation target while retaining HART only as a documented concurrency-oriented research
+option. A persistent HAMT may align with parent/child snapshots through structural sharing, but it
+is neither the default nor a prerequisite until measurements justify it.
+
+The index is not the interner's iteration storage. Public StringInterner iterators traverse the
+dense ID-to-view sequence, and lookup results are converted from an index entry to that dense
+position. No iterator from `std::unordered_map`, an Abseil container, HAMT, or another selected index
+escapes the interner. The index therefore need not provide stable iterators; stable strings and
+public interner iterators come from character storage and the dense sequence respectively.
 
 ### Owning-string insertion
 

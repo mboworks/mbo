@@ -104,9 +104,18 @@ storage, and node allocation. It must specify:
   bounded and no-additional-allocation arena-backed configurations;
 - explicit lightweight `try_insert`, `try_emplace`, `try_erase`, and persistent equivalents for
   bounded operation, with an error enum rather than exceptions or a heavyweight status type;
+- `try_*` errors initially limited to `allocation_exhausted` and `max_size_exceeded`, with
+  source-specific exhaustion mapped to the former;
 - the strong mutation guarantee: failed allocation, hashing, equality, key construction, or value
   construction leaves the original persistent value or transient container unchanged;
+- exception machinery compiled out for non-throwing types and exception-disabled configurations;
+  support for throwing construction must not impose measurable cost on the non-throwing path;
+- transient-to-persistent rvalue conversion leaving the moved-from transient valid and empty, in
+  keeping with ordinary moved-from container semantics;
 - exception-enabled and exception-disabled operation.
+
+One block-source concept drives the core implementation. Adapters provide standard allocator, PMR,
+arena, and fixed-buffer integration without multiplying HAMT implementations.
 
 ## Measurements required
 
@@ -127,6 +136,8 @@ storage, and node allocation. It must specify:
 - CHAMP-style combined data/node bitmaps and credible alternative node representations;
 - atomic intrusive reference counts, non-atomic ownership where permitted, and arena/generation
   lifetime strategies; atomics are not assumed free without measurements under sharing;
+- per-node source/deleter metadata versus a shared ownership domain with explicit deep cloning when
+  changing domains; cross-source flexibility must justify its node-footprint and hot-path cost;
 - cache misses, branch behavior, code size, and latency distributions;
 - comparison with `std::unordered_map`, Abseil hash containers, adaptive radix trees, and a simple
   sorted/dense index where appropriate;
@@ -136,13 +147,17 @@ storage, and node allocation. It must specify:
 ## Open questions
 
 1. Which ownership strategy wins for persistent structural sharing: atomic intrusive counts,
-   constrained non-atomic ownership, arena/generation retention, or a useful combination?
+   constrained non-atomic ownership, an ownership domain, arena/generation retention, or a useful
+   combination?
 2. Does a repeated non-consuming transient snapshot operation justify its cost in any measured
    workload, or is consuming `persistent() &&` sufficient?
 3. Which of the benchmarked fragment widths and bitmap/node representations should remain public
    policy rather than internal tuning?
 4. What exact lightweight result types carry the value/result, mutation flag, and bounded-operation
    error without imposing work on the successful path?
+5. Should changing block-source ownership always be an explicit deep `clone_to(source)` operation,
+   allowing ordinary copies, persistent mutations, and transient conversions to remain inside one
+   ownership domain without per-node source metadata?
 
 ## Layout guarantees
 

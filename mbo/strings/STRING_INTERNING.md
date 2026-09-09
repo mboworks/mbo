@@ -158,9 +158,12 @@ Lookup supports both traversal directions, analogous to `find` and `rfind`:
 - `find` traverses forward from the beginning of the topmost visible parent and ends at the child;
 - `rfind` traverses backward from the last visible child ID and ends at the topmost visible parent.
 
-This distinction is observable when the same string acquired different IDs in independently
-mutated ancestors and descendants after a snapshot. Interning an already visible string still
-needs one defined lookup direction; this remains to be selected explicitly.
+Both directions produce the same result under the uniqueness invariant. A child cannot insert a
+duplicate of a string visible at its cutoff, while a parent's later insertion is outside the
+child's captured prefix. Divergent branches may independently assign different IDs, but no one
+interner can see both branch-local entries. Search direction is therefore a performance and API
+choice, not duplicate precedence, unless the design deliberately introduces an operation that can
+bypass interning and append duplicates.
 
 ### Immutability and iteration
 
@@ -309,6 +312,7 @@ element type and may be less natural for string iteration.
 ## Correctness invariants
 
 - Every visible valid ID maps to exactly one byte string.
+- Every visible byte string maps to exactly one ID within one interner view.
 - Re-interning a visible string returns its existing visible ID and does not allocate.
 - New local IDs form a contiguous suffix after the captured parent cutoff.
 - Parent mutation after child creation cannot change any lookup result in the child.
@@ -344,8 +348,8 @@ Benchmarks should cover:
 
 1. Do we use zero-based IDs, possibly with a pre-interned empty string, or one-based IDs with zero
    invalid? Which result should the primary API use if measurement finds no meaningful difference?
-2. Which direction does `Intern` use to find an already visible string: `find` from the topmost
-   ancestor or `rfind` from the child?
+2. Which search direction does `intern` use for performance: forward from the topmost ancestor or
+   backward from the child?
 3. Which detailed error distinctions are useful: ID exhaustion, character capacity, entry/index
    capacity, allocator failure, and invalid configuration?
 4. What is the default unsigned ID width?
@@ -367,6 +371,8 @@ Benchmarks should cover:
 13. Do `find` and `rfind` return iterators, optional IDs, or iterators with a constant-time `id()`
     accessor?
 14. Does iterator dereference yield `std::string_view` or an entry containing both ID and view?
+15. Is there any intended operation that may append a duplicate string to one visible interner
+    view? Without one, `find` and `rfind` differ only in traversal direction and cost.
 
 ## Final language-baseline decision
 

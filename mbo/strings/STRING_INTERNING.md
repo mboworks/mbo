@@ -309,6 +309,22 @@ depends on the iterator's `value_type`: if dereferencing exposes only `string_vi
 need an efficient way to recover its dense ID; exposing `{id, string_view}` changes the range's
 element type and may be less natural for string iteration.
 
+Search direction and result orientation are independent choices:
+
+| Operation model              | Result                  | Consequence                                      |
+| ---------------------------- | ----------------------- | ------------------------------------------------ |
+| Associative-container `find` | Forward `iterator`      | Familiar `end()` miss; direction stays internal  |
+| Reverse-range search         | `reverse_iterator`      | Miss compares with `rend()`                      |
+| String-like position lookup  | Optional or sentinel ID | Direct dense ID; not associative-container style |
+| Forward iterator with `id()` | Forward `iterator`      | Natural range plus constant-time ID recovery     |
+
+Because visible strings are unique, a reverse search need not force a reverse-oriented result.
+Returning a forward iterator from both search directions would make found values interchangeable,
+while returning `reverse_iterator` from `rfind` exposes the traversal orientation. The current
+recommendation is a normal forward `find` returning `iterator`, an explicitly named reverse search
+returning `reverse_iterator`, dereference yielding `string_view`, and `id()` on both iterator types.
+This remains a recommendation until the public role of reverse search is confirmed.
+
 ## Correctness invariants
 
 - Every visible valid ID maps to exactly one byte string.

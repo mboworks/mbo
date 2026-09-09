@@ -37,8 +37,10 @@ requires it.
 The core operation requests a byte count and alignment. On success it returns only a non-null
 aligned pointer. The contract guarantees that at least the requested number of bytes are available
 at that pointer until the region is released; returning the already-known size would add needless
-result width and work. A zero-byte request needs an explicit canonical behavior and must not
-accidentally consume unbounded metadata.
+result width and work. The requested size must be greater than zero. C++ complete objects that can
+have distinct addresses occupy at least one byte, and the arena does not invent address identity
+for a zero-byte allocation. StringInterner represents an empty string without allocating character
+bytes.
 
 Successful allocations remain valid and do not move until `Reset`, destruction, or another
 explicitly documented region-lifetime operation. Individual allocations cannot be freed. Allocation
@@ -79,6 +81,15 @@ real callers need it.
 `Allocate` uses the configurable hard requirement. `TryAllocate` returns null without logging or
 throwing. Invalid alignment is a programmer precondition failure rather than ordinary resource
 exhaustion.
+
+Alignment must be a nonzero power of two. Every block source supports at least
+`alignof(std::max_align_t)` and advertises any greater supported maximum. An otherwise valid
+alignment above that maximum returns null from `TryAllocate` and triggers the configured hard
+failure from `Allocate`.
+
+Allocation is transactional at the byte-tail level. Failed block acquisition, alignment, size
+arithmetic, or capacity checks leave the cursor, padding, counters, retained blocks, and normal
+growth-sequence position unchanged.
 
 ## Block sources and growth
 
@@ -135,10 +146,17 @@ Both components can acquire a chain of blocks. Their public contracts remain dis
 A private shared block-chain primitive is plausible. A public common abstraction requires evidence
 that it simplifies real customization without leaking one component's semantics into the other.
 
-`Reset()` retains reusable normal and policy-selected oversized blocks while resetting allocation
+`Reset()` retains reusable normal and option-selected oversized blocks while resetting allocation
 state. `Release()` returns every backing block to its source and restores the arena to its initial
 empty state. The exact automatic retention limits are selected through `ArenaOptions` only when
 benchmarks demonstrate useful alternatives.
+
+Move and swap availability depends on storage. Arenas owning growing or external blocks may move
+and swap while preserving addresses within the transferred blocks. Move assignment first releases
+the destination's old state and therefore invalidates pointers into that old destination. An arena
+with an inline fixed buffer is immovable and unswappable because moving its embedded bytes would
+invalidate their addresses. Concepts and conditional special members expose these distinctions at
+compile time.
 
 ## Required guarantees to settle
 
@@ -147,11 +165,11 @@ benchmarks demonstrate useful alternatives.
 | Typed lifetime       | Raw `Arena` now; reverse-destruction `ObjectArena` deferred            |
 | Failure result       | Null from `TryAllocate`; configured hard failure from `Allocate`       |
 | Reset                | `Reset` retains reusable blocks; `Release` returns every backing block |
-| Rollback             | Whether failed construction/transactions reclaim tail bytes            |
+| Rollback             | Failed allocation leaves byte-tail state and growth position unchanged |
 | Oversized allocation | Dedicated block without advancing the normal growth sequence           |
-| Zero-size allocation | Canonical pointer/range and accounting behavior                        |
-| Maximum alignment    | Supported bound and behavior for over-aligned requests                 |
-| Move/swap            | Address stability, block-source propagation, and invalidation          |
+| Zero-size allocation | Programmer precondition requires a size greater than zero              |
+| Maximum alignment    | At least `max_align_t`; source advertises any higher supported maximum |
+| Move/swap            | Address-preserving for block-backed; forbidden for inline storage      |
 | Thread safety        | External synchronization or specialized concurrent mode                |
 | Introspection        | Required byte/block counters without affecting hot paths               |
 | Constexpr            | Exact fixed-storage operations supported during constant evaluation    |
@@ -172,13 +190,9 @@ benchmarks demonstrate useful alternatives.
 
 ## Open questions
 
-1. Is allocation transactional at the byte-tail level, or only at the caller-visible record level?
-2. What is the canonical behavior for zero-byte allocation?
-3. What maximum alignment must every block source support?
-4. Are move and swap supported while preserving all allocation addresses?
-5. Is thread safety entirely external in version one?
-6. Which counters are always maintained, optional, or benchmark-only?
-7. Does a shared block-chain primitive remain private to `mbo::memory` internals?
+1. Is thread safety entirely external in version one?
+2. Which counters are always maintained, optional, or benchmark-only?
+3. Does a shared block-chain primitive remain private to `mbo::memory` internals?
 
 ## Deferred work
 

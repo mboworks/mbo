@@ -37,12 +37,9 @@ where a child retains the parent's index root and adds branch-local strings with
 parent mutations. The planned container supports both persistent and transient modes, with an
 explicit transition between them so bulk construction need not pay unnecessary path-copying cost.
 
-[Hana Dusikova's `hamt4`](https://github.com/hanickadot/hamt4) is a relevant modern C++ design
-reference, particularly for constexpr hash decomposition, bitmap operations, heterogeneous lookup,
-and empty-base/no-unique-address storage. As currently published it is an unfinished prototype:
-node release is marked TODO, iteration and lookup are stubs, and `size()` returns zero. mbo should
-be at least as good as its useful representation ideas, but cannot honestly use it as a throughput
-or completeness baseline until a reproducible completed implementation or benchmark is identified.
+The implementation must be complete, correct, production-quality, and benchmarked. Incomplete
+prototype implementations are not design targets. They may suggest representation ideas, but do
+not reduce mbo's requirements for correctness, completeness, robustness, or measured performance.
 
 ## Potential roles
 
@@ -65,7 +62,9 @@ HAMT indexes hash fragments rather than ordered boundaries.
 Any mbo hash-trie container should be expressed through behavioral concepts for hash, equality,
 key access, value storage, and node allocation. It must specify:
 
-- map versus set forms and heterogeneous lookup;
+- both map and set forms over common internal machinery, plus heterogeneous lookup;
+- flat versus node storage as a measured policy or implementation decision rather than an API
+  omission;
 - full-hash collisions and unequal-key resolution;
 - ownership and lifetime of keys and values;
 - mutation, deletion, persistence, and snapshot semantics;
@@ -74,7 +73,8 @@ key access, value storage, and node allocation. It must specify:
 - copy, move, swap, and allocator/block-source propagation;
 - bounded and allocation-failure behavior;
 - exception-enabled and exception-disabled operation;
-- thread-safety and, if supported, memory-ordering guarantees.
+- lock-free HART operation wherever meaningful, with precisely documented progress, reclamation,
+  and memory-ordering guarantees.
 
 ## Measurements required
 
@@ -98,7 +98,8 @@ key access, value storage, and node allocation. It must specify:
    the paper's persistent-memory placement, ordering, logging, and crash-recovery guarantees?
 2. What progress guarantee does concurrent HART require: thread safety, lock-free reads, lock-free
    all-operation progress, or a stronger guarantee?
-3. Are HAMT map and set APIs both required?
+3. Should HAMT expose a flat/node policy publicly, select the representation internally, or offer
+   distinct optimized container aliases after benchmarking both?
 4. Is HAMT deletion required even though the string interner itself is append-only?
 5. Must HAMT iteration be deterministic across processes and hash seeds?
 6. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?

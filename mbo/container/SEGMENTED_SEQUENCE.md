@@ -30,14 +30,17 @@ Implementation and benchmarks for `SegmentedSequence` precede implementation of 
 - Reuse and eviction are policy-controlled. A compatible retained segment may be reused; unusable
   or sufficiently long-unused segments may be released according to benchmark-proven limits.
   Intelligent management must not add measurable cost to append, indexed access, or iteration.
-  Expensive reclamation therefore belongs in an explicit maintenance operation or a demonstrably
-  negligible slow path, not in every hot-path operation.
+  Reclamation naturally occurs when `pop_back()` empties a segment because the sequence grows and
+  shrinks only at its end. That operation may automatically retain or release the newly unused
+  segment without affecting references to live elements. The policy decides whether retention is
+  worthwhile; the default is selected by benchmarks rather than assuming that retaining or always
+  releasing is universally best.
 - `shrink_to_fit()` never relocates live elements and therefore preserves their addresses. A future
   relocating operation must not use that name or masquerade as an STL-compatible operation.
-- A future relocating operation is possible only if a demonstrated use outweighs the loss of the
-  container's central stability guarantee. It must use a conspicuous name such as
-  `relocate_and_compact()` and document pointer, reference, and iterator invalidation at the call
-  site. Omitting it entirely remains preferable unless measurements establish a real use.
+- Relocating compaction is deferred. A future operation is possible only if a demonstrated use
+  outweighs the loss of the container's central stability guarantee. It must use a conspicuous
+  non-STL name such as `relocate_and_compact()` and document pointer, reference, and iterator
+  invalidation at the call site.
 - Element construction and destruction follow normal `T` lifetime rules.
 - The container exposes dense positions in `[0, size())`.
 - Indexed access complexity and iterator category may depend on the selected segment policy; strict
@@ -143,8 +146,10 @@ and result types remain open.
 7. Which failure API is primary when growth or element construction cannot complete?
 8. Does the iterator category vary with policy, or does the class expose the strongest category
    supported by every policy?
-9. Is a separate `relocate_and_compact()` operation ever needed, or is stable `shrink_to_fit()`
-   sufficient?
-10. Can useful automatic eviction be driven by O(1) counters and occur only when a retained-byte or
-    retained-count boundary is crossed without measurable hot-path cost, or should all eviction be
-    explicit?
+9. Should the default `pop_back()` behavior release every newly empty segment or retain measured
+   useful capacity under a cheap policy, and which workloads establish that default?
+
+## Deferred work
+
+- Determine from concrete use and benchmarks whether a conspicuously invalidating
+  `relocate_and_compact()` operation is ever justified.

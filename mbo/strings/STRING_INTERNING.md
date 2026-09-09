@@ -174,6 +174,8 @@ Both directions are required for lookup and interning. Neither parent-first nor 
 universally hotter: applications may concentrate reuse in a shared root dictionary or in recent
 branch-local additions. Explicit operations expose each direction. A compile-time option selects
 the direction of the unsuffixed convenience operation so the default hot path has no runtime branch.
+The explicit insertion operations are `intern_parent_first(...)` and `intern_child_first(...)`;
+`intern(...)` uses the direction selected by `StringInternerOptions`.
 
 ### Immutability and iteration
 
@@ -237,9 +239,11 @@ public interner iterators come from character storage and the dense sequence res
 
 ### Owning-string insertion
 
-For compatibility with standard-container conventions, insertion should also accept an rvalue
-`std::string`. This must not force the default representation to store one `std::string` object per
-entry or weaken arena support.
+Owning `std::string` storage is a fundamentally different, viable backend rather than an incidental
+optimization of the arena/string-view design. It is expected to be slower for the primary workload
+and does not become the default without measurements. Accepting an rvalue `std::string` must not
+force the default representation to store one `std::string` object per entry or weaken arena
+support.
 
 The overload is therefore a capability of the selected storage backend:
 
@@ -252,6 +256,24 @@ Small-string optimization means moving a `std::string` does not universally tran
 allocation. An owning-string backend must also choose a representation whose later growth, moves,
 or relocation cannot invalidate views into short strings. This profile is an additional option,
 not a cost paid by the arena-oriented default.
+
+### Embedded NUL bytes
+
+The natural `std::string_view` contract compares and hashes the complete explicit length, so an
+embedded NUL byte is ordinary content rather than a terminator. This is the correctness default and
+avoids silently changing `string_view` semantics into C-string semantics.
+
+The benchmark suite must nevertheless measure whether full embedded-NUL support causes any relevant
+micro-performance cost. A compile-time no-embedded-NUL option is justified only if disabling support
+produces a material measured improvement. Such a mode must state an explicit precondition rejecting
+inputs containing NUL; it must never silently truncate them.
+
+### Thread safety
+
+Thread safety uses external synchronization, consistent with other mbo containers. Concurrent const
+lookup is permitted only while no thread mutates that interner or any relevant ancestor. No frozen
+representation is planned unless it later provides a measured optimization or enforces a necessary
+lifetime guarantee.
 
 ## Allocation models
 
@@ -318,6 +340,8 @@ struct InsertResult {
 
 InsertResult intern(std::string_view value);
 InsertResult intern(std::string&& value);
+InsertResult intern_parent_first(std::string_view value);
+InsertResult intern_child_first(std::string_view value);
 
 iterator find(std::string_view value) const;
 reverse_iterator rfind(std::string_view value) const;
@@ -388,28 +412,24 @@ Benchmarks should cover:
   `Hash64To32` reduction when an index requires 32 bits;
 - sentinel, optional, status, expected, and throwing adapters where supported;
 - `std::string_view` insertion, moved-string adoption, and moved-string-to-arena copying;
+- embedded-NUL support versus a checked or preconditioned no-NUL specialization;
 - lookup and insertion latency distributions, not only throughput averages.
 
 ## Open questions
 
-1. What names expose parent-first and child-first interning while leaving `intern` as the
-   compile-time-selected convenience operation?
-2. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
+1. Is moved-`std::string` adoption important enough to ship an owning-string backend in version one,
    or is accepting the overload and copying into the default arena sufficient initially?
-3. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
+2. Which operations invalidate views: move construction, move assignment, swap, clear, reset, and
    destruction? Can some operations be deleted to preserve a simpler guarantee?
-4. Are embedded NUL bytes fully supported? The content-and-length equality model suggests yes.
-5. Is thread safety entirely external, or should there be a read-only frozen form supporting
-   concurrent lookup?
-6. Do we need serialization or deterministic reconstruction of the dense ID table?
-7. Should the advanced heterogeneous parent facility be part of version one, experimental, or
+3. Do we need serialization or deterministic reconstruction of the dense ID table?
+4. Should the advanced heterogeneous parent facility be part of version one, experimental, or
    postponed until a concrete optimized organization demonstrates its constraints?
-8. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
+5. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
    private implementation primitive, or remain independent until measurement exposes useful
    commonality?
-9. Can arena descriptors use segment-relative offsets rather than native pointers, and which
+6. Can arena descriptors use segment-relative offsets rather than native pointers, and which
    offset width provides the best useful capacity/footprint tradeoff?
-10. Do `find` and `rfind` return iterators or optional IDs?
+7. Do `find` and `rfind` return iterators or optional IDs?
 
 ## Final language-baseline decision
 

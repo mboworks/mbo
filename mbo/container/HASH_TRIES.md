@@ -1,11 +1,12 @@
 # Hash-assisted trie design study
 
-This document scopes two distinct hash/trie families for possible mbo containers: HART and HAMT.
-They must not be conflated merely because their acronyms and use of hashes are similar.
+This document records the decision between two distinct hash/trie families: HART and HAMT. They
+must not be conflated merely because their acronyms and use of hashes are similar.
 
-Neither structure is currently a prerequisite for `SegmentedSequence`, the arena, or the string
-interner. Each must demonstrate a concrete advantage in representative benchmarks before becoming
-an implementation dependency or supported public API.
+HAMT is the implementation target. HART remains documented as a separate concurrency-oriented
+research option, but is not planned for implementation. Neither is a prerequisite for
+`SegmentedSequence` or the arena. HAMT becomes a string-interner dependency only if benchmarks show
+that it is the best index for the representative workloads.
 
 ## Structures under consideration
 
@@ -22,6 +23,12 @@ placement across DRAM and persistent memory, persistence ordering, crash recover
 concurrency. An mbo experiment must isolate the hash-assisted radix organization from those
 platform-specific mechanisms and must not claim HART behavior while silently omitting guarantees
 central to the paper.
+
+HART's principal attraction is concurrent access. That specialization does not currently match an
+established mbo requirement closely enough to justify its substantial publication, synchronization,
+memory-reclamation, and verification complexity. mbo therefore does not plan to implement HART.
+This decision can be revisited only for a concrete multithreaded workload where HART has a measured
+advantage over simpler structures.
 
 ### HAMT
 
@@ -57,10 +64,10 @@ operation asks for the segment containing a cumulative index, effectively a rang
 query. The published HART implementation provides exact lookup rather than this operation, and a
 HAMT indexes hash fragments rather than ordered boundaries.
 
-## Common container contract to investigate
+## HAMT container contract
 
-Any mbo hash-trie container should be expressed through behavioral concepts for hash, equality,
-key access, value storage, and node allocation. It must specify:
+The mbo HAMT should be expressed through behavioral concepts for hash, equality, key access, value
+storage, and node allocation. It must specify:
 
 - both map and set forms over common internal machinery, plus heterogeneous lookup;
 - flat versus node storage as a measured policy or implementation decision rather than an API
@@ -72,9 +79,7 @@ key access, value storage, and node allocation. It must specify:
 - iterator/reference invalidation;
 - copy, move, swap, and allocator/block-source propagation;
 - bounded and allocation-failure behavior;
-- exception-enabled and exception-disabled operation;
-- lock-free HART operation wherever meaningful, with precisely documented progress, reclamation,
-  and memory-ordering guarantees.
+- exception-enabled and exception-disabled operation.
 
 ## Measurements required
 
@@ -87,22 +92,14 @@ key access, value storage, and node allocation. It must specify:
 - cache misses, branch behavior, code size, and latency distributions;
 - comparison with `std::unordered_map`, Abseil hash containers, adaptive radix trees, and a simple
   sorted/dense index where appropriate;
-- single-threaded configurations before adding concurrency overhead;
-- concurrent HART read, insert, update, and deletion scalability, including contention and
-  reclamation costs;
+- single-threaded operation without concurrency overhead;
 - arena, allocator, and caller-supplied bounded node storage.
 
 ## Open questions
 
-1. Is mbo's HART a concurrent in-memory hash-assisted adaptive radix tree, or must it also provide
-   the paper's persistent-memory placement, ordering, logging, and crash-recovery guarantees?
-2. What progress guarantee does concurrent HART require: thread safety, lock-free reads, lock-free
-   all-operation progress, or a stronger guarantee?
-3. Should HAMT expose a flat/node policy publicly, select the representation internally, or offer
+1. Should HAMT expose a flat/node policy publicly, select the representation internally, or offer
    distinct optimized container aliases after benchmarking both?
-4. Is HAMT deletion required even though the string interner itself is append-only?
-5. Must HAMT iteration be deterministic across processes and hash seeds?
-6. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
-7. Are HART prefix/range operations required, or only exact heterogeneous lookup?
-8. Is HAMT concurrency also required, or is concurrency initially specific to HART?
-9. Are these general public containers or initially experimental string-index implementations?
+2. Is HAMT deletion required even though the string interner itself is append-only?
+3. Must HAMT iteration be deterministic across processes and hash seeds?
+4. Which HAMT hash fragment width and bitmap/node representations should be benchmarked?
+5. Is HAMT a general public container or initially an experimental string-index implementation?

@@ -15,14 +15,14 @@ and assigns compact dense identifiers. It supports fast lookup in both direction
   independent local strings;
 - configurable hashing, indexing, and character storage, including arena-backed and bounded
   allocation-free configurations;
-- a reusable `SegmentedVector` built from fixed-capacity segments for append-oriented stable
+- a reusable `SegmentedSequence` built from fixed-capacity segments for append-oriented stable
   storage, including but not limited to the interner's dense ID table.
 
 The design should make the efficient configuration easy while allowing users to choose different
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-[`SegmentedVector`](../container/SEGMENTED_VECTOR.md) and the
+[`SegmentedSequence`](../container/SEGMENTED_SEQUENCE.md) and the
 [`Arena`](../memory/ARENA.md) are prerequisite components. Each must be implemented and benchmarked
 independently before selecting the interner's default composition.
 
@@ -38,21 +38,21 @@ Separating these concerns is important. An arena can eliminate per-string charac
 but it does not make a node-based hash table allocation-free. A fully bounded interner must bound
 and supply storage for both the character data and every index/table allocation.
 
-The ordered ID-to-view table naturally wants `SegmentedVector`, an append-oriented container made
+The ordered ID-to-view table naturally wants `SegmentedSequence`, an append-oriented container made
 from fixed-capacity segments. It must provide stable element addresses and efficient indexing by
 dense position. Developing this reusable container is an explicit goal of the project, not merely
 a private interner implementation detail. Its API should nevertheless be driven by demonstrated
 requirements and measured behavior rather than speculative generality.
 
 The byte arena has different packing and lifetime needs and should not automatically share the
-`SegmentedVector` abstraction.
+`SegmentedSequence` abstraction.
 
-### Relationship between `SegmentedVector` and an arena
+### Relationship between `SegmentedSequence` and an arena
 
-`SegmentedVector` and a segmented arena can share nearly the same block-chain substrate, but they
+`SegmentedSequence` and a segmented arena can share nearly the same block-chain substrate, but they
 provide different contracts:
 
-| Property             | `SegmentedVector<T>`                         | Segmented arena                    |
+| Property             | `SegmentedSequence<T>`                       | Segmented arena                    |
 | -------------------- | -------------------------------------------- | ---------------------------------- |
 | Allocation unit      | A fixed number of `T` element slots          | Requested bytes plus alignment     |
 | Type knowledge       | Knows `T`, `sizeof(T)`, and `alignof(T)`     | Treats allocations as untyped      |
@@ -213,6 +213,11 @@ configuration.
 An mbo default should provide excellent performance and stable views. Compatibility adapters can
 make `std::unordered_map` and Abseil flat/node hash containers usable where their invalidation and
 allocation guarantees fit the selected storage arrangement.
+
+The independent [HART/HAMT study](../container/HASH_TRIES.md) evaluates additional index backends.
+A persistent HAMT may align with parent/child snapshots through structural sharing, while HART is a
+mutable exact-key candidate with substantially different persistent-memory origins. Neither is a
+default or prerequisite until measurements justify it.
 
 ### Owning-string insertion
 
@@ -383,7 +388,7 @@ Benchmarks should cover:
 9. Do we need serialization or deterministic reconstruction of the dense ID table?
 10. Should the advanced heterogeneous parent facility be part of version one, experimental, or
     postponed until a concrete optimized organization demonstrates its constraints?
-11. Do `SegmentedVector` and arena storage share a public block-chain abstraction, share only a
+11. Do `SegmentedSequence` and arena storage share a public block-chain abstraction, share only a
     private implementation primitive, or remain independent until measurement exposes useful
     commonality?
 12. Can arena descriptors use segment-relative offsets rather than native pointers, and which

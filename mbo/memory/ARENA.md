@@ -4,7 +4,7 @@ This document specifies the planned general arena component. Its proposed packag
 because aligned storage acquisition and region lifetime are memory-management facilities rather
 than container or string semantics.
 
-The string interner requires an arena-backed character store, and `SegmentedVector` may share a
+The string interner requires an arena-backed character store, and `SegmentedSequence` may share a
 lower-level block source. The arena remains independently useful and independently benchmarked.
 
 ## Goals
@@ -88,7 +88,7 @@ must be possible to provide:
 - a source using a constexpr-compatible fixed representation;
 - test and benchmark sources that count every acquired byte and block.
 
-Block growth uses only policies justified by benchmarks. As with `SegmentedVector`, a constexpr
+Block growth uses only policies justified by benchmarks. As with `SegmentedSequence`, a constexpr
 policy may stop after a size list, repeat its final size, or transition to another policy. Requests
 larger than the next normal block require a settled oversized-allocation rule: dedicate a block,
 advance the growth sequence, or fail.
@@ -126,12 +126,12 @@ Offsets may reduce metadata and improve relocatability, but introduce decoding a
 No pointer-versus-offset choice is made until benchmarks cover realistic string-size distributions,
 arena sizes, and lookup ratios.
 
-## Relationship to `SegmentedVector`
+## Relationship to `SegmentedSequence`
 
 Both components can acquire a chain of blocks. Their public contracts remain distinct:
 
 - the arena suballocates variable-size, variably aligned byte ranges and uses region lifetime;
-- `SegmentedVector<T>` owns uniformly typed element slots, manages each `T`, and provides dense
+- `SegmentedSequence<T>` owns uniformly typed element slots, manages each `T`, and provides dense
   indexed iteration.
 
 A private shared block-chain primitive is plausible. A public common abstraction requires evidence
@@ -163,7 +163,7 @@ that it simplifies real customization without leaking one component's semantics 
 - branch and code-size cost of each failure-result form;
 - PMR, standard allocator, direct allocation, and caller-owned block sources;
 - small-string-heavy, mixed, and large-record workloads;
-- interaction with the string index and `SegmentedVector` metadata table;
+- interaction with the string index and `SegmentedSequence` metadata table;
 - exception-enabled and exception-disabled builds;
 - single-threaded performance before considering synchronization.
 

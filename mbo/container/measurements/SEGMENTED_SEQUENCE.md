@@ -145,6 +145,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)                  | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `5e1382418`        | `b7fb4c534`  | [`integrated pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_5e1382418_segmented-sequence-pointer-pages.json) | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `399b5a7fa`        | `5e1382418`  | [`directory growth`](data/macos-arm64-apple-m5-pro_clang-22_399b5a7fa_segmented-sequence-directory-growth.json)      | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -394,3 +395,61 @@ below the alternatives. The next integrated candidate should therefore use natur
 for ordinary incremental append and preallocate the directory when `reserve(requested)` exposes a
 known target. Pointer-page adoption still awaits Zen 5; this experiment selects how to test it,
 not whether it becomes the production mapping.
+
+## Apple M5 Pro integrated hybrid growth
+
+Commit `78856f238` applies the directory-growth result to the integrated pointer-page candidate.
+Incremental append now uses the standard vector's natural growth, while `reserve(requested)`
+computes the segment-rounded final page count and preallocates it once. The full Clang repository
+suite remains green with 145 passing tests and one intentionally skipped exception-only test.
+
+The artifact records the complete 26-family production matrix from a clean tree, nine randomly
+interleaved repetitions, and 480.60 seconds. It started after the host had settled to a 2.24
+one-minute load average, but unrelated activity raised ending load to 11.33/13.59/10.44 and caused
+isolated scheduler outliers. Fastest-three and medians remain the appropriate robust views;
+affected all-nine means are included to expose, not conceal, the interference.
+
+| Family                                          | Fast 3 | Median |     Mean |     CV | Baseline delta |
+| ----------------------------------------------- | -----: | -----: | -------: | -----: | -------------: |
+| `Deque/AppendFresh`                             |  16354 |  16483 |  16716.3 |  4.70% |          +0.6% |
+| `SegmentedSequence/AppendFresh/Listed`          |  91006 |  91630 |  99962.9 | 16.95% |          -3.5% |
+| `SegmentedSequence/AppendFresh/Uniform1024`     |  86093 |  86843 |  94911.8 | 11.92% |          -0.6% |
+| `SegmentedSequence/AppendFresh/Uniform256`      |  89938 |  90293 |  95873.3 | 11.74% |          +0.4% |
+| `SegmentedSequence/AppendFresh/Uniform64`       | 101815 | 102137 | 105541.3 |  9.82% |          +1.4% |
+| `SegmentedSequence/AppendRetained/Listed`       |  86340 |  88851 | 100275.0 | 19.06% |          -2.5% |
+| `SegmentedSequence/AppendRetained/Uniform1024`  |  84035 |  84198 |  86188.3 |  6.89% |          +4.0% |
+| `SegmentedSequence/AppendRetained/Uniform256`   |  82343 |  84155 |  85907.6 |  6.70% |          -1.7% |
+| `SegmentedSequence/AppendRetained/Uniform64`    |  83797 |  84037 |  84268.1 |  1.12% |          +0.3% |
+| `SegmentedSequence/Indexed/Listed`              |   6448 |   6465 |   6892.8 | 18.69% |         -67.7% |
+| `SegmentedSequence/Indexed/Uniform1024`         |   6461 |   6480 |   7180.0 | 19.71% |         -30.1% |
+| `SegmentedSequence/Indexed/Uniform256`          |   6452 |   6470 |   7717.4 | 24.47% |         -43.9% |
+| `SegmentedSequence/Indexed/Uniform64`           |   6464 |   6477 |   6477.6 |  0.23% |         -30.3% |
+| `SegmentedSequence/IndexedPermuted/Listed`      |   6610 |   6640 |   7610.3 | 37.86% |         -70.3% |
+| `SegmentedSequence/IndexedPermuted/Uniform1024` |   6604 |   6640 |   8558.2 | 42.32% |         -36.5% |
+| `SegmentedSequence/IndexedPermuted/Uniform256`  |   6619 |   6637 |   6642.0 |  0.35% |         -36.9% |
+| `SegmentedSequence/IndexedPermuted/Uniform64`   |   6617 |   6642 |   7509.9 | 35.08% |         -37.9% |
+| `SegmentedSequence/Iterator/Listed`             |   6475 |   6491 |   6489.1 |  0.21% |         -71.3% |
+| `SegmentedSequence/Iterator/Uniform1024`        |   6469 |   6498 |   8070.2 | 23.37% |         -27.8% |
+| `SegmentedSequence/Iterator/Uniform256`         |   6474 |   6488 |   7274.0 | 21.55% |         -27.7% |
+| `SegmentedSequence/Iterator/Uniform64`          |   6482 |   6508 |   6510.2 |  0.42% |         -27.9% |
+| `SegmentedSequence/Segments/Listed`             |   1459 |   1460 |   1475.7 |  3.12% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform1024`        |   1525 |   1535 |   1762.8 | 19.88% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform256`         |   1862 |   1866 |   2044.0 | 13.31% |          +0.4% |
+| `SegmentedSequence/Segments/Uniform64`          |   3173 |   3180 |   3239.4 |  4.23% |          -0.1% |
+| `Vector/AppendFresh`                            |  21195 |  21353 |  22374.8 |  9.51% |          +1.6% |
+
+The hybrid removes the exact-growth regression. Uniform-64 fresh append is 1.4% above the original
+run while `vector` is 1.6% slower in the same cross-run comparison; this is environmental drift,
+not evidence of a remaining page cost. Listed fresh append is 3.5% faster. Retained append changes
+are mixed and within the observed cross-run noise.
+
+The lookup result reproduces for a third independent experiment. Listed indexed, permuted, and
+iterator traversal improve 67.7%, 70.3%, and 71.3%. Uniform schedules improve between 27.8% and
+43.9%. Segment-span traversal remains unchanged. Explicit reserve retains exact directory capacity
+(2,048 bytes for uniform schedules and 2,216 bytes for listed); incremental listed construction
+accepts 4,096 bytes of vector capacity to avoid repeated reallocations.
+
+M5 evidence therefore supports the hybrid growth mechanism and page size 64. It does not yet
+select pointer pages over compact IDs, establish the activation rule for arbitrary capacity
+schedules, or authorize production use. Those decisions still require Zen 5 and the element-shape,
+retention, and deep pop/regrow matrices.

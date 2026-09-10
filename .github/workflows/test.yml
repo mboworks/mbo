@@ -320,6 +320,7 @@ jobs:
             --experimental_profile_additional_tasks=fetch \
             --//mbo/config:require_throws=true \
             //mbo/container:limited_map_require_exceptions_test \
+            //mbo/container:segmented_sequence_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
             --combined_report=lcov \
             --instrumentation_filter='^//mbo/(container|json)[/:].*'

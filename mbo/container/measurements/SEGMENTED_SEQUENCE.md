@@ -139,11 +139,12 @@ option only when users can identify the relevant workload or machine characteris
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                | Status                                 |
-| ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid diagnostic; quiet rerun required |
-| Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)     | valid; Zen 5 counterpart required      |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                 | pending                                |
+| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                             | Status                                 |
+| ------------ | -------- | ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json)              | valid diagnostic; quiet rerun required |
+| Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)                  | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `5e1382418`        | `b7fb4c534`  | [`integrated pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_5e1382418_segmented-sequence-pointer-pages.json) | valid; scheduler outliers documented   |
+| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
 
@@ -279,3 +280,68 @@ One pointer per element is rejected: it is only 7.2% faster than pointer page 64
 show no compensating speed advantage over 16-bit IDs. A production compact representation must
 therefore choose the narrowest sufficient ID dynamically or by configuration; the general
 container cannot inherit a 65,535-segment limit from this proof.
+
+## Apple M5 Pro integrated pointer pages
+
+Commit `5e1382418` integrates a 64-element pointer-page directory into the actual container when
+every configured segment capacity is divisible by 64. Other schedules keep the original mapping.
+The implementation updates the directory transactionally with segment acquisition, transfers it
+on copy and move, and shrinks it with tail-segment release. Tests cover every boundary in a listed
+schedule, deep pop, trim, regrowth, copy, and address-preserving move. The full Clang repository
+suite passed: 145 tests passed and one exception-only test was intentionally skipped.
+
+The artifact contains the complete production matrix, not an isolated lookup kernel: fresh and
+retained append, indexed and permuted access, iterator traversal, segment-span traversal, and
+`vector`/`deque` baselines. It records a clean `5e1382418` tree against `b7fb4c534`, 26 families,
+nine randomly interleaved repetitions, and 415.62 seconds. The actual directory retains 2,048
+bytes for exactly 16,384 elements and 2,216 bytes for the listed schedule's 17,728-element
+capacity.
+
+`Baseline delta` compares fastest-three means against the earlier production artifact. Negative
+values are faster. This is a cross-run comparison, so changes near noise are not findings.
+
+| Family                                          | Fast 3 | Median |     Mean |     CV | Baseline delta |
+| ----------------------------------------------- | -----: | -----: | -------: | -----: | -------------: |
+| `Deque/AppendFresh`                             |  16375 |  16510 |  16482.1 |  0.57% |          +0.7% |
+| `SegmentedSequence/AppendFresh/Listed`          |  91319 |  91672 |  91602.6 |  0.31% |          -3.2% |
+| `SegmentedSequence/AppendFresh/Uniform1024`     |  87410 |  87611 |  87850.0 |  0.88% |          +0.9% |
+| `SegmentedSequence/AppendFresh/Uniform256`      |  90941 |  93031 |  92473.4 |  1.57% |          +1.5% |
+| `SegmentedSequence/AppendFresh/Uniform64`       | 113378 | 113608 | 122255.4 | 13.69% |         +12.9% |
+| `SegmentedSequence/AppendRetained/Listed`       |  86047 |  89202 |  92233.1 | 13.94% |          -2.9% |
+| `SegmentedSequence/AppendRetained/Uniform1024`  |  80439 |  84197 |  84816.6 |  8.05% |          -0.5% |
+| `SegmentedSequence/AppendRetained/Uniform256`   |  76435 |  83606 |  81299.5 |  7.54% |          -8.7% |
+| `SegmentedSequence/AppendRetained/Uniform64`    |  83254 |  84054 |  85695.6 |  6.77% |          -0.3% |
+| `SegmentedSequence/Indexed/Listed`              |   6460 |   6472 |   6887.5 | 18.04% |         -67.6% |
+| `SegmentedSequence/Indexed/Uniform1024`         |   6445 |   6465 |   6546.2 |  3.83% |         -30.3% |
+| `SegmentedSequence/Indexed/Uniform256`          |   6462 |   6471 |   6468.6 |  0.09% |         -43.8% |
+| `SegmentedSequence/Indexed/Uniform64`           |   6500 |   6532 |   7736.5 | 23.68% |         -29.9% |
+| `SegmentedSequence/IndexedPermuted/Listed`      |   6619 |   6655 |   8136.9 | 37.15% |         -70.3% |
+| `SegmentedSequence/IndexedPermuted/Uniform1024` |   6593 |   6621 |   7539.4 | 36.79% |         -36.6% |
+| `SegmentedSequence/IndexedPermuted/Uniform256`  |   6625 |   6653 |   8456.1 | 42.47% |         -36.8% |
+| `SegmentedSequence/IndexedPermuted/Uniform64`   |   6648 |   6671 |   6675.0 |  0.48% |         -37.6% |
+| `SegmentedSequence/Iterator/Listed`             |   6489 |   6499 |   6937.5 | 16.99% |         -71.3% |
+| `SegmentedSequence/Iterator/Uniform1024`        |   6468 |   6478 |   6478.7 |  0.17% |         -27.8% |
+| `SegmentedSequence/Iterator/Uniform256`         |   6494 |   6526 |   7294.2 | 21.23% |         -27.5% |
+| `SegmentedSequence/Iterator/Uniform64`          |   6516 |   6523 |   6524.3 |  0.13% |         -27.5% |
+| `SegmentedSequence/Segments/Listed`             |   1459 |   1463 |   1604.1 | 17.62% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform1024`        |   1525 |   1528 |   1529.0 |  0.28% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform256`         |   1857 |   1862 |   1861.4 |  0.23% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform64`          |   3174 |   3179 |   3198.5 |  1.88% |          -0.0% |
+| `Vector/AppendFresh`                            |  20930 |  21113 |  21181.5 |  1.20% |          +0.3% |
+
+Fastest-three results show that the integrated directory preserves the isolated proof's lookup
+gain. The listed configuration improves by 67.6% for sequential indexing, 70.3% for permuted
+indexing, and 71.3% for iterator traversal. Segment-span traversal is unchanged, as expected.
+Uniform schedules improve by 27.5% to 43.8%, showing that a page directory may also beat integer
+division even when the original mapping is constant time.
+
+Fresh listed append improved 3.2%, while uniform-256 and uniform-1024 changed by less than 1.5%.
+Uniform-64 fresh append regressed 12.9%; that configuration adds 256 segments and therefore needs
+a focused directory-growth experiment before any automatic page-directory rule is acceptable.
+
+This run is structurally valid but suffered scheduler interruptions: several indexed and iterator
+families contain isolated 2x to 3x samples, and the listed retained-append family contains one
+125,974 ns CPU sample against an 89,202 ns median. Starting load was 7.65/9.97/9.24 and ending load
+was 2.25/7.38/8.63. Fastest-three and medians still corroborate the isolated mapping result, but
+all-nine means for affected families are not decision evidence. Zen 5 measurements and a quieter
+M5 confirmation remain mandatory before selecting pointer pages or their activation rule.

@@ -40,6 +40,38 @@ class CoverageIntegrityTest(unittest.TestCase):
 
         self.assertEqual([], coverage_integrity.scope_regressions(candidate, base))
 
+    def test_scope_regressions_accepts_new_category(self):
+        base = {
+            "include": ["mbo/**"],
+            "exclude": ["mbo/**/*_test.cc"],
+            "categories": {"types": {"include": ["mbo/types/**"]}},
+        }
+        candidate = {
+            **base,
+            "categories": {
+                **base["categories"],
+                "memory": {"include": ["mbo/memory/**"]},
+            },
+        }
+
+        self.assertEqual([], coverage_integrity.scope_regressions(candidate, base))
+
+    def test_scope_regressions_rejects_changed_existing_category(self):
+        base = {
+            "include": ["mbo/**"],
+            "exclude": ["mbo/**/*_test.cc"],
+            "categories": {"types": {"include": ["mbo/types/**"]}},
+        }
+        candidate = {
+            **base,
+            "categories": {"types": {"include": ["mbo/types/public/**"]}},
+        }
+
+        self.assertEqual(
+            ["coverage measurement scope was changed"],
+            coverage_integrity.scope_regressions(candidate, base),
+        )
+
     def test_scope_regressions_accepts_test_utility_header_exclusion(self):
         base = {
             "include": ["mbo/**"],

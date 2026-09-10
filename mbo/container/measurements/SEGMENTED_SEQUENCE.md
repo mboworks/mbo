@@ -117,9 +117,61 @@ option only when users can identify the relevant workload or machine characteris
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact | Status  |
-| ------------ | -------- | ------------------ | ------------ | -------- | ------- |
-| Apple M5 Pro | Clang 22 | pending            | pending      | pending  | pending |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending  | pending |
+| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                | Status                                 |
+| ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid diagnostic; quiet rerun required |
+| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                 | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
+
+## Initial Apple M5 Pro diagnostic
+
+The initial artifact records a clean `aeb18e3b4` tree, Clang 22.1.8, C++20, Bazel 9.2.0, 26
+families with exactly nine raw repetitions each, random interleaving, one-second warmup and minimum
+time, and a 404.47-second run. It began immediately after a complete repository build at load
+averages 8.19/5.13/7.66 and ended at 1.70/3.98/6.38. Times are CPU nanoseconds per 16,384-element
+workload. `Fast 3` is the mean of the three fastest samples; CV uses all nine.
+
+| Operation        | Layout       | Fast 3 | Median |     Mean |     CV | Capacity | Reserved | Segments |
+| ---------------- | ------------ | -----: | -----: | -------: | -----: | -------: | -------: | -------: |
+| Append fresh     | Uniform 64   | 100404 | 100543 | 103431.4 |  8.42% |    16384 |   131072 |      256 |
+| Append fresh     | Uniform 256  |  89610 |  89760 |  91664.7 |  6.20% |    16384 |   131072 |       64 |
+| Append fresh     | Uniform 1024 |  86598 |  86680 |  86709.9 |  0.17% |    16384 |   131072 |       16 |
+| Append fresh     | Listed       |  94318 |  96070 | 100145.4 | 13.72% |    17728 |   141824 |        7 |
+| Append retained  | Uniform 64   |  83538 |  84066 |  83937.1 |  0.41% |    16384 |   131072 |      256 |
+| Append retained  | Uniform 256  |  83748 |  84228 |  85862.8 |  6.24% |    16384 |   131072 |       64 |
+| Append retained  | Uniform 1024 |  80825 |  84209 |  83140.4 |  2.69% |    16384 |   131072 |       16 |
+| Append retained  | Listed       |  88597 |  92222 |  91490.9 |  2.73% |    17728 |   141824 |        7 |
+| Indexed          | Uniform 64   |   9269 |   9293 |   9286.7 |  0.18% |    16384 |   131072 |      256 |
+| Indexed          | Uniform 256  |  11492 |  11497 |  11496.3 |  0.03% |    16384 |   131072 |       64 |
+| Indexed          | Uniform 1024 |   9241 |   9277 |   9467.7 |  6.42% |    16384 |   131072 |       16 |
+| Indexed          | Listed       |  19951 |  19959 |  19967.5 |  0.09% |    17728 |   141824 |        7 |
+| Indexed permuted | Uniform 64   |  10648 |  10657 |  10660.4 |  0.12% |    16384 |   131072 |      256 |
+| Indexed permuted | Uniform 256  |  10482 |  10511 |  10509.0 |  0.26% |    16384 |   131072 |       64 |
+| Indexed permuted | Uniform 1024 |  10401 |  10456 |  10482.0 |  0.74% |    16384 |   131072 |       16 |
+| Indexed permuted | Listed       |  22284 |  22384 |  22356.7 |  0.28% |    17728 |   141824 |        7 |
+| Iterator         | Uniform 64   |   8986 |   9006 |   9686.4 | 21.20% |    16384 |   131072 |      256 |
+| Iterator         | Uniform 256  |   8952 |   8969 |   8968.4 |  0.21% |    16384 |   131072 |       64 |
+| Iterator         | Uniform 1024 |   8954 |   8965 |   8966.7 |  0.16% |    16384 |   131072 |       16 |
+| Iterator         | Listed       |  22597 |  22612 |  22627.0 |  0.20% |    17728 |   141824 |        7 |
+| Segment spans    | Uniform 64   |   3175 |   3178 |   3224.3 |  4.34% |    16384 |   131072 |      256 |
+| Segment spans    | Uniform 256  |   1855 |   1863 |   1862.6 |  0.43% |    16384 |   131072 |       64 |
+| Segment spans    | Uniform 1024 |   1524 |   1526 |   1526.9 |  0.23% |    16384 |   131072 |       16 |
+| Segment spans    | Listed       |   1458 |   1460 |   1536.7 | 15.07% |    17728 |   141824 |        7 |
+| Append fresh     | `vector`     |  20861 |  21139 |  21680.4 |  8.52% |    16384 |   131072 |      n/a |
+| Append fresh     | `deque`      |  16257 |  16419 |  16411.9 |  0.88% |      n/a |      n/a |      n/a |
+
+This run is retained because its quiet samples establish useful next experiments, not because it
+selects defaults. Uniform logical iteration is essentially independent of segment size at roughly
+8.95 microseconds, while direct segment traversal improves from 3.17 microseconds with 256 segments
+to 1.52 microseconds with 16 segments. The listed mapping cuts the directory to seven segments and
+has the fastest span traversal, but its bounded comparison chain makes logical iteration about 2.5
+times slower. That is direct evidence to implement and benchmark a hybrid mapping or boundary
+directory rather than accepting the current listed lookup.
+
+The run also contains isolated scheduler interruptions: listed fresh append has 13.72% CV, listed
+span traversal 15.07%, and uniform-64 iterator traversal 21.20%. Uniform-256 sequential indexed
+lookup is stably but unexpectedly slower than both other uniform sizes, despite their common
+power-of-two mapping. A quiet rerun and generated-code inspection are required before comparing
+small differences or selecting a uniform capacity. The artifact remains structurally valid and
+immutable, but it is explicitly diagnostic rather than merge evidence.

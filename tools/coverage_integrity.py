@@ -26,8 +26,17 @@ def scope_regressions(candidate: dict, base: dict) -> list[str]:
     base_scope = coverage_tool.baseline_scope(base)
     candidate_excludes = set(candidate_scope.pop("exclude"))
     base_excludes = set(base_scope.pop("exclude"))
+    candidate_categories = candidate_scope.pop("categories", {})
+    base_categories = base_scope.pop("categories", {})
     added_excludes = candidate_excludes - base_excludes
-    if candidate_scope != base_scope or not added_excludes <= _ALLOWED_EXCLUDE_ADDITIONS:
+    retained_categories = {
+        name: candidate_categories.get(name) for name in base_categories
+    }
+    if (
+        candidate_scope != base_scope
+        or retained_categories != base_categories
+        or not added_excludes <= _ALLOWED_EXCLUDE_ADDITIONS
+    ):
         return ["coverage measurement scope was changed"]
     return []
 

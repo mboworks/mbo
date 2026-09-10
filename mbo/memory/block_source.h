@@ -37,6 +37,11 @@ concept BlockSource = requires(Source& source, MemoryBlock block, std::size_t si
   { source.max_alignment() } noexcept -> std::convertible_to<std::size_t>;
 };
 
+template<typename Source>
+concept CopyableBlockSource = BlockSource<Source> && requires(const Source& source) {
+  { source.CopyForContainer() } -> std::same_as<Source>;
+};
+
 // NOLINTBEGIN(readability-identifier-naming): block-source accessors follow allocator/STL spelling.
 
 class NewDeleteBlockSource final {
@@ -61,6 +66,8 @@ class NewDeleteBlockSource final {
   }
 
   static void Release(MemoryBlock block) noexcept { ::operator delete(block.data, std::align_val_t{block.alignment}); }
+
+  static constexpr NewDeleteBlockSource CopyForContainer() noexcept { return {}; }
 };
 
 class FixedBlockSource final {
@@ -188,6 +195,10 @@ class AllocatorBlockSource final {
 
   constexpr const Allocator& allocator() const noexcept { return allocator_; }
 
+  constexpr AllocatorBlockSource CopyForContainer() const {
+    return AllocatorBlockSource(Traits::select_on_container_copy_construction(allocator_));
+  }
+
  private:
   [[no_unique_address]] Allocator allocator_{};
 };
@@ -231,6 +242,8 @@ class PmrBlockSource final {
 
   std::pmr::memory_resource* resource() const noexcept { return resource_; }
 
+  PmrBlockSource CopyForContainer() const noexcept { return PmrBlockSource(resource_); }
+
  private:
   std::pmr::memory_resource* resource_;
 };
@@ -240,6 +253,11 @@ static_assert(BlockSource<FixedBlockSource>);
 static_assert(BlockSource<InlineBlockSource<4'096>>);
 static_assert(BlockSource<AllocatorBlockSource<>>);
 static_assert(BlockSource<PmrBlockSource>);
+static_assert(CopyableBlockSource<NewDeleteBlockSource>);
+static_assert(CopyableBlockSource<AllocatorBlockSource<>>);
+static_assert(CopyableBlockSource<PmrBlockSource>);
+static_assert(!CopyableBlockSource<FixedBlockSource>);
+static_assert(!CopyableBlockSource<InlineBlockSource<4'096>>);
 
 // NOLINTEND(readability-identifier-naming)
 

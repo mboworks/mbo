@@ -95,6 +95,26 @@ restored storage counters, separating the memory released by eager trimming from
 This establishes the retention value envelope before benchmarking bounded pools and
 exact/close/largest-fit lookup structures.
 
+## Retained-pool proof benchmark
+
+`//mbo/container:segmented_sequence_pool_benchmark` isolates the bounded lookup and mutation needed
+to reuse an empty segment. Each timed operation selects a compatible block, removes it, and returns
+it to the pool, so a candidate cannot hide expensive erase or reinsertion behind a lookup-only
+number. Pools contain 8, 32, or 128 blocks across eight capacity classes from 64 through 4,096
+elements. A deterministic mixed request trace exercises exact matches, close fits within 25%, and
+largest-fit fallback.
+
+The linear candidate searches newest to oldest and removes by swapping with the end. The sorted
+candidate uses binary search but pays for ordered vector removal and reinsertion. The class
+candidate stores a LIFO vector per compile-time capacity class and searches at most eight classes.
+All candidates return the newest block within a selected equal-capacity class. Storage for the
+maximum pool size is reserved before timing, and every operation validates that a non-null block
+with sufficient capacity was returned. Results report retained metadata capacity separately.
+
+This proof selects a bounded lookup structure, not public option defaults. Follow-up integration
+must separately measure byte/count eviction budgets, overflow release, real `BlockSource`
+acquisition avoidance, and complete `SegmentedSequence` rollback/regrowth behavior.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact

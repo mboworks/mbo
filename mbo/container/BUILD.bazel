@@ -123,6 +123,17 @@ cc_binary(
 )
 
 cc_binary(
+    name = "segmented_sequence_pool_benchmark",
+    testonly = 1,
+    srcs = ["segmented_sequence_pool_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = ["@com_github_google_benchmark//:benchmark"],
+)
+
+cc_binary(
     name = "segmented_sequence_element_shape_benchmark",
     testonly = 1,
     srcs = ["segmented_sequence_element_shape_benchmark.cc"],

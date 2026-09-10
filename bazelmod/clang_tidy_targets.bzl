@@ -42,6 +42,7 @@ CLANG_TIDY_MANUAL_TARGETS = [
     "//mbo/container:segmented_sequence_element_shape_benchmark",
     "//mbo/container:segmented_sequence_layout_benchmark",
     "//mbo/container:segmented_sequence_lifecycle_benchmark",
+    "//mbo/container:segmented_sequence_pool_benchmark",
     "//mbo/diff:diff_benchmark",
     "//mbo/hash:hash_benchmark",
     "//mbo/hash:hash_differential_test",

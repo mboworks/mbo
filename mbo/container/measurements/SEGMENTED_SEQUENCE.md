@@ -198,6 +198,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `79ff8dade`        | `78856f238`  | [`lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_79ff8dade_segmented-sequence-lifecycle.json)          | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `ce7101a53`        | `ec2b1868d`  | [`retained pool`](data/macos-arm64-apple-m5-pro_clang-22_ce7101a53_segmented-sequence-pool.json)                     | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -241,6 +242,40 @@ bytes even when empty. Eager trimming proves the opposite endpoint and releases 
 tail block transactionally. Neither endpoint is a justified universal default. The next proof must
 measure bounded count/byte pools and exact, close-fit, and largest-fit reuse so memory can be
 recovered without paying repeated source allocation on common rollback/regrowth cycles.
+
+## Apple M5 Pro retained-pool lookup proof
+
+The retained-pool artifact records a clean `ce7101a53` tree against lifecycle-results baseline
+`ec2b1868d`, Clang 22.1.8, C++20, Bazel 9.2.0, nine families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 143.83-second run. Load averages declined
+from 1.63/4.89/9.77 over the measurement envelope. All families have less than 2.5% all-nine CPU
+time CV, so the ranking and scaling are stable on this machine.
+
+Times are CPU nanoseconds for a complete compatible-block selection, removal, and reinsertion.
+Every candidate uses the same 16-byte block record and pre-reserves all reported metadata.
+
+| Pool structure | Blocks | Fast 3 | Median |   Mean |    CV | Metadata bytes |
+| -------------- | -----: | -----: | -----: | -----: | ----: | -------------: |
+| Size classes   |      8 |  6.764 |  6.802 |  6.831 | 1.24% |            128 |
+| Linear         |      8 |  8.287 |  8.454 |  8.485 | 2.40% |            128 |
+| Sorted vector  |      8 | 32.641 | 32.943 | 32.864 | 0.60% |            128 |
+| Size classes   |     32 |  6.684 |  6.720 |  6.737 | 0.87% |            512 |
+| Linear         |     32 | 16.906 | 17.183 | 17.115 | 1.07% |            512 |
+| Sorted vector  |     32 | 48.828 | 49.030 | 49.044 | 0.42% |            512 |
+| Size classes   |    128 |  6.701 |  6.729 |  6.774 | 1.49% |           2048 |
+| Linear         |    128 | 58.560 | 60.300 | 59.769 | 1.95% |           2048 |
+| Sorted vector  |    128 | 80.196 | 80.281 | 80.313 | 0.17% |           2048 |
+
+The eight-class directory is effectively independent of retained block count and is already 18.4%
+faster than the linear scan at eight blocks. At 128 blocks it is 8.7 times faster. Binary search
+does not rescue a sorted contiguous directory because removal and reinsertion dominate the complete
+operation; it is 4.8 times slower even at eight blocks and 12.0 times slower at 128 blocks.
+
+This selects fixed compile-time size-class buckets as the implementation candidate for bounded
+retention. The result does not select eight classes universally: production classes derive from the
+configured segment-capacity list, and the Zen 5 counterpart remains required. It also does not
+select retained count, retained bytes, close-fit waste threshold, or eviction order. Those need an
+integrated source-counting benchmark with burst, rollback, changed-size, and overflow traces.
 
 ## Initial Apple M5 Pro diagnostic
 

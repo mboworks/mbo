@@ -1,5 +1,10 @@
 # Ordered lookup microbenchmarks
 
+The production and proof protocol for the new append-oriented stable-address container lives in
+[`SEGMENTED_SEQUENCE.md`](SEGMENTED_SEQUENCE.md). Its measurements use immutable JSON artifacts and
+the two-machine evidence gate; the historical ordered-lookup study below predates that shared
+artifact contract.
+
 The ordered-lookup experiment for mbo pull request 411 measured 648 cases with nine repetitions
 each. It was built with `-c opt` on an 18-core Apple M5 Pro (Mac17,9, 64 GB) and measured on
 2026-09-04.

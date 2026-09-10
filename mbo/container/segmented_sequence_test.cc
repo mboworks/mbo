@@ -361,7 +361,7 @@ TEST_F(SegmentedSequenceTest, RetentionAccountingSurvivesMoveAndTrim) {
   EXPECT_THAT(moved.retained_segment_count(), Eq(1));
   EXPECT_THAT(moved.retained_bytes(), Eq(sizeof(int) * 3));
   // The container contract explicitly specifies the moved-from state.
-  // NOLINTNEXTLINE(bugprone-use-after-move)
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_THAT(source.retained_segment_count(), Eq(0));
   moved.trim_capacity();
   EXPECT_THAT(moved.capacity(), Eq(5));

@@ -137,6 +137,23 @@ class BenchmarkArtifactTest(unittest.TestCase):
         self.assertEqual(args.warmup_time, 0.25)
         self.assertIsInstance(args.warmup_time, float)
 
+    @mock.patch.object(subject.platform, "system", return_value="Darwin")
+    @mock.patch.object(subject.platform, "processor", return_value="arm")
+    @mock.patch.object(
+        subject,
+        "_optional_command",
+        return_value="Hardware:\n\n    Hardware Overview:\n\n      Chip: Apple M5 Pro\n      Serial Number: secret",
+    )
+    def test_cpu_model_uses_apple_chip_instead_of_generic_architecture(
+        self, optional_command, processor, system
+    ):
+        self.assertEqual(subject._cpu_model(), "Apple M5 Pro")
+        optional_command.assert_called_once_with(
+            ["system_profiler", "SPHardwareDataType", "-detailLevel", "mini"]
+        )
+        processor.assert_not_called()
+        system.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

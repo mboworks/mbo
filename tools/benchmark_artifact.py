@@ -53,6 +53,13 @@ def _optional_command(command):
 
 
 def _cpu_model():
+    if platform.system() == "Darwin":
+        profile = _optional_command(["system_profiler", "SPHardwareDataType", "-detailLevel", "mini"])
+        if profile:
+            for line in profile.splitlines():
+                label, separator, value = line.strip().partition(":")
+                if separator and label == "Chip" and value.strip():
+                    return value.strip()
     model = platform.processor()
     if model:
         return model

@@ -489,6 +489,9 @@ class SegmentedSequence final {
 
   constexpr void reserve(size_type requested) {
     MBO_CONFIG_REQUIRE(requested <= max_size(), "SegmentedSequence reserve exceeds max_size");
+    if constexpr (kUsePageDirectory) {
+      pages_.reserve(DirectoryPagesForSize(requested));
+    }
     const std::size_t original_segment_count = segments_.size();
 #if __cpp_exceptions
     try {
@@ -596,6 +599,20 @@ class SegmentedSequence final {
     return Options.repeat_last ? Options.segment_capacities[Options.listed_capacities - 1] : 0;
   }
 
+  static constexpr std::size_t DirectoryPagesForSize(std::size_t requested) noexcept {
+    std::size_t total = 0;
+    std::size_t segment_index = 0;
+    while (total < requested) {
+      const std::size_t capacity = CapacityForSegment(segment_index);
+      if (capacity == 0 || capacity > max_size() - total) {
+        return 0;
+      }
+      total += capacity;
+      ++segment_index;
+    }
+    return total / kDirectoryPageSize;
+  }
+
   static constexpr std::pair<std::size_t, std::size_t> Locate(std::size_t pos) noexcept {
     if constexpr (Options.listed_capacities == 1 && Options.repeat_last) {
       const std::size_t capacity = Options.segment_capacities.front();
@@ -668,7 +685,6 @@ class SegmentedSequence final {
           .size = 0,
       });
       if constexpr (kUsePageDirectory) {
-        pages_.reserve(pages_.size() + (segment_capacity / kDirectoryPageSize));
         for (std::size_t offset = 0; offset < segment_capacity; offset += kDirectoryPageSize) {
           pages_.push_back(
               reinterpret_cast<T*>(block->data) + offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)

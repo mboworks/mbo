@@ -161,6 +161,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `5e1382418`        | `b7fb4c534`  | [`integrated pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_5e1382418_segmented-sequence-pointer-pages.json) | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `399b5a7fa`        | `5e1382418`  | [`directory growth`](data/macos-arm64-apple-m5-pro_clang-22_399b5a7fa_segmented-sequence-directory-growth.json)      | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -468,3 +469,52 @@ M5 evidence therefore supports the hybrid growth mechanism and page size 64. It 
 select pointer pages over compact IDs, establish the activation rule for arbitrary capacity
 schedules, or authorize production use. Those decisions still require Zen 5 and the element-shape,
 retention, and deep pop/regrow matrices.
+
+## Apple M5 Pro element shapes
+
+The element-shape artifact records a clean `58935e2a6` tree, 54 families with nine randomly
+interleaved repetitions, and 886.05 seconds. It started at load 1.96/15.78/17.16 after the active
+CPU load had subsided, but unrelated activity raised ending load to 16.98/12.32/11.74. Several
+families contain isolated scheduler outliers. One 256-byte pointer-page sample also reports an
+implausibly low CPU time, so the usual fastest-three statistic is not safe for that family.
+
+The following comparison therefore uses medians. Negative deltas are faster. `P/C delta` compares
+pointer pages directly with compact pages; a negative value favors pointers. Pointer directories
+retain 4,096 bytes and compact directories 1,024 bytes for every shape in this proof.
+
+| Shape        | Order      |  Tail | Pointer | Compact | Pointer/Tail | Compact/Tail | Pointer/Compact | Median winner |
+| ------------ | ---------- | ----: | ------: | ------: | -----------: | -----------: | --------------: | ------------- |
+| U8           | Sequential | 13770 |    6409 |    8833 |       -53.5% |       -35.9% |          -27.4% | Pointer       |
+| U16          | Sequential | 13952 |    4402 |    6406 |       -68.5% |       -54.1% |          -31.3% | Pointer       |
+| U32          | Sequential | 13845 |    4355 |    5945 |       -68.5% |       -57.1% |          -26.7% | Pointer       |
+| U64          | Sequential | 13755 |    6481 |    9246 |       -52.9% |       -32.8% |          -29.9% | Pointer       |
+| Blob16       | Sequential | 14807 |    7757 |    9875 |       -47.6% |       -33.3% |          -21.4% | Pointer       |
+| StringRecord | Sequential | 14914 |    4549 |    6606 |       -69.5% |       -55.7% |          -31.1% | Pointer       |
+| Blob64       | Sequential | 14920 |   11405 |   11559 |       -23.6% |       -22.5% |           -1.3% | Pointer       |
+| Aligned64    | Sequential | 14853 |   11472 |   11577 |       -22.8% |       -22.1% |           -0.9% | Pointer       |
+| Blob256      | Sequential | 26684 |   27164 |   26908 |        +1.8% |        +0.8% |           +0.9% | Tail          |
+| U8           | Permuted   | 17407 |   11442 |    9573 |       -34.3% |       -45.0% |          +19.5% | Compact       |
+| U16          | Permuted   | 17421 |    4404 |    8252 |       -74.7% |       -52.6% |          -46.6% | Pointer       |
+| U32          | Permuted   | 16519 |    4402 |    8273 |       -73.4% |       -49.9% |          -46.8% | Pointer       |
+| U64          | Permuted   | 17526 |    6660 |   11447 |       -62.0% |       -34.7% |          -41.8% | Pointer       |
+| Blob16       | Permuted   | 17944 |    9445 |   12469 |       -47.4% |       -30.5% |          -24.3% | Pointer       |
+| StringRecord | Permuted   | 18609 |   10371 |   11744 |       -44.3% |       -36.9% |          -11.7% | Pointer       |
+| Blob64       | Permuted   | 18378 |   12342 |   14203 |       -32.8% |       -22.7% |          -13.1% | Pointer       |
+| Aligned64    | Permuted   | 18446 |   12364 |   13446 |       -33.0% |       -27.1% |           -8.0% | Pointer       |
+| Blob256      | Permuted   | 27029 |   27041 |   27100 |        +0.0% |        +0.3% |           -0.2% | Tail          |
+
+Pointer pages win 16 of 18 shape/order cases on M5. The exceptions carry useful boundaries rather
+than invalidating the directory: compact IDs win permuted access for one-byte elements, while all
+three mappings converge for 256-byte elements because element-cache traffic dominates. At 64
+bytes, pointer and compact pages are effectively tied sequentially, but pointers remain 8% to 13%
+faster under permutation. Over-alignment does not materially change the result.
+
+The StringInterner-shaped pointer-plus-size record strongly favors pointer pages: 69.5% over tail
+mapping and 31.1% over compact IDs sequentially, then 44.3% and 11.7% under permutation. That makes
+pointer pages the M5-leading candidate for StringInterner's record sequence despite their additional
+3,072 directory bytes in this 16,384-element case.
+
+The result also argues against one unconditional mapping for every `T`. A 256-byte element gains
+nothing from either directory, while a one-byte permuted workload prefers compact IDs. Whether
+type-size-based selection is stable enough for an internal specialization, or should remain an
+explicit option, depends on the Zen 5 counterpart and broader lifecycle matrix.

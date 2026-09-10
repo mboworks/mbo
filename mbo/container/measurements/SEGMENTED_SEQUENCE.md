@@ -95,6 +95,13 @@ restored storage counters, separating the memory released by eager trimming from
 This establishes the retention value envelope before benchmarking bounded pools and
 exact/close/largest-fit lookup structures.
 
+The integrated matrix additionally exercises public `retained_segment_limit` and
+`retained_byte_limit` candidates. Retention is represented as the exact ordered future tail so
+`capacity()` remains the number of elements appendable without another element allocation. The
+container reports payload bytes, page-directory bytes, and segment-descriptor-directory bytes
+separately; the latter includes the cumulative-byte field used to enforce byte limits only at
+segment boundaries.
+
 ## Retained-pool proof benchmark
 
 `//mbo/container:segmented_sequence_pool_benchmark` isolates the bounded lookup and mutation needed

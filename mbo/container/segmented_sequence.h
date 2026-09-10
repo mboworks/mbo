@@ -37,6 +37,8 @@ struct SegmentedSequenceOptions final {
   std::size_t listed_capacities = 1;
   bool repeat_last = true;
   std::size_t maximum_size = std::numeric_limits<std::size_t>::max();
+  std::size_t retained_segment_limit = std::numeric_limits<std::size_t>::max();
+  std::size_t retained_byte_limit = std::numeric_limits<std::size_t>::max();
 
   constexpr bool IsValid() const noexcept {
     if (listed_capacities == 0 || listed_capacities > segment_capacities.size()) {
@@ -80,6 +82,7 @@ class SegmentedSequence final {
     T* data = nullptr;
     std::size_t capacity = 0;
     std::size_t size = 0;
+    std::size_t cumulative_bytes = 0;
   };
 
   template<bool IsConst>
@@ -301,9 +304,11 @@ class SegmentedSequence final {
         segments_(std::move(other.segments_)),
         pages_(std::move(other.pages_)),
         size_(other.size_),
-        capacity_(other.capacity_) {
+        capacity_(other.capacity_),
+        bytes_reserved_(other.bytes_reserved_) {
     other.size_ = 0;
     other.capacity_ = 0;
+    other.bytes_reserved_ = 0;
     other.segments_.clear();
     other.pages_.clear();
   }
@@ -318,8 +323,10 @@ class SegmentedSequence final {
       pages_ = std::move(other.pages_);
       size_ = other.size_;
       capacity_ = other.capacity_;
+      bytes_reserved_ = other.bytes_reserved_;
       other.size_ = 0;
       other.capacity_ = 0;
+      other.bytes_reserved_ = 0;
       other.segments_.clear();
       other.pages_.clear();
     }
@@ -337,6 +344,7 @@ class SegmentedSequence final {
     swap(pages_, other.pages_);
     swap(size_, other.size_);
     swap(capacity_, other.capacity_);
+    swap(bytes_reserved_, other.bytes_reserved_);
   }
 
   friend constexpr void swap(SegmentedSequence& lhs, SegmentedSequence& rhs) noexcept
@@ -355,16 +363,21 @@ class SegmentedSequence final {
 
   constexpr size_type segment_count() const noexcept { return segments_.size(); }
 
-  constexpr size_type bytes_reserved() const noexcept {
-    size_type result = 0;
-    for (const Segment& segment : segments_) {
-      result += segment.block.size;
-    }
-    return result;
+  constexpr size_type retained_segment_count() const noexcept { return segments_.size() - LiveSegmentCount(); }
+
+  constexpr size_type retained_bytes() const noexcept {
+    const std::size_t live = LiveSegmentCount();
+    return live == 0 ? bytes_reserved_ : bytes_reserved_ - segments_[live - 1].cumulative_bytes;
   }
+
+  constexpr size_type bytes_reserved() const noexcept { return bytes_reserved_; }
 
   constexpr size_type directory_bytes_reserved() const noexcept {
     return pages_.capacity() * sizeof(typename decltype(pages_)::value_type);
+  }
+
+  constexpr size_type segment_directory_bytes_reserved() const noexcept {
+    return segments_.capacity() * sizeof(typename decltype(segments_)::value_type);
   }
 
   constexpr reference operator[](size_type pos) noexcept { return ElementAt(pos); }
@@ -548,6 +561,13 @@ class SegmentedSequence final {
     --segment.size;
     --size_;
     std::destroy_at(segment.data + offset);
+    if constexpr (
+        Options.retained_segment_limit != std::numeric_limits<std::size_t>::max()
+        || Options.retained_byte_limit != std::numeric_limits<std::size_t>::max()) {
+      if (offset == 0) {
+        EnforceRetentionLimits();
+      }
+    }
   }
 
   constexpr T pop_back_value() noexcept
@@ -585,6 +605,7 @@ class SegmentedSequence final {
     segments_.clear();
     pages_.clear();
     capacity_ = 0;
+    bytes_reserved_ = 0;
   }
 
   constexpr segment_range segments() noexcept { return segment_range(this, LiveSegmentCount()); }
@@ -683,6 +704,7 @@ class SegmentedSequence final {
           .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           .capacity = segment_capacity,
           .size = 0,
+          .cumulative_bytes = bytes_reserved_ + block->size,
       });
       if constexpr (kUsePageDirectory) {
         for (std::size_t offset = 0; offset < segment_capacity; offset += kDirectoryPageSize) {
@@ -701,6 +723,7 @@ class SegmentedSequence final {
     }
 #endif
     capacity_ += segment_capacity;
+    bytes_reserved_ += block->size;
     return true;
   }
 
@@ -711,6 +734,7 @@ class SegmentedSequence final {
     }
     source_.Release(segment.block);
     capacity_ -= segment.capacity;
+    bytes_reserved_ -= segment.block.size;
     segments_.pop_back();
   }
 
@@ -720,11 +744,20 @@ class SegmentedSequence final {
     }
   }
 
+  constexpr void EnforceRetentionLimits() noexcept {
+    while (!segments_.empty() && segments_.back().size == 0
+           && (retained_segment_count() > Options.retained_segment_limit
+               || retained_bytes() > Options.retained_byte_limit)) {
+      ReleaseLastEmptySegment();
+    }
+  }
+
   [[no_unique_address]] Source source_{};
   std::vector<Segment> segments_;
   std::vector<T*> pages_;
   std::size_t size_ = 0;
   std::size_t capacity_ = 0;
+  std::size_t bytes_reserved_ = 0;
 };
 
 }  // namespace mbo::container

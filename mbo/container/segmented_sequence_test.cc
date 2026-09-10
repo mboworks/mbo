@@ -80,6 +80,22 @@ constexpr SegmentedSequenceOptions kPageSegments{
 
 using PageSequence = SegmentedSequence<std::uint64_t, kPageSegments>;
 
+constexpr SegmentedSequenceOptions kRetainOneSegment{
+    .segment_capacities = {2, 3},
+    .listed_capacities = 2,
+    .repeat_last = true,
+    .maximum_size = 11,
+    .retained_segment_limit = 1,
+};
+
+constexpr SegmentedSequenceOptions kRetainFourBytes{
+    .segment_capacities = {2},
+    .listed_capacities = 1,
+    .repeat_last = true,
+    .maximum_size = 8,
+    .retained_byte_limit = sizeof(int),
+};
+
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
 static_assert(!std::ranges::contiguous_range<IntSequence>);
@@ -298,6 +314,59 @@ TEST_F(SegmentedSequenceTest, NonRepeatingCapacityListStopsGrowth) {
   ASSERT_THAT(sequence.try_push_back(1), Optional(_));
   EXPECT_THAT(sequence.try_push_back(2), Eq(std::nullopt));
   EXPECT_THAT(sequence, ElementsAre(1));
+}
+
+TEST_F(SegmentedSequenceTest, RetainedSegmentLimitPreservesNearestFutureSegment) {
+  SegmentedSequence<int, kRetainOneSegment> sequence;
+  sequence.reserve(11);
+  for (int value = 0; value < 11; ++value) {
+    sequence.push_back(value);
+  }
+  int* const first = std::addressof(sequence.front());
+
+  while (!sequence.empty()) {
+    sequence.pop_back();
+  }
+
+  EXPECT_THAT(sequence.capacity(), Eq(2));
+  EXPECT_THAT(sequence.retained_segment_count(), Eq(1));
+  EXPECT_THAT(sequence.retained_bytes(), Eq(sizeof(int) * 2));
+  sequence.push_back(42);
+  EXPECT_THAT(std::addressof(sequence.front()), Eq(first));
+}
+
+TEST_F(SegmentedSequenceTest, RetainedByteLimitCanBeStricterThanCountLimit) {
+  SegmentedSequence<int, kRetainFourBytes> sequence;
+  sequence.reserve(8);
+  sequence.resize(8, 7);
+
+  sequence.clear();
+
+  EXPECT_THAT(sequence.capacity(), Eq(0));
+  EXPECT_THAT(sequence.retained_segment_count(), Eq(0));
+  EXPECT_THAT(sequence.retained_bytes(), Eq(0));
+}
+
+TEST_F(SegmentedSequenceTest, RetentionAccountingSurvivesMoveAndTrim) {
+  SegmentedSequence<int, kRetainOneSegment> source;
+  source.reserve(11);
+  source.resize(6, 7);
+
+  source.pop_back();
+  EXPECT_THAT(source.capacity(), Eq(8));
+  EXPECT_THAT(source.retained_segment_count(), Eq(1));
+  EXPECT_THAT(source.retained_bytes(), Eq(sizeof(int) * 3));
+
+  SegmentedSequence<int, kRetainOneSegment> moved(std::move(source));
+  EXPECT_THAT(moved.retained_segment_count(), Eq(1));
+  EXPECT_THAT(moved.retained_bytes(), Eq(sizeof(int) * 3));
+  // The container contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_THAT(source.retained_segment_count(), Eq(0));
+  moved.trim_capacity();
+  EXPECT_THAT(moved.capacity(), Eq(5));
+  EXPECT_THAT(moved.retained_segment_count(), Eq(0));
+  EXPECT_THAT(moved.retained_bytes(), Eq(0));
 }
 
 TEST_F(SegmentedSequenceTest, ResizeConstructsAndDestroysSuffix) {

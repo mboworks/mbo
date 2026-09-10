@@ -177,9 +177,50 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `399b5a7fa`        | `5e1382418`  | [`directory growth`](data/macos-arm64-apple-m5-pro_clang-22_399b5a7fa_segmented-sequence-directory-growth.json)      | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `79ff8dade`        | `78856f238`  | [`lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_79ff8dade_segmented-sequence-lifecycle.json)          | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
+
+## Apple M5 Pro lifecycle retention proof
+
+The lifecycle artifact records a clean `79ff8dade` tree against hybrid-layout baseline
+`78856f238`, Clang 22.1.8, C++20, Bazel 9.2.0, 12 families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 200.92-second run. Host load was high at
+16.50/15.38/14.60, producing isolated scheduler delays in several all-nine aggregates. The fastest
+three and medians remain internally consistent; a quieter rerun is required before relying on small
+listed-schedule differences.
+
+Times are CPU nanoseconds for one complete pop/regrow cycle. Retained cases destroy and reconstruct
+the suffix without releasing blocks. Trimmed cases additionally call `trim_capacity()` after the
+pop. `Low bytes` and `Low segments` are measured after the pop and optional trim, before regrowth.
+
+| Schedule   | Depth | Behavior |  Fast 3 |  Median |    Mean |     CV | Low bytes | Low segments |
+| ---------- | ----: | -------- | ------: | ------: | ------: | -----: | --------: | -----------: |
+| Uniform 64 |    64 | Retained |   256.2 |   259.5 |   283.3 | 13.73% |    131072 |          256 |
+| Uniform 64 |    64 | Trimmed  |   311.0 |   312.1 |   324.6 |  9.62% |    130560 |          255 |
+| Uniform 64 |  4096 | Retained | 16753.3 | 16768.8 | 17248.2 |  8.36% |    131072 |          256 |
+| Uniform 64 |  4096 | Trimmed  | 20527.1 | 20582.9 | 20593.5 |  0.31% |     98304 |          192 |
+| Uniform 64 | 16384 | Retained | 67107.5 | 67321.1 | 69243.6 |  8.53% |    131072 |          256 |
+| Uniform 64 | 16384 | Trimmed  | 82712.8 | 83122.0 | 83504.6 |  1.84% |         0 |            0 |
+| Listed     |    64 | Retained |   293.6 |   295.2 |   319.0 | 20.68% |    141824 |            7 |
+| Listed     |    64 | Trimmed  |   292.8 |   294.3 |   301.2 |  5.60% |    141824 |            7 |
+| Listed     |  4096 | Retained | 18810.0 | 18876.1 | 19764.4 | 11.62% |    141824 |            7 |
+| Listed     |  4096 | Trimmed  | 18888.6 | 19133.7 | 20429.0 | 13.98% |    109056 |            6 |
+| Listed     | 16384 | Retained | 75649.6 | 75836.9 | 81101.8 | 18.42% |    141824 |            7 |
+| Listed     | 16384 | Trimmed  | 76459.1 | 76841.3 | 82586.7 | 18.62% |         0 |            0 |
+
+Uniform 64-element blocks expose repeated allocation directly: eager release is 21.4% slower at
+depth 64, 22.5% at depth 4,096, and 23.3% at depth 16,384 by fastest-three CPU time. The listed
+schedule releases no block at depth 64, one 4,096-element block at depth 4,096, and all seven blocks
+at full rollback. Its fastest-three trim penalty is correspondingly -0.3%, 0.4%, and 1.1%, all too
+small to separate confidently under this run's noise.
+
+Unbounded retention gives the best observed uniform-block regrowth but retains 131,072 payload
+bytes even when empty. Eager trimming proves the opposite endpoint and releases every complete
+tail block transactionally. Neither endpoint is a justified universal default. The next proof must
+measure bounded count/byte pools and exact, close-fit, and largest-fit reuse so memory can be
+recovered without paying repeated source allocation on common rollback/regrowth cycles.
 
 ## Initial Apple M5 Pro diagnostic
 

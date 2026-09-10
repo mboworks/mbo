@@ -89,14 +89,16 @@ struct InvalidResponseSource final {
   static constexpr std::size_t max_alignment() noexcept { return 64; }
 
   std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
-    switch (response) {
-      case Response::kUnavailable: return std::nullopt;
-      case Response::kNullData: return MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
-      case Response::kInsufficientAlignment:
-        return MemoryBlock{.data = storage.data(), .size = size, .alignment = alignment / 2};
-      case Response::kMisalignedData:
-        return MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
+    if (response == Response::kUnavailable) {
+      return std::nullopt;
     }
+    if (response == Response::kNullData) {
+      return MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
+    }
+    if (response == Response::kInsufficientAlignment) {
+      return MemoryBlock{.data = storage.data(), .size = size, .alignment = alignment / 2};
+    }
+    return MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
   }
 
   void Release(MemoryBlock /*block*/) noexcept { ++release_count; }

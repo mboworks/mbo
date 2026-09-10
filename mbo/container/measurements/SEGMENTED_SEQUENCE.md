@@ -43,6 +43,28 @@ must include small PODs, the pointer-plus-size record needed by StringInterner, 
 and non-trivial movable objects. Latency is never evaluated without the corresponding allocation,
 metadata, unused-tail, and retained-memory cost.
 
+## Mapping proof benchmark
+
+`//mbo/container:segmented_sequence_layout_benchmark` isolates dense logical lookup for the listed
+64/256/1,024/4,096-element growth sequence. It owns the same separately allocated segments for
+every candidate and validates all 16,384 returned values before entering the timed loop. Sequential
+and deterministic permuted traversal are measured independently.
+
+| Candidate          | Directory entry                       | Lookup                                          |
+| ------------------ | ------------------------------------- | ----------------------------------------------- |
+| Tail mapped        | none                                  | listed-prefix comparisons, then tail arithmetic |
+| Element pointers   | one pointer per element               | direct pointer load; intentionally costly bound |
+| Pointer page       | one pointer per 4/8/16/32/64 elements | page-pointer load plus power-of-two offset      |
+| Compact page       | 16-bit segment ID per page            | page ID, segment descriptor, then offset        |
+| Compact-32 page 64 | 32-bit segment ID per 64 elements     | general segment-count form of compact mapping   |
+
+The page sizes deliberately cover 4 through 64 elements. Sixty-four is the greatest common divisor
+of the candidate segment capacities and therefore the largest page that never crosses a segment
+boundary. Each result reports retained directory capacity in bytes, including ordinary vector
+growth slack, and directory construction is measured separately. The proof does not assume that
+the smallest directory or fastest lookup wins: append/build frequency, retained memory, element
+size, and both reference architectures decide whether a page mapping is justified.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact

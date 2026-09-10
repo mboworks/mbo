@@ -97,6 +97,17 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "segmented_sequence_layout_benchmark",
+    testonly = 1,
+    srcs = ["segmented_sequence_layout_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = ["@com_github_google_benchmark//:benchmark"],
+)
+
 cc_library(
     name = "convert_container_cc",
     hdrs = ["convert_container.h"],

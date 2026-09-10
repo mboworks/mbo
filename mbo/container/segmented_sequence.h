@@ -578,6 +578,24 @@ class SegmentedSequence final {
   }
 
   static constexpr std::pair<std::size_t, std::size_t> Locate(std::size_t pos) noexcept {
+    if constexpr (Options.listed_capacities == 1 && Options.repeat_last) {
+      const std::size_t capacity = Options.segment_capacities.front();
+      return {pos / capacity, pos % capacity};
+    }
+    if constexpr (Options.repeat_last) {
+      constexpr std::size_t kListedCapacity = [] {
+        std::size_t result = 0;
+        for (std::size_t segment_index = 0; segment_index < Options.listed_capacities; ++segment_index) {
+          result += Options.segment_capacities[segment_index];
+        }
+        return result;
+      }();
+      if (pos >= kListedCapacity) {
+        const std::size_t repeated = Options.segment_capacities[Options.listed_capacities - 1];
+        const std::size_t tail = pos - kListedCapacity;
+        return {Options.listed_capacities + (tail / repeated), tail % repeated};
+      }
+    }
     for (std::size_t segment_index = 0; segment_index < Options.listed_capacities; ++segment_index) {
       const std::size_t capacity = Options.segment_capacities[segment_index];
       if (pos < capacity) {
@@ -585,8 +603,7 @@ class SegmentedSequence final {
       }
       pos -= capacity;
     }
-    const std::size_t repeated = Options.segment_capacities[Options.listed_capacities - 1];
-    return {Options.listed_capacities + (pos / repeated), pos % repeated};
+    return {Options.listed_capacities, pos};
   }
 
   constexpr std::size_t LiveSegmentCount() const noexcept { return empty() ? 0 : Locate(size_ - 1).first + 1; }
@@ -618,12 +635,13 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     try {
 #endif
-      segments_.push_back(Segment{
-          .block = *block,
-          .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          .capacity = segment_capacity,
-          .size = 0,
-      });
+      segments_.push_back(
+          Segment{
+              .block = *block,
+              .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              .capacity = segment_capacity,
+              .size = 0,
+          });
 #if __cpp_exceptions
     } catch (...) {
       source_.Release(*block);

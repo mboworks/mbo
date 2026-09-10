@@ -41,5 +41,6 @@ CLANG_TIDY_MANUAL_TARGETS = [
     "//mbo/diff:diff_benchmark",
     "//mbo/hash:hash_benchmark",
     "//mbo/hash:hash_differential_test",
+    "//mbo/memory:arena_benchmark",
     "//tools:show_compiler",
 ]

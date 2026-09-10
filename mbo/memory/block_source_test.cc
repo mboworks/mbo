@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstddef>
+#include <memory_resource>
 #include <span>
 
 #include "gmock/gmock.h"
@@ -54,6 +55,32 @@ TEST_F(BlockSourceTest, InlineSourceIsFixedAndAddressStable) {
 
   ASSERT_THAT(reacquired.has_value(), IsTrue());
   EXPECT_THAT(reacquired.value_or(MemoryBlock{}).data, Eq(address));
+}
+
+TEST_F(BlockSourceTest, AllocatorSourceRoundsStorageToItsValueSize) {
+  AllocatorBlockSource source;
+
+  auto block = source.TryAcquire(sizeof(std::max_align_t) + 1, alignof(std::max_align_t));
+
+  ASSERT_THAT(block.has_value(), IsTrue());
+  const auto acquired = block.value_or(MemoryBlock{});
+  EXPECT_THAT(acquired.size, Eq(2 * sizeof(std::max_align_t)));
+  EXPECT_THAT(acquired.alignment, Eq(alignof(std::max_align_t)));
+  source.Release(acquired);
+}
+
+TEST_F(BlockSourceTest, PmrSourceUsesSelectedResource) {
+  alignas(64) std::array<std::byte, 256> storage{};
+  std::pmr::monotonic_buffer_resource resource(storage.data(), storage.size(), std::pmr::null_memory_resource());
+  PmrBlockSource source(&resource);
+
+  auto block = source.TryAcquire(128, 64);
+
+  ASSERT_THAT(block.has_value(), IsTrue());
+  const auto acquired = block.value_or(MemoryBlock{});
+  EXPECT_THAT(acquired.size, Eq(128));
+  EXPECT_THAT(acquired.alignment, Eq(64));
+  source.Release(acquired);
 }
 
 }  // namespace

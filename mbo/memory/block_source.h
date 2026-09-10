@@ -11,9 +11,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <memory_resource>
 #include <new>
 #include <optional>
 #include <span>
+#include <type_traits>
 #include <utility>
 
 namespace mbo::memory {
@@ -28,6 +31,7 @@ struct MemoryBlock final {
 
 template<typename Source>
 concept BlockSource = requires(Source& source, MemoryBlock block, std::size_t size, std::size_t alignment) {
+  { Source::supports_recoverable_failure } -> std::convertible_to<bool>;
   { source.TryAcquire(size, alignment) } -> std::same_as<std::optional<MemoryBlock>>;
   { source.Release(block) } noexcept;
   { source.max_alignment() } noexcept -> std::convertible_to<std::size_t>;
@@ -37,6 +41,8 @@ concept BlockSource = requires(Source& source, MemoryBlock block, std::size_t si
 
 class NewDeleteBlockSource final {
  public:
+  static constexpr bool supports_recoverable_failure = true;
+
   static constexpr std::size_t max_alignment() noexcept {
     return std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1);
   }
@@ -59,6 +65,8 @@ class NewDeleteBlockSource final {
 
 class FixedBlockSource final {
  public:
+  static constexpr bool supports_recoverable_failure = true;
+
   explicit constexpr FixedBlockSource(
       std::span<std::byte> storage,
       std::size_t max_alignment = alignof(std::max_align_t)) noexcept
@@ -91,6 +99,8 @@ template<std::size_t Size, std::size_t Alignment = alignof(std::max_align_t)>
 requires(Size > 0 && Alignment > 0 && (Alignment & (Alignment - 1)) == 0)
 class InlineBlockSource final {
  public:
+  static constexpr bool supports_recoverable_failure = true;
+
   InlineBlockSource() = default;
   InlineBlockSource(const InlineBlockSource&) = delete;
   InlineBlockSource& operator=(const InlineBlockSource&) = delete;
@@ -120,9 +130,116 @@ class InlineBlockSource final {
   bool acquired_ = false;
 };
 
+template<typename Allocator = std::allocator<std::max_align_t>>
+class AllocatorBlockSource final {
+ private:
+  using Traits = std::allocator_traits<Allocator>;
+  using Value = Traits::value_type;
+
+  static_assert(alignof(Value) >= alignof(std::max_align_t));
+
+ public:
+#if __cpp_exceptions
+  static constexpr bool supports_recoverable_failure = true;
+#else
+  static constexpr bool supports_recoverable_failure = false;
+#endif
+
+  constexpr AllocatorBlockSource() = default;
+
+  constexpr explicit AllocatorBlockSource(Allocator allocator) noexcept(std::is_nothrow_move_constructible_v<Allocator>)
+      : allocator_(std::move(allocator)) {}
+
+  static constexpr std::size_t max_alignment() noexcept { return alignof(Value); }
+
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) {
+    if (size == 0 || alignment == 0 || alignment > max_alignment() || (alignment & (alignment - 1)) != 0) {
+      return std::nullopt;
+    }
+    const auto count = (size / sizeof(Value)) + (size % sizeof(Value) != 0 ? 1 : 0);
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(Value)) {
+      return std::nullopt;
+    }
+#if __cpp_exceptions
+    try {
+#endif
+      auto* const data = Traits::allocate(allocator_, count);
+      return MemoryBlock{
+          .data = reinterpret_cast<std::byte*>(data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          .size = count * sizeof(Value),
+          .alignment = alignof(Value),
+      };
+#if __cpp_exceptions
+    } catch (const std::bad_alloc&) {
+      return std::nullopt;
+    }
+#endif
+  }
+
+  void Release(MemoryBlock block) noexcept {
+    const auto count = block.size / sizeof(Value);
+    Traits::deallocate(
+        allocator_,
+        reinterpret_cast<Value*>(block.data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        count);
+  }
+
+  constexpr Allocator& allocator() noexcept { return allocator_; }
+
+  constexpr const Allocator& allocator() const noexcept { return allocator_; }
+
+ private:
+  [[no_unique_address]] Allocator allocator_{};
+};
+
+class PmrBlockSource final {
+ public:
+#if __cpp_exceptions
+  static constexpr bool supports_recoverable_failure = true;
+#else
+  static constexpr bool supports_recoverable_failure = false;
+#endif
+
+  explicit PmrBlockSource(std::pmr::memory_resource* resource = std::pmr::get_default_resource()) noexcept
+      : resource_(resource) {}
+
+  static constexpr std::size_t max_alignment() noexcept {
+    return std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1);
+  }
+
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) {
+    if (resource_ == nullptr || size == 0 || alignment == 0 || alignment > max_alignment()
+        || (alignment & (alignment - 1)) != 0) {
+      return std::nullopt;
+    }
+#if __cpp_exceptions
+    try {
+#endif
+      return MemoryBlock{
+          .data = static_cast<std::byte*>(resource_->allocate(size, alignment)),
+          .size = size,
+          .alignment = alignment,
+      };
+#if __cpp_exceptions
+    } catch (const std::bad_alloc&) {
+      return std::nullopt;
+    }
+#endif
+  }
+
+  void Release(MemoryBlock block) noexcept { resource_->deallocate(block.data, block.size, block.alignment); }
+
+  std::pmr::memory_resource* resource() const noexcept { return resource_; }
+
+ private:
+  std::pmr::memory_resource* resource_;
+};
+
 static_assert(BlockSource<NewDeleteBlockSource>);
 static_assert(BlockSource<FixedBlockSource>);
 static_assert(BlockSource<InlineBlockSource<4'096>>);
+static_assert(BlockSource<AllocatorBlockSource<>>);
+static_assert(BlockSource<PmrBlockSource>);
 
 // NOLINTEND(readability-identifier-naming)
 

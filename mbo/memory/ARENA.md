@@ -94,7 +94,8 @@ growth-sequence position unchanged.
 
 ## Block sources and growth
 
-A block-source concept should express acquisition, ownership, alignment, and release behavior. It
+A block-source concept expresses acquisition, ownership, alignment, release behavior, and whether
+resource failure is genuinely recoverable. It
 must be possible to provide:
 
 - fixed caller-owned storage that never allocates;
@@ -102,6 +103,14 @@ must be possible to provide:
 - a PMR-backed adapter;
 - a source using a constexpr-compatible fixed representation;
 - test and benchmark sources that count every acquired byte and block.
+
+`NewDeleteBlockSource`, `FixedBlockSource`, and `InlineBlockSource` use inherently non-throwing
+acquisition and therefore always support `TryAllocate`. `AllocatorBlockSource` and
+`PmrBlockSource` must call standard APIs whose failure contract is `std::bad_alloc`; their
+`TryAllocate` is consequently available only in exception-enabled builds, where that exception can
+be caught. In the repository's normal exception-disabled mode they support hard `Allocate` only.
+This is a compile-time API distinction: mbo does not label an operation “try” when the selected
+upstream API can terminate before returning failure.
 
 Block growth uses only strategies justified by benchmarks. As with `SegmentedSequence`, constexpr
 options may stop after a size list, repeat its final size, or transition to another growth strategy.
@@ -190,7 +199,7 @@ representation.
 | Move/swap            | Address-preserving for block-backed; forbidden for inline storage      |
 | Thread safety        | External synchronization; no internal locks or atomics                 |
 | Introspection        | `bytes_used`, `bytes_reserved`, and `block_count` in constant time     |
-| Constexpr            | Exact fixed-storage operations supported during constant evaluation    |
+| Constexpr            | Options are constexpr; C++20 raw-storage mutation is runtime-only      |
 
 ## Measurements required
 
@@ -209,6 +218,14 @@ representation.
 The initial raw-arena semantic contract has no remaining open questions. Representation choices,
 including pointer versus offset descriptors, growth and retention defaults, and whether the shared
 block-chain merits a public API, remain benchmark decisions rather than missing semantics.
+
+The public implementation remains C++20-compatible and uses later standard-library spelling and
+semantics where those can be expressed in C++20. C++20 constant evaluation cannot create the
+intrusive `Block` object through the raw byte-storage representation used by the runtime fast path.
+The fixed source is therefore useful for allocation-free runtime operation, but the current arena
+does not claim constexpr allocation. A future representation may add it without weakening the
+runtime contract; the library must not pretend that merely marking a function `constexpr` proves
+constant evaluability.
 
 ## Deferred work
 

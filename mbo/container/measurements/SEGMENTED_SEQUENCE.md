@@ -144,6 +144,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json)              | valid diagnostic; quiet rerun required |
 | Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)                  | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `5e1382418`        | `b7fb4c534`  | [`integrated pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_5e1382418_segmented-sequence-pointer-pages.json) | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `399b5a7fa`        | `5e1382418`  | [`directory growth`](data/macos-arm64-apple-m5-pro_clang-22_399b5a7fa_segmented-sequence-directory-growth.json)      | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -345,3 +346,51 @@ families contain isolated 2x to 3x samples, and the listed retained-append famil
 was 2.25/7.38/8.63. Fastest-three and medians still corroborate the isolated mapping result, but
 all-nine means for affected families are not decision evidence. Zen 5 measurements and a quieter
 M5 confirmation remain mandatory before selecting pointer pages or their activation rule.
+
+## Apple M5 Pro directory growth proof
+
+The integrated candidate originally called `reserve(current pages + new pages)` for every acquired
+segment. This minimizes retained directory bytes but turns every segment into a pointer-array
+allocation and copy. Commit `399b5a7fa` isolates that decision across all four production growth
+schedules and compares exact growth, unassisted `std::vector` growth, explicit 1.5x and 2x growth,
+and exact known-final preallocation. Every timed construction validates the final page mapping.
+
+The artifact records a clean tree, 20 families with nine randomly interleaved repetitions,
+306.65 seconds, starting load 1.48/3.74/6.42, and ending load 1.71/2.45/5.01. Times are CPU
+nanoseconds to construct the complete directory; bytes are retained pointer-vector capacity.
+
+| Strategy     | Schedule    | Fast 3 | Median |    Mean |     CV | Bytes | Reallocations |
+| ------------ | ----------- | -----: | -----: | ------: | -----: | ----: | ------------: |
+| Exact        | Listed      | 1024.6 | 1030.2 |  1033.6 |  0.94% |  2216 |             7 |
+| Exact        | Uniform1024 | 1439.4 | 1451.9 |  1453.3 |  0.94% |  2048 |            16 |
+| Exact        | Uniform256  | 3386.1 | 3424.3 |  3420.7 |  0.94% |  2048 |            64 |
+| Exact        | Uniform64   |  12345 |  12378 | 12379.4 |  0.29% |  2048 |           256 |
+| Natural      | Listed      |  576.1 |  580.7 |   580.8 |  0.80% |  4096 |            10 |
+| Natural      | Uniform1024 |  483.1 |  485.9 |   487.0 |  0.91% |  2048 |             9 |
+| Natural      | Uniform256  |  505.6 |  511.5 |   510.3 |  0.82% |  2048 |             9 |
+| Natural      | Uniform64   |  628.8 |  636.5 |   634.6 |  0.83% |  2048 |             9 |
+| 1.5x         | Listed      | 1034.6 | 1039.3 |  1041.9 |  0.74% |  2672 |             7 |
+| 1.5x         | Uniform1024 | 1086.2 | 1091.3 |  1091.8 |  0.52% |  2912 |             8 |
+| 1.5x         | Uniform256  | 1138.9 | 1150.4 |  1147.5 |  0.70% |  2424 |            11 |
+| 1.5x         | Uniform64   | 1533.2 | 1562.5 |  1569.0 |  2.17% |  2528 |            15 |
+| 2x           | Listed      |  958.5 |  964.8 |   964.4 |  0.55% |  2720 |             6 |
+| 2x           | Uniform1024 |  890.2 |  906.2 |   901.3 |  1.06% |  2048 |             5 |
+| 2x           | Uniform256  |  927.6 |  939.1 |   935.8 |  0.75% |  2048 |             7 |
+| 2x           | Uniform64   | 1255.8 | 1275.4 |  1278.9 |  2.09% |  2048 |             9 |
+| Preallocated | Listed      |  274.9 |  275.3 |   275.4 |  0.18% |  2216 |             1 |
+| Preallocated | Uniform1024 |  182.4 |  222.3 |   217.4 | 13.92% |  2048 |             1 |
+| Preallocated | Uniform256  |  244.0 |  255.7 |   264.5 |  7.90% |  2048 |             1 |
+| Preallocated | Uniform64   |  284.7 |  309.4 |   318.5 | 11.34% |  2048 |             1 |
+
+Natural growth is the clear incremental winner. It reduces uniform-64 construction from 12,345 ns
+to 629 ns and reallocations from 256 to nine while retaining the same 2,048 bytes. It is also 44%
+faster than exact growth for the listed schedule, at the cost of 1,880 extra retained bytes. The
+explicit 1.5x and 2x policies are slower than leaving growth to the standard-library vector and do
+not provide a consistent memory advantage.
+
+Known-final preallocation is fastest and exact-sized. Its higher CV occurs in sub-320 ns operations
+where allocator jitter is a large fraction of the total; every fastest-three and median remains far
+below the alternatives. The next integrated candidate should therefore use natural vector growth
+for ordinary incremental append and preallocate the directory when `reserve(requested)` exposes a
+known target. Pointer-page adoption still awaits Zen 5; this experiment selects how to test it,
+not whether it becomes the production mapping.

@@ -46,6 +46,18 @@ mistaken for a growing container guarantee. Pointer storage uses a growing Arena
 unfair maximum-size first block. The stable segmented-offset candidate includes its extra segment
 lookup and all segment/descriptor reserved bytes.
 
+Post-burst retention is measured as a distinct lifecycle rather than inferred from steady-state
+allocation. Each candidate first processes the full workload, including oversized requests, and
+then repeatedly processes a smaller ordinary-string workload. The candidates retain the complete
+burst-shaped Arena chain with `Reset`, release every block to new/delete, release through a
+best-fit cache limited to 2 MiB and blocks no larger than 256 KiB, or release through an 8 MiB cache
+that can retain every normal block.
+
+The cache candidates reconstruct a compact chain from the smallest suitable retained blocks.
+Reported retained and peak bytes include cache metadata as well as backing blocks, and retained
+block count is reported separately. This experiment determines whether intelligent reuse belongs
+in a block source or Arena option; it does not expose the benchmark cache as production API.
+
 ## Reference commands
 
 Run from a clean checkout of the exact implementation commit after dependencies have already been

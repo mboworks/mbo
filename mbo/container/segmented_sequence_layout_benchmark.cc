@@ -3,6 +3,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -151,6 +152,129 @@ class TailLookup final {
   const ListedStorage* storage_;
 };
 
+enum class DirectoryGrowth {
+  kExact,
+  kNatural,
+  kOneAndHalf,
+  kDouble,
+  kPreallocated,
+};
+
+template<DirectoryGrowth Growth>
+class GrowingPointerDirectory final {
+ public:
+  explicit GrowingPointerDirectory(std::size_t final_pages) {
+    if constexpr (Growth == DirectoryGrowth::kPreallocated) {
+      Reserve(final_pages);
+    }
+  }
+
+  void Add(std::uint64_t* first, std::size_t page_count) {
+    const std::size_t required = pages_.size() + page_count;
+    if constexpr (Growth == DirectoryGrowth::kExact) {
+      Reserve(required);
+    } else if constexpr (Growth == DirectoryGrowth::kOneAndHalf) {
+      ReserveFor(required, 3, 2);
+    } else if constexpr (Growth == DirectoryGrowth::kDouble) {
+      ReserveFor(required, 2, 1);
+    }
+    for (std::size_t page = 0; page < page_count; ++page) {
+      const std::size_t previous_capacity = pages_.capacity();
+      pages_.push_back(first + (page * 64));
+      if (pages_.capacity() != previous_capacity) {
+        ++reallocations_;
+      }
+    }
+  }
+
+  std::size_t Bytes() const noexcept { return pages_.capacity() * sizeof(pages_.front()); }
+
+  std::size_t Reallocations() const noexcept { return reallocations_; }
+
+  std::size_t Size() const noexcept { return pages_.size(); }
+
+  const std::uint64_t& operator[](std::size_t pos) const noexcept { return pages_[pos / 64][pos % 64]; }
+
+ private:
+  void Reserve(std::size_t requested) {
+    const std::size_t previous_capacity = pages_.capacity();
+    pages_.reserve(requested);
+    if (pages_.capacity() != previous_capacity) {
+      ++reallocations_;
+    }
+  }
+
+  void ReserveFor(std::size_t required, std::size_t numerator, std::size_t denominator) {
+    if (required <= pages_.capacity()) {
+      return;
+    }
+    const std::size_t grown = pages_.capacity() * numerator / denominator;
+    Reserve(std::max(required, grown));
+  }
+
+  std::vector<std::uint64_t*> pages_;
+  std::size_t reallocations_ = 0;
+};
+
+enum class SegmentSchedule {
+  kUniform64,
+  kUniform256,
+  kUniform1024,
+  kListed,
+};
+
+template<SegmentSchedule Schedule>
+std::vector<std::size_t> PageCounts() {
+  std::vector<std::size_t> result;
+  std::size_t capacity = 0;
+  std::size_t segment = 0;
+  while (capacity < kElementCount) {
+    std::size_t segment_capacity = 0;
+    if constexpr (Schedule == SegmentSchedule::kUniform64) {
+      segment_capacity = 64;
+    } else if constexpr (Schedule == SegmentSchedule::kUniform256) {
+      segment_capacity = 256;
+    } else if constexpr (Schedule == SegmentSchedule::kUniform1024) {
+      segment_capacity = 1'024;
+    } else {
+      segment_capacity = segment < kListedCapacities.size() ? kListedCapacities[segment] : kListedCapacities.back();
+    }
+    result.push_back(segment_capacity / 64);
+    capacity += segment_capacity;
+    ++segment;
+  }
+  return result;
+}
+
+template<DirectoryGrowth Growth, SegmentSchedule Schedule>
+void BmDirectoryGrowth(benchmark::State& state) {
+  const std::vector<std::size_t> page_counts = PageCounts<Schedule>();
+  std::size_t final_pages = 0;
+  for (const std::size_t count : page_counts) {
+    final_pages += count;
+  }
+  std::vector<std::uint64_t> storage(final_pages * 64);
+  for (std::size_t pos = 0; pos < storage.size(); ++pos) {
+    storage[pos] = pos;
+  }
+  for (auto _ : state) {
+    GrowingPointerDirectory<Growth> directory(final_pages);
+    std::size_t first_page = 0;
+    for (const std::size_t count : page_counts) {
+      directory.Add(storage.data() + (first_page * 64), count);
+      first_page += count;
+    }
+    if (directory.Size() != final_pages || directory[storage.size() - 1] != storage.size() - 1) {
+      state.SkipWithError("directory growth produced an invalid mapping");
+      return;
+    }
+    benchmark::DoNotOptimize(directory);
+    state.counters["directory_bytes"] = static_cast<double>(directory.Bytes());
+    state.counters["entries"] = static_cast<double>(directory.Size());
+    state.counters["reallocations"] = static_cast<double>(directory.Reallocations());
+  }
+}
+
 template<bool Permuted, typename Lookup>
 void MeasureLookup(benchmark::State& state, const Lookup& lookup) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
@@ -242,6 +366,25 @@ REGISTER_PAGE_BENCHMARKS("32", 32);
 REGISTER_PAGE_BENCHMARKS("64", 64);
 
 #undef REGISTER_PAGE_BENCHMARKS
+
+#define REGISTER_DIRECTORY_GROWTH(Label, Growth, ScheduleLabel, Schedule)                   \
+  BENCHMARK_TEMPLATE(BmDirectoryGrowth, DirectoryGrowth::Growth, SegmentSchedule::Schedule) \
+      ->Name("DirectoryGrowth/" Label "/" ScheduleLabel)
+
+#define REGISTER_DIRECTORY_GROWTH_SCHEDULES(Label, Growth)               \
+  REGISTER_DIRECTORY_GROWTH(Label, Growth, "Uniform64", kUniform64);     \
+  REGISTER_DIRECTORY_GROWTH(Label, Growth, "Uniform256", kUniform256);   \
+  REGISTER_DIRECTORY_GROWTH(Label, Growth, "Uniform1024", kUniform1024); \
+  REGISTER_DIRECTORY_GROWTH(Label, Growth, "Listed", kListed)
+
+REGISTER_DIRECTORY_GROWTH_SCHEDULES("Exact", kExact);
+REGISTER_DIRECTORY_GROWTH_SCHEDULES("Natural", kNatural);
+REGISTER_DIRECTORY_GROWTH_SCHEDULES("OneAndHalf", kOneAndHalf);
+REGISTER_DIRECTORY_GROWTH_SCHEDULES("Double", kDouble);
+REGISTER_DIRECTORY_GROWTH_SCHEDULES("Preallocated", kPreallocated);
+
+#undef REGISTER_DIRECTORY_GROWTH_SCHEDULES
+#undef REGISTER_DIRECTORY_GROWTH
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,cppcoreguidelines-pro-bounds-constant-array-index)

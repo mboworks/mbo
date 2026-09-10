@@ -52,15 +52,16 @@ struct MalformedBlockSource final {
   static constexpr std::size_t max_alignment() noexcept { return alignof(int); }
 
   std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
-    switch (result) {
-      case Result::kNullData: return mbo::memory::MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
-      case Result::kShortBlock:
-        return mbo::memory::MemoryBlock{.data = storage.data(), .size = size - 1, .alignment = alignment};
-      case Result::kWeakAlignment:
-        return mbo::memory::MemoryBlock{.data = storage.data(), .size = size, .alignment = 1};
-      case Result::kMisalignedData:
-        return mbo::memory::MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
+    if (result == Result::kNullData) {
+      return mbo::memory::MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
     }
+    if (result == Result::kShortBlock) {
+      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size - 1, .alignment = alignment};
+    }
+    if (result == Result::kWeakAlignment) {
+      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size, .alignment = 1};
+    }
+    return mbo::memory::MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
   }
 
   void Release(mbo::memory::MemoryBlock /*unused*/) const noexcept { ++*releases; }

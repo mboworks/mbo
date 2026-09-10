@@ -76,6 +76,7 @@ class Arena final {
   requires std::move_constructible<Source>
       : source_(std::move(other.source_)),
         first_(std::exchange(other.first_, nullptr)),
+        last_(std::exchange(other.last_, nullptr)),
         current_(std::exchange(other.current_, nullptr)),
         bytes_used_(std::exchange(other.bytes_used_, 0)),
         bytes_reserved_(std::exchange(other.bytes_reserved_, 0)),
@@ -90,6 +91,7 @@ class Arena final {
       Release();
       source_ = std::move(other.source_);
       first_ = std::exchange(other.first_, nullptr);
+      last_ = std::exchange(other.last_, nullptr);
       current_ = std::exchange(other.current_, nullptr);
       bytes_used_ = std::exchange(other.bytes_used_, 0);
       bytes_reserved_ = std::exchange(other.bytes_reserved_, 0);
@@ -101,13 +103,40 @@ class Arena final {
 
   constexpr ~Arena() { Release(); }
 
+  constexpr void swap(Arena& other) noexcept(std::is_nothrow_swappable_v<Source>)
+  requires std::swappable<Source>
+  {
+    using std::swap;
+    swap(source_, other.source_);
+    swap(first_, other.first_);
+    swap(last_, other.last_);
+    swap(current_, other.current_);
+    swap(bytes_used_, other.bytes_used_);
+    swap(bytes_reserved_, other.bytes_reserved_);
+    swap(block_count_, other.block_count_);
+    swap(next_block_size_, other.next_block_size_);
+  }
+
+  friend constexpr void swap(Arena& lhs, Arena& rhs) noexcept(noexcept(lhs.swap(rhs)))
+  requires std::swappable<Source>
+  {
+    lhs.swap(rhs);
+  }
+
   constexpr std::byte* Allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
-    auto* const result = TryAllocate(size, alignment);
+    auto* const result = AllocateImpl(size, alignment);
     MBO_CONFIG_REQUIRE(result != nullptr, "Arena allocation failed");
     return result;
   }
 
-  constexpr std::byte* TryAllocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
+  constexpr std::byte* TryAllocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t))
+  requires Source::supports_recoverable_failure
+  {
+    return AllocateImpl(size, alignment);
+  }
+
+ private:
+  constexpr std::byte* AllocateImpl(std::size_t size, std::size_t alignment) {
     MBO_CONFIG_REQUIRE(size > 0, "Arena allocation size must be greater than zero");
     MBO_CONFIG_REQUIRE(IsPowerOfTwo(alignment), "Arena alignment must be a nonzero power of two");
     if (alignment > source_.max_alignment()) {
@@ -129,6 +158,7 @@ class Arena final {
     return TryAllocateFrom(*block, size, alignment);
   }
 
+ public:
   constexpr void Reset() noexcept {
     for (auto* block = first_; block != nullptr; block = block->next) {
       block->cursor = block->begin;
@@ -147,6 +177,7 @@ class Arena final {
       block = next;
     }
     first_ = nullptr;
+    last_ = nullptr;
     current_ = nullptr;
     bytes_used_ = 0;
     bytes_reserved_ = 0;
@@ -204,7 +235,7 @@ class Arena final {
     const std::size_t acquisition_size = oversized ? required : next_block_size_;
     auto memory = source_.TryAcquire(acquisition_size, effective_alignment);
     std::size_t actual_reserved_after = 0;
-    if (!memory || memory->data == nullptr || memory->size < required || memory->alignment < effective_alignment
+    if (!memory || memory->data == nullptr || memory->size < acquisition_size || memory->alignment < effective_alignment
         || std::bit_cast<std::uintptr_t>(memory->data) % effective_alignment != 0
         || !Add(bytes_reserved_, memory->size, actual_reserved_after)) {
       if (memory && memory->data != nullptr) {
@@ -221,12 +252,9 @@ class Arena final {
     if (first_ == nullptr) {
       first_ = block;
     } else {
-      auto* tail = first_;
-      while (tail->next != nullptr) {
-        tail = tail->next;
-      }
-      tail->next = block;
+      last_->next = block;
     }
+    last_ = block;
     bytes_reserved_ = actual_reserved_after;
     ++block_count_;
     if (!oversized) {
@@ -253,6 +281,7 @@ class Arena final {
 
   Source source_{};
   Block* first_ = nullptr;
+  Block* last_ = nullptr;
   Block* current_ = nullptr;
   std::size_t bytes_used_ = 0;
   std::size_t bytes_reserved_ = 0;

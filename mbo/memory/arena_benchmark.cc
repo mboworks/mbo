@@ -63,6 +63,41 @@ void BmPmrMonotonicAllocate(benchmark::State& state) {
   state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
 }
 
+void BmAllocatorArenaAllocate(benchmark::State& state) {
+  const auto size = static_cast<std::size_t>(state.range(0));
+  const auto alignment = static_cast<std::size_t>(state.range(1));
+  Arena<AllocatorBlockSource<>, kBenchmarkOptions> arena;
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  for (auto _ : state) {
+    for (std::size_t index = 0; index < kBatch; ++index) {
+      benchmark::DoNotOptimize(arena.Allocate(size, alignment));
+    }
+    arena.Reset();
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kBatch));
+  state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
+  state.counters["reserved"] = static_cast<double>(arena.bytes_reserved());
+  state.counters["blocks"] = static_cast<double>(arena.block_count());
+}
+
+void BmPmrArenaAllocate(benchmark::State& state) {
+  const auto size = static_cast<std::size_t>(state.range(0));
+  const auto alignment = static_cast<std::size_t>(state.range(1));
+  std::pmr::monotonic_buffer_resource resource;
+  Arena<PmrBlockSource, kBenchmarkOptions> arena{PmrBlockSource(&resource)};
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  for (auto _ : state) {
+    for (std::size_t index = 0; index < kBatch; ++index) {
+      benchmark::DoNotOptimize(arena.Allocate(size, alignment));
+    }
+    arena.Reset();
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kBatch));
+  state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
+  state.counters["reserved"] = static_cast<double>(arena.bytes_reserved());
+  state.counters["blocks"] = static_cast<double>(arena.block_count());
+}
+
 void BmNewDeleteAllocate(benchmark::State& state) {
   const auto size = static_cast<std::size_t>(state.range(0));
   const auto alignment = static_cast<std::size_t>(state.range(1));
@@ -110,11 +145,15 @@ void BmFixedArenaExhaustion(benchmark::State& state) {
 }
 
 void RegisterAllocationBenchmarks() {
-  constexpr std::array kSizes = {8, 16, 32, 64, 256, 1'024, 4'096};
-  constexpr std::array kAlignments = {8, 16, 64};
+  constexpr std::array<std::int64_t, 7> kSizes = {8, 16, 32, 64, 256, 1'024, 4'096};
+  constexpr std::array<std::int64_t, 4> kAlignments = {8, 16, 64, 256};
   for (const auto size : kSizes) {
     for (const auto alignment : kAlignments) {
       benchmark::RegisterBenchmark("Arena/Allocate", BmArenaAllocate)->Args({size, alignment});
+      if (std::cmp_less_equal(alignment, alignof(std::max_align_t))) {
+        benchmark::RegisterBenchmark("AllocatorArena/Allocate", BmAllocatorArenaAllocate)->Args({size, alignment});
+      }
+      benchmark::RegisterBenchmark("PmrArena/Allocate", BmPmrArenaAllocate)->Args({size, alignment});
       benchmark::RegisterBenchmark("PmrMonotonic/Allocate", BmPmrMonotonicAllocate)->Args({size, alignment});
       benchmark::RegisterBenchmark("NewDelete/Allocate", BmNewDeleteAllocate)->Args({size, alignment});
     }

@@ -142,6 +142,7 @@ option only when users can identify the relevant workload or machine characteris
 | Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                | Status                                 |
 | ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid diagnostic; quiet rerun required |
+| Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)     | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                 | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -197,3 +198,84 @@ lookup is stably but unexpectedly slower than both other uniform sizes, despite 
 power-of-two mapping. A quiet rerun and generated-code inspection are required before comparing
 small differences or selecting a uniform capacity. The artifact remains structurally valid and
 immutable, but it is explicitly diagnostic rather than merge evidence.
+
+## Apple M5 Pro mapping proof
+
+The mapping artifact records a clean `7e877a527` tree against production baseline `b7fb4c534`,
+Clang 22.1.8, C++20, Bazel 9.2.0, 37 families with nine randomly interleaved repetitions, a
+one-second warmup and minimum time, and a 570.62-second run. Load averages fell from
+2.59/2.92/4.32 to 2.02/1.99/3.08. Every candidate owns the same separately allocated elements;
+the reported bytes cover only mapping-directory retained capacity.
+
+### Lookup results
+
+Times are CPU nanoseconds per complete 16,384-element traversal. `Fast 3` is the arithmetic mean
+of the fastest three repetitions. CV is the coefficient of variation across all nine repetitions.
+
+| Mapping            | Order      | Fast 3 | Median |    Mean |    CV | Directory bytes |
+| ------------------ | ---------- | -----: | -----: | ------: | ----: | --------------: |
+| Tail mapped        | Sequential |  13727 |  13743 | 13743.3 | 0.11% |               0 |
+| Tail mapped        | Permuted   |  17376 |  17465 | 17453.4 | 0.46% |               0 |
+| Element pointers   | Sequential |   6007 |   6025 |  6047.3 | 0.70% |          131072 |
+| Element pointers   | Permuted   |  18835 |  19420 | 19416.7 | 3.45% |          131072 |
+| Pointer page 4     | Sequential |   6762 |   6784 |  6784.3 | 0.32% |           65536 |
+| Pointer page 4     | Permuted   |   8321 |   8380 |  8380.1 | 0.71% |           65536 |
+| Pointer page 8     | Sequential |   6543 |   6546 |  6550.2 | 0.14% |           32768 |
+| Pointer page 8     | Permuted   |   6749 |   6764 |  6772.7 | 0.36% |           32768 |
+| Pointer page 16    | Sequential |   6508 |   6512 |  6515.7 | 0.14% |           16384 |
+| Pointer page 16    | Permuted   |   6665 |   6680 |  6680.4 | 0.20% |           16384 |
+| Pointer page 32    | Sequential |   6481 |   6486 |  6486.0 | 0.08% |            8192 |
+| Pointer page 32    | Permuted   |   6649 |   6652 |  6659.4 | 0.18% |            8192 |
+| Pointer page 64    | Sequential |   6473 |   6490 |  6488.5 | 0.23% |            4096 |
+| Pointer page 64    | Permuted   |   6632 |   6637 |  6640.0 | 0.15% |            4096 |
+| Compact-16 page 4  | Sequential |   9282 |   9300 |  9302.3 | 0.21% |           16384 |
+| Compact-16 page 4  | Permuted   |  10075 |  10147 | 10139.8 | 0.56% |           16384 |
+| Compact-16 page 8  | Sequential |   9246 |   9257 |  9257.3 | 0.14% |            8192 |
+| Compact-16 page 8  | Permuted   |   9941 |   9981 |  9980.7 | 0.47% |            8192 |
+| Compact-16 page 16 | Sequential |   9239 |   9256 |  9255.8 | 0.19% |            4096 |
+| Compact-16 page 16 | Permuted   |   9868 |   9953 |  9941.1 | 0.60% |            4096 |
+| Compact-16 page 32 | Sequential |   9226 |   9238 |  9247.5 | 0.36% |            2048 |
+| Compact-16 page 32 | Permuted   |   9753 |   9815 |  9827.8 | 0.75% |            2048 |
+| Compact-16 page 64 | Sequential |   9218 |   9237 |  9247.8 | 0.33% |            1024 |
+| Compact-16 page 64 | Permuted   |   9746 |   9806 |  9788.7 | 0.39% |            1024 |
+| Compact-32 page 64 | Sequential |   9242 |   9255 |  9261.8 | 0.20% |            2048 |
+| Compact-32 page 64 | Permuted   |   9848 |   9866 |  9894.0 | 0.59% |            2048 |
+
+### Directory construction
+
+Construction measures building the mapping for the already allocated 16,384 elements. It does
+not include segment allocation or element construction.
+
+| Mapping            | Fast 3 | Median |   Mean |    CV | Directory bytes |
+| ------------------ | -----: | -----: | -----: | ----: | --------------: |
+| Pointer page 4     |   3129 |   3134 | 3143.1 | 0.75% |           65536 |
+| Pointer page 8     |   1894 |   1934 | 1924.4 | 1.36% |           32768 |
+| Pointer page 16    |   1074 |   1090 | 1086.5 | 1.01% |           16384 |
+| Pointer page 32    |    647 |    666 |  664.6 | 2.42% |            8192 |
+| Pointer page 64    |    429 |    438 |  435.4 | 1.30% |            4096 |
+| Compact-16 page 4  |   2486 |   2522 | 2532.1 | 1.81% |           16384 |
+| Compact-16 page 8  |   1423 |   1449 | 1442.6 | 1.11% |            8192 |
+| Compact-16 page 16 |    824 |    829 |  835.6 | 1.77% |            4096 |
+| Compact-16 page 32 |    516 |    523 |  522.7 | 1.45% |            2048 |
+| Compact-16 page 64 |    336 |    341 |  343.7 | 3.52% |            1024 |
+| Compact-32 page 64 |    367 |    373 |  374.5 | 2.00% |            2048 |
+
+### M5 decisions and open questions
+
+Page 64 dominates smaller pages on this workload: pointer pages 16, 32, and 64 are within 0.6% in
+both lookup orders, while page 64 has the smallest directory and cheapest construction. The same
+direction holds for compact pages. This selects page 64 for the next integrated experiment on M5,
+subject to confirmation on Zen 5 and with other element and segment shapes.
+
+Pointer page 64 improves over tail mapping by 52.8% sequentially and 61.8% in permuted order.
+Compact-16 page 64 improves it by 32.8% and 43.9%, respectively. Pointer pages are approximately
+29.8% faster sequentially and 31.9% faster in permuted order than compact IDs, at four times the
+directory storage for this seven-segment case. Compact construction is only about 93 ns cheaper
+for the entire directory. That speed/memory choice remains open pending Zen 5, different element
+sizes, and an integrated append/pop/regrow measurement.
+
+One pointer per element is rejected: it is only 7.2% faster than pointer page 64 sequentially,
+184% slower under permuted access, and consumes 32 times the directory memory. Compact 32-bit IDs
+show no compensating speed advantage over 16-bit IDs. A production compact representation must
+therefore choose the narrowest sufficient ID dynamically or by configuration; the general
+container cannot inherit a 65,535-segment limit from this proof.

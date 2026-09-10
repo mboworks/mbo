@@ -39,6 +39,7 @@ constexpr SegmentedSequenceOptions kListed{
 template<SegmentedSequenceOptions Options>
 void SetMemoryCounters(benchmark::State& state, const SegmentedSequence<std::uint64_t, Options>& sequence) {
   state.counters["capacity"] = static_cast<double>(sequence.capacity());
+  state.counters["directory"] = static_cast<double>(sequence.directory_bytes_reserved());
   state.counters["reserved"] = static_cast<double>(sequence.bytes_reserved());
   state.counters["segments"] = static_cast<double>(sequence.segment_count());
 }

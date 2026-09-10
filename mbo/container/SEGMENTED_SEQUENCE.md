@@ -81,14 +81,27 @@ Implementation and benchmarks for `SegmentedSequence` precede implementation of 
   `random_access_iterator`; an options configuration that cannot provide constant-time movement
   and distance is not a supported `SegmentedSequence` configuration.
 - Bounded configurations detect capacity and arithmetic exhaustion before committing an element.
-- The default retains newly emptied segments within a small byte-and-count budget to avoid
-  allocation churn. `SegmentedSequenceOptions` can select eager release or tune retention when
-  benchmarks demonstrate a useful alternative. Retention bookkeeping must remain bounded and must
-  not add an unbounded scan to append or pop.
+- `SegmentedSequenceOptions` can select eager release, unbounded retention, or independent retained
+  byte-and-count limits. The default is selected only after both reference machines establish a
+  useful memory/latency envelope. Retention bookkeeping must remain bounded and must not add an
+  unbounded scan to append or pop.
 - Thread safety uses external synchronization. Concurrent const access is permitted only while no
   thread mutates the sequence. The implementation adds no internal locks or atomics.
 - The implementation is C++20 and supports constant evaluation wherever its selected storage and
   element operations permit it.
+
+The proof implementation names the independent compile-time bounds `retained_segment_limit` and
+`retained_byte_limit`. A segment is retained only while both limits permit it. Setting either limit
+to zero selects eager release; setting both to `std::numeric_limits<std::size_t>::max()` selects
+unbounded retention. These names and their eventual defaults remain experimental until Apple M5
+Pro and Zen 5 measurements agree.
+
+Retained segments form an ordered tail, not an unordered spare-block pool. This preserves the STL
+meaning of `capacity()`: every counted slot can accept a future element without another element
+allocation, and the next append consumes the nearest retained segment. When a limit is exceeded,
+the farthest future segment is released first so the remaining retained prefix stays usable. A
+general exact/close/largest-fit block pool belongs below the container, where an Arena or future
+dynamic growth strategy can consume it without overstating sequence capacity.
 
 ## Candidate structure
 

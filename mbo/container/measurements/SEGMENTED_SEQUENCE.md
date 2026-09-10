@@ -43,6 +43,106 @@ must include small PODs, the pointer-plus-size record needed by StringInterner, 
 and non-trivial movable objects. Latency is never evaluated without the corresponding allocation,
 metadata, unused-tail, and retained-memory cost.
 
+## Mapping proof benchmark
+
+`//mbo/container:segmented_sequence_layout_benchmark` isolates dense logical lookup for the listed
+64/256/1,024/4,096-element growth sequence. It owns the same separately allocated segments for
+every candidate and validates all 16,384 returned values before entering the timed loop. Sequential
+and deterministic permuted traversal are measured independently.
+
+| Candidate          | Directory entry                       | Lookup                                          |
+| ------------------ | ------------------------------------- | ----------------------------------------------- |
+| Tail mapped        | none                                  | listed-prefix comparisons, then tail arithmetic |
+| Element pointers   | one pointer per element               | direct pointer load; intentionally costly bound |
+| Pointer page       | one pointer per 4/8/16/32/64 elements | page-pointer load plus power-of-two offset      |
+| Compact page       | 16-bit segment ID per page            | page ID, segment descriptor, then offset        |
+| Compact-32 page 64 | 32-bit segment ID per 64 elements     | general segment-count form of compact mapping   |
+
+The page sizes deliberately cover 4 through 64 elements. Sixty-four is the greatest common divisor
+of the candidate segment capacities and therefore the largest page that never crosses a segment
+boundary. Each result reports retained directory capacity in bytes, including ordinary vector
+growth slack, and directory construction is measured separately. The proof does not assume that
+the smallest directory or fastest lookup wins: append/build frequency, retained memory, element
+size, and both reference architectures decide whether a page mapping is justified.
+
+## Element-shape proof benchmark
+
+`//mbo/container:segmented_sequence_element_shape_benchmark` tests whether mapping costs and cache
+behavior change with the stored type. It uses the same listed 64/256/1,024/4,096 growth schedule,
+16,384 live elements, and 64-element pages as the mapping proof. The matrix includes 1/2/4/8-byte
+integers, a generic 16-byte POD, the pointer-plus-size record required by StringInterner, 64-byte
+and 256-byte PODs, and a 64-byte-aligned 64-byte POD.
+
+Each shape compares tail mapping, pointer pages, and compact 16-bit segment-ID pages under
+sequential and deterministic permuted access. Before timing, every candidate must return the exact
+address returned by the reference storage for all 16,384 positions. This catches wrong segment and
+offset calculations even for narrow integer values that repeat. Timed reads consume a real field;
+large elements are not copied. Results report element size, alignment, and retained directory
+bytes so lookup time is not interpreted without its memory cost.
+
+## Lifecycle proof benchmark
+
+`//mbo/container:segmented_sequence_lifecycle_benchmark` measures complete pop/regrow cycles on the
+actual public container. It compares the current retained-tail behavior with eager
+`trim_capacity()` at depths 64, 4,096, and 16,384 for uniform-64 and listed schedules. The timed
+operation includes element destruction, optional block release, optional reacquisition, directory
+maintenance, and reconstruction of the removed suffix.
+
+Each case begins from an explicitly reserved and fully populated 16,384-element sequence. A dry
+cycle validates the low-water capacity, reserved bytes, and segment count before timing. Every
+timed iteration must restore the original size and final value. Results report both low-water and
+restored storage counters, separating the memory released by eager trimming from its latency cost.
+This establishes the retention value envelope before benchmarking bounded pools and
+exact/close/largest-fit lookup structures.
+
+The integrated matrix additionally exercises public `retained_segment_limit` and
+`retained_byte_limit` candidates. Retention is represented as the exact ordered future tail so
+`capacity()` remains the number of elements appendable without another element allocation. The
+container reports payload bytes, page-directory bytes, and segment-descriptor-directory bytes
+separately; the latter includes the cumulative-byte field used to enforce byte limits only at
+segment boundaries.
+
+## Retained-pool proof benchmark
+
+`//mbo/container:segmented_sequence_pool_benchmark` isolates the bounded lookup and mutation needed
+to reuse an empty segment. Each timed operation selects a compatible block, removes it, and returns
+it to the pool, so a candidate cannot hide expensive erase or reinsertion behind a lookup-only
+number. Pools contain 8, 32, or 128 blocks across eight capacity classes from 64 through 4,096
+elements. A deterministic mixed request trace exercises exact matches, close fits within 25%, and
+largest-fit fallback.
+
+The linear candidate searches newest to oldest and removes by swapping with the end. The sorted
+candidate uses binary search but pays for ordered vector removal and reinsertion. The class
+candidate stores a LIFO vector per compile-time capacity class and searches at most eight classes.
+All candidates return the newest block within a selected equal-capacity class. Storage for the
+maximum pool size is reserved before timing, and every operation validates that a non-null block
+with sufficient capacity was returned. Results report retained metadata capacity separately.
+
+This proof selects a bounded lookup structure, not public option defaults. Follow-up integration
+must separately measure byte/count eviction budgets, overflow release, real `BlockSource`
+acquisition avoidance, and complete `SegmentedSequence` rollback/regrowth behavior.
+
+## Integrated retention-budget benchmark
+
+`//mbo/container:segmented_sequence_retention_benchmark` measures 128-block rollback/regrowth
+cycles through `NewDeleteBlockSource` and the selected eight-class LIFO directory. Its counting
+adapter reports source acquisitions, releases, and bytes per cycle. Pool insertions receive a
+monotonic age; overflow evicts the globally oldest retained block, while reuse takes the newest
+block in the selected class.
+
+Six retention limits compare eager release, count limits of 8 and 32, byte limits of 32 KiB and
+128 KiB, and unbounded retention. The exact trace repeatedly requests the original eight capacity
+classes. The changed trace alternates that trace with intermediate requests, exercising close-fit
+and largest-fit reuse. Each timed iteration rolls back every active block, applies eviction, and
+fully regrows the sequence. All directory vectors and the active-block directory reserve their
+maximum metadata before timing; only element-block source operations allocate during the measured
+cycle.
+
+This benchmark determines whether avoided source operations repay pool and eviction overhead. It
+does not measure element destruction or construction, which the lifecycle proof covers separately.
+The final production candidate must combine both paths and preserve pointer stability, transaction
+guarantees, and constant-time indexed access.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact
@@ -117,12 +217,174 @@ option only when users can identify the relevant workload or machine characteris
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                | Status                                 |
-| ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid diagnostic; quiet rerun required |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                 | pending                                |
+| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                             | Status                                 |
+| ------------ | -------- | ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json)              | valid diagnostic; quiet rerun required |
+| Apple M5 Pro | Clang 22 | `7e877a527`        | `b7fb4c534`  | [`mapping proof`](data/macos-arm64-apple-m5-pro_clang-22_7e877a527_segmented-sequence-mapping.json)                  | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `5e1382418`        | `b7fb4c534`  | [`integrated pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_5e1382418_segmented-sequence-pointer-pages.json) | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `399b5a7fa`        | `5e1382418`  | [`directory growth`](data/macos-arm64-apple-m5-pro_clang-22_399b5a7fa_segmented-sequence-directory-growth.json)      | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
+| Apple M5 Pro | Clang 22 | `79ff8dade`        | `78856f238`  | [`lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_79ff8dade_segmented-sequence-lifecycle.json)          | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `8b1b93f5f`        | `79ff8dade`  | [`bounded lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_8b1b93f5f_segmented-sequence-lifecycle.json)  | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `ce7101a53`        | `ec2b1868d`  | [`retained pool`](data/macos-arm64-apple-m5-pro_clang-22_ce7101a53_segmented-sequence-pool.json)                     | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `9bd18a26c`        | `562945258`  | [`retention budgets`](data/macos-arm64-apple-m5-pro_clang-22_9bd18a26c_segmented-sequence-retention.json)            | valid; Zen 5 counterpart required      |
+| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
+
+## Apple M5 Pro lifecycle retention proof
+
+The lifecycle artifact records a clean `79ff8dade` tree against hybrid-layout baseline
+`78856f238`, Clang 22.1.8, C++20, Bazel 9.2.0, 12 families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 200.92-second run. Host load was high at
+16.50/15.38/14.60, producing isolated scheduler delays in several all-nine aggregates. The fastest
+three and medians remain internally consistent; a quieter rerun is required before relying on small
+listed-schedule differences.
+
+Times are CPU nanoseconds for one complete pop/regrow cycle. Retained cases destroy and reconstruct
+the suffix without releasing blocks. Trimmed cases additionally call `trim_capacity()` after the
+pop. `Low bytes` and `Low segments` are measured after the pop and optional trim, before regrowth.
+
+| Schedule   | Depth | Behavior |  Fast 3 |  Median |    Mean |     CV | Low bytes | Low segments |
+| ---------- | ----: | -------- | ------: | ------: | ------: | -----: | --------: | -----------: |
+| Uniform 64 |    64 | Retained |   256.2 |   259.5 |   283.3 | 13.73% |    131072 |          256 |
+| Uniform 64 |    64 | Trimmed  |   311.0 |   312.1 |   324.6 |  9.62% |    130560 |          255 |
+| Uniform 64 |  4096 | Retained | 16753.3 | 16768.8 | 17248.2 |  8.36% |    131072 |          256 |
+| Uniform 64 |  4096 | Trimmed  | 20527.1 | 20582.9 | 20593.5 |  0.31% |     98304 |          192 |
+| Uniform 64 | 16384 | Retained | 67107.5 | 67321.1 | 69243.6 |  8.53% |    131072 |          256 |
+| Uniform 64 | 16384 | Trimmed  | 82712.8 | 83122.0 | 83504.6 |  1.84% |         0 |            0 |
+| Listed     |    64 | Retained |   293.6 |   295.2 |   319.0 | 20.68% |    141824 |            7 |
+| Listed     |    64 | Trimmed  |   292.8 |   294.3 |   301.2 |  5.60% |    141824 |            7 |
+| Listed     |  4096 | Retained | 18810.0 | 18876.1 | 19764.4 | 11.62% |    141824 |            7 |
+| Listed     |  4096 | Trimmed  | 18888.6 | 19133.7 | 20429.0 | 13.98% |    109056 |            6 |
+| Listed     | 16384 | Retained | 75649.6 | 75836.9 | 81101.8 | 18.42% |    141824 |            7 |
+| Listed     | 16384 | Trimmed  | 76459.1 | 76841.3 | 82586.7 | 18.62% |         0 |            0 |
+
+Uniform 64-element blocks expose repeated allocation directly: eager release is 21.4% slower at
+depth 64, 22.5% at depth 4,096, and 23.3% at depth 16,384 by fastest-three CPU time. The listed
+schedule releases no block at depth 64, one 4,096-element block at depth 4,096, and all seven blocks
+at full rollback. Its fastest-three trim penalty is correspondingly -0.3%, 0.4%, and 1.1%, all too
+small to separate confidently under this run's noise.
+
+Unbounded retention gives the best observed uniform-block regrowth but retains 131,072 payload
+bytes even when empty. Eager trimming proves the opposite endpoint and releases every complete
+tail block transactionally. Neither endpoint is a justified universal default. The next proof must
+measure bounded count/byte pools and exact, close-fit, and largest-fit reuse so memory can be
+recovered without paying repeated source allocation on common rollback/regrowth cycles.
+
+## Apple M5 Pro bounded lifecycle retention proof
+
+The bounded lifecycle artifact records clean integrated head `8b1b93f5f` against the previous
+lifecycle evidence commit `79ff8dade`, Clang 22.1.8, C++20, Bazel 9.2.0, 30 families with nine
+randomly interleaved repetitions, a one-second warmup and minimum time, and a 629.23-second run.
+The ending load averages were 2.26/2.64/3.34. Every row below is the arithmetic mean of the fastest
+three CPU-time samples in nanoseconds for one complete pop/regrow cycle.
+
+| Schedule   | Depth | Retained |   Eager | Small bound |  32 KiB | 128 KiB |
+| ---------- | ----: | -------: | ------: | ----------: | ------: | ------: |
+| Uniform 64 |    64 |    256.9 |   313.3 |       260.2 |   259.5 |   259.4 |
+| Uniform 64 |  4096 |  16793.1 | 21019.2 |     20709.1 | 17211.8 | 17242.6 |
+| Uniform 64 | 16384 |  67529.0 | 84960.3 |     84942.0 | 81354.4 | 69268.5 |
+
+For uniform 64-element segments, the small bound retains at most eight segments. It is within 0.1%
+of eager release after a complete rollback and only 1.5% faster after rolling back 4,096 elements:
+avoiding eight acquisitions does not repay the retained-tail bookkeeping. A 32 KiB byte limit is
+18.1% faster than eager release at depth 4,096 because it retains that complete suffix, but only
+4.2% faster after a complete rollback. A 128 KiB budget approaches unbounded retention after a
+complete rollback, remaining 2.6% slower while retaining the entire 128 KiB payload.
+
+The listed schedule needs at most seven segments. At depth 4,096, unbounded retention is 1.8%
+faster than eager release; retaining one 32 KiB segment is 0.5% faster than eager and remains within
+the observed small-difference range. After a complete rollback, unbounded retention is only 1.8%
+faster than eager release. Its larger segments make source-operation savings much less significant
+than the uniform-64 case.
+
+This integrated result confirms the earlier pool experiment: small partial retention is not a
+generally useful default. Byte limits become valuable when they retain most or all of a recurring
+rollback suffix, but the useful value is workload-dependent. Unbounded retention remains the M5
+latency leader and eager release remains the memory-minimal endpoint. No nonzero bounded default is
+selected before the Zen 5 counterpart establishes whether these directions survive another
+allocator and architecture.
+
+## Apple M5 Pro retained-pool lookup proof
+
+The retained-pool artifact records a clean `ce7101a53` tree against lifecycle-results baseline
+`ec2b1868d`, Clang 22.1.8, C++20, Bazel 9.2.0, nine families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 143.83-second run. Load averages declined
+from 1.63/4.89/9.77 over the measurement envelope. All families have less than 2.5% all-nine CPU
+time CV, so the ranking and scaling are stable on this machine.
+
+Times are CPU nanoseconds for a complete compatible-block selection, removal, and reinsertion.
+Every candidate uses the same 16-byte block record and pre-reserves all reported metadata.
+
+| Pool structure | Blocks | Fast 3 | Median |   Mean |    CV | Metadata bytes |
+| -------------- | -----: | -----: | -----: | -----: | ----: | -------------: |
+| Size classes   |      8 |  6.764 |  6.802 |  6.831 | 1.24% |            128 |
+| Linear         |      8 |  8.287 |  8.454 |  8.485 | 2.40% |            128 |
+| Sorted vector  |      8 | 32.641 | 32.943 | 32.864 | 0.60% |            128 |
+| Size classes   |     32 |  6.684 |  6.720 |  6.737 | 0.87% |            512 |
+| Linear         |     32 | 16.906 | 17.183 | 17.115 | 1.07% |            512 |
+| Sorted vector  |     32 | 48.828 | 49.030 | 49.044 | 0.42% |            512 |
+| Size classes   |    128 |  6.701 |  6.729 |  6.774 | 1.49% |           2048 |
+| Linear         |    128 | 58.560 | 60.300 | 59.769 | 1.95% |           2048 |
+| Sorted vector  |    128 | 80.196 | 80.281 | 80.313 | 0.17% |           2048 |
+
+The eight-class directory is effectively independent of retained block count and is already 18.4%
+faster than the linear scan at eight blocks. At 128 blocks it is 8.7 times faster. Binary search
+does not rescue a sorted contiguous directory because removal and reinsertion dominate the complete
+operation; it is 4.8 times slower even at eight blocks and 12.0 times slower at 128 blocks.
+
+This selects fixed compile-time size-class buckets as the implementation candidate for bounded
+retention. The result does not select eight classes universally: production classes derive from the
+configured segment-capacity list, and the Zen 5 counterpart remains required. It also does not
+select retained count, retained bytes, close-fit waste threshold, or eviction order. Those need an
+integrated source-counting benchmark with burst, rollback, changed-size, and overflow traces.
+
+## Apple M5 Pro integrated retention-budget proof
+
+The retention-budget artifact records a clean `9bd18a26c` tree against retained-pool-results
+baseline `562945258`, Clang 22.1.8, C++20, Bazel 9.2.0, 12 families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 195.74-second run. Load averages declined
+from 1.48/1.81/4.89 over the measurement envelope. Every family has at most 3.36% all-nine CPU-time
+CV.
+
+Times are CPU nanoseconds for a complete 128-block rollback, eviction, and regrowth cycle using
+real aligned `NewDeleteBlockSource` acquisitions. `Acquires` is the average source acquisitions per
+cycle; releases match acquisitions in steady state. Low-water bytes and blocks describe retained
+payload after rollback and eviction.
+
+| Trace   | Limit     | Fast 3 | Median |   Mean |    CV | Acquires | Low bytes | Low blocks |
+| ------- | --------- | -----: | -----: | -----: | ----: | -------: | --------: | ---------: |
+| Exact   | Eager     | 6466.9 | 6556.8 | 6556.2 | 1.69% |    128.0 |         0 |          0 |
+| Exact   | Count 8   | 8425.3 | 8469.6 | 8481.3 | 0.74% |    120.0 |     50944 |          8 |
+| Exact   | Count 32  | 6939.7 | 7031.3 | 7027.6 | 1.33% |     96.0 |    203776 |         32 |
+| Exact   | 32 KiB    | 6952.5 | 7022.2 | 7012.2 | 0.80% |    121.0 |     18176 |          7 |
+| Exact   | 128 KiB   | 6525.1 | 6588.9 | 6593.3 | 1.04% |    105.0 |    120064 |         23 |
+| Exact   | Unbounded |  958.3 |  961.3 |  960.9 | 0.28% |      0.0 |    815104 |        128 |
+| Changed | Eager     | 6606.9 | 6753.1 | 6786.0 | 2.92% |    128.0 |         0 |          0 |
+| Changed | Count 8   | 7940.4 | 8096.5 | 8103.4 | 2.48% |    120.0 |     50944 |          8 |
+| Changed | Count 32  | 6691.4 | 6715.7 | 6747.5 | 1.14% |     96.0 |    203776 |         32 |
+| Changed | 32 KiB    | 6802.0 | 6886.8 | 6947.5 | 3.36% |    118.0 |     31488 |         13 |
+| Changed | 128 KiB   | 6464.6 | 6585.0 | 6552.7 | 1.16% |    103.5 |    123648 |         26 |
+| Changed | Unbounded |  979.3 |  981.2 |  981.1 | 0.18% |      0.0 |    815104 |        128 |
+
+Unbounded retention removes all source traffic and is 85.2% faster than eager release on the exact
+trace and 85.2% faster on the changed trace by fastest-three time, at the cost of retaining 815,104
+payload bytes. Small partial pools do not provide a smooth compromise in this deep-rollback
+workload. Count 8 is 30.3% slower than eager for exact reuse and 20.2% slower for changed requests:
+avoiding only eight acquisitions does not repay pool insertion and global-oldest eviction.
+
+Count 32 remains 7.3% slower for exact requests and only 1.3% slower for changed requests despite
+avoiding 32 acquisitions. A 128 KiB budget is 0.9% slower for exact requests and 2.2% faster for
+changed requests. That small direction change is workload-specific and insufficient to select a
+default. The 32 KiB budget is slower in both traces.
+
+The M5 evidence therefore supports eager release and unbounded/full retention as useful endpoints,
+with explicit bounded retention only for callers who can identify a suitable memory/reuse envelope.
+It does not justify a nonzero bounded default. Before freezing that conclusion, the selected class
+pool must be integrated into the public sequence and measured with element lifetime, directory
+updates, shallow rollback, and both reference machines.
 
 ## Initial Apple M5 Pro diagnostic
 
@@ -175,3 +437,304 @@ lookup is stably but unexpectedly slower than both other uniform sizes, despite 
 power-of-two mapping. A quiet rerun and generated-code inspection are required before comparing
 small differences or selecting a uniform capacity. The artifact remains structurally valid and
 immutable, but it is explicitly diagnostic rather than merge evidence.
+
+## Apple M5 Pro mapping proof
+
+The mapping artifact records a clean `7e877a527` tree against production baseline `b7fb4c534`,
+Clang 22.1.8, C++20, Bazel 9.2.0, 37 families with nine randomly interleaved repetitions, a
+one-second warmup and minimum time, and a 570.62-second run. Load averages fell from
+2.59/2.92/4.32 to 2.02/1.99/3.08. Every candidate owns the same separately allocated elements;
+the reported bytes cover only mapping-directory retained capacity.
+
+### Lookup results
+
+Times are CPU nanoseconds per complete 16,384-element traversal. `Fast 3` is the arithmetic mean
+of the fastest three repetitions. CV is the coefficient of variation across all nine repetitions.
+
+| Mapping            | Order      | Fast 3 | Median |    Mean |    CV | Directory bytes |
+| ------------------ | ---------- | -----: | -----: | ------: | ----: | --------------: |
+| Tail mapped        | Sequential |  13727 |  13743 | 13743.3 | 0.11% |               0 |
+| Tail mapped        | Permuted   |  17376 |  17465 | 17453.4 | 0.46% |               0 |
+| Element pointers   | Sequential |   6007 |   6025 |  6047.3 | 0.70% |          131072 |
+| Element pointers   | Permuted   |  18835 |  19420 | 19416.7 | 3.45% |          131072 |
+| Pointer page 4     | Sequential |   6762 |   6784 |  6784.3 | 0.32% |           65536 |
+| Pointer page 4     | Permuted   |   8321 |   8380 |  8380.1 | 0.71% |           65536 |
+| Pointer page 8     | Sequential |   6543 |   6546 |  6550.2 | 0.14% |           32768 |
+| Pointer page 8     | Permuted   |   6749 |   6764 |  6772.7 | 0.36% |           32768 |
+| Pointer page 16    | Sequential |   6508 |   6512 |  6515.7 | 0.14% |           16384 |
+| Pointer page 16    | Permuted   |   6665 |   6680 |  6680.4 | 0.20% |           16384 |
+| Pointer page 32    | Sequential |   6481 |   6486 |  6486.0 | 0.08% |            8192 |
+| Pointer page 32    | Permuted   |   6649 |   6652 |  6659.4 | 0.18% |            8192 |
+| Pointer page 64    | Sequential |   6473 |   6490 |  6488.5 | 0.23% |            4096 |
+| Pointer page 64    | Permuted   |   6632 |   6637 |  6640.0 | 0.15% |            4096 |
+| Compact-16 page 4  | Sequential |   9282 |   9300 |  9302.3 | 0.21% |           16384 |
+| Compact-16 page 4  | Permuted   |  10075 |  10147 | 10139.8 | 0.56% |           16384 |
+| Compact-16 page 8  | Sequential |   9246 |   9257 |  9257.3 | 0.14% |            8192 |
+| Compact-16 page 8  | Permuted   |   9941 |   9981 |  9980.7 | 0.47% |            8192 |
+| Compact-16 page 16 | Sequential |   9239 |   9256 |  9255.8 | 0.19% |            4096 |
+| Compact-16 page 16 | Permuted   |   9868 |   9953 |  9941.1 | 0.60% |            4096 |
+| Compact-16 page 32 | Sequential |   9226 |   9238 |  9247.5 | 0.36% |            2048 |
+| Compact-16 page 32 | Permuted   |   9753 |   9815 |  9827.8 | 0.75% |            2048 |
+| Compact-16 page 64 | Sequential |   9218 |   9237 |  9247.8 | 0.33% |            1024 |
+| Compact-16 page 64 | Permuted   |   9746 |   9806 |  9788.7 | 0.39% |            1024 |
+| Compact-32 page 64 | Sequential |   9242 |   9255 |  9261.8 | 0.20% |            2048 |
+| Compact-32 page 64 | Permuted   |   9848 |   9866 |  9894.0 | 0.59% |            2048 |
+
+### Directory construction
+
+Construction measures building the mapping for the already allocated 16,384 elements. It does
+not include segment allocation or element construction.
+
+| Mapping            | Fast 3 | Median |   Mean |    CV | Directory bytes |
+| ------------------ | -----: | -----: | -----: | ----: | --------------: |
+| Pointer page 4     |   3129 |   3134 | 3143.1 | 0.75% |           65536 |
+| Pointer page 8     |   1894 |   1934 | 1924.4 | 1.36% |           32768 |
+| Pointer page 16    |   1074 |   1090 | 1086.5 | 1.01% |           16384 |
+| Pointer page 32    |    647 |    666 |  664.6 | 2.42% |            8192 |
+| Pointer page 64    |    429 |    438 |  435.4 | 1.30% |            4096 |
+| Compact-16 page 4  |   2486 |   2522 | 2532.1 | 1.81% |           16384 |
+| Compact-16 page 8  |   1423 |   1449 | 1442.6 | 1.11% |            8192 |
+| Compact-16 page 16 |    824 |    829 |  835.6 | 1.77% |            4096 |
+| Compact-16 page 32 |    516 |    523 |  522.7 | 1.45% |            2048 |
+| Compact-16 page 64 |    336 |    341 |  343.7 | 3.52% |            1024 |
+| Compact-32 page 64 |    367 |    373 |  374.5 | 2.00% |            2048 |
+
+### M5 decisions and open questions
+
+Page 64 dominates smaller pages on this workload: pointer pages 16, 32, and 64 are within 0.6% in
+both lookup orders, while page 64 has the smallest directory and cheapest construction. The same
+direction holds for compact pages. This selects page 64 for the next integrated experiment on M5,
+subject to confirmation on Zen 5 and with other element and segment shapes.
+
+Pointer page 64 improves over tail mapping by 52.8% sequentially and 61.8% in permuted order.
+Compact-16 page 64 improves it by 32.8% and 43.9%, respectively. Pointer pages are approximately
+29.8% faster sequentially and 31.9% faster in permuted order than compact IDs, at four times the
+directory storage for this seven-segment case. Compact construction is only about 93 ns cheaper
+for the entire directory. That speed/memory choice remains open pending Zen 5, different element
+sizes, and an integrated append/pop/regrow measurement.
+
+One pointer per element is rejected: it is only 7.2% faster than pointer page 64 sequentially,
+184% slower under permuted access, and consumes 32 times the directory memory. Compact 32-bit IDs
+show no compensating speed advantage over 16-bit IDs. A production compact representation must
+therefore choose the narrowest sufficient ID dynamically or by configuration; the general
+container cannot inherit a 65,535-segment limit from this proof.
+
+## Apple M5 Pro integrated pointer pages
+
+Commit `5e1382418` integrates a 64-element pointer-page directory into the actual container when
+every configured segment capacity is divisible by 64. Other schedules keep the original mapping.
+The implementation updates the directory transactionally with segment acquisition, transfers it
+on copy and move, and shrinks it with tail-segment release. Tests cover every boundary in a listed
+schedule, deep pop, trim, regrowth, copy, and address-preserving move. The full Clang repository
+suite passed: 145 tests passed and one exception-only test was intentionally skipped.
+
+The artifact contains the complete production matrix, not an isolated lookup kernel: fresh and
+retained append, indexed and permuted access, iterator traversal, segment-span traversal, and
+`vector`/`deque` baselines. It records a clean `5e1382418` tree against `b7fb4c534`, 26 families,
+nine randomly interleaved repetitions, and 415.62 seconds. The actual directory retains 2,048
+bytes for exactly 16,384 elements and 2,216 bytes for the listed schedule's 17,728-element
+capacity.
+
+`Baseline delta` compares fastest-three means against the earlier production artifact. Negative
+values are faster. This is a cross-run comparison, so changes near noise are not findings.
+
+| Family                                          | Fast 3 | Median |     Mean |     CV | Baseline delta |
+| ----------------------------------------------- | -----: | -----: | -------: | -----: | -------------: |
+| `Deque/AppendFresh`                             |  16375 |  16510 |  16482.1 |  0.57% |          +0.7% |
+| `SegmentedSequence/AppendFresh/Listed`          |  91319 |  91672 |  91602.6 |  0.31% |          -3.2% |
+| `SegmentedSequence/AppendFresh/Uniform1024`     |  87410 |  87611 |  87850.0 |  0.88% |          +0.9% |
+| `SegmentedSequence/AppendFresh/Uniform256`      |  90941 |  93031 |  92473.4 |  1.57% |          +1.5% |
+| `SegmentedSequence/AppendFresh/Uniform64`       | 113378 | 113608 | 122255.4 | 13.69% |         +12.9% |
+| `SegmentedSequence/AppendRetained/Listed`       |  86047 |  89202 |  92233.1 | 13.94% |          -2.9% |
+| `SegmentedSequence/AppendRetained/Uniform1024`  |  80439 |  84197 |  84816.6 |  8.05% |          -0.5% |
+| `SegmentedSequence/AppendRetained/Uniform256`   |  76435 |  83606 |  81299.5 |  7.54% |          -8.7% |
+| `SegmentedSequence/AppendRetained/Uniform64`    |  83254 |  84054 |  85695.6 |  6.77% |          -0.3% |
+| `SegmentedSequence/Indexed/Listed`              |   6460 |   6472 |   6887.5 | 18.04% |         -67.6% |
+| `SegmentedSequence/Indexed/Uniform1024`         |   6445 |   6465 |   6546.2 |  3.83% |         -30.3% |
+| `SegmentedSequence/Indexed/Uniform256`          |   6462 |   6471 |   6468.6 |  0.09% |         -43.8% |
+| `SegmentedSequence/Indexed/Uniform64`           |   6500 |   6532 |   7736.5 | 23.68% |         -29.9% |
+| `SegmentedSequence/IndexedPermuted/Listed`      |   6619 |   6655 |   8136.9 | 37.15% |         -70.3% |
+| `SegmentedSequence/IndexedPermuted/Uniform1024` |   6593 |   6621 |   7539.4 | 36.79% |         -36.6% |
+| `SegmentedSequence/IndexedPermuted/Uniform256`  |   6625 |   6653 |   8456.1 | 42.47% |         -36.8% |
+| `SegmentedSequence/IndexedPermuted/Uniform64`   |   6648 |   6671 |   6675.0 |  0.48% |         -37.6% |
+| `SegmentedSequence/Iterator/Listed`             |   6489 |   6499 |   6937.5 | 16.99% |         -71.3% |
+| `SegmentedSequence/Iterator/Uniform1024`        |   6468 |   6478 |   6478.7 |  0.17% |         -27.8% |
+| `SegmentedSequence/Iterator/Uniform256`         |   6494 |   6526 |   7294.2 | 21.23% |         -27.5% |
+| `SegmentedSequence/Iterator/Uniform64`          |   6516 |   6523 |   6524.3 |  0.13% |         -27.5% |
+| `SegmentedSequence/Segments/Listed`             |   1459 |   1463 |   1604.1 | 17.62% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform1024`        |   1525 |   1528 |   1529.0 |  0.28% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform256`         |   1857 |   1862 |   1861.4 |  0.23% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform64`          |   3174 |   3179 |   3198.5 |  1.88% |          -0.0% |
+| `Vector/AppendFresh`                            |  20930 |  21113 |  21181.5 |  1.20% |          +0.3% |
+
+Fastest-three results show that the integrated directory preserves the isolated proof's lookup
+gain. The listed configuration improves by 67.6% for sequential indexing, 70.3% for permuted
+indexing, and 71.3% for iterator traversal. Segment-span traversal is unchanged, as expected.
+Uniform schedules improve by 27.5% to 43.8%, showing that a page directory may also beat integer
+division even when the original mapping is constant time.
+
+Fresh listed append improved 3.2%, while uniform-256 and uniform-1024 changed by less than 1.5%.
+Uniform-64 fresh append regressed 12.9%; that configuration adds 256 segments and therefore needs
+a focused directory-growth experiment before any automatic page-directory rule is acceptable.
+
+This run is structurally valid but suffered scheduler interruptions: several indexed and iterator
+families contain isolated 2x to 3x samples, and the listed retained-append family contains one
+125,974 ns CPU sample against an 89,202 ns median. Starting load was 7.65/9.97/9.24 and ending load
+was 2.25/7.38/8.63. Fastest-three and medians still corroborate the isolated mapping result, but
+all-nine means for affected families are not decision evidence. Zen 5 measurements and a quieter
+M5 confirmation remain mandatory before selecting pointer pages or their activation rule.
+
+## Apple M5 Pro directory growth proof
+
+The integrated candidate originally called `reserve(current pages + new pages)` for every acquired
+segment. This minimizes retained directory bytes but turns every segment into a pointer-array
+allocation and copy. Commit `399b5a7fa` isolates that decision across all four production growth
+schedules and compares exact growth, unassisted `std::vector` growth, explicit 1.5x and 2x growth,
+and exact known-final preallocation. Every timed construction validates the final page mapping.
+
+The artifact records a clean tree, 20 families with nine randomly interleaved repetitions,
+306.65 seconds, starting load 1.48/3.74/6.42, and ending load 1.71/2.45/5.01. Times are CPU
+nanoseconds to construct the complete directory; bytes are retained pointer-vector capacity.
+
+| Strategy     | Schedule    | Fast 3 | Median |    Mean |     CV | Bytes | Reallocations |
+| ------------ | ----------- | -----: | -----: | ------: | -----: | ----: | ------------: |
+| Exact        | Listed      | 1024.6 | 1030.2 |  1033.6 |  0.94% |  2216 |             7 |
+| Exact        | Uniform1024 | 1439.4 | 1451.9 |  1453.3 |  0.94% |  2048 |            16 |
+| Exact        | Uniform256  | 3386.1 | 3424.3 |  3420.7 |  0.94% |  2048 |            64 |
+| Exact        | Uniform64   |  12345 |  12378 | 12379.4 |  0.29% |  2048 |           256 |
+| Natural      | Listed      |  576.1 |  580.7 |   580.8 |  0.80% |  4096 |            10 |
+| Natural      | Uniform1024 |  483.1 |  485.9 |   487.0 |  0.91% |  2048 |             9 |
+| Natural      | Uniform256  |  505.6 |  511.5 |   510.3 |  0.82% |  2048 |             9 |
+| Natural      | Uniform64   |  628.8 |  636.5 |   634.6 |  0.83% |  2048 |             9 |
+| 1.5x         | Listed      | 1034.6 | 1039.3 |  1041.9 |  0.74% |  2672 |             7 |
+| 1.5x         | Uniform1024 | 1086.2 | 1091.3 |  1091.8 |  0.52% |  2912 |             8 |
+| 1.5x         | Uniform256  | 1138.9 | 1150.4 |  1147.5 |  0.70% |  2424 |            11 |
+| 1.5x         | Uniform64   | 1533.2 | 1562.5 |  1569.0 |  2.17% |  2528 |            15 |
+| 2x           | Listed      |  958.5 |  964.8 |   964.4 |  0.55% |  2720 |             6 |
+| 2x           | Uniform1024 |  890.2 |  906.2 |   901.3 |  1.06% |  2048 |             5 |
+| 2x           | Uniform256  |  927.6 |  939.1 |   935.8 |  0.75% |  2048 |             7 |
+| 2x           | Uniform64   | 1255.8 | 1275.4 |  1278.9 |  2.09% |  2048 |             9 |
+| Preallocated | Listed      |  274.9 |  275.3 |   275.4 |  0.18% |  2216 |             1 |
+| Preallocated | Uniform1024 |  182.4 |  222.3 |   217.4 | 13.92% |  2048 |             1 |
+| Preallocated | Uniform256  |  244.0 |  255.7 |   264.5 |  7.90% |  2048 |             1 |
+| Preallocated | Uniform64   |  284.7 |  309.4 |   318.5 | 11.34% |  2048 |             1 |
+
+Natural growth is the clear incremental winner. It reduces uniform-64 construction from 12,345 ns
+to 629 ns and reallocations from 256 to nine while retaining the same 2,048 bytes. It is also 44%
+faster than exact growth for the listed schedule, at the cost of 1,880 extra retained bytes. The
+explicit 1.5x and 2x policies are slower than leaving growth to the standard-library vector and do
+not provide a consistent memory advantage.
+
+Known-final preallocation is fastest and exact-sized. Its higher CV occurs in sub-320 ns operations
+where allocator jitter is a large fraction of the total; every fastest-three and median remains far
+below the alternatives. The next integrated candidate should therefore use natural vector growth
+for ordinary incremental append and preallocate the directory when `reserve(requested)` exposes a
+known target. Pointer-page adoption still awaits Zen 5; this experiment selects how to test it,
+not whether it becomes the production mapping.
+
+## Apple M5 Pro integrated hybrid growth
+
+Commit `78856f238` applies the directory-growth result to the integrated pointer-page candidate.
+Incremental append now uses the standard vector's natural growth, while `reserve(requested)`
+computes the segment-rounded final page count and preallocates it once. The full Clang repository
+suite remains green with 145 passing tests and one intentionally skipped exception-only test.
+
+The artifact records the complete 26-family production matrix from a clean tree, nine randomly
+interleaved repetitions, and 480.60 seconds. It started after the host had settled to a 2.24
+one-minute load average, but unrelated activity raised ending load to 11.33/13.59/10.44 and caused
+isolated scheduler outliers. Fastest-three and medians remain the appropriate robust views;
+affected all-nine means are included to expose, not conceal, the interference.
+
+| Family                                          | Fast 3 | Median |     Mean |     CV | Baseline delta |
+| ----------------------------------------------- | -----: | -----: | -------: | -----: | -------------: |
+| `Deque/AppendFresh`                             |  16354 |  16483 |  16716.3 |  4.70% |          +0.6% |
+| `SegmentedSequence/AppendFresh/Listed`          |  91006 |  91630 |  99962.9 | 16.95% |          -3.5% |
+| `SegmentedSequence/AppendFresh/Uniform1024`     |  86093 |  86843 |  94911.8 | 11.92% |          -0.6% |
+| `SegmentedSequence/AppendFresh/Uniform256`      |  89938 |  90293 |  95873.3 | 11.74% |          +0.4% |
+| `SegmentedSequence/AppendFresh/Uniform64`       | 101815 | 102137 | 105541.3 |  9.82% |          +1.4% |
+| `SegmentedSequence/AppendRetained/Listed`       |  86340 |  88851 | 100275.0 | 19.06% |          -2.5% |
+| `SegmentedSequence/AppendRetained/Uniform1024`  |  84035 |  84198 |  86188.3 |  6.89% |          +4.0% |
+| `SegmentedSequence/AppendRetained/Uniform256`   |  82343 |  84155 |  85907.6 |  6.70% |          -1.7% |
+| `SegmentedSequence/AppendRetained/Uniform64`    |  83797 |  84037 |  84268.1 |  1.12% |          +0.3% |
+| `SegmentedSequence/Indexed/Listed`              |   6448 |   6465 |   6892.8 | 18.69% |         -67.7% |
+| `SegmentedSequence/Indexed/Uniform1024`         |   6461 |   6480 |   7180.0 | 19.71% |         -30.1% |
+| `SegmentedSequence/Indexed/Uniform256`          |   6452 |   6470 |   7717.4 | 24.47% |         -43.9% |
+| `SegmentedSequence/Indexed/Uniform64`           |   6464 |   6477 |   6477.6 |  0.23% |         -30.3% |
+| `SegmentedSequence/IndexedPermuted/Listed`      |   6610 |   6640 |   7610.3 | 37.86% |         -70.3% |
+| `SegmentedSequence/IndexedPermuted/Uniform1024` |   6604 |   6640 |   8558.2 | 42.32% |         -36.5% |
+| `SegmentedSequence/IndexedPermuted/Uniform256`  |   6619 |   6637 |   6642.0 |  0.35% |         -36.9% |
+| `SegmentedSequence/IndexedPermuted/Uniform64`   |   6617 |   6642 |   7509.9 | 35.08% |         -37.9% |
+| `SegmentedSequence/Iterator/Listed`             |   6475 |   6491 |   6489.1 |  0.21% |         -71.3% |
+| `SegmentedSequence/Iterator/Uniform1024`        |   6469 |   6498 |   8070.2 | 23.37% |         -27.8% |
+| `SegmentedSequence/Iterator/Uniform256`         |   6474 |   6488 |   7274.0 | 21.55% |         -27.7% |
+| `SegmentedSequence/Iterator/Uniform64`          |   6482 |   6508 |   6510.2 |  0.42% |         -27.9% |
+| `SegmentedSequence/Segments/Listed`             |   1459 |   1460 |   1475.7 |  3.12% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform1024`        |   1525 |   1535 |   1762.8 | 19.88% |          +0.1% |
+| `SegmentedSequence/Segments/Uniform256`         |   1862 |   1866 |   2044.0 | 13.31% |          +0.4% |
+| `SegmentedSequence/Segments/Uniform64`          |   3173 |   3180 |   3239.4 |  4.23% |          -0.1% |
+| `Vector/AppendFresh`                            |  21195 |  21353 |  22374.8 |  9.51% |          +1.6% |
+
+The hybrid removes the exact-growth regression. Uniform-64 fresh append is 1.4% above the original
+run while `vector` is 1.6% slower in the same cross-run comparison; this is environmental drift,
+not evidence of a remaining page cost. Listed fresh append is 3.5% faster. Retained append changes
+are mixed and within the observed cross-run noise.
+
+The lookup result reproduces for a third independent experiment. Listed indexed, permuted, and
+iterator traversal improve 67.7%, 70.3%, and 71.3%. Uniform schedules improve between 27.8% and
+43.9%. Segment-span traversal remains unchanged. Explicit reserve retains exact directory capacity
+(2,048 bytes for uniform schedules and 2,216 bytes for listed); incremental listed construction
+accepts 4,096 bytes of vector capacity to avoid repeated reallocations.
+
+M5 evidence therefore supports the hybrid growth mechanism and page size 64. It does not yet
+select pointer pages over compact IDs, establish the activation rule for arbitrary capacity
+schedules, or authorize production use. Those decisions still require Zen 5 and the element-shape,
+retention, and deep pop/regrow matrices.
+
+## Apple M5 Pro element shapes
+
+The element-shape artifact records a clean `58935e2a6` tree, 54 families with nine randomly
+interleaved repetitions, and 886.05 seconds. It started at load 1.96/15.78/17.16 after the active
+CPU load had subsided, but unrelated activity raised ending load to 16.98/12.32/11.74. Several
+families contain isolated scheduler outliers. One 256-byte pointer-page sample also reports an
+implausibly low CPU time, so the usual fastest-three statistic is not safe for that family.
+
+The following comparison therefore uses medians. Negative deltas are faster. `P/C delta` compares
+pointer pages directly with compact pages; a negative value favors pointers. Pointer directories
+retain 4,096 bytes and compact directories 1,024 bytes for every shape in this proof.
+
+| Shape        | Order      |  Tail | Pointer | Compact | Pointer/Tail | Compact/Tail | Pointer/Compact | Median winner |
+| ------------ | ---------- | ----: | ------: | ------: | -----------: | -----------: | --------------: | ------------- |
+| U8           | Sequential | 13770 |    6409 |    8833 |       -53.5% |       -35.9% |          -27.4% | Pointer       |
+| U16          | Sequential | 13952 |    4402 |    6406 |       -68.5% |       -54.1% |          -31.3% | Pointer       |
+| U32          | Sequential | 13845 |    4355 |    5945 |       -68.5% |       -57.1% |          -26.7% | Pointer       |
+| U64          | Sequential | 13755 |    6481 |    9246 |       -52.9% |       -32.8% |          -29.9% | Pointer       |
+| Blob16       | Sequential | 14807 |    7757 |    9875 |       -47.6% |       -33.3% |          -21.4% | Pointer       |
+| StringRecord | Sequential | 14914 |    4549 |    6606 |       -69.5% |       -55.7% |          -31.1% | Pointer       |
+| Blob64       | Sequential | 14920 |   11405 |   11559 |       -23.6% |       -22.5% |           -1.3% | Pointer       |
+| Aligned64    | Sequential | 14853 |   11472 |   11577 |       -22.8% |       -22.1% |           -0.9% | Pointer       |
+| Blob256      | Sequential | 26684 |   27164 |   26908 |        +1.8% |        +0.8% |           +0.9% | Tail          |
+| U8           | Permuted   | 17407 |   11442 |    9573 |       -34.3% |       -45.0% |          +19.5% | Compact       |
+| U16          | Permuted   | 17421 |    4404 |    8252 |       -74.7% |       -52.6% |          -46.6% | Pointer       |
+| U32          | Permuted   | 16519 |    4402 |    8273 |       -73.4% |       -49.9% |          -46.8% | Pointer       |
+| U64          | Permuted   | 17526 |    6660 |   11447 |       -62.0% |       -34.7% |          -41.8% | Pointer       |
+| Blob16       | Permuted   | 17944 |    9445 |   12469 |       -47.4% |       -30.5% |          -24.3% | Pointer       |
+| StringRecord | Permuted   | 18609 |   10371 |   11744 |       -44.3% |       -36.9% |          -11.7% | Pointer       |
+| Blob64       | Permuted   | 18378 |   12342 |   14203 |       -32.8% |       -22.7% |          -13.1% | Pointer       |
+| Aligned64    | Permuted   | 18446 |   12364 |   13446 |       -33.0% |       -27.1% |           -8.0% | Pointer       |
+| Blob256      | Permuted   | 27029 |   27041 |   27100 |        +0.0% |        +0.3% |           -0.2% | Tail          |
+
+Pointer pages win 16 of 18 shape/order cases on M5. The exceptions carry useful boundaries rather
+than invalidating the directory: compact IDs win permuted access for one-byte elements, while all
+three mappings converge for 256-byte elements because element-cache traffic dominates. At 64
+bytes, pointer and compact pages are effectively tied sequentially, but pointers remain 8% to 13%
+faster under permutation. Over-alignment does not materially change the result.
+
+The StringInterner-shaped pointer-plus-size record strongly favors pointer pages: 69.5% over tail
+mapping and 31.1% over compact IDs sequentially, then 44.3% and 11.7% under permutation. That makes
+pointer pages the M5-leading candidate for StringInterner's record sequence despite their additional
+3,072 directory bytes in this 16,384-element case.
+
+The result also argues against one unconditional mapping for every `T`. A 256-byte element gains
+nothing from either directory, while a one-byte permuted workload prefers compact IDs. Whether
+type-size-based selection is stable enough for an internal specialization, or should remain an
+explicit option, depends on the Zen 5 counterpart and broader lifecycle matrix.

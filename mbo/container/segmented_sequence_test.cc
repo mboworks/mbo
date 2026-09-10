@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <memory>
 #include <memory_resource>
@@ -23,6 +24,7 @@ namespace {
 
 using ::testing::_;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::Ne;
@@ -68,6 +70,31 @@ struct MalformedBlockSource final {
 };
 
 // NOLINTEND(readability-identifier-naming)
+
+constexpr SegmentedSequenceOptions kPageSegments{
+    .segment_capacities = {64, 128},
+    .listed_capacities = 2,
+    .repeat_last = true,
+    .maximum_size = 320,
+};
+
+using PageSequence = SegmentedSequence<std::uint64_t, kPageSegments>;
+
+constexpr SegmentedSequenceOptions kRetainOneSegment{
+    .segment_capacities = {2, 3},
+    .listed_capacities = 2,
+    .repeat_last = true,
+    .maximum_size = 11,
+    .retained_segment_limit = 1,
+};
+
+constexpr SegmentedSequenceOptions kRetainFourBytes{
+    .segment_capacities = {2},
+    .listed_capacities = 1,
+    .repeat_last = true,
+    .maximum_size = 8,
+    .retained_byte_limit = sizeof(int),
+};
 
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
@@ -178,6 +205,38 @@ TEST_F(SegmentedSequenceTest, IteratorsAreDenseRandomAccess) {
   EXPECT_THAT(std::ranges::reverse_view(sequence), ElementsAre(7, 6, 5, 4, 3, 2, 1, 0));
 }
 
+TEST_F(SegmentedSequenceTest, PageMappedLookupSurvivesCopyMoveAndRegrowth) {
+  PageSequence sequence;
+  for (std::uint64_t value = 0; value < 257; ++value) {
+    sequence.push_back(value);
+  }
+  ASSERT_THAT(sequence.directory_bytes_reserved(), Ne(0));
+  EXPECT_THAT(sequence[0], Eq(0));
+  EXPECT_THAT(sequence[63], Eq(63));
+  EXPECT_THAT(sequence[64], Eq(64));
+  EXPECT_THAT(sequence[191], Eq(191));
+  EXPECT_THAT(sequence[192], Eq(192));
+  EXPECT_THAT(sequence[256], Eq(256));
+
+  PageSequence copy(sequence);
+  EXPECT_THAT(copy, ElementsAreArray(sequence));
+  PageSequence moved(std::move(copy));
+  EXPECT_THAT(moved, ElementsAreArray(sequence));
+
+  while (moved.size() > 63) {
+    moved.pop_back();
+  }
+  moved.trim_capacity();
+  EXPECT_THAT(moved.capacity(), Eq(64));
+  moved.reserve(320);
+  for (std::uint64_t value = 63; value < 320; ++value) {
+    moved.push_back(value);
+  }
+  EXPECT_THAT(moved[63], Eq(63));
+  EXPECT_THAT(moved[191], Eq(191));
+  EXPECT_THAT(moved[319], Eq(319));
+}
+
 TEST_F(SegmentedSequenceTest, SegmentSpansExposeOnlyConstructedPrefixes) {
   IntSequence sequence;
   for (int value = 0; value < 7; ++value) {
@@ -255,6 +314,59 @@ TEST_F(SegmentedSequenceTest, NonRepeatingCapacityListStopsGrowth) {
   ASSERT_THAT(sequence.try_push_back(1), Optional(_));
   EXPECT_THAT(sequence.try_push_back(2), Eq(std::nullopt));
   EXPECT_THAT(sequence, ElementsAre(1));
+}
+
+TEST_F(SegmentedSequenceTest, RetainedSegmentLimitPreservesNearestFutureSegment) {
+  SegmentedSequence<int, kRetainOneSegment> sequence;
+  sequence.reserve(11);
+  for (int value = 0; value < 11; ++value) {
+    sequence.push_back(value);
+  }
+  int* const first = std::addressof(sequence.front());
+
+  while (!sequence.empty()) {
+    sequence.pop_back();
+  }
+
+  EXPECT_THAT(sequence.capacity(), Eq(2));
+  EXPECT_THAT(sequence.retained_segment_count(), Eq(1));
+  EXPECT_THAT(sequence.retained_bytes(), Eq(sizeof(int) * 2));
+  sequence.push_back(42);
+  EXPECT_THAT(std::addressof(sequence.front()), Eq(first));
+}
+
+TEST_F(SegmentedSequenceTest, RetainedByteLimitCanBeStricterThanCountLimit) {
+  SegmentedSequence<int, kRetainFourBytes> sequence;
+  sequence.reserve(8);
+  sequence.resize(8, 7);
+
+  sequence.clear();
+
+  EXPECT_THAT(sequence.capacity(), Eq(0));
+  EXPECT_THAT(sequence.retained_segment_count(), Eq(0));
+  EXPECT_THAT(sequence.retained_bytes(), Eq(0));
+}
+
+TEST_F(SegmentedSequenceTest, RetentionAccountingSurvivesMoveAndTrim) {
+  SegmentedSequence<int, kRetainOneSegment> source;
+  source.reserve(11);
+  source.resize(6, 7);
+
+  source.pop_back();
+  EXPECT_THAT(source.capacity(), Eq(8));
+  EXPECT_THAT(source.retained_segment_count(), Eq(1));
+  EXPECT_THAT(source.retained_bytes(), Eq(sizeof(int) * 3));
+
+  SegmentedSequence<int, kRetainOneSegment> moved(std::move(source));
+  EXPECT_THAT(moved.retained_segment_count(), Eq(1));
+  EXPECT_THAT(moved.retained_bytes(), Eq(sizeof(int) * 3));
+  // The container contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+  EXPECT_THAT(source.retained_segment_count(), Eq(0));
+  moved.trim_capacity();
+  EXPECT_THAT(moved.capacity(), Eq(5));
+  EXPECT_THAT(moved.retained_segment_count(), Eq(0));
+  EXPECT_THAT(moved.retained_bytes(), Eq(0));
 }
 
 TEST_F(SegmentedSequenceTest, ResizeConstructsAndDestroysSuffix) {

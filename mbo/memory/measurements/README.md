@@ -128,10 +128,10 @@ is never removed merely because it complicates the conclusion.
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA       | Baseline SHA | Artifact                                                                                                                                                               | Status  |
-| ------------ | -------- | ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Apple M5 Pro | Clang 22 | `c913ba9ae`, `673d95295` | `797b31c24`  | [`layouts`](data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-layouts.json), [`retention`](data/macos-arm64-apple-m5-pro_clang-22_673d95295_arena-retention.json) | valid   |
-| AMD Zen 5    | Clang 22 | pending                  | pending      | pending                                                                                                                                                                | pending |
+| Machine      | Compiler | Implementation SHA                    | Baseline SHA | Artifact                                                                                                                                                                                                                                                                 | Status  |
+| ------------ | -------- | ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| Apple M5 Pro | Clang 22 | `c913ba9ae`, `673d95295`, `8a82b50cb` | `797b31c24`  | [`layouts`](data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-layouts.json), [`retention`](data/macos-arm64-apple-m5-pro_clang-22_673d95295_arena-retention.json), [`pointer records`](data/macos-arm64-apple-m5-pro_clang-22_8a82b50cb_arena-pointer-records.json) | valid   |
+| AMD Zen 5    | Clang 22 | pending                               | pending      | pending                                                                                                                                                                                                                                                                  | pending |
 
 This table is updated only from validated JSON. The JSON remains the source of truth.
 
@@ -192,6 +192,28 @@ isolated pointer and segmented-offset insertion under the same full protocol. It
 were 159,287 ns and 161,820 ns, with CVs of 6.68% and 10.56%. That confirms insertion is too close
 and variable to select the representation; lookup and memory are the present discriminators. No
 final record-layout decision is made before Zen 5 measurement and integration with the actual index.
+
+A third validated artifact isolates array-of-structures pointer records from a structure-of-arrays
+alternative. It records a clean `8a82b50cb` tree and the same compiler and benchmark controls. The
+run ended at elevated load averages of 2.90/8.77/7.94, so its raw samples and variability are
+reported explicitly. The lookup CVs remain below 0.82%, and every operation shows a much larger
+penalty than the run-to-run variation.
+
+| Operation         | Layout      | Fast 3 | Median |     Mean | Stddev |    CV | Reserved |
+| ----------------- | ----------- | -----: | -----: | -------: | -----: | ----: | -------: |
+| Insert            | Pointer AoS | 153123 | 156572 | 155993.5 | 3045.6 | 1.95% |  2293760 |
+| Insert            | Pointer SoA | 183193 | 187831 | 187219.2 | 4773.6 | 2.55% |  2228224 |
+| Lookup sequential | Pointer AoS |   8681 |   8684 |   8684.9 |    4.5 | 0.05% |  2293760 |
+| Lookup sequential | Pointer SoA |  10437 |  10463 |  10480.2 |   59.3 | 0.57% |  2228224 |
+| Lookup permuted   | Pointer AoS |  12590 |  12596 |  12600.4 |   13.1 | 0.10% |  2293760 |
+| Lookup permuted   | Pointer SoA |  15357 |  15564 |  15515.6 |  125.7 | 0.81% |  2228224 |
+
+SoA removes the four bytes of padding in each 16-byte pointer record, saving exactly 65,536 bytes
+or 2.86% of total reserved storage. In exchange it makes fastest-three insertion 19.6% slower,
+sequential lookup 20.2% slower, and permuted lookup 22.0% slower. The memory saving is insufficient
+to justify three allocations and split-field access as the general default. AoS pointer records
+remain the provisional growing-layout candidate, subject to Zen 5 confirmation and measurement
+inside the complete interner.
 
 ### Post-burst retention
 

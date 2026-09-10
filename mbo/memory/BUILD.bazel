@@ -34,6 +34,20 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "arena_layout_benchmark",
+    testonly = True,
+    srcs = ["arena_layout_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
 cc_library(
     name = "arena_cc",
     hdrs = ["arena.h"],

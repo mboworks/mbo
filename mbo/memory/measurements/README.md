@@ -23,6 +23,14 @@ Files under `data/` are immutable JSON envelopes produced by
 unaltered Google Benchmark context and rows plus source, host, toolchain, command, timing, load, and
 protocol provenance. Do not hand-edit results or replace raw repetitions with a Markdown summary.
 
+The production-path target is `//mbo/memory:arena_benchmark`. The benchmark-only
+`//mbo/memory:arena_layout_benchmark` target compares candidates that must not become API merely to
+make an experiment possible. Its first experiment compares fixed, 1.5x, 2x, and 4x block growth
+under identical retained and fresh mixed string-like workloads. Every 257th request is a dedicated
+64 KiB oversized allocation, so the result also detects accidental distortion of normal growth.
+Listed early-block sizes and retention alternatives are added as separate candidate implementations
+before the layout proof is considered complete.
+
 ## Reference commands
 
 Run from a clean checkout of the exact implementation commit after dependencies have already been

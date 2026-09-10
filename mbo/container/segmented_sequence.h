@@ -635,13 +635,12 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     try {
 #endif
-      segments_.push_back(
-          Segment{
-              .block = *block,
-              .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-              .capacity = segment_capacity,
-              .size = 0,
-          });
+      segments_.push_back(Segment{
+          .block = *block,
+          .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          .capacity = segment_capacity,
+          .size = 0,
+      });
 #if __cpp_exceptions
     } catch (...) {
       source_.Release(*block);

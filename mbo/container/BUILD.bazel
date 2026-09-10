@@ -63,6 +63,26 @@ cc_test(
     ],
 )
 
+# Exercises SegmentedSequence precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
+cc_test(
+    name = "segmented_sequence_require_exceptions_test",
+    size = "small",
+    srcs = ["segmented_sequence_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":segmented_sequence_cc",
+        "//mbo/config:config_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_binary(
     name = "segmented_sequence_benchmark",
     testonly = 1,

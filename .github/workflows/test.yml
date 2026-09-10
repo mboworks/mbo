@@ -303,6 +303,7 @@ jobs:
           bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} \
             --//mbo/config:require_throws=true \
             //mbo/container:limited_map_require_exceptions_test \
+            //mbo/container:segmented_sequence_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
             --combined_report=lcov \
             --instrumentation_filter='^//mbo/(container|json)[/:].*'

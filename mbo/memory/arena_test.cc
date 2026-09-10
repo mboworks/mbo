@@ -7,6 +7,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory_resource>
 #include <span>
 #include <utility>
@@ -20,7 +21,9 @@ namespace {
 
 using ::testing::Eq;
 using ::testing::Ge;
+using ::testing::IsFalse;
 using ::testing::IsNull;
+using ::testing::IsTrue;
 using ::testing::Ne;
 using ::testing::NotNull;
 
@@ -29,6 +32,20 @@ inline constexpr ArenaOptions kSmallArenaOptions{
     .maximum_block_size = 1'024,
     .growth_numerator = 2,
     .growth_denominator = 1,
+};
+
+inline constexpr ArenaOptions kQuotientOverflowOptions{
+    .initial_block_size = 128,
+    .maximum_block_size = std::numeric_limits<std::size_t>::max(),
+    .growth_numerator = std::numeric_limits<std::size_t>::max(),
+    .growth_denominator = 1,
+};
+
+inline constexpr ArenaOptions kRemainderOverflowOptions{
+    .initial_block_size = 255,
+    .maximum_block_size = std::numeric_limits<std::size_t>::max(),
+    .growth_numerator = std::numeric_limits<std::size_t>::max(),
+    .growth_denominator = 128,
 };
 
 struct ArenaTest : ::testing::Test {};
@@ -64,6 +81,49 @@ struct UndersizedSource final {
   std::size_t release_count = 0;
 };
 
+struct InvalidResponseSource final {
+  enum class Response { kUnavailable, kNullData, kInsufficientAlignment, kMisalignedData };
+
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return 64; }
+
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    switch (response) {
+      case Response::kUnavailable: return std::nullopt;
+      case Response::kNullData: return MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
+      case Response::kInsufficientAlignment:
+        return MemoryBlock{.data = storage.data(), .size = size, .alignment = alignment / 2};
+      case Response::kMisalignedData:
+        return MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
+    }
+  }
+
+  void Release(MemoryBlock /*block*/) noexcept { ++release_count; }
+
+  alignas(64) std::array<std::byte, 2'048> storage{};
+  std::size_t release_count = 0;
+  Response response = Response::kUnavailable;
+};
+
+struct MaxSizeResponseSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t alignment) noexcept {
+    return MemoryBlock{
+        .data = storage.data(),
+        .size = std::numeric_limits<std::size_t>::max(),
+        .alignment = alignment,
+    };
+  }
+
+  void Release(MemoryBlock /*block*/) noexcept {}
+
+  alignas(64) std::array<std::byte, 256> storage{};
+};
+
 // NOLINTEND(readability-identifier-naming)
 
 template<typename ArenaType>
@@ -93,6 +153,14 @@ TEST_F(ArenaTest, AllocationsAreAlignedAndStable) {
   EXPECT_THAT(arena.bytes_used(), Ge(44));
   EXPECT_THAT(arena.block_count(), Ge(1));
   EXPECT_THAT(arena.bytes_reserved(), Ge(kSmallArenaOptions.initial_block_size));
+}
+
+TEST_F(ArenaTest, OptionsValidateEveryConstraint) {
+  EXPECT_THAT(ArenaOptions{}.IsValid(), IsTrue());
+  EXPECT_THAT(ArenaOptions{.initial_block_size = sizeof(void*)}.IsValid(), IsFalse());
+  EXPECT_THAT((ArenaOptions{.initial_block_size = 64, .maximum_block_size = 63}.IsValid()), IsFalse());
+  EXPECT_THAT((ArenaOptions{.growth_numerator = 1, .growth_denominator = 2}.IsValid()), IsFalse());
+  EXPECT_THAT(ArenaOptions{.growth_denominator = 0}.IsValid(), IsFalse());
 }
 
 TEST_F(ArenaTest, FixedSourceFailureIsTransactional) {
@@ -163,6 +231,18 @@ TEST_F(ArenaTest, MoveAssignmentReleasesDestinationAndTransfersSource) {
   EXPECT_THAT(destination.block_count(), Eq(1));
   source_allocation[0] = std::byte{0x2a};
   EXPECT_THAT(source_allocation[0], Eq(std::byte{0x2a}));
+}
+
+TEST_F(ArenaTest, SelfMoveAssignmentRetainsAllocations) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  auto* const allocation = arena.TryAllocate(80);
+  ASSERT_THAT(allocation, NotNull());
+
+  auto* const same = &arena;
+  arena = std::move(*same);  // NOLINT(bugprone-use-after-move): exercises the documented self-move guard.
+
+  EXPECT_THAT(arena.block_count(), Eq(1));
+  EXPECT_THAT(arena.TryAllocate(1), NotNull());
 }
 
 TEST_F(ArenaTest, SwapTransfersOwnershipWithoutMovingAllocations) {
@@ -246,6 +326,51 @@ TEST_F(ArenaTest, InvalidSourceResponseIsReleasedWithoutMutation) {
   EXPECT_THAT(arena.bytes_reserved(), Eq(0));
   EXPECT_THAT(arena.block_count(), Eq(0));
   EXPECT_THAT(arena.source().release_count, Eq(1));
+}
+
+TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
+  constexpr std::array kResponses{
+      InvalidResponseSource::Response::kUnavailable,
+      InvalidResponseSource::Response::kNullData,
+      InvalidResponseSource::Response::kInsufficientAlignment,
+      InvalidResponseSource::Response::kMisalignedData,
+  };
+  for (const auto response : kResponses) {
+    InvalidResponseSource source;
+    source.response = response;
+    Arena<InvalidResponseSource, kSmallArenaOptions> arena(source);
+
+    EXPECT_THAT(arena.TryAllocate(80, 16), IsNull());
+    EXPECT_THAT(arena.bytes_used(), Eq(0));
+    EXPECT_THAT(arena.bytes_reserved(), Eq(0));
+    EXPECT_THAT(arena.block_count(), Eq(0));
+  }
+}
+
+TEST_F(ArenaTest, OverflowingRequestsFailWithoutMutation) {
+  Arena<MaxSizeResponseSource, kSmallArenaOptions> arena;
+  ASSERT_THAT(arena.TryAllocate(1, 1), NotNull());
+  const auto used = arena.bytes_used();
+  const auto reserved = arena.bytes_reserved();
+
+  EXPECT_THAT(arena.TryAllocate(std::numeric_limits<std::size_t>::max(), 1), IsNull());
+  EXPECT_THAT(arena.bytes_used(), Eq(used));
+  EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
+
+  Arena<MaxSizeResponseSource, kSmallArenaOptions> alignment_arena;
+  EXPECT_THAT(alignment_arena.TryAllocate(1, NewDeleteBlockSource::max_alignment()), IsNull());
+}
+
+TEST_F(ArenaTest, OverflowingGrowthFallsBackToMaximumBlockSize) {
+  Arena<RecordingSource, kQuotientOverflowOptions> quotient;
+  ASSERT_THAT(quotient.TryAllocate(1, 1), NotNull());
+  ASSERT_THAT(quotient.source().requested_sizes.size(), Eq(1));
+  EXPECT_THAT(quotient.source().requested_sizes.front(), Eq(kQuotientOverflowOptions.initial_block_size));
+
+  Arena<RecordingSource, kRemainderOverflowOptions> remainder;
+  ASSERT_THAT(remainder.TryAllocate(1, 1), NotNull());
+  ASSERT_THAT(remainder.source().requested_sizes.size(), Eq(1));
+  EXPECT_THAT(remainder.source().requested_sizes.front(), Eq(kRemainderOverflowOptions.initial_block_size));
 }
 
 }  // namespace

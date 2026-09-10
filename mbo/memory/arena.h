@@ -25,7 +25,7 @@ struct ArenaOptions final {
   std::size_t growth_numerator = 2;
   std::size_t growth_denominator = 1;
 
-  consteval bool IsValid() const noexcept {
+  constexpr bool IsValid() const noexcept {
     return initial_block_size > sizeof(void*) && maximum_block_size >= initial_block_size
            && growth_numerator >= growth_denominator && growth_denominator != 0;
   }

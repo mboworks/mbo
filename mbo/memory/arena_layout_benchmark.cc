@@ -98,6 +98,34 @@ class PointerRecords final {
   std::vector<PointerRecord> records_;
 };
 
+class PointerSoARecords final {
+ public:
+  PointerSoARecords(std::size_t count, std::size_t /*bytes*/) {
+    pointers_.reserve(count);
+    sizes_.reserve(count);
+  }
+
+  void Add(std::string_view value) {
+    auto* const data = reinterpret_cast<char*>(  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        arena_.Allocate(value.size(), 1));
+    std::memcpy(data, value.data(), value.size());
+    pointers_.push_back(data);
+    sizes_.push_back(static_cast<std::uint32_t>(value.size()));
+  }
+
+  std::string_view Get(std::size_t index) const { return {pointers_.at(index), sizes_.at(index)}; }
+
+  std::size_t bytes_reserved() const noexcept {
+    return arena_.bytes_reserved() + (pointers_.capacity() * sizeof(const char*))
+           + (sizes_.capacity() * sizeof(std::uint32_t));
+  }
+
+ private:
+  Arena<NewDeleteBlockSource, kRecordArenaOptions> arena_;
+  std::vector<const char*> pointers_;
+  std::vector<std::uint32_t> sizes_;
+};
+
 class OffsetRecords final {
  public:
   OffsetRecords(std::size_t count, std::size_t bytes) {
@@ -493,14 +521,17 @@ void BmRecordLookup(benchmark::State& state) {
 
 void RegisterRecordBenchmarks() {
   benchmark::RegisterBenchmark("Records/Insert/Pointer", BmRecordInsert<PointerRecords>);
+  benchmark::RegisterBenchmark("Records/Insert/PointerSoA", BmRecordInsert<PointerSoARecords>);
   benchmark::RegisterBenchmark("Records/Insert/ContiguousOffsetFixed", BmRecordInsert<OffsetRecords>);
   benchmark::RegisterBenchmark("Records/Insert/SegmentOffset", BmRecordInsert<SegmentOffsetRecords>);
   benchmark::RegisterBenchmark("Records/Insert/ContiguousInlineFixed", BmRecordInsert<InlineRecords>);
   benchmark::RegisterBenchmark("Records/LookupSequential/Pointer", BmRecordLookup<PointerRecords, false>);
+  benchmark::RegisterBenchmark("Records/LookupSequential/PointerSoA", BmRecordLookup<PointerSoARecords, false>);
   benchmark::RegisterBenchmark("Records/LookupSequential/ContiguousOffsetFixed", BmRecordLookup<OffsetRecords, false>);
   benchmark::RegisterBenchmark("Records/LookupSequential/SegmentOffset", BmRecordLookup<SegmentOffsetRecords, false>);
   benchmark::RegisterBenchmark("Records/LookupSequential/ContiguousInlineFixed", BmRecordLookup<InlineRecords, false>);
   benchmark::RegisterBenchmark("Records/LookupPermuted/Pointer", BmRecordLookup<PointerRecords, true>);
+  benchmark::RegisterBenchmark("Records/LookupPermuted/PointerSoA", BmRecordLookup<PointerSoARecords, true>);
   benchmark::RegisterBenchmark("Records/LookupPermuted/ContiguousOffsetFixed", BmRecordLookup<OffsetRecords, true>);
   benchmark::RegisterBenchmark("Records/LookupPermuted/SegmentOffset", BmRecordLookup<SegmentOffsetRecords, true>);
   benchmark::RegisterBenchmark("Records/LookupPermuted/ContiguousInlineFixed", BmRecordLookup<InlineRecords, true>);

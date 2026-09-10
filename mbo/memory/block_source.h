@@ -31,7 +31,7 @@ struct MemoryBlock final {
 
 template<typename Source>
 concept BlockSource = requires(Source& source, MemoryBlock block, std::size_t size, std::size_t alignment) {
-  { Source::supports_recoverable_failure } -> std::convertible_to<bool>;
+  typename std::bool_constant<Source::supports_recoverable_failure>;
   { source.TryAcquire(size, alignment) } -> std::same_as<std::optional<MemoryBlock>>;
   { source.Release(block) } noexcept;
   { source.max_alignment() } noexcept -> std::convertible_to<std::size_t>;

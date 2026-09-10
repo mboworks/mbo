@@ -80,6 +80,21 @@ offset calculations even for narrow integer values that repeat. Timed reads cons
 large elements are not copied. Results report element size, alignment, and retained directory
 bytes so lookup time is not interpreted without its memory cost.
 
+## Lifecycle proof benchmark
+
+`//mbo/container:segmented_sequence_lifecycle_benchmark` measures complete pop/regrow cycles on the
+actual public container. It compares the current retained-tail behavior with eager
+`trim_capacity()` at depths 64, 4,096, and 16,384 for uniform-64 and listed schedules. The timed
+operation includes element destruction, optional block release, optional reacquisition, directory
+maintenance, and reconstruction of the removed suffix.
+
+Each case begins from an explicitly reserved and fully populated 16,384-element sequence. A dry
+cycle validates the low-water capacity, reserved bytes, and segment count before timing. Every
+timed iteration must restore the original size and final value. Results report both low-water and
+restored storage counters, separating the memory released by eager trimming from its latency cost.
+This establishes the retention value envelope before benchmarking bounded pools and
+exact/close/largest-fit lookup structures.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact

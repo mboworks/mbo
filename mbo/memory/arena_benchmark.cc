@@ -18,6 +18,9 @@ namespace mbo::memory {
 namespace {
 
 constexpr std::size_t kBatch = 1'024;
+constexpr std::array<std::size_t, 16> kStringLikeSizes = {
+    1, 3, 5, 7, 8, 11, 15, 16, 19, 23, 31, 32, 47, 64, 127, 511,
+};
 constexpr ArenaOptions kBenchmarkOptions{
     .initial_block_size = std::size_t{64} * 1'024,
     .maximum_block_size = std::size_t{4} * 1'024 * 1'024,
@@ -35,17 +38,21 @@ void BmArenaAllocate(benchmark::State& state) {
   const auto size = static_cast<std::size_t>(state.range(0));
   const auto alignment = static_cast<std::size_t>(state.range(1));
   Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
+  std::size_t used = 0;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
   for (auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(size, alignment));
     }
+    used = arena.bytes_used();
     arena.Reset();
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kBatch));
   state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
   state.counters["reserved"] = static_cast<double>(arena.bytes_reserved());
   state.counters["blocks"] = static_cast<double>(arena.block_count());
+  state.counters["used"] = static_cast<double>(used);
+  state.counters["padding"] = static_cast<double>(used - (kBatch * size));
 }
 
 void BmPmrMonotonicAllocate(benchmark::State& state) {
@@ -120,6 +127,42 @@ void BmNewDeleteAllocate(benchmark::State& state) {
   state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
 }
 
+void BmArenaFreshLifecycle(benchmark::State& state) {
+  const auto size = static_cast<std::size_t>(state.range(0));
+  const auto alignment = static_cast<std::size_t>(state.range(1));
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  for (auto _ : state) {
+    Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
+    for (std::size_t index = 0; index < kBatch; ++index) {
+      benchmark::DoNotOptimize(arena.Allocate(size, alignment));
+    }
+    benchmark::ClobberMemory();
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kBatch));
+  state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kBatch * size));
+}
+
+void BmArenaMixedStringLike(benchmark::State& state) {
+  Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
+  std::size_t used = 0;
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  for (auto _ : state) {
+    std::size_t bytes = 0;
+    for (std::size_t index = 0; index < kBatch; ++index) {
+      const auto size = kStringLikeSizes.at(index % kStringLikeSizes.size());
+      benchmark::DoNotOptimize(arena.Allocate(size, 1));
+      bytes += size;
+    }
+    benchmark::DoNotOptimize(bytes);
+    used = arena.bytes_used();
+    arena.Reset();
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kBatch));
+  state.counters["reserved"] = static_cast<double>(arena.bytes_reserved());
+  state.counters["blocks"] = static_cast<double>(arena.block_count());
+  state.counters["used"] = static_cast<double>(used);
+}
+
 void BmArenaReset(benchmark::State& state) {
   Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
   for (std::size_t index = 0; index < kBatch; ++index) {
@@ -156,6 +199,7 @@ void RegisterAllocationBenchmarks() {
       benchmark::RegisterBenchmark("PmrArena/Allocate", BmPmrArenaAllocate)->Args({size, alignment});
       benchmark::RegisterBenchmark("PmrMonotonic/Allocate", BmPmrMonotonicAllocate)->Args({size, alignment});
       benchmark::RegisterBenchmark("NewDelete/Allocate", BmNewDeleteAllocate)->Args({size, alignment});
+      benchmark::RegisterBenchmark("Arena/FreshLifecycle", BmArenaFreshLifecycle)->Args({size, alignment});
     }
   }
 }
@@ -167,6 +211,7 @@ void RegisterAllocationBenchmarks() {
 
 BENCHMARK(BmArenaReset);
 BENCHMARK(BmFixedArenaExhaustion);
+BENCHMARK(BmArenaMixedStringLike);
 
 }  // namespace
 }  // namespace mbo::memory

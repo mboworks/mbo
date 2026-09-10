@@ -220,6 +220,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `79ff8dade`        | `78856f238`  | [`lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_79ff8dade_segmented-sequence-lifecycle.json)          | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `ce7101a53`        | `ec2b1868d`  | [`retained pool`](data/macos-arm64-apple-m5-pro_clang-22_ce7101a53_segmented-sequence-pool.json)                     | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `9bd18a26c`        | `562945258`  | [`retention budgets`](data/macos-arm64-apple-m5-pro_clang-22_9bd18a26c_segmented-sequence-retention.json)            | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
@@ -297,6 +298,51 @@ retention. The result does not select eight classes universally: production clas
 configured segment-capacity list, and the Zen 5 counterpart remains required. It also does not
 select retained count, retained bytes, close-fit waste threshold, or eviction order. Those need an
 integrated source-counting benchmark with burst, rollback, changed-size, and overflow traces.
+
+## Apple M5 Pro integrated retention-budget proof
+
+The retention-budget artifact records a clean `9bd18a26c` tree against retained-pool-results
+baseline `562945258`, Clang 22.1.8, C++20, Bazel 9.2.0, 12 families with nine randomly interleaved
+repetitions, a one-second warmup and minimum time, and a 195.74-second run. Load averages declined
+from 1.48/1.81/4.89 over the measurement envelope. Every family has at most 3.36% all-nine CPU-time
+CV.
+
+Times are CPU nanoseconds for a complete 128-block rollback, eviction, and regrowth cycle using
+real aligned `NewDeleteBlockSource` acquisitions. `Acquires` is the average source acquisitions per
+cycle; releases match acquisitions in steady state. Low-water bytes and blocks describe retained
+payload after rollback and eviction.
+
+| Trace   | Limit     | Fast 3 | Median |   Mean |    CV | Acquires | Low bytes | Low blocks |
+| ------- | --------- | -----: | -----: | -----: | ----: | -------: | --------: | ---------: |
+| Exact   | Eager     | 6466.9 | 6556.8 | 6556.2 | 1.69% |    128.0 |         0 |          0 |
+| Exact   | Count 8   | 8425.3 | 8469.6 | 8481.3 | 0.74% |    120.0 |     50944 |          8 |
+| Exact   | Count 32  | 6939.7 | 7031.3 | 7027.6 | 1.33% |     96.0 |    203776 |         32 |
+| Exact   | 32 KiB    | 6952.5 | 7022.2 | 7012.2 | 0.80% |    121.0 |     18176 |          7 |
+| Exact   | 128 KiB   | 6525.1 | 6588.9 | 6593.3 | 1.04% |    105.0 |    120064 |         23 |
+| Exact   | Unbounded |  958.3 |  961.3 |  960.9 | 0.28% |      0.0 |    815104 |        128 |
+| Changed | Eager     | 6606.9 | 6753.1 | 6786.0 | 2.92% |    128.0 |         0 |          0 |
+| Changed | Count 8   | 7940.4 | 8096.5 | 8103.4 | 2.48% |    120.0 |     50944 |          8 |
+| Changed | Count 32  | 6691.4 | 6715.7 | 6747.5 | 1.14% |     96.0 |    203776 |         32 |
+| Changed | 32 KiB    | 6802.0 | 6886.8 | 6947.5 | 3.36% |    118.0 |     31488 |         13 |
+| Changed | 128 KiB   | 6464.6 | 6585.0 | 6552.7 | 1.16% |    103.5 |    123648 |         26 |
+| Changed | Unbounded |  979.3 |  981.2 |  981.1 | 0.18% |      0.0 |    815104 |        128 |
+
+Unbounded retention removes all source traffic and is 85.2% faster than eager release on the exact
+trace and 85.2% faster on the changed trace by fastest-three time, at the cost of retaining 815,104
+payload bytes. Small partial pools do not provide a smooth compromise in this deep-rollback
+workload. Count 8 is 30.3% slower than eager for exact reuse and 20.2% slower for changed requests:
+avoiding only eight acquisitions does not repay pool insertion and global-oldest eviction.
+
+Count 32 remains 7.3% slower for exact requests and only 1.3% slower for changed requests despite
+avoiding 32 acquisitions. A 128 KiB budget is 0.9% slower for exact requests and 2.2% faster for
+changed requests. That small direction change is workload-specific and insufficient to select a
+default. The 32 KiB budget is slower in both traces.
+
+The M5 evidence therefore supports eager release and unbounded/full retention as useful endpoints,
+with explicit bounded retention only for callers who can identify a suitable memory/reuse envelope.
+It does not justify a nonzero bounded default. Before freezing that conclusion, the selected class
+pool must be integrated into the public sequence and measured with element lifetime, directory
+updates, shallow rollback, and both reference machines.
 
 ## Initial Apple M5 Pro diagnostic
 

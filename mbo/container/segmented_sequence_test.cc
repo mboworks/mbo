@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <memory>
 #include <memory_resource>
@@ -23,6 +24,7 @@ namespace {
 
 using ::testing::_;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::Ne;
@@ -68,6 +70,15 @@ struct MalformedBlockSource final {
 };
 
 // NOLINTEND(readability-identifier-naming)
+
+constexpr SegmentedSequenceOptions kPageSegments{
+    .segment_capacities = {64, 128},
+    .listed_capacities = 2,
+    .repeat_last = true,
+    .maximum_size = 320,
+};
+
+using PageSequence = SegmentedSequence<std::uint64_t, kPageSegments>;
 
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
@@ -176,6 +187,38 @@ TEST_F(SegmentedSequenceTest, IteratorsAreDenseRandomAccess) {
   EXPECT_THAT(*(--iterator), Eq(0));
   EXPECT_THAT(*(3 + iterator), Eq(3));
   EXPECT_THAT(std::ranges::reverse_view(sequence), ElementsAre(7, 6, 5, 4, 3, 2, 1, 0));
+}
+
+TEST_F(SegmentedSequenceTest, PageMappedLookupSurvivesCopyMoveAndRegrowth) {
+  PageSequence sequence;
+  for (std::uint64_t value = 0; value < 257; ++value) {
+    sequence.push_back(value);
+  }
+  ASSERT_THAT(sequence.directory_bytes_reserved(), Ne(0));
+  EXPECT_THAT(sequence[0], Eq(0));
+  EXPECT_THAT(sequence[63], Eq(63));
+  EXPECT_THAT(sequence[64], Eq(64));
+  EXPECT_THAT(sequence[191], Eq(191));
+  EXPECT_THAT(sequence[192], Eq(192));
+  EXPECT_THAT(sequence[256], Eq(256));
+
+  PageSequence copy(sequence);
+  EXPECT_THAT(copy, ElementsAreArray(sequence));
+  PageSequence moved(std::move(copy));
+  EXPECT_THAT(moved, ElementsAreArray(sequence));
+
+  while (moved.size() > 63) {
+    moved.pop_back();
+  }
+  moved.trim_capacity();
+  EXPECT_THAT(moved.capacity(), Eq(64));
+  moved.reserve(320);
+  for (std::uint64_t value = 63; value < 320; ++value) {
+    moved.push_back(value);
+  }
+  EXPECT_THAT(moved[63], Eq(63));
+  EXPECT_THAT(moved[191], Eq(191));
+  EXPECT_THAT(moved[319], Eq(319));
 }
 
 TEST_F(SegmentedSequenceTest, SegmentSpansExposeOnlyConstructedPrefixes) {

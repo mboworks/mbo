@@ -65,6 +65,15 @@ requires ValidSegmentedSequenceOptions<Options>
 class SegmentedSequence final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
+  static constexpr std::size_t kDirectoryPageSize = 64;
+  static constexpr bool kUsePageDirectory = [] {
+    for (std::size_t pos = 0; pos < Options.listed_capacities; ++pos) {
+      if (Options.segment_capacities[pos] % kDirectoryPageSize != 0) {
+        return false;
+      }
+    }
+    return true;
+  }();
 
   struct Segment final {
     mbo::memory::MemoryBlock block;
@@ -290,11 +299,13 @@ class SegmentedSequence final {
   requires std::move_constructible<Source>
       : source_(std::move(other.source_)),
         segments_(std::move(other.segments_)),
+        pages_(std::move(other.pages_)),
         size_(other.size_),
         capacity_(other.capacity_) {
     other.size_ = 0;
     other.capacity_ = 0;
     other.segments_.clear();
+    other.pages_.clear();
   }
 
   constexpr SegmentedSequence& operator=(SegmentedSequence&& other) noexcept(std::is_nothrow_move_assignable_v<Source>)
@@ -304,11 +315,13 @@ class SegmentedSequence final {
       release();
       source_ = std::move(other.source_);
       segments_ = std::move(other.segments_);
+      pages_ = std::move(other.pages_);
       size_ = other.size_;
       capacity_ = other.capacity_;
       other.size_ = 0;
       other.capacity_ = 0;
       other.segments_.clear();
+      other.pages_.clear();
     }
     return *this;
   }
@@ -321,6 +334,7 @@ class SegmentedSequence final {
     using std::swap;
     swap(source_, other.source_);
     swap(segments_, other.segments_);
+    swap(pages_, other.pages_);
     swap(size_, other.size_);
     swap(capacity_, other.capacity_);
   }
@@ -347,6 +361,10 @@ class SegmentedSequence final {
       result += segment.block.size;
     }
     return result;
+  }
+
+  constexpr size_type directory_bytes_reserved() const noexcept {
+    return pages_.capacity() * sizeof(typename decltype(pages_)::value_type);
   }
 
   constexpr reference operator[](size_type pos) noexcept { return ElementAt(pos); }
@@ -562,6 +580,7 @@ class SegmentedSequence final {
       source_.Release(pos->block);
     }
     segments_.clear();
+    pages_.clear();
     capacity_ = 0;
   }
 
@@ -609,11 +628,17 @@ class SegmentedSequence final {
   constexpr std::size_t LiveSegmentCount() const noexcept { return empty() ? 0 : Locate(size_ - 1).first + 1; }
 
   constexpr reference ElementAt(std::size_t pos) noexcept {
+    if constexpr (kUsePageDirectory) {
+      return pages_[pos / kDirectoryPageSize][pos % kDirectoryPageSize];
+    }
     const auto [segment_index, offset] = Locate(pos);
     return segments_[segment_index].data[offset];
   }
 
   constexpr const_reference ElementAt(std::size_t pos) const noexcept {
+    if constexpr (kUsePageDirectory) {
+      return pages_[pos / kDirectoryPageSize][pos % kDirectoryPageSize];
+    }
     const auto [segment_index, offset] = Locate(pos);
     return segments_[segment_index].data[offset];
   }
@@ -633,6 +658,7 @@ class SegmentedSequence final {
       return false;
     }
 #if __cpp_exceptions
+    const std::size_t original_page_count = pages_.size();
     try {
 #endif
       segments_.push_back(Segment{
@@ -641,8 +667,19 @@ class SegmentedSequence final {
           .capacity = segment_capacity,
           .size = 0,
       });
+      if constexpr (kUsePageDirectory) {
+        pages_.reserve(pages_.size() + (segment_capacity / kDirectoryPageSize));
+        for (std::size_t offset = 0; offset < segment_capacity; offset += kDirectoryPageSize) {
+          pages_.push_back(
+              reinterpret_cast<T*>(block->data) + offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        }
+      }
 #if __cpp_exceptions
     } catch (...) {
+      pages_.resize(original_page_count);
+      if (!segments_.empty() && segments_.back().block.data == block->data) {
+        segments_.pop_back();
+      }
       source_.Release(*block);
       return false;
     }
@@ -653,6 +690,9 @@ class SegmentedSequence final {
 
   constexpr void ReleaseLastEmptySegment() noexcept {
     const Segment& segment = segments_.back();
+    if constexpr (kUsePageDirectory) {
+      pages_.resize(pages_.size() - (segment.capacity / kDirectoryPageSize));
+    }
     source_.Release(segment.block);
     capacity_ -= segment.capacity;
     segments_.pop_back();
@@ -666,6 +706,7 @@ class SegmentedSequence final {
 
   [[no_unique_address]] Source source_{};
   std::vector<Segment> segments_;
+  std::vector<T*> pages_;
   std::size_t size_ = 0;
   std::size_t capacity_ = 0;
 };

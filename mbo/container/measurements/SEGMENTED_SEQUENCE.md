@@ -65,6 +65,21 @@ growth slack, and directory construction is measured separately. The proof does 
 the smallest directory or fastest lookup wins: append/build frequency, retained memory, element
 size, and both reference architectures decide whether a page mapping is justified.
 
+## Element-shape proof benchmark
+
+`//mbo/container:segmented_sequence_element_shape_benchmark` tests whether mapping costs and cache
+behavior change with the stored type. It uses the same listed 64/256/1,024/4,096 growth schedule,
+16,384 live elements, and 64-element pages as the mapping proof. The matrix includes 1/2/4/8-byte
+integers, a generic 16-byte POD, the pointer-plus-size record required by StringInterner, 64-byte
+and 256-byte PODs, and a 64-byte-aligned 64-byte POD.
+
+Each shape compares tail mapping, pointer pages, and compact 16-bit segment-ID pages under
+sequential and deterministic permuted access. Before timing, every candidate must return the exact
+address returned by the reference storage for all 16,384 positions. This catches wrong segment and
+offset calculations even for narrow integer values that repeat. Timed reads consume a real field;
+large elements are not copied. Results report element size, alignment, and retained directory
+bytes so lookup time is not interpreted without its memory cost.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact

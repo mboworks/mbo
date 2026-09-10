@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+# SPDX-License-Identifier: Apache-2.0
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+cc_library(
+    name = "block_source_cc",
+    hdrs = ["block_source.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "block_source_test",
+    size = "small",
+    srcs = ["block_source_test.cc"],
+    deps = [
+        ":block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "arena_benchmark",
+    testonly = True,
+    srcs = ["arena_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "arena_cc",
+    hdrs = ["arena.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":block_source_cc",
+        "//mbo/config:require_cc",
+    ],
+)
+
+cc_test(
+    name = "arena_test",
+    size = "small",
+    srcs = ["arena_test.cc"],
+    deps = [
+        ":arena_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

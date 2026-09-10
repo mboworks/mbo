@@ -27,6 +27,7 @@
     "hash": { "include": ["mbo/hash/**"] },
     "json": { "include": ["mbo/json/**"] },
     "log": { "include": ["mbo/log/**"] },
+    "memory": { "include": ["mbo/memory/**"] },
     "mope": { "include": ["mbo/mope/**"] },
     "status": { "include": ["mbo/status/**"] },
     "strings": { "include": ["mbo/strings/**"] },

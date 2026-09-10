@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-10 00:03:41</td>
+            <td class="headerValue">2026-09-10 01:20:58</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -324,10 +324,10 @@
 <span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">         288 :   std::string result;</span></span>
 <span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">         288 :   result.reserve(glob_pattern.size());</span></span>
 <span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">         288 :   std::size_t past_last_escape = 0;</span></span>
-<span id="L228"><span class="lineNum">     228</span>         [<span class="tlaGBC" title="branch 0 was taken 2809 times"> + </span><span class="tlaGBC" title="branch 1 was taken 282 times"> + </span>]:<span class="tlaGNC">        3091 :   while (!glob_pattern.empty()) {</span></span>
-<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">        2809 :     char chr = glob_pattern.front();</span></span>
-<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">        2809 :     glob_pattern.remove_prefix(1);</span></span>
-<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="branch 0 was taken 36 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2773 times"> + </span>]:<span class="tlaGNC">        2809 :     if (chr == '\\') {</span></span>
+<span id="L228"><span class="lineNum">     228</span>         [<span class="tlaGBC" title="branch 0 was taken 2814 times"> + </span><span class="tlaGBC" title="branch 1 was taken 282 times"> + </span>]:<span class="tlaGNC">        3096 :   while (!glob_pattern.empty()) {</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">        2814 :     char chr = glob_pattern.front();</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">        2814 :     glob_pattern.remove_prefix(1);</span></span>
+<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="branch 0 was taken 36 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2778 times"> + </span>]:<span class="tlaGNC">        2814 :     if (chr == '\\') {</span></span>
 <span id="L232"><span class="lineNum">     232</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 30 times"> + </span>]:<span class="tlaGNC">          36 :       if (glob_pattern.empty()) {</span></span>
 <span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           6 :         return absl::InvalidArgumentError(&quot;No character left to escape at end of pattern.&quot;);</span></span>
 <span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">           6 :       }</span></span>
@@ -341,13 +341,13 @@
 <span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">          21 :       }</span></span>
 <span id="L243"><span class="lineNum">     243</span>                 :             :       // No need to escape the forward slash, but rather prevent duplicates even if escaped.</span>
 <span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">          30 :     }</span></span>
-<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">        2782 :     switch (chr) {</span></span>
-<span id="L246"><span class="lineNum">     246</span>         [<span class="tlaGBC" title="branch 0 was taken 147 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2635 times"> + </span>]:<span class="tlaGNC">         147 :       case '*':</span></span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">        2787 :     switch (chr) {</span></span>
+<span id="L246"><span class="lineNum">     246</span>         [<span class="tlaGBC" title="branch 0 was taken 147 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2640 times"> + </span>]:<span class="tlaGNC">         147 :       case '*':</span></span>
 <span id="L247"><span class="lineNum">     247</span>         [<span class="tlaGBC" title="branch 0 was taken 125 times"> + </span><span class="tlaGBC" title="branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">         147 :         if (AllowApendStar(result, past_last_escape, options)) {</span></span>
 <span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">         125 :           result += chr;</span></span>
 <span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">         125 :         }</span></span>
 <span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">         147 :         continue;</span></span>
-<span id="L251"><span class="lineNum">     251</span>         [<span class="tlaGBC" title="branch 0 was taken 253 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2529 times"> + </span>]:<span class="tlaGNC">         253 :       case '[':</span></span>
+<span id="L251"><span class="lineNum">     251</span>         [<span class="tlaGBC" title="branch 0 was taken 253 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2534 times"> + </span>]:<span class="tlaGNC">         253 :       case '[':</span></span>
 <span id="L252"><span class="lineNum">     252</span> [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 240 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 205 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 35 times"> + </span>]:<span class="tlaGNC">         253 :         if (!options.allow_ranges || !glob_pattern.starts_with(&quot;/]&quot;)) {</span></span>
 <span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">         218 :           result += chr;  // replace '[/]' with '/'.</span></span>
 <span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">         218 :           continue;</span></span>
@@ -355,17 +355,17 @@
 <span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          35 :         glob_pattern.remove_prefix(2);</span></span>
 <span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          35 :         chr = '/';</span></span>
 <span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">          35 :         [[fallthrough]];</span></span>
-<span id="L259"><span class="lineNum">     259</span>         [<span class="tlaGBC" title="branch 0 was taken 286 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2496 times"> + </span>]:<span class="tlaGNC">         321 :       case '/':</span></span>
+<span id="L259"><span class="lineNum">     259</span>         [<span class="tlaGBC" title="branch 0 was taken 286 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2501 times"> + </span>]:<span class="tlaGNC">         321 :       case '/':</span></span>
 <span id="L260"><span class="lineNum">     260</span>         [<span class="tlaGBC" title="branch 0 was taken 278 times"> + </span><span class="tlaGBC" title="branch 1 was taken 43 times"> + </span>]:<span class="tlaGNC">         321 :         if (AllowAppendSlash(result, past_last_escape)) {</span></span>
 <span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">         278 :           result += chr;</span></span>
 <span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">         278 :         }</span></span>
 <span id="L263"><span class="lineNum">     263</span>                 :<span class="tlaGNC">         321 :         continue;</span></span>
-<span id="L264"><span class="lineNum">     264</span>         [<span class="tlaGBC" title="branch 0 was taken 2096 times"> + </span><span class="tlaGBC" title="branch 1 was taken 686 times"> + </span>]:<span class="tlaGNC">        2096 :       default: {</span></span>
-<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">        2096 :         result += chr;</span></span>
-<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">        2096 :         continue;</span></span>
+<span id="L264"><span class="lineNum">     264</span>         [<span class="tlaGBC" title="branch 0 was taken 2101 times"> + </span><span class="tlaGBC" title="branch 1 was taken 686 times"> + </span>]:<span class="tlaGNC">        2101 :       default: {</span></span>
+<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">        2101 :         result += chr;</span></span>
+<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">        2101 :         continue;</span></span>
 <span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">          35 :       }</span></span>
-<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">        2782 :     }</span></span>
-<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">        2782 :   }</span></span>
+<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">        2787 :     }</span></span>
+<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">        2787 :   }</span></span>
 <span id="L270"><span class="lineNum">     270</span> [<span class="tlaGBC" title="branch 0 was taken 254 times"> + </span><span class="tlaGBC" title="branch 1 was taken 28 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 5 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 249 times"> + </span>]:<span class="tlaGNC">         282 :   if (result.size() &gt; 1 &amp;&amp; result.ends_with('/')) {</span></span>
 <span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">           5 :     result.pop_back();</span></span>
 <span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">           5 :   }</span></span>
@@ -384,19 +384,19 @@
 <span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">          69 :   GlobData result{</span></span>
 <span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">          69 :       .pattern = pattern,</span></span>
 <span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">          69 :   };</span></span>
-<span id="L288"><span class="lineNum">     288</span>         [<span class="tlaGBC" title="branch 0 was taken 1104 times"> + </span><span class="tlaGBC" title="branch 1 was taken 68 times"> + </span>]:<span class="tlaGNC">        1172 :   while (!glob_pattern.empty()) {</span></span>
-<span id="L289"><span class="lineNum">     289</span>                 :<span class="tlaGNC">        1104 :     chr = glob_pattern.front();</span></span>
-<span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">        1104 :     switch (chr) {</span></span>
-<span id="L291"><span class="lineNum">     291</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1103 times"> + </span>]:<span class="tlaGNC">           1 :       case '\\': {</span></span>
+<span id="L288"><span class="lineNum">     288</span>         [<span class="tlaGBC" title="branch 0 was taken 1109 times"> + </span><span class="tlaGBC" title="branch 1 was taken 68 times"> + </span>]:<span class="tlaGNC">        1177 :   while (!glob_pattern.empty()) {</span></span>
+<span id="L289"><span class="lineNum">     289</span>                 :<span class="tlaGNC">        1109 :     chr = glob_pattern.front();</span></span>
+<span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">        1109 :     switch (chr) {</span></span>
+<span id="L291"><span class="lineNum">     291</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1108 times"> + </span>]:<span class="tlaGNC">           1 :       case '\\': {</span></span>
 <span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaGNC">           1 :         glob_pattern.remove_prefix(2);</span></span>
 <span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaGNC">           1 :         continue;</span></span>
 <span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaUNC">           0 :       }</span></span>
-<span id="L295"><span class="lineNum">     295</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1078 times"> + </span>]:<span class="tlaGNC">          26 :       case '*':</span></span>
-<span id="L296"><span class="lineNum">     296</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1100 times"> + </span>]:<span class="tlaGNC">          30 :       case '?':</span></span>
+<span id="L295"><span class="lineNum">     295</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1083 times"> + </span>]:<span class="tlaGNC">          26 :       case '*':</span></span>
+<span id="L296"><span class="lineNum">     296</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1105 times"> + </span>]:<span class="tlaGNC">          30 :       case '?':</span></span>
 <span id="L297"><span class="lineNum">     297</span>                 :<span class="tlaGNC">          30 :         glob_pattern.remove_prefix(1);</span></span>
 <span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">          30 :         found_pattern = true;</span></span>
 <span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaGNC">          30 :         continue;</span></span>
-<span id="L300"><span class="lineNum">     300</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1078 times"> + </span>]:<span class="tlaGNC">          26 :       case '[': {</span></span>
+<span id="L300"><span class="lineNum">     300</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1083 times"> + </span>]:<span class="tlaGNC">          26 :       case '[': {</span></span>
 <span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">          26 :         found_pattern = true;</span></span>
 <span id="L302"><span class="lineNum">     302</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 25 times"> + </span>]:<span class="tlaGNC">          26 :         if (!options.allow_ranges) {</span></span>
 <span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">           1 :           glob_pattern.remove_prefix(1);</span></span>
@@ -406,7 +406,7 @@
 <span id="L307"><span class="lineNum">     307</span> [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 25 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 25 times"> + </span>]:<span class="tlaGNC">          25 :         MBO_RETURN_IF_ERROR(GlobFindRange(glob_pattern, tmp_re2));</span></span>
 <span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">          24 :         continue;</span></span>
 <span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">          25 :       }</span></span>
-<span id="L310"><span class="lineNum">     310</span>         [<span class="tlaGBC" title="branch 0 was taken 190 times"> + </span><span class="tlaGBC" title="branch 1 was taken 914 times"> + </span>]:<span class="tlaGNC">         190 :       case '/':</span></span>
+<span id="L310"><span class="lineNum">     310</span>         [<span class="tlaGBC" title="branch 0 was taken 190 times"> + </span><span class="tlaGBC" title="branch 1 was taken 919 times"> + </span>]:<span class="tlaGNC">         190 :       case '/':</span></span>
 <span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">         190 :         slash_0 = slash_1;</span></span>
 <span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">         190 :         slash_1 = result.pattern.size() - glob_pattern.size();</span></span>
 <span id="L313"><span class="lineNum">     313</span>         [<span class="tlaGBC" title="branch 0 was taken 163 times"> + </span><span class="tlaGBC" title="branch 1 was taken 27 times"> + </span>]:<span class="tlaGNC">         190 :         if (!found_pattern) {</span></span>
@@ -414,9 +414,9 @@
 <span id="L315"><span class="lineNum">     315</span>                 :<span class="tlaGNC">         163 :         }</span></span>
 <span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">         190 :         glob_pattern.remove_prefix(1);</span></span>
 <span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">         190 :         continue;</span></span>
-<span id="L318"><span class="lineNum">     318</span>         [<span class="tlaGBC" title="branch 0 was taken 857 times"> + </span><span class="tlaGBC" title="branch 1 was taken 247 times"> + </span>]:<span class="tlaGNC">         857 :       default: glob_pattern.remove_prefix(1); continue;</span></span>
-<span id="L319"><span class="lineNum">     319</span>                 :<span class="tlaGNC">        1104 :     }</span></span>
-<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">        1104 :   }</span></span>
+<span id="L318"><span class="lineNum">     318</span>         [<span class="tlaGBC" title="branch 0 was taken 862 times"> + </span><span class="tlaGBC" title="branch 1 was taken 247 times"> + </span>]:<span class="tlaGNC">         862 :       default: glob_pattern.remove_prefix(1); continue;</span></span>
+<span id="L319"><span class="lineNum">     319</span>                 :<span class="tlaGNC">        1109 :     }</span></span>
+<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">        1109 :   }</span></span>
 <span id="L321"><span class="lineNum">     321</span>         [<span class="tlaGBC" title="branch 0 was taken 25 times"> + </span><span class="tlaGBC" title="branch 1 was taken 43 times"> + </span>]:<span class="tlaGNC">          68 :   if (!found_pattern) {</span></span>
 <span id="L322"><span class="lineNum">     322</span>                 :<span class="tlaGNC">          25 :     result.root_len = result.pattern.size();</span></span>
 <span id="L323"><span class="lineNum">     323</span>                 :<span class="tlaGNC">          25 :   }</span></span>

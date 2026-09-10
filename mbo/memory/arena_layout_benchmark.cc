@@ -248,7 +248,71 @@ class ListedNewDeleteSource final {
   std::size_t next_size_index_ = 0;
 };
 
+template<std::size_t MaximumCachedBlock, std::size_t CacheBudget>
+class CachingNewDeleteSource final {
+ public:
+  static constexpr bool supports_recoverable_failure = true;
+
+  CachingNewDeleteSource() { cached_.reserve(64); }
+
+  CachingNewDeleteSource(const CachingNewDeleteSource&) = delete;
+  CachingNewDeleteSource& operator=(const CachingNewDeleteSource&) = delete;
+  CachingNewDeleteSource(CachingNewDeleteSource&&) = delete;
+  CachingNewDeleteSource& operator=(CachingNewDeleteSource&&) = delete;
+
+  ~CachingNewDeleteSource() {
+    for (const auto block : cached_) {
+      NewDeleteBlockSource::Release(block);
+    }
+  }
+
+  static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    std::optional<std::size_t> best;
+    for (std::size_t index = 0; index < cached_.size(); ++index) {
+      const auto& block = cached_.at(index);
+      if (block.size >= size && block.alignment >= alignment
+          && (!best.has_value() || block.size < cached_.at(*best).size)) {
+        best = index;
+      }
+    }
+    if (!best.has_value()) {
+      return NewDeleteBlockSource::TryAcquire(size, alignment);
+    }
+    const auto result = cached_.at(*best);
+    cached_bytes_ -= result.size;
+    cached_.at(*best) = cached_.back();
+    cached_.pop_back();
+    return result;
+  }
+
+  void Release(MemoryBlock block) noexcept {
+    if (block.size <= MaximumCachedBlock && block.size <= CacheBudget - std::min(cached_bytes_, CacheBudget)) {
+      cached_.push_back(block);
+      cached_bytes_ += block.size;
+    } else {
+      NewDeleteBlockSource::Release(block);
+    }
+  }
+
+  std::size_t cached_reserved_bytes() const noexcept {
+    return cached_bytes_ + (cached_.capacity() * sizeof(MemoryBlock));
+  }
+
+  std::size_t cached_blocks() const noexcept { return cached_.size(); }
+
+ private:
+  std::vector<MemoryBlock> cached_;
+  std::size_t cached_bytes_ = 0;
+};
+
 // NOLINTEND(readability-identifier-naming)
+
+using SmallBlockCacheSource = CachingNewDeleteSource<std::size_t{256} * 1'024, std::size_t{2} * 1'024 * 1'024>;
+using FullBlockCacheSource = CachingNewDeleteSource<std::size_t{1'024} * 1'024, std::size_t{8} * 1'024 * 1'024>;
+
+enum class RetentionMode : std::uint8_t { kReset, kRelease };
 
 template<ArenaOptions Options>
 void AllocateWorkload(Arena<NewDeleteBlockSource, Options>& arena) {
@@ -265,6 +329,58 @@ void SetMemoryCounters(benchmark::State& state, const Arena<NewDeleteBlockSource
   state.counters["reserved"] = static_cast<double>(arena.bytes_reserved());
   state.counters["used"] = static_cast<double>(arena.bytes_used());
   state.counters["waste"] = static_cast<double>(arena.bytes_reserved() - arena.bytes_used());
+}
+
+template<typename Source>
+std::size_t SourceCachedBytes(const Arena<Source, kGrowthTwo>& arena) {
+  if constexpr (requires { arena.source().cached_reserved_bytes(); }) {
+    return arena.source().cached_reserved_bytes();
+  } else {
+    return 0;
+  }
+}
+
+template<typename Source>
+std::size_t SourceCachedBlocks(const Arena<Source, kGrowthTwo>& arena) {
+  if constexpr (requires { arena.source().cached_blocks(); }) {
+    return arena.source().cached_blocks();
+  } else {
+    return 0;
+  }
+}
+
+template<RetentionMode Mode, typename Source>
+void EndRetentionCycle(Arena<Source, kGrowthTwo>& arena) {
+  if constexpr (Mode == RetentionMode::kReset) {
+    arena.Reset();
+  } else {
+    arena.Release();
+  }
+}
+
+template<RetentionMode Mode, typename Source>
+void BmRetentionAfterBurst(benchmark::State& state) {
+  constexpr std::size_t kSteadyAllocationCount = 4'096;
+  Arena<Source, kGrowthTwo> arena;
+  for (std::size_t index = 0; index < kAllocationCount; ++index) {
+    const auto ordinary_size = kStringLikeSizes.at(index % kStringLikeSizes.size());
+    const auto size = index % 257 == 256 ? std::size_t{64} * 1'024 : ordinary_size;
+    benchmark::DoNotOptimize(arena.Allocate(size, 1));
+  }
+  EndRetentionCycle<Mode>(arena);
+  std::size_t peak_reserved = 0;
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  for (auto _ : state) {
+    for (std::size_t index = 0; index < kSteadyAllocationCount; ++index) {
+      benchmark::DoNotOptimize(arena.Allocate(kStringLikeSizes.at(index % kStringLikeSizes.size()), 1));
+    }
+    peak_reserved = arena.bytes_reserved() + SourceCachedBytes(arena);
+    EndRetentionCycle<Mode>(arena);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kSteadyAllocationCount));
+  state.counters["peak_reserved"] = static_cast<double>(peak_reserved);
+  state.counters["retained"] = static_cast<double>(arena.bytes_reserved() + SourceCachedBytes(arena));
+  state.counters["retained_blocks"] = static_cast<double>(arena.block_count() + SourceCachedBlocks(arena));
 }
 
 template<ArenaOptions Options>
@@ -390,11 +506,24 @@ void RegisterRecordBenchmarks() {
   benchmark::RegisterBenchmark("Records/LookupPermuted/ContiguousInlineFixed", BmRecordLookup<InlineRecords, true>);
 }
 
+void RegisterRetentionBenchmarks() {
+  benchmark::RegisterBenchmark(
+      "Retention/AfterBurst/RetainAll", BmRetentionAfterBurst<RetentionMode::kReset, NewDeleteBlockSource>);
+  benchmark::RegisterBenchmark(
+      "Retention/AfterBurst/ReleaseAll", BmRetentionAfterBurst<RetentionMode::kRelease, NewDeleteBlockSource>);
+  benchmark::RegisterBenchmark(
+      "Retention/AfterBurst/CacheSmallBlocks", BmRetentionAfterBurst<RetentionMode::kRelease, SmallBlockCacheSource>);
+  benchmark::RegisterBenchmark(
+      "Retention/AfterBurst/CacheAllWithinBudget",
+      BmRetentionAfterBurst<RetentionMode::kRelease, FullBlockCacheSource>);
+}
+
 [[maybe_unused]] const bool kRegistered = [] {
   RegisterGrowthBenchmarks();
   benchmark::RegisterBenchmark("Growth/Retained/Listed", BmListedRetained);
   benchmark::RegisterBenchmark("Growth/Fresh/Listed", BmListedFresh);
   RegisterRecordBenchmarks();
+  RegisterRetentionBenchmarks();
   return true;
 }();
 

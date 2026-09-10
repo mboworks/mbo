@@ -127,10 +127,10 @@ is never removed merely because it complicates the conclusion.
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                    | Status  |
-| ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------- | ------- |
-| Apple M5 Pro | Clang 22 | `c913ba9ae`        | `797b31c24`  | [`arena-layouts.json`](data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-layouts.json) | valid   |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                     | pending |
+| Machine      | Compiler | Implementation SHA       | Baseline SHA | Artifact                                                                                                                                                               | Status  |
+| ------------ | -------- | ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Apple M5 Pro | Clang 22 | `c913ba9ae`, `673d95295` | `797b31c24`  | [`layouts`](data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-layouts.json), [`retention`](data/macos-arm64-apple-m5-pro_clang-22_673d95295_arena-retention.json) | valid   |
+| AMD Zen 5    | Clang 22 | pending                  | pending      | pending                                                                                                                                                                | pending |
 
 This table is updated only from validated JSON. The JSON remains the source of truth.
 
@@ -191,3 +191,24 @@ isolated pointer and segmented-offset insertion under the same full protocol. It
 were 159,287 ns and 161,820 ns, with CVs of 6.68% and 10.56%. That confirms insertion is too close
 and variable to select the representation; lookup and memory are the present discriminators. No
 final record-layout decision is made before Zen 5 measurement and integration with the actual index.
+
+### Post-burst retention
+
+The retention artifact records a clean `673d95295` tree and the same toolchain and controls as the
+layout artifact. It contains four families with nine raw repetitions each and ran for 72.77 seconds.
+The recorded load averages were 3.54/4.52/4.61. Cache-family CV remains below 0.35%; release-all is
+explicitly retained despite its higher 5.73% CV.
+
+| Strategy                | Fast 3 | Median |    Mean | Stddev |    CV | Peak bytes | Retained bytes | Blocks |
+| ----------------------- | -----: | -----: | ------: | -----: | ----: | ---------: | -------------: | -----: |
+| Retain complete chain   |  10210 |  10262 | 10263.6 |   62.9 | 0.61% |    6418558 |        6418558 |     15 |
+| Release all             |  10655 |  11275 | 11341.0 |  649.7 | 5.73% |     520192 |              0 |      0 |
+| Cache small blocks      |   7686 |   7696 |  7706.5 |   26.5 | 0.34% |     652926 |         652926 |      9 |
+| Cache all within budget |   7722 |   7746 |  7744.8 |   18.7 | 0.24% |    6420094 |        6420094 |     15 |
+
+The bounded small-block cache improves fastest-three time by 24.7% relative to retaining the full
+burst-shaped chain and by 27.9% relative to releasing everything. It is within 0.5% of caching the
+full chain while retaining only 10.2% as many bytes. This supports reusable blocks living in an
+intelligently bounded source rather than unconditional Arena retention. The exact 2 MiB/256 KiB
+limits are not selected defaults: this workload naturally retained only 652,926 bytes, and Zen 5
+plus additional burst shapes must establish useful thresholds.

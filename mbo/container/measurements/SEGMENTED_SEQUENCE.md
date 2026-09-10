@@ -226,6 +226,7 @@ option only when users can identify the relevant workload or machine characteris
 | Apple M5 Pro | Clang 22 | `78856f238`        | `b7fb4c534`  | [`hybrid pointer pages`](data/macos-arm64-apple-m5-pro_clang-22_78856f238_segmented-sequence-hybrid-pages.json)      | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `58935e2a6`        | `78856f238`  | [`element shapes`](data/macos-arm64-apple-m5-pro_clang-22_58935e2a6_segmented-sequence-element-shapes.json)          | valid; scheduler outliers documented   |
 | Apple M5 Pro | Clang 22 | `79ff8dade`        | `78856f238`  | [`lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_79ff8dade_segmented-sequence-lifecycle.json)          | valid; Zen 5 counterpart required      |
+| Apple M5 Pro | Clang 22 | `8b1b93f5f`        | `79ff8dade`  | [`bounded lifecycle retention`](data/macos-arm64-apple-m5-pro_clang-22_8b1b93f5f_segmented-sequence-lifecycle.json)  | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `ce7101a53`        | `ec2b1868d`  | [`retained pool`](data/macos-arm64-apple-m5-pro_clang-22_ce7101a53_segmented-sequence-pool.json)                     | valid; Zen 5 counterpart required      |
 | Apple M5 Pro | Clang 22 | `9bd18a26c`        | `562945258`  | [`retention budgets`](data/macos-arm64-apple-m5-pro_clang-22_9bd18a26c_segmented-sequence-retention.json)            | valid; Zen 5 counterpart required      |
 | AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                              | pending                                |
@@ -271,6 +272,40 @@ bytes even when empty. Eager trimming proves the opposite endpoint and releases 
 tail block transactionally. Neither endpoint is a justified universal default. The next proof must
 measure bounded count/byte pools and exact, close-fit, and largest-fit reuse so memory can be
 recovered without paying repeated source allocation on common rollback/regrowth cycles.
+
+## Apple M5 Pro bounded lifecycle retention proof
+
+The bounded lifecycle artifact records clean integrated head `8b1b93f5f` against the previous
+lifecycle evidence commit `79ff8dade`, Clang 22.1.8, C++20, Bazel 9.2.0, 30 families with nine
+randomly interleaved repetitions, a one-second warmup and minimum time, and a 629.23-second run.
+The ending load averages were 2.26/2.64/3.34. Every row below is the arithmetic mean of the fastest
+three CPU-time samples in nanoseconds for one complete pop/regrow cycle.
+
+| Schedule   | Depth | Retained |   Eager | Small bound |  32 KiB | 128 KiB |
+| ---------- | ----: | -------: | ------: | ----------: | ------: | ------: |
+| Uniform 64 |    64 |    256.9 |   313.3 |       260.2 |   259.5 |   259.4 |
+| Uniform 64 |  4096 |  16793.1 | 21019.2 |     20709.1 | 17211.8 | 17242.6 |
+| Uniform 64 | 16384 |  67529.0 | 84960.3 |     84942.0 | 81354.4 | 69268.5 |
+
+For uniform 64-element segments, the small bound retains at most eight segments. It is within 0.1%
+of eager release after a complete rollback and only 1.5% faster after rolling back 4,096 elements:
+avoiding eight acquisitions does not repay the retained-tail bookkeeping. A 32 KiB byte limit is
+18.1% faster than eager release at depth 4,096 because it retains that complete suffix, but only
+4.2% faster after a complete rollback. A 128 KiB budget approaches unbounded retention after a
+complete rollback, remaining 2.6% slower while retaining the entire 128 KiB payload.
+
+The listed schedule needs at most seven segments. At depth 4,096, unbounded retention is 1.8%
+faster than eager release; retaining one 32 KiB segment is 0.5% faster than eager and remains within
+the observed small-difference range. After a complete rollback, unbounded retention is only 1.8%
+faster than eager release. Its larger segments make source-operation savings much less significant
+than the uniform-64 case.
+
+This integrated result confirms the earlier pool experiment: small partial retention is not a
+generally useful default. Byte limits become valuable when they retain most or all of a recurring
+rollback suffix, but the useful value is workload-dependent. Unbounded retention remains the M5
+latency leader and eager release remains the memory-minimal endpoint. No nonzero bounded default is
+selected before the Zen 5 counterpart establishes whether these directions survive another
+allocator and architecture.
 
 ## Apple M5 Pro retained-pool lookup proof
 

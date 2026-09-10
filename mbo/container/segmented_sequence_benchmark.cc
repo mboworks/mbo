@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <string>
 #include <vector>
 
 #include "mbo/container/segmented_sequence.h"
@@ -169,4 +170,25 @@ BENCHMARK(BmDequeAppendFresh)->Name("Deque/AppendFresh");
 }  // namespace
 }  // namespace mbo::container
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  benchmark::MaybeReenterWithoutASLR(argc, argv);
+  benchmark::Initialize(&argc, argv);
+#if defined(__clang__)
+  benchmark::AddCustomContext("compiler", std::string("clang-") + std::to_string(__clang_major__));
+  benchmark::AddCustomContext("compiler_version", __clang_version__);
+#elif defined(__GNUC__)
+  benchmark::AddCustomContext("compiler", std::string("gcc-") + std::to_string(__GNUC__));
+  benchmark::AddCustomContext("compiler_version", __VERSION__);
+#endif
+#if __cplusplus >= 202'302L
+  benchmark::AddCustomContext("cxx_standard", "c++23");
+#else
+  benchmark::AddCustomContext("cxx_standard", "c++20");
+#endif
+  if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
+    return 1;
+  }
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
+  return 0;
+}

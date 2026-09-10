@@ -134,6 +134,20 @@ cc_binary(
 )
 
 cc_binary(
+    name = "segmented_sequence_retention_benchmark",
+    testonly = 1,
+    srcs = ["segmented_sequence_retention_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        "//mbo/memory:block_source_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
     name = "segmented_sequence_element_shape_benchmark",
     testonly = 1,
     srcs = ["segmented_sequence_element_shape_benchmark.cc"],

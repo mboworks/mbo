@@ -115,6 +115,27 @@ This proof selects a bounded lookup structure, not public option defaults. Follo
 must separately measure byte/count eviction budgets, overflow release, real `BlockSource`
 acquisition avoidance, and complete `SegmentedSequence` rollback/regrowth behavior.
 
+## Integrated retention-budget benchmark
+
+`//mbo/container:segmented_sequence_retention_benchmark` measures 128-block rollback/regrowth
+cycles through `NewDeleteBlockSource` and the selected eight-class LIFO directory. Its counting
+adapter reports source acquisitions, releases, and bytes per cycle. Pool insertions receive a
+monotonic age; overflow evicts the globally oldest retained block, while reuse takes the newest
+block in the selected class.
+
+Six retention limits compare eager release, count limits of 8 and 32, byte limits of 32 KiB and
+128 KiB, and unbounded retention. The exact trace repeatedly requests the original eight capacity
+classes. The changed trace alternates that trace with intermediate requests, exercising close-fit
+and largest-fit reuse. Each timed iteration rolls back every active block, applies eviction, and
+fully regrows the sequence. All directory vectors and the active-block directory reserve their
+maximum metadata before timing; only element-block source operations allocate during the measured
+cycle.
+
+This benchmark determines whether avoided source operations repay pool and eviction overhead. It
+does not measure element destruction or construction, which the lifecycle proof covers separately.
+The final production candidate must combine both paths and preserve pointer stability, transaction
+guarantees, and constant-time indexed access.
+
 ## Reference commands
 
 Warm dependencies and build outputs before timing. Then run from a clean checkout of the exact

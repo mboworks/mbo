@@ -33,12 +33,13 @@ before the layout proof is considered complete.
 
 The same proof target compares candidate string-record representations independently from hashing:
 
-| Candidate               | Descriptor                      | Address stability                                   | Intended use                  |
-| ----------------------- | ------------------------------- | --------------------------------------------------- | ----------------------------- |
-| Pointer                 | pointer plus 32-bit size        | Stable through growing Arena                        | General growing interner      |
-| Contiguous offset fixed | 32-bit offset plus 32-bit size  | Stable only with fixed/pre-reserved content storage | Fixed-capacity specialization |
-| Segmented offset        | segment, offset, and size       | Stable while segments remain allocated              | General growing interner      |
-| Contiguous inline fixed | offset plus inline size/content | Stable only with fixed/pre-reserved content storage | Fixed-capacity specialization |
+| Candidate               | Descriptor                       | Address stability                                   | Intended use                  |
+| ----------------------- | -------------------------------- | --------------------------------------------------- | ----------------------------- |
+| Pointer                 | pointer plus 32-bit size         | Stable through growing Arena                        | General growing interner      |
+| Pointer SoA             | separate pointer and size arrays | Stable through growing Arena                        | General growing interner      |
+| Contiguous offset fixed | 32-bit offset plus 32-bit size   | Stable only with fixed/pre-reserved content storage | Fixed-capacity specialization |
+| Segmented offset        | segment, offset, and size        | Stable while segments remain allocated              | General growing interner      |
+| Contiguous inline fixed | offset plus inline size/content  | Stable only with fixed/pre-reserved content storage | Fixed-capacity specialization |
 
 Insertion and sequential/permuted dense-ID lookup are measured separately. Fixed-capacity
 candidates are named as such in every benchmark row: pre-reserving exact corpus space must never be

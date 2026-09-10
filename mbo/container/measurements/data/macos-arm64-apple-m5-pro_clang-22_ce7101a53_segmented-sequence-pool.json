@@ -2077,11 +2077,7 @@
       "json_schema_version": 1,
       "library_build_type": "release",
       "library_version": "1.9.5",
-      "load_avg": [
-        2.11621,
-        6.74072,
-        11.1685
-      ],
+      "load_avg": [2.11621, 6.74072, 11.1685],
       "mhz_per_cpu": 24,
       "num_cpus": 18
     }
@@ -2090,11 +2086,7 @@
     "architecture": "arm64",
     "cpu_model": "Apple M5 Pro",
     "hostname": "Mac",
-    "load_average": [
-      1.62939453125,
-      4.8876953125,
-      9.77099609375
-    ],
+    "load_average": [1.62939453125, 4.8876953125, 9.77099609375],
     "logical_cpu_count": 18,
     "memory_bytes": 68719476736,
     "os": "Darwin",
@@ -2118,10 +2110,7 @@
     "time_source": "google-benchmark steady clock"
   },
   "toolchain": {
-    "bazel_configurations": [
-      "clang",
-      "opt_apple_m5"
-    ],
+    "bazel_configurations": ["clang", "opt_apple_m5"],
     "bazel_version": "bazel 9.2.0",
     "build_flags": "bazel --batch --output_user_root=/private/tmp/mbo2-bazel run //mbo/container:segmented_sequence_pool_benchmark --config=clang --config=opt_apple_m5 -c opt -- --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-ryi_2w9h/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=1s --benchmark_min_warmup_time=1.0 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
     "compiler": "clang-22",

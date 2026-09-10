@@ -531,7 +531,7 @@
       },
       {
         "acquired_bytes_per_cycle": 0.0,
-        "acquires_per_cycle": 2.86102294921875e-06,
+        "acquires_per_cycle": 2.86102294921875e-6,
         "aggregate_name": "stddev",
         "aggregate_unit": "time",
         "cpu_time": 233.47420126605982,
@@ -544,7 +544,7 @@
         "per_family_instance_index": 0,
         "real_time": 233.38111251946697,
         "released_bytes_per_cycle": 0.014352478961620185,
-        "releases_per_cycle": 2.86102294921875e-06,
+        "releases_per_cycle": 2.86102294921875e-6,
         "repetitions": 9,
         "run_name": "Retention/Changed/Bytes32K/3",
         "run_type": "aggregate",
@@ -553,7 +553,7 @@
       },
       {
         "acquired_bytes_per_cycle": 0.0,
-        "acquires_per_cycle": 2.4245954158932722e-08,
+        "acquires_per_cycle": 2.4245954158932722e-8,
         "aggregate_name": "cv",
         "aggregate_unit": "percentage",
         "cpu_time": 0.03360567777840909,
@@ -565,8 +565,8 @@
         "name": "Retention/Changed/Bytes32K/3_cv",
         "per_family_instance_index": 0,
         "real_time": 0.03359038080013309,
-        "released_bytes_per_cycle": 2.182764874985254e-08,
-        "releases_per_cycle": 2.4245954158932722e-08,
+        "released_bytes_per_cycle": 2.182764874985254e-8,
+        "releases_per_cycle": 2.4245954158932722e-8,
         "repetitions": 9,
         "run_name": "Retention/Changed/Bytes32K/3",
         "run_type": "aggregate",
@@ -808,7 +808,7 @@
       },
       {
         "acquired_bytes_per_cycle": 0.0,
-        "acquires_per_cycle": 2.86102294921875e-06,
+        "acquires_per_cycle": 2.86102294921875e-6,
         "aggregate_name": "stddev",
         "aggregate_unit": "time",
         "cpu_time": 75.76473379880854,
@@ -821,7 +821,7 @@
         "per_family_instance_index": 0,
         "real_time": 76.16422361940937,
         "released_bytes_per_cycle": 0.0,
-        "releases_per_cycle": 2.86102294921875e-06,
+        "releases_per_cycle": 2.86102294921875e-6,
         "repetitions": 9,
         "run_name": "Retention/Changed/Bytes128K/4",
         "run_type": "aggregate",
@@ -830,7 +830,7 @@
       },
       {
         "acquired_bytes_per_cycle": 0.0,
-        "acquires_per_cycle": 2.764273195012191e-08,
+        "acquires_per_cycle": 2.764273195012191e-8,
         "aggregate_name": "cv",
         "aggregate_unit": "percentage",
         "cpu_time": 0.011562453228451536,
@@ -843,7 +843,7 @@
         "per_family_instance_index": 0,
         "real_time": 0.011621881360865657,
         "released_bytes_per_cycle": 0.0,
-        "releases_per_cycle": 2.764273195012191e-08,
+        "releases_per_cycle": 2.764273195012191e-8,
         "repetitions": 9,
         "run_name": "Retention/Changed/Bytes128K/4",
         "run_type": "aggregate",
@@ -2491,7 +2491,7 @@
         "time_unit": "ns"
       },
       {
-        "acquired_bytes_per_cycle": 1.1524754230192104e-08,
+        "acquired_bytes_per_cycle": 1.1524754230192104e-8,
         "acquires_per_cycle": 0.0,
         "aggregate_name": "cv",
         "aggregate_unit": "percentage",
@@ -2504,7 +2504,7 @@
         "name": "Retention/Changed/Count32/2_cv",
         "per_family_instance_index": 0,
         "real_time": 0.0113743549909451,
-        "released_bytes_per_cycle": 1.1524754230192104e-08,
+        "released_bytes_per_cycle": 1.1524754230192104e-8,
         "releases_per_cycle": 0.0,
         "repetitions": 9,
         "run_name": "Retention/Changed/Count32/2",
@@ -3376,11 +3376,7 @@
       "json_schema_version": 1,
       "library_build_type": "release",
       "library_version": "1.9.5",
-      "load_avg": [
-        2.20117,
-        2.09033,
-        5.74561
-      ],
+      "load_avg": [2.20117, 2.09033, 5.74561],
       "mhz_per_cpu": 24,
       "num_cpus": 18
     }
@@ -3389,11 +3385,7 @@
     "architecture": "arm64",
     "cpu_model": "Apple M5 Pro",
     "hostname": "Mac",
-    "load_average": [
-      1.4765625,
-      1.81103515625,
-      4.8916015625
-    ],
+    "load_average": [1.4765625, 1.81103515625, 4.8916015625],
     "logical_cpu_count": 18,
     "memory_bytes": 68719476736,
     "os": "Darwin",
@@ -3417,10 +3409,7 @@
     "time_source": "google-benchmark steady clock"
   },
   "toolchain": {
-    "bazel_configurations": [
-      "clang",
-      "opt_apple_m5"
-    ],
+    "bazel_configurations": ["clang", "opt_apple_m5"],
     "bazel_version": "bazel 9.2.0",
     "build_flags": "bazel --batch --output_user_root=/private/tmp/mbo2-bazel run //mbo/container:segmented_sequence_retention_benchmark --config=clang --config=opt_apple_m5 -c opt -- --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-t9ksvtzj/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=1s --benchmark_min_warmup_time=1.0 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
     "compiler": "clang-22",

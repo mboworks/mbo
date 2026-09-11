@@ -20,42 +20,42 @@ class HamtNodeIndex final {
  public:
   static constexpr std::size_t kSlotCount = HamtBitmap<FragmentBits>::kSlotCount;
 
-  constexpr HamtSlotKind kind(std::size_t slot) const noexcept {
-    if (data_.contains(slot)) {
+  constexpr HamtSlotKind Kind(std::size_t slot) const noexcept {
+    if (data_.Contains(slot)) {
       return HamtSlotKind::kData;
     }
-    return nodes_.contains(slot) ? HamtSlotKind::kNode : HamtSlotKind::kEmpty;
+    return nodes_.Contains(slot) ? HamtSlotKind::kNode : HamtSlotKind::kEmpty;
   }
 
-  constexpr std::size_t data_index(std::size_t slot) const noexcept { return data_.rank(slot); }
+  constexpr std::size_t DataIndex(std::size_t slot) const noexcept { return data_.Rank(slot); }
 
-  constexpr std::size_t node_index(std::size_t slot) const noexcept { return nodes_.rank(slot); }
+  constexpr std::size_t NodeIndex(std::size_t slot) const noexcept { return nodes_.Rank(slot); }
 
-  constexpr std::size_t data_size() const noexcept { return data_.size(); }
+  constexpr std::size_t DataSize() const noexcept { return data_.Size(); }
 
-  constexpr std::size_t node_size() const noexcept { return nodes_.size(); }
+  constexpr std::size_t NodeSize() const noexcept { return nodes_.Size(); }
 
-  constexpr bool insert_data(std::size_t slot) noexcept { return !nodes_.contains(slot) && data_.set(slot); }
+  constexpr bool InsertData(std::size_t slot) noexcept { return !nodes_.Contains(slot) && data_.Set(slot); }
 
-  constexpr bool insert_node(std::size_t slot) noexcept { return !data_.contains(slot) && nodes_.set(slot); }
+  constexpr bool InsertNode(std::size_t slot) noexcept { return !data_.Contains(slot) && nodes_.Set(slot); }
 
-  constexpr bool erase_data(std::size_t slot) noexcept { return data_.reset(slot); }
+  constexpr bool EraseData(std::size_t slot) noexcept { return data_.Reset(slot); }
 
-  constexpr bool erase_node(std::size_t slot) noexcept { return nodes_.reset(slot); }
+  constexpr bool EraseNode(std::size_t slot) noexcept { return nodes_.Reset(slot); }
 
-  constexpr bool promote_data_to_node(std::size_t slot) noexcept {
-    if (!data_.reset(slot)) {
+  constexpr bool PromoteDataToNode(std::size_t slot) noexcept {
+    if (!data_.Reset(slot)) {
       return false;
     }
-    nodes_.set(slot);
+    nodes_.Set(slot);
     return true;
   }
 
-  constexpr bool demote_node_to_data(std::size_t slot) noexcept {
-    if (!nodes_.reset(slot)) {
+  constexpr bool DemoteNodeToData(std::size_t slot) noexcept {
+    if (!nodes_.Reset(slot)) {
       return false;
     }
-    data_.set(slot);
+    data_.Set(slot);
     return true;
   }
 

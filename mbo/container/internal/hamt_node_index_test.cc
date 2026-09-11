@@ -19,26 +19,26 @@ struct HamtNodeIndexTest : ::testing::Test {
     HamtNodeIndex<Bits> index;
     const std::size_t last = index.kSlotCount - 1;
 
-    EXPECT_THAT(index.insert_data(1), Eq(true));
-    EXPECT_THAT(index.insert_data(last), Eq(true));
-    EXPECT_THAT(index.insert_node(2), Eq(true));
-    EXPECT_THAT(index.insert_node(last), Eq(false));
-    EXPECT_THAT(index.insert_data(2), Eq(false));
-    EXPECT_THAT(index.data_index(last), Eq(1));
-    EXPECT_THAT(index.node_index(2), Eq(0));
-    EXPECT_THAT(index.data_size(), Eq(2));
-    EXPECT_THAT(index.node_size(), Eq(1));
+    EXPECT_THAT(index.InsertData(1), Eq(true));
+    EXPECT_THAT(index.InsertData(last), Eq(true));
+    EXPECT_THAT(index.InsertNode(2), Eq(true));
+    EXPECT_THAT(index.InsertNode(last), Eq(false));
+    EXPECT_THAT(index.InsertData(2), Eq(false));
+    EXPECT_THAT(index.DataIndex(last), Eq(1));
+    EXPECT_THAT(index.NodeIndex(2), Eq(0));
+    EXPECT_THAT(index.DataSize(), Eq(2));
+    EXPECT_THAT(index.NodeSize(), Eq(1));
 
-    EXPECT_THAT(index.promote_data_to_node(1), Eq(true));
-    EXPECT_THAT(index.kind(1), Eq(HamtSlotKind::kNode));
-    EXPECT_THAT(index.demote_node_to_data(2), Eq(true));
-    EXPECT_THAT(index.kind(2), Eq(HamtSlotKind::kData));
-    EXPECT_THAT(index.promote_data_to_node(0), Eq(false));
-    EXPECT_THAT(index.demote_node_to_data(0), Eq(false));
-    EXPECT_THAT(index.erase_data(last), Eq(true));
-    EXPECT_THAT(index.erase_data(last), Eq(false));
-    EXPECT_THAT(index.erase_node(1), Eq(true));
-    EXPECT_THAT(index.erase_node(1), Eq(false));
+    EXPECT_THAT(index.PromoteDataToNode(1), Eq(true));
+    EXPECT_THAT(index.Kind(1), Eq(HamtSlotKind::kNode));
+    EXPECT_THAT(index.DemoteNodeToData(2), Eq(true));
+    EXPECT_THAT(index.Kind(2), Eq(HamtSlotKind::kData));
+    EXPECT_THAT(index.PromoteDataToNode(0), Eq(false));
+    EXPECT_THAT(index.DemoteNodeToData(0), Eq(false));
+    EXPECT_THAT(index.EraseData(last), Eq(true));
+    EXPECT_THAT(index.EraseData(last), Eq(false));
+    EXPECT_THAT(index.EraseNode(1), Eq(true));
+    EXPECT_THAT(index.EraseNode(1), Eq(false));
   }
 };
 
@@ -51,8 +51,8 @@ TEST_F(HamtNodeIndexTest, MaintainsDisjointDenseRanksAtEveryCandidateWidth) {
 
 constexpr bool IsConstexprUsable() {
   HamtNodeIndex<5> index;
-  return index.insert_data(3) && index.promote_data_to_node(3) && index.node_index(3) == 0
-         && index.demote_node_to_data(3) && index.data_size() == 1;
+  return index.InsertData(3) && index.PromoteDataToNode(3) && index.NodeIndex(3) == 0 && index.DemoteNodeToData(3)
+         && index.DataSize() == 1;
 }
 
 static_assert(IsConstexprUsable());

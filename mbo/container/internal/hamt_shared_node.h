@@ -178,6 +178,52 @@ class HamtSharedNode final {
   // index describes occupancy after removal. Path copying preserves the
   // original entries and retains all children for the new owner.
   template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryPromoteEntryToChild(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t entry_position,
+      std::size_t child_position,
+      node_type* child) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (child == nullptr || original.is_collision() || original.entries().empty()
+        || index.data_size() + 1 != original.entries().size() || index.node_size() != original.children().size() + 1
+        || entry_position >= original.entries().size() || child_position >= index.node_size()) {
+      return std::nullopt;
+    }
+    const auto layout = Layout::TryMake(index.data_size(), index.node_size());
+    if (!layout) {
+      return std::nullopt;
+    }
+    const auto block = source.TryAcquire(layout->size, layout->alignment);
+    if (!Usable(block, *layout)) {
+      if (block) {
+        source.Release(*block);
+      }
+      return std::nullopt;
+    }
+    auto* const node = std::construct_at(
+        reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        index);
+    const auto entries = original.entries();
+    std::uninitialized_copy_n(entries.begin(), entry_position, node->EntryPtr());
+    std::uninitialized_copy(
+        entries.begin() + static_cast<std::ptrdiff_t>(entry_position + 1), entries.end(),
+        node->EntryPtr() + entry_position);
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), child_position, node->ChildPtr());
+    std::construct_at(node->ChildPtr() + child_position, child);
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(child_position), children.end(),
+        node->ChildPtr() + child_position + 1);
+    for (node_type* retained : node->children()) {
+      Retain(retained);
+    }
+    return node;
+  }
+
+  template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryEraseEntry(
       Source& source,
       const node_type& original,

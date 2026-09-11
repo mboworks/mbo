@@ -20,10 +20,10 @@ struct HamtHashPathTest : ::testing::Test {
     const HamtHashPath<Hash, Bits> path(hash);
     Hash recovered = 0;
     for (std::size_t level = 0; level < path.kLevels; ++level) {
-      recovered |= static_cast<Hash>(path.fragment(level)) << (level * Bits);
+      recovered |= static_cast<Hash>(path.Fragment(level)) << (level * Bits);
     }
     EXPECT_THAT(recovered, Eq(hash));
-    EXPECT_THAT(path.hash(), Eq(hash));
+    EXPECT_THAT(path.HashValue(), Eq(hash));
   }
 };
 
@@ -42,7 +42,7 @@ TEST_F(HamtHashPathTest, TraversesAllCandidateWidthsAndHashSizes) {
 
 static_assert(HamtHashPath<std::uint32_t, 5>::kLevels == 7);
 static_assert(HamtHashPath<std::uint64_t, 7>::kLevels == 10);
-static_assert(HamtHashPath<std::uint32_t, 7>(0xf0000000U).fragment(4) == 15);
+static_assert(HamtHashPath<std::uint32_t, 7>(0xf0000000U).Fragment(4) == 15);
 
 }  // namespace
 }  // namespace mbo::container::container_internal

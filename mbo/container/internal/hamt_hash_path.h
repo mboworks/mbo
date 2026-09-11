@@ -22,11 +22,11 @@ class HamtHashPath final {
 
   // level must be smaller than kLevels. Bits beyond the hash width in the final
   // fragment are always zero.
-  constexpr std::size_t fragment(std::size_t level) const noexcept {
+  constexpr std::size_t Fragment(std::size_t level) const noexcept {
     return static_cast<std::size_t>((hash_ >> (level * FragmentBits)) & kFragmentMask);
   }
 
-  constexpr Hash hash() const noexcept { return hash_; }
+  constexpr Hash HashValue() const noexcept { return hash_; }
 
  private:
   Hash hash_;

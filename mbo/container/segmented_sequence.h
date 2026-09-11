@@ -15,6 +15,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -268,6 +269,28 @@ class SegmentedSequence final {
   constexpr explicit SegmentedSequence(Source source) noexcept(std::is_nothrow_move_constructible_v<Source>)
       : source_(std::move(source)) {}
 
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires std::constructible_from<T, std::iter_reference_t<Iterator>>
+  constexpr SegmentedSequence(Iterator first, Sentinel last) {
+#if __cpp_exceptions
+    try {
+#endif
+      if constexpr (std::sized_sentinel_for<Sentinel, Iterator>) {
+        const auto count = last - first;
+        MBO_CONFIG_REQUIRE(count >= 0, "SegmentedSequence range has negative size");
+        reserve(static_cast<size_type>(count));
+      }
+      for (; first != last; ++first) {
+        emplace_back(*first);
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
   constexpr SegmentedSequence(const SegmentedSequence& other)
   requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
       : source_(other.source_.CopyForContainer()) {
@@ -499,6 +522,19 @@ class SegmentedSequence final {
   constexpr reference unchecked_push_back(const T& value) { return unchecked_emplace_back(value); }
 
   constexpr reference unchecked_push_back(T&& value) { return unchecked_emplace_back(std::move(value)); }
+
+  template<std::ranges::input_range Range>
+  requires std::constructible_from<T, std::ranges::range_reference_t<Range>>
+  constexpr void append_range(Range&& range) {
+    if constexpr (std::ranges::sized_range<Range>) {
+      const auto count = std::ranges::size(range);
+      MBO_CONFIG_REQUIRE(count <= max_size() - size_, "SegmentedSequence append exceeds max_size");
+      reserve(size_ + static_cast<size_type>(count));
+    }
+    for (auto&& value : std::forward<Range>(range)) {
+      emplace_back(std::forward<decltype(value)>(value));
+    }
+  }
 
   constexpr void reserve(size_type requested) {
     MBO_CONFIG_REQUIRE(requested <= max_size(), "SegmentedSequence reserve exceeds max_size");

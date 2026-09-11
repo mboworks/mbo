@@ -148,6 +148,17 @@ TEST_F(SegmentedSequenceTest, GrowthPreservesAddresses) {
   EXPECT_THAT(std::addressof(sequence[1]), Eq(second_address));
 }
 
+TEST_F(SegmentedSequenceTest, ConstructsAndAppendsRangesAcrossSegments) {
+  const std::array initial = {1, 2, 3};
+  IntSequence sequence(initial.begin(), initial.end());
+  const std::array suffix = {4, 5, 6, 7};
+
+  sequence.append_range(suffix);
+
+  EXPECT_THAT(sequence, ElementsAre(1, 2, 3, 4, 5, 6, 7));
+  EXPECT_THAT(sequence.capacity(), Eq(8));
+}
+
 TEST_F(SegmentedSequenceTest, CopyOwnsIndependentElements) {
   IntSequence source;
   source.push_back(1);

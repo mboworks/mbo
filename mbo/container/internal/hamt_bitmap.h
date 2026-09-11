@@ -19,32 +19,32 @@ class HamtBitmap final {
   static constexpr std::size_t kSlotCount = std::size_t{1} << FragmentBits;
   static constexpr std::size_t kWordCount = (kSlotCount + 63) / 64;
 
-  constexpr bool contains(std::size_t slot) const noexcept { return (words_[Word(slot)] & Bit(slot)) != 0; }
+  constexpr bool Contains(std::size_t slot) const noexcept { return (words_.at(Word(slot)) & Bit(slot)) != 0; }
 
-  constexpr std::size_t rank(std::size_t slot) const noexcept {
+  constexpr std::size_t Rank(std::size_t slot) const noexcept {
     const std::size_t word = Word(slot);
     std::size_t result = 0;
     for (std::size_t pos = 0; pos < word; ++pos) {
-      result += std::popcount(words_[pos]);
+      result += std::popcount(words_.at(pos));
     }
-    return result + std::popcount(words_[word] & MaskBefore(slot));
+    return result + std::popcount(words_.at(word) & MaskBefore(slot));
   }
 
-  constexpr bool set(std::size_t slot) noexcept {
+  constexpr bool Set(std::size_t slot) noexcept {
     const std::uint64_t bit = Bit(slot);
-    const bool inserted = (words_[Word(slot)] & bit) == 0;
-    words_[Word(slot)] |= bit;
+    const bool inserted = (words_.at(Word(slot)) & bit) == 0;
+    words_.at(Word(slot)) |= bit;
     return inserted;
   }
 
-  constexpr bool reset(std::size_t slot) noexcept {
+  constexpr bool Reset(std::size_t slot) noexcept {
     const std::uint64_t bit = Bit(slot);
-    const bool erased = (words_[Word(slot)] & bit) != 0;
-    words_[Word(slot)] &= ~bit;
+    const bool erased = (words_.at(Word(slot)) & bit) != 0;
+    words_.at(Word(slot)) &= ~bit;
     return erased;
   }
 
-  constexpr std::size_t size() const noexcept {
+  constexpr std::size_t Size() const noexcept {
     std::size_t result = 0;
     for (const std::uint64_t word : words_) {
       result += std::popcount(word);

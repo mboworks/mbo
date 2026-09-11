@@ -1,0 +1,402 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - memory/mbo/memory/block_source.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+  <style>
+    .mboNavigation { padding: .35rem 0; text-align: center; }
+    .mboHeaderSummary { margin: 0 auto; width: 80%; }
+    .mboPolicy { border-collapse: collapse; margin: .75rem auto 1rem; width: auto; }
+    .mboPolicy th { padding: .2rem .75rem; text-align: left; }
+    .mboPolicy td { font-size: 100%; padding: .2rem .75rem; text-align: center; }
+  </style>
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="mboNavigation"><a href="../../../../index.html">Report overview</a> &middot; <a href="../../../../../../index.html">All coverage reports</a></td></tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table class="mboHeaderSummary" cellpadding=1 border=0>
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html" title="Click to go to top-level">top level</a> - <a href="../../index.html" title="Click to go to directory memory">memory</a>/<a href="../index.html" title="Click to go to directory mbo">mbo</a>/<a href="index.html" title="Click to go to directory memory">memory</a> - block_source.h<span style="font-size: 80%;"> (source / <a href="block_source.h.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">97.8&nbsp;%</td>
+            <td class="headerCovTableEntry">90</td>
+            <td class="headerCovTableEntry">88</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-11 13:04:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">23</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">96.8&nbsp;%</td>
+            <td class="headerCovTableEntry">62</td>
+            <td class="headerCovTableEntry">60</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : </span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : #ifndef MBO_MEMORY_BLOCK_SOURCE_H_</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : #define MBO_MEMORY_BLOCK_SOURCE_H_</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : </span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : #include &lt;algorithm&gt;</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : #include &lt;array&gt;</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : #include &lt;bit&gt;</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : #include &lt;concepts&gt;</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : #include &lt;limits&gt;</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : #include &lt;memory&gt;</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : #include &lt;memory_resource&gt;</span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #include &lt;new&gt;</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #include &lt;optional&gt;</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : #include &lt;span&gt;</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &lt;type_traits&gt;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &lt;utility&gt;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : </span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : namespace mbo::memory {</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : </span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : struct MemoryBlock final {</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             :   std::byte* data = nullptr;</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             :   std::size_t size = 0;</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             :   std::size_t alignment = 0;</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : </span>
+<span id="L29"><span class="lineNum">      29</span>                 :             :   friend constexpr bool operator==(const MemoryBlock&amp;, const MemoryBlock&amp;) = default;</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : };</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : </span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : template&lt;typename Source&gt;</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : concept BlockSource = requires(Source&amp; source, MemoryBlock block, std::size_t size, std::size_t alignment) {</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             :   typename std::bool_constant&lt;Source::supports_recoverable_failure&gt;;</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             :   { source.TryAcquire(size, alignment) } -&gt; std::same_as&lt;std::optional&lt;MemoryBlock&gt;&gt;;</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             :   { source.Release(block) } noexcept;</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             :   { source.max_alignment() } noexcept -&gt; std::convertible_to&lt;std::size_t&gt;;</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : };</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : </span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : template&lt;typename Source&gt;</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : concept CopyableBlockSource = BlockSource&lt;Source&gt; &amp;&amp; requires(const Source&amp; source) {</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             :   { source.CopyForContainer() } -&gt; std::same_as&lt;Source&gt;;</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : };</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : </span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : // NOLINTBEGIN(readability-identifier-naming): block-source accessors follow allocator/STL spelling.</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : </span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : class NewDeleteBlockSource final {</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :  public:</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             :   static constexpr bool supports_recoverable_failure = true;</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : </span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">         103 :   static constexpr std::size_t max_alignment() noexcept {</span></span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">         103 :     return std::size_t{1} &lt;&lt; (std::numeric_limits&lt;std::size_t&gt;::digits - 1);</span></span>
+<span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">         103 :   }</span></span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : </span>
+<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">          80 :   static std::optional&lt;MemoryBlock&gt; TryAcquire(std::size_t size, std::size_t alignment) noexcept {</span></span>
+<span id="L56"><span class="lineNum">      56</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 79 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 78 times"> + </span>]:<span class="tlaGNC">          80 :     if (size == 0 || alignment == 0 || alignment &gt; max_alignment() || (alignment &amp; (alignment - 1)) != 0) {</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 77 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 76 times"> + </span>]
+<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">           4 :       return std::nullopt;</span></span>
+<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">          76 :     const auto effective_alignment = std::max(alignment, alignof(std::max_align_t));</span></span>
+<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          76 :     auto* const data =</span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">          76 :         static_cast&lt;std::byte*&gt;(::operator new(size, std::align_val_t{effective_alignment}, std::nothrow));</span></span>
+<span id="L62"><span class="lineNum">      62</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 76 times"> + </span>]:<span class="tlaGNC">          76 :     if (data == nullptr) {</span></span>
+<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaUNC">           0 :       return std::nullopt;</span></span>
+<span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaUNC">           0 :     }</span></span>
+<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">          76 :     return MemoryBlock{.data = data, .size = size, .alignment = effective_alignment};</span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">          76 :   }</span></span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : </span>
+<span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">          76 :   static void Release(MemoryBlock block) noexcept { ::operator delete(block.data, std::align_val_t{block.alignment}); }</span></span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : </span>
+<span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">           3 :   static constexpr NewDeleteBlockSource CopyForContainer() noexcept { return {}; }</span></span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : };</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : </span>
+<span id="L73"><span class="lineNum">      73</span>                 :             : class FixedBlockSource final {</span>
+<span id="L74"><span class="lineNum">      74</span>                 :             :  public:</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             :   static constexpr bool supports_recoverable_failure = true;</span>
+<span id="L76"><span class="lineNum">      76</span>                 :             : </span>
+<span id="L77"><span class="lineNum">      77</span>                 :             :   explicit constexpr FixedBlockSource(</span>
+<span id="L78"><span class="lineNum">      78</span>                 :             :       std::span&lt;std::byte&gt; storage,</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             :       std::size_t max_alignment = alignof(std::max_align_t)) noexcept</span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">           9 :       : storage_(storage), max_alignment_(max_alignment) {}</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :             : </span>
+<span id="L82"><span class="lineNum">      82</span>                 :<span class="tlaGNC">           3 :   constexpr std::size_t max_alignment() const noexcept { return max_alignment_; }</span></span>
+<span id="L83"><span class="lineNum">      83</span>                 :             : </span>
+<span id="L84"><span class="lineNum">      84</span>                 :<span class="tlaGNC">          16 :   constexpr std::optional&lt;MemoryBlock&gt; TryAcquire(std::size_t size, std::size_t alignment) noexcept {</span></span>
+<span id="L85"><span class="lineNum">      85</span> [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 21 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 12 times"> + </span>]:<span class="tlaGNC">          16 :     if (acquired_ || size == 0 || size &gt; storage_.size() || alignment == 0 || alignment &gt; max_alignment_</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 11 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 10 times"> + </span>]
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;8&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;9&quot; was taken 9 times"> + </span>]
+<span id="L86"><span class="lineNum">      86</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>][<span class="tlaUNC" title="branch &quot;2&quot; was not taken"> - </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 8 times"> + </span>]:<span class="tlaGNC">          11 :         || (alignment &amp; (alignment - 1)) != 0 || std::bit_cast&lt;std::uintptr_t&gt;(storage_.data()) % alignment != 0) {</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">           8 :       return std::nullopt;</span></span>
+<span id="L88"><span class="lineNum">      88</span>                 :<span class="tlaGNC">           8 :     }</span></span>
+<span id="L89"><span class="lineNum">      89</span>                 :<span class="tlaGNC">           8 :     acquired_ = true;</span></span>
+<span id="L90"><span class="lineNum">      90</span>                 :<span class="tlaGNC">           8 :     return MemoryBlock{.data = storage_.data(), .size = storage_.size(), .alignment = max_alignment_};</span></span>
+<span id="L91"><span class="lineNum">      91</span>                 :<span class="tlaGNC">          16 :   }</span></span>
+<span id="L92"><span class="lineNum">      92</span>                 :             : </span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">           7 :   constexpr void Release(MemoryBlock block) noexcept {</span></span>
+<span id="L94"><span class="lineNum">      94</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           7 :     if (block.data == storage_.data()) {</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">           6 :       acquired_ = false;</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaGNC">           6 :     }</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">           7 :   }</span></span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : </span>
+<span id="L99"><span class="lineNum">      99</span>                 :             :  private:</span>
+<span id="L100"><span class="lineNum">     100</span>                 :             :   std::span&lt;std::byte&gt; storage_;</span>
+<span id="L101"><span class="lineNum">     101</span>                 :             :   std::size_t max_alignment_;</span>
+<span id="L102"><span class="lineNum">     102</span>                 :             :   bool acquired_ = false;</span>
+<span id="L103"><span class="lineNum">     103</span>                 :             : };</span>
+<span id="L104"><span class="lineNum">     104</span>                 :             : </span>
+<span id="L105"><span class="lineNum">     105</span>                 :             : template&lt;std::size_t Size, std::size_t Alignment = alignof(std::max_align_t)&gt;</span>
+<span id="L106"><span class="lineNum">     106</span>                 :             : requires(Size &gt; 0 &amp;&amp; Alignment &gt; 0 &amp;&amp; (Alignment &amp; (Alignment - 1)) == 0)</span>
+<span id="L107"><span class="lineNum">     107</span>                 :             : class InlineBlockSource final {</span>
+<span id="L108"><span class="lineNum">     108</span>                 :             :  public:</span>
+<span id="L109"><span class="lineNum">     109</span>                 :             :   static constexpr bool supports_recoverable_failure = true;</span>
+<span id="L110"><span class="lineNum">     110</span>                 :             : </span>
+<span id="L111"><span class="lineNum">     111</span>                 :<span class="tlaGNC">           2 :   InlineBlockSource() = default;</span></span>
+<span id="L112"><span class="lineNum">     112</span>                 :             :   InlineBlockSource(const InlineBlockSource&amp;) = delete;</span>
+<span id="L113"><span class="lineNum">     113</span>                 :             :   InlineBlockSource&amp; operator=(const InlineBlockSource&amp;) = delete;</span>
+<span id="L114"><span class="lineNum">     114</span>                 :             :   InlineBlockSource(InlineBlockSource&amp;&amp;) = delete;</span>
+<span id="L115"><span class="lineNum">     115</span>                 :             :   InlineBlockSource&amp; operator=(InlineBlockSource&amp;&amp;) = delete;</span>
+<span id="L116"><span class="lineNum">     116</span>                 :             :   ~InlineBlockSource() = default;</span>
+<span id="L117"><span class="lineNum">     117</span>                 :             : </span>
+<span id="L118"><span class="lineNum">     118</span>                 :             :   static constexpr std::size_t max_alignment() noexcept { return Alignment; }</span>
+<span id="L119"><span class="lineNum">     119</span>                 :             : </span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">           9 :   constexpr std::optional&lt;MemoryBlock&gt; TryAcquire(std::size_t size, std::size_t alignment) noexcept {</span></span>
+<span id="L121"><span class="lineNum">     121</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 7 times"> + </span>]:<span class="tlaGNC">           9 :     if (acquired_ || size == 0 || size &gt; Size || alignment == 0 || alignment &gt; Alignment</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 6 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 5 times"> + </span>]
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;8&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;9&quot; was taken 4 times"> + </span>]
+<span id="L122"><span class="lineNum">     122</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           6 :         || (alignment &amp; (alignment - 1)) != 0) {</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">           6 :       return std::nullopt;</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">           6 :     }</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">           3 :     acquired_ = true;</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">           3 :     return MemoryBlock{.data = storage_.data(), .size = Size, .alignment = Alignment};</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">           9 :   }</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :             : </span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaGNC">           2 :   constexpr void Release(MemoryBlock block) noexcept {</span></span>
+<span id="L130"><span class="lineNum">     130</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :     if (block.data == storage_.data()) {</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">           1 :       acquired_ = false;</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :             : </span>
+<span id="L135"><span class="lineNum">     135</span>                 :             :  private:</span>
+<span id="L136"><span class="lineNum">     136</span>                 :             :   alignas(Alignment) std::array&lt;std::byte, Size&gt; storage_{};</span>
+<span id="L137"><span class="lineNum">     137</span>                 :             :   bool acquired_ = false;</span>
+<span id="L138"><span class="lineNum">     138</span>                 :             : };</span>
+<span id="L139"><span class="lineNum">     139</span>                 :             : </span>
+<span id="L140"><span class="lineNum">     140</span>                 :             : template&lt;typename Allocator = std::allocator&lt;std::max_align_t&gt;&gt;</span>
+<span id="L141"><span class="lineNum">     141</span>                 :             : class AllocatorBlockSource final {</span>
+<span id="L142"><span class="lineNum">     142</span>                 :             :  private:</span>
+<span id="L143"><span class="lineNum">     143</span>                 :             :   using Traits = std::allocator_traits&lt;Allocator&gt;;</span>
+<span id="L144"><span class="lineNum">     144</span>                 :             :   using Value = Traits::value_type;</span>
+<span id="L145"><span class="lineNum">     145</span>                 :             : </span>
+<span id="L146"><span class="lineNum">     146</span>                 :             :   static_assert(alignof(Value) &gt;= alignof(std::max_align_t));</span>
+<span id="L147"><span class="lineNum">     147</span>                 :             : </span>
+<span id="L148"><span class="lineNum">     148</span>                 :             :  public:</span>
+<span id="L149"><span class="lineNum">     149</span>                 :             : #if __cpp_exceptions</span>
+<span id="L150"><span class="lineNum">     150</span>                 :             :   static constexpr bool supports_recoverable_failure = true;</span>
+<span id="L151"><span class="lineNum">     151</span>                 :             : #else</span>
+<span id="L152"><span class="lineNum">     152</span>                 :             :   static constexpr bool supports_recoverable_failure = false;</span>
+<span id="L153"><span class="lineNum">     153</span>                 :             : #endif</span>
+<span id="L154"><span class="lineNum">     154</span>                 :             : </span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">           3 :   constexpr AllocatorBlockSource() = default;</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :             : </span>
+<span id="L157"><span class="lineNum">     157</span>                 :             :   constexpr explicit AllocatorBlockSource(Allocator allocator) noexcept(std::is_nothrow_move_constructible_v&lt;Allocator&gt;)</span>
+<span id="L158"><span class="lineNum">     158</span>                 :             :       : allocator_(std::move(allocator)) {}</span>
+<span id="L159"><span class="lineNum">     159</span>                 :             : </span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           6 :   static constexpr std::size_t max_alignment() noexcept { return alignof(Value); }</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :             : </span>
+<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">           7 :   std::optional&lt;MemoryBlock&gt; TryAcquire(std::size_t size, std::size_t alignment) {</span></span>
+<span id="L163"><span class="lineNum">     163</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 6 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 5 times"> + </span>]:<span class="tlaGNC">           7 :     if (size == 0 || alignment == 0 || alignment &gt; max_alignment() || (alignment &amp; (alignment - 1)) != 0) {</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 4 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 3 times"> + </span>]
+<span id="L164"><span class="lineNum">     164</span>                 :<span class="tlaGNC">           4 :       return std::nullopt;</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L166"><span class="lineNum">     166</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           3 :     const auto count = (size / sizeof(Value)) + (size % sizeof(Value) != 0 ? 1 : 0);</span></span>
+<span id="L167"><span class="lineNum">     167</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     if (count &gt; std::numeric_limits&lt;std::size_t&gt;::max() / sizeof(Value)) {</span></span>
+<span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">           1 :       return std::nullopt;</span></span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :             : #if __cpp_exceptions</span>
+<span id="L171"><span class="lineNum">     171</span>                 :             :     try {</span>
+<span id="L172"><span class="lineNum">     172</span>                 :             : #endif</span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">           2 :       auto* const data = Traits::allocate(allocator_, count);</span></span>
+<span id="L174"><span class="lineNum">     174</span>                 :<span class="tlaGNC">           2 :       return MemoryBlock{</span></span>
+<span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">           2 :           .data = reinterpret_cast&lt;std::byte*&gt;(data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">           2 :           .size = count * sizeof(Value),</span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaGNC">           2 :           .alignment = alignof(Value),</span></span>
+<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">           2 :       };</span></span>
+<span id="L179"><span class="lineNum">     179</span>                 :             : #if __cpp_exceptions</span>
+<span id="L180"><span class="lineNum">     180</span>                 :             :     } catch (const std::bad_alloc&amp;) {</span>
+<span id="L181"><span class="lineNum">     181</span>                 :             :       return std::nullopt;</span>
+<span id="L182"><span class="lineNum">     182</span>                 :             :     }</span>
+<span id="L183"><span class="lineNum">     183</span>                 :             : #endif</span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">           3 :   }</span></span>
+<span id="L185"><span class="lineNum">     185</span>                 :             : </span>
+<span id="L186"><span class="lineNum">     186</span>                 :<span class="tlaGNC">           2 :   void Release(MemoryBlock block) noexcept {</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :<span class="tlaGNC">           2 :     const auto count = block.size / sizeof(Value);</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">           2 :     Traits::deallocate(</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaGNC">           2 :         allocator_,</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">           2 :         reinterpret_cast&lt;Value*&gt;(block.data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">           2 :         count);</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">           2 :   }</span></span>
+<span id="L193"><span class="lineNum">     193</span>                 :             : </span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           1 :   constexpr Allocator&amp; allocator() noexcept { return allocator_; }</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :             : </span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">           1 :   constexpr const Allocator&amp; allocator() const noexcept { return allocator_; }</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :             : </span>
+<span id="L198"><span class="lineNum">     198</span>                 :             :   constexpr AllocatorBlockSource CopyForContainer() const {</span>
+<span id="L199"><span class="lineNum">     199</span>                 :             :     return AllocatorBlockSource(Traits::select_on_container_copy_construction(allocator_));</span>
+<span id="L200"><span class="lineNum">     200</span>                 :             :   }</span>
+<span id="L201"><span class="lineNum">     201</span>                 :             : </span>
+<span id="L202"><span class="lineNum">     202</span>                 :             :  private:</span>
+<span id="L203"><span class="lineNum">     203</span>                 :             :   [[no_unique_address]] Allocator allocator_{};</span>
+<span id="L204"><span class="lineNum">     204</span>                 :             : };</span>
+<span id="L205"><span class="lineNum">     205</span>                 :             : </span>
+<span id="L206"><span class="lineNum">     206</span>                 :             : class PmrBlockSource final {</span>
+<span id="L207"><span class="lineNum">     207</span>                 :             :  public:</span>
+<span id="L208"><span class="lineNum">     208</span>                 :             : #if __cpp_exceptions</span>
+<span id="L209"><span class="lineNum">     209</span>                 :             :   static constexpr bool supports_recoverable_failure = true;</span>
+<span id="L210"><span class="lineNum">     210</span>                 :             : #else</span>
+<span id="L211"><span class="lineNum">     211</span>                 :             :   static constexpr bool supports_recoverable_failure = false;</span>
+<span id="L212"><span class="lineNum">     212</span>                 :             : #endif</span>
+<span id="L213"><span class="lineNum">     213</span>                 :             : </span>
+<span id="L214"><span class="lineNum">     214</span>                 :             :   explicit PmrBlockSource(std::pmr::memory_resource* resource = std::pmr::get_default_resource()) noexcept</span>
+<span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">           6 :       : resource_(resource) {}</span></span>
+<span id="L216"><span class="lineNum">     216</span>                 :             : </span>
+<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">           8 :   static constexpr std::size_t max_alignment() noexcept {</span></span>
+<span id="L218"><span class="lineNum">     218</span>                 :<span class="tlaGNC">           8 :     return std::size_t{1} &lt;&lt; (std::numeric_limits&lt;std::size_t&gt;::digits - 1);</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           8 :   }</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :             : </span>
+<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">           9 :   std::optional&lt;MemoryBlock&gt; TryAcquire(std::size_t size, std::size_t alignment) {</span></span>
+<span id="L222"><span class="lineNum">     222</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 7 times"> + </span>]:<span class="tlaGNC">           9 :     if (resource_ == nullptr || size == 0 || alignment == 0 || alignment &gt; max_alignment()</span></span>
+<span class="lineNum">        </span> [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 6 times"> + </span>][<span class="tlaGBC" title="branch &quot;6&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;7&quot; was taken 5 times"> + </span>]
+<span id="L223"><span class="lineNum">     223</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           8 :         || (alignment &amp; (alignment - 1)) != 0) {</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">           5 :       return std::nullopt;</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">           5 :     }</span></span>
+<span id="L226"><span class="lineNum">     226</span>                 :             : #if __cpp_exceptions</span>
+<span id="L227"><span class="lineNum">     227</span>                 :             :     try {</span>
+<span id="L228"><span class="lineNum">     228</span>                 :             : #endif</span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">           4 :       return MemoryBlock{</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">           4 :           .data = static_cast&lt;std::byte*&gt;(resource_-&gt;allocate(size, alignment)),</span></span>
+<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">           4 :           .size = size,</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">           4 :           .alignment = alignment,</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           4 :       };</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :             : #if __cpp_exceptions</span>
+<span id="L235"><span class="lineNum">     235</span>                 :             :     } catch (const std::bad_alloc&amp;) {</span>
+<span id="L236"><span class="lineNum">     236</span>                 :             :       return std::nullopt;</span>
+<span id="L237"><span class="lineNum">     237</span>                 :             :     }</span>
+<span id="L238"><span class="lineNum">     238</span>                 :             : #endif</span>
+<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">           9 :   }</span></span>
+<span id="L240"><span class="lineNum">     240</span>                 :             : </span>
+<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">           4 :   void Release(MemoryBlock block) noexcept { resource_-&gt;deallocate(block.data, block.size, block.alignment); }</span></span>
+<span id="L242"><span class="lineNum">     242</span>                 :             : </span>
+<span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">           1 :   std::pmr::memory_resource* resource() const noexcept { return resource_; }</span></span>
+<span id="L244"><span class="lineNum">     244</span>                 :             : </span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">           1 :   PmrBlockSource CopyForContainer() const noexcept { return PmrBlockSource(resource_); }</span></span>
+<span id="L246"><span class="lineNum">     246</span>                 :             : </span>
+<span id="L247"><span class="lineNum">     247</span>                 :             :  private:</span>
+<span id="L248"><span class="lineNum">     248</span>                 :             :   std::pmr::memory_resource* resource_;</span>
+<span id="L249"><span class="lineNum">     249</span>                 :             : };</span>
+<span id="L250"><span class="lineNum">     250</span>                 :             : </span>
+<span id="L251"><span class="lineNum">     251</span>                 :             : static_assert(BlockSource&lt;NewDeleteBlockSource&gt;);</span>
+<span id="L252"><span class="lineNum">     252</span>                 :             : static_assert(BlockSource&lt;FixedBlockSource&gt;);</span>
+<span id="L253"><span class="lineNum">     253</span>                 :             : static_assert(BlockSource&lt;InlineBlockSource&lt;4'096&gt;&gt;);</span>
+<span id="L254"><span class="lineNum">     254</span>                 :             : static_assert(BlockSource&lt;AllocatorBlockSource&lt;&gt;&gt;);</span>
+<span id="L255"><span class="lineNum">     255</span>                 :             : static_assert(BlockSource&lt;PmrBlockSource&gt;);</span>
+<span id="L256"><span class="lineNum">     256</span>                 :             : static_assert(CopyableBlockSource&lt;NewDeleteBlockSource&gt;);</span>
+<span id="L257"><span class="lineNum">     257</span>                 :             : static_assert(CopyableBlockSource&lt;AllocatorBlockSource&lt;&gt;&gt;);</span>
+<span id="L258"><span class="lineNum">     258</span>                 :             : static_assert(CopyableBlockSource&lt;PmrBlockSource&gt;);</span>
+<span id="L259"><span class="lineNum">     259</span>                 :             : static_assert(!CopyableBlockSource&lt;FixedBlockSource&gt;);</span>
+<span id="L260"><span class="lineNum">     260</span>                 :             : static_assert(!CopyableBlockSource&lt;InlineBlockSource&lt;4'096&gt;&gt;);</span>
+<span id="L261"><span class="lineNum">     261</span>                 :             : </span>
+<span id="L262"><span class="lineNum">     262</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L263"><span class="lineNum">     263</span>                 :             : </span>
+<span id="L264"><span class="lineNum">     264</span>                 :             : }  // namespace mbo::memory</span>
+<span id="L265"><span class="lineNum">     265</span>                 :             : </span>
+<span id="L266"><span class="lineNum">     266</span>                 :             : #endif  // MBO_MEMORY_BLOCK_SOURCE_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table class="mboPolicy">
+            <thead>
+              <tr>
+                <th scope="col">Global coverage policy</th>
+                <th scope="col">Low</th>
+                <th scope="col">Medium</th>
+                <th scope="col">High</th>
+                <th scope="col">Enforced</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row">Lines</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Branches</th>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 90%</td>
+              <td class="headerValueLegH">&ge; 90%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Functions</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            </tbody>
+          </table>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

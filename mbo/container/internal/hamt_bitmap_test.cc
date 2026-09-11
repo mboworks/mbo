@@ -21,23 +21,23 @@ struct HamtBitmapTest : ::testing::Test {
     std::array<bool, HamtBitmap<Bits>::kSlotCount> occupied{};
 
     for (std::size_t slot = 0; slot < occupied.size(); slot += 3) {
-      EXPECT_THAT(bitmap.set(slot), Eq(true));
-      EXPECT_THAT(bitmap.set(slot), Eq(false));
-      occupied[slot] = true;
+      EXPECT_THAT(bitmap.Set(slot), Eq(true));
+      EXPECT_THAT(bitmap.Set(slot), Eq(false));
+      occupied.at(slot) = true;
     }
 
     std::size_t expected_rank = 0;
     for (std::size_t slot = 0; slot < occupied.size(); ++slot) {
-      EXPECT_THAT(bitmap.contains(slot), Eq(occupied[slot]));
-      EXPECT_THAT(bitmap.rank(slot), Eq(expected_rank));
-      expected_rank += occupied[slot] ? 1 : 0;
+      EXPECT_THAT(bitmap.Contains(slot), Eq(occupied.at(slot)));
+      EXPECT_THAT(bitmap.Rank(slot), Eq(expected_rank));
+      expected_rank += occupied.at(slot) ? 1 : 0;
     }
-    EXPECT_THAT(bitmap.size(), Eq(expected_rank));
+    EXPECT_THAT(bitmap.Size(), Eq(expected_rank));
 
     for (std::size_t slot = 0; slot < occupied.size(); ++slot) {
-      EXPECT_THAT(bitmap.reset(slot), Eq(occupied[slot]));
+      EXPECT_THAT(bitmap.Reset(slot), Eq(occupied.at(slot)));
     }
-    EXPECT_THAT(bitmap.size(), Eq(0));
+    EXPECT_THAT(bitmap.Size(), Eq(0));
   }
 };
 
@@ -50,8 +50,8 @@ TEST_F(HamtBitmapTest, SupportsEveryCandidateFragmentWidth) {
 
 constexpr bool IsConstexprUsable() {
   HamtBitmap<7> bitmap;
-  return bitmap.set(0) && bitmap.set(64) && bitmap.set(127) && bitmap.rank(127) == 2 && bitmap.size() == 3
-         && bitmap.reset(64) && !bitmap.contains(64);
+  return bitmap.Set(0) && bitmap.Set(64) && bitmap.Set(127) && bitmap.Rank(127) == 2 && bitmap.Size() == 3
+         && bitmap.Reset(64) && !bitmap.Contains(64);
 }
 
 static_assert(IsConstexprUsable());

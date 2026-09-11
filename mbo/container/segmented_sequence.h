@@ -531,7 +531,7 @@ class SegmentedSequence final {
       MBO_CONFIG_REQUIRE(count <= max_size() - size_, "SegmentedSequence append exceeds max_size");
       reserve(size_ + static_cast<size_type>(count));
     }
-    for (auto&& value : range) {
+    for (auto&& value : std::forward<Range>(range)) {
       emplace_back(std::forward<decltype(value)>(value));
     }
   }

@@ -119,6 +119,27 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_node_collision_cc",
+    hdrs = ["internal/hamt_node_collision.h"],
+    deps = [
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_collision_test",
+    size = "small",
+    srcs = ["internal/hamt_node_collision_test.cc"],
+    deps = [
+        ":hamt_node_collision_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "any_scan_cc",
     hdrs = ["any_scan.h"],
     visibility = ["//visibility:public"],

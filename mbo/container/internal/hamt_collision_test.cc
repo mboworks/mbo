@@ -28,29 +28,33 @@ struct KeyOf final {
 };
 
 struct Equal final {
-  constexpr bool operator()(int lhs, long rhs) const noexcept { return lhs == rhs; }
+  constexpr bool operator()(int lhs, std::int64_t rhs) const noexcept { return lhs == rhs; }
 };
 
 struct HamtCollisionTest : ::testing::Test {};
 
 TEST_F(HamtCollisionTest, DistinguishesFullHashesAndUnequalKeys) {
-  constexpr std::array entries = {
+  constexpr auto kEntries = std::to_array<Entry>({
       Entry{.hash = 17, .key = 1},
       Entry{.hash = 17, .key = 2},
       Entry{.hash = 29, .key = 2},
-  };
+  });
 
   EXPECT_THAT(
-      FindHamtCollision(entries.begin(), entries.end(), 17U, 2L, HashOf{}, KeyOf{}, Equal{}), Eq(entries.begin() + 1));
+      FindHamtCollision(kEntries.begin(), kEntries.end(), 17U, std::int64_t{2}, HashOf{}, KeyOf{}, Equal{}),
+      Eq(kEntries.begin() + 1));
   EXPECT_THAT(
-      FindHamtCollision(entries.begin(), entries.end(), 29U, 2L, HashOf{}, KeyOf{}, Equal{}), Eq(entries.begin() + 2));
+      FindHamtCollision(kEntries.begin(), kEntries.end(), 29U, std::int64_t{2}, HashOf{}, KeyOf{}, Equal{}),
+      Eq(kEntries.begin() + 2));
   EXPECT_THAT(
-      FindHamtCollision(entries.begin(), entries.end(), 17U, 3L, HashOf{}, KeyOf{}, Equal{}), Eq(entries.end()));
+      FindHamtCollision(kEntries.begin(), kEntries.end(), 17U, std::int64_t{3}, HashOf{}, KeyOf{}, Equal{}),
+      Eq(kEntries.end()));
 }
 
 constexpr bool IsConstexprUsable() {
-  constexpr std::array entries = {Entry{.hash = 5, .key = 7}, Entry{.hash = 5, .key = 9}};
-  return FindHamtCollision(entries.begin(), entries.end(), 5U, 9L, HashOf{}, KeyOf{}, Equal{}) == entries.begin() + 1;
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 5, .key = 7}, Entry{.hash = 5, .key = 9}});
+  return FindHamtCollision(kEntries.begin(), kEntries.end(), 5U, std::int64_t{9}, HashOf{}, KeyOf{}, Equal{})
+         == kEntries.begin() + 1;
 }
 
 static_assert(IsConstexprUsable());

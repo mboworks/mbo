@@ -85,7 +85,9 @@ struct RecordingSource final {
   mbo::memory::MemoryBlock released{};
   std::size_t release_count = 0;
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t, std::size_t) noexcept { return offered; }
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t /*alignment*/) const noexcept {
+    return offered;
+  }
 
   void Release(mbo::memory::MemoryBlock block) noexcept {
     released = block;

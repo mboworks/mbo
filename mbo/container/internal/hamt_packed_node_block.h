@@ -52,10 +52,11 @@ class HamtPackedNodeBlock final {
       return false;
     }
     const auto block = source_->TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source_->Release(*block);
-      }
+    if (!block) {
+      return false;
+    }
+    if (!Usable(*block, *layout)) {
+      source_->Release(*block);
       return false;
     }
     block_ = *block;
@@ -112,9 +113,9 @@ class HamtPackedNodeBlock final {
  private:
   using Layout = HamtPackedNodeLayout<Header, Entry, Child>;
 
-  static constexpr bool Usable(const std::optional<mbo::memory::MemoryBlock>& block, const Layout& layout) noexcept {
-    return block && block->data != nullptr && block->size >= layout.size && block->alignment >= layout.alignment
-           && std::bit_cast<std::uintptr_t>(block->data) % layout.alignment == 0;
+  static constexpr bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {
+    return block.data != nullptr && block.size >= layout.size && block.alignment >= layout.alignment
+           && std::bit_cast<std::uintptr_t>(block.data) % layout.alignment == 0;
   }
 
   constexpr Header* HeaderPtr() const noexcept {
@@ -122,13 +123,13 @@ class HamtPackedNodeBlock final {
   }
 
   constexpr Entry* EntryPtr() const noexcept {
-    return reinterpret_cast<Entry*>(
-        block_.data + layout_.data_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Entry*>(block_.data + layout_.data_offset);
   }
 
   constexpr Child* ChildPtr() const noexcept {
-    return reinterpret_cast<Child*>(
-        block_.data + layout_.child_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Child*>(block_.data + layout_.child_offset);
   }
 
   Source* source_;

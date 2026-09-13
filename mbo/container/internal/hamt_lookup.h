@@ -58,13 +58,13 @@ const Entry* FindHamtEntry(
     switch (node->index().Kind(fragment)) {
       case HamtSlotKind::kEmpty: return nullptr;
       case HamtSlotKind::kData: {
-        const Entry& entry = node->entries()[node->index().DataIndex(fragment)];
+        const Entry& entry = node->entries().subspan(node->index().DataIndex(fragment)).front();
         return std::invoke(hash_of, entry) == hash && std::invoke(equal, std::invoke(key_of, entry), key)
                    ? std::addressof(entry)
                    : nullptr;
       }
       case HamtSlotKind::kNode:
-        node = node->children()[node->index().NodeIndex(fragment)];
+        node = node->children().subspan(node->index().NodeIndex(fragment)).front();
         ++level;
         break;
     }

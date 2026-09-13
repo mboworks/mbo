@@ -149,6 +149,36 @@ class HamtSharedNode final {
     return node;
   }
 
+  // Path-copy a child slot without changing either the original node or its
+  // ownership. Replacing a child with itself still creates a separately owned
+  // node and retains the shared child exactly once for that new owner.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryReplaceChild(
+      Source& source,
+      const node_type& original,
+      std::size_t position,
+      node_type* replacement) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (replacement == nullptr || original.is_collision() || position >= original.children().size()) {
+      return std::nullopt;
+    }
+    const auto result =
+        TryAllocateUninitialized(source, original.index_, original.entries().size(), original.children().size(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    node_type* const node = *result;
+    std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
+    std::construct_at(node->ChildPtr() + position, replacement);
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(position + 1), children.end(), node->ChildPtr() + position + 1);
+    RetainChildren(node->children());
+    return node;
+  }
+
   template<mbo::memory::BlockSource Source>
   static void Release(Source& source, node_type* node) noexcept {
     if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {

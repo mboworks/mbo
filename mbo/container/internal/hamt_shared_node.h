@@ -188,38 +188,23 @@ class HamtSharedNode final {
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
     if (child == nullptr || original.is_collision() || original.entries().empty()
-        || index.data_size() + 1 != original.entries().size() || index.node_size() != original.children().size() + 1
-        || entry_position >= original.entries().size() || child_position >= index.node_size()) {
+        || index.DataSize() + 1 != original.entries().size() || index.NodeSize() != original.children().size() + 1
+        || entry_position >= original.entries().size() || child_position >= index.NodeSize()) {
       return std::nullopt;
     }
-    const auto layout = Layout::TryMake(index.data_size(), index.node_size());
-    if (!layout) {
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
       return std::nullopt;
     }
-    const auto block = source.TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source.Release(*block);
-      }
-      return std::nullopt;
-    }
-    auto* const node = std::construct_at(
-        reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        index);
-    const auto entries = original.entries();
-    std::uninitialized_copy_n(entries.begin(), entry_position, node->EntryPtr());
-    std::uninitialized_copy(
-        entries.begin() + static_cast<std::ptrdiff_t>(entry_position + 1), entries.end(),
-        node->EntryPtr() + entry_position);
+    node_type* const node = *result;
+    CopyErasedEntries(*node, original.entries(), entry_position);
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), child_position, node->ChildPtr());
     std::construct_at(node->ChildPtr() + child_position, child);
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(child_position), children.end(),
         node->ChildPtr() + child_position + 1);
-    for (node_type* retained : node->children()) {
-      Retain(retained);
-    }
+    RetainChildren(node->children());
     return node;
   }
 

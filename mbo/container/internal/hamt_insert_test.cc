@@ -3,8 +3,10 @@
 
 #include "mbo/container/internal/hamt_insert.h"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <limits>
+#include <optional>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -117,6 +119,62 @@ TEST_F(HamtInsertTest, ReportsAllocationFailureWithoutChangingTheOriginal) {
   EXPECT_THAT(Find(first->root, 1, 10), NotNull());
   EXPECT_THAT(Find(first->root, 2, 20), IsNull());
   Node::Release(source, first->root);
+}
+
+TEST_F(HamtInsertTest, DifferentFullHashSplitsARootCollisionInsteadOfExtendingIt) {
+  constexpr auto kEntries = std::to_array<Entry>({Entry{7, 10}, Entry{7, 20}});
+  const auto collision = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(collision, Optional(_));
+  constexpr std::uint64_t kNewHash = 7 + (std::uint64_t{7} << 15);
+  const auto inserted = Insert(*collision, kNewHash, 30);
+  ASSERT_THAT(inserted, Optional(_));
+  EXPECT_THAT(inserted->inserted, Eq(true));
+  EXPECT_THAT(inserted->root->is_collision(), Eq(false));
+  Node* branch = inserted->root;
+  for (std::size_t level = 0; level < 3; ++level) {
+    EXPECT_THAT(branch->entries().empty(), Eq(true));
+    ASSERT_THAT(branch->children().size(), Eq(1));
+    branch = branch->children().front();
+  }
+  ASSERT_THAT(branch->entries().size(), Eq(1));
+  ASSERT_THAT(branch->children().size(), Eq(1));
+  EXPECT_THAT(branch->entries().front().hash, Eq(kNewHash));
+  EXPECT_THAT(branch->children().front(), Eq(*collision));
+  EXPECT_THAT((*collision)->entries().size(), Eq(2));
+  EXPECT_THAT((*collision)->use_count(), Eq(2));
+  EXPECT_THAT(Find(*collision, kNewHash, 30), IsNull());
+  Node::Release(source, *collision);
+  EXPECT_THAT(Find(inserted->root, 7, 10), NotNull());
+  EXPECT_THAT(Find(inserted->root, 7, 20), NotNull());
+  EXPECT_THAT(Find(inserted->root, kNewHash, 30), NotNull());
+  Node::Release(source, inserted->root);
+}
+
+TEST_F(HamtInsertTest, DifferentFullHashSplitsANestedCollisionAndPreservesSnapshots) {
+  const auto first = Insert(nullptr, 7, 10);
+  ASSERT_THAT(first, Optional(_));
+  const auto second = Insert(first->root, 7, 20);
+  ASSERT_THAT(second, Optional(_));
+  const auto third = Insert(second->root, 7, 30);
+  ASSERT_THAT(third, Optional(_));
+  constexpr std::uint64_t kNewHash = 7 + (std::uint64_t{7} << 15);
+  const auto split = Insert(third->root, kNewHash, 40);
+  ASSERT_THAT(split, Optional(_));
+  EXPECT_THAT(Find(third->root, kNewHash, 40), IsNull());
+  Node::Release(source, first->root);
+  Node::Release(source, second->root);
+  Node::Release(source, third->root);
+  EXPECT_THAT(Find(split->root, 7, 10), NotNull());
+  EXPECT_THAT(Find(split->root, 7, 20), NotNull());
+  EXPECT_THAT(Find(split->root, 7, 30), NotNull());
+  EXPECT_THAT(Find(split->root, kNewHash, 40), NotNull());
+  const auto duplicate = Insert(split->root, 7, 20);
+  ASSERT_THAT(duplicate, Optional(_));
+  EXPECT_THAT(duplicate->inserted, Eq(false));
+  EXPECT_THAT(duplicate->root, Eq(split->root));
+  Node::Release(source, split->root);
+  EXPECT_THAT(Find(duplicate->root, 7, 20), NotNull());
+  Node::Release(source, duplicate->root);
 }
 
 }  // namespace

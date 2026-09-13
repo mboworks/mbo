@@ -35,7 +35,8 @@ class HamtSharedNode final {
   using node_type = HamtSharedNode;
   using index_type = HamtNodeIndex<FragmentBits>;
 
-  explicit HamtSharedNode(index_type index) noexcept : index_(index) {}
+  explicit HamtSharedNode(index_type index, std::size_t collision_count = 0) noexcept
+      : index_(index), collision_count_(collision_count) {}
 
   HamtSharedNode(const HamtSharedNode&) = delete;
   HamtSharedNode& operator=(const HamtSharedNode&) = delete;
@@ -43,15 +44,17 @@ class HamtSharedNode final {
   HamtSharedNode& operator=(HamtSharedNode&&) = delete;
   ~HamtSharedNode() = default;
 
-  std::span<Entry> entries() noexcept { return {EntryPtr(), index_.DataSize()}; }
+  std::span<Entry> entries() noexcept { return {EntryPtr(), EntryCount()}; }
 
-  std::span<const Entry> entries() const noexcept { return {EntryPtr(), index_.DataSize()}; }
+  std::span<const Entry> entries() const noexcept { return {EntryPtr(), EntryCount()}; }
 
   std::span<node_type*> children() noexcept { return {ChildPtr(), index_.NodeSize()}; }
 
   std::span<node_type* const> children() const noexcept { return {ChildPtr(), index_.NodeSize()}; }
 
   const index_type& index() const noexcept { return index_; }
+
+  bool is_collision() const noexcept { return collision_count_ != 0; }
 
   std::uint32_t use_count() const noexcept { return references_.load(std::memory_order_relaxed); }
 
@@ -72,6 +75,50 @@ class HamtSharedNode final {
     if (entries.size() != index.DataSize() || children.size() != index.NodeSize()) {
       return std::nullopt;
     }
+    return TryAllocate(source, index, entries, children, 0);
+  }
+
+  // All entries must have the same full hash, established by the caller. Empty
+  // collision nodes are rejected; a collision node has no indexed children.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryCreateCollision(Source& source, std::span<const Entry> entries) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (entries.empty()) {
+      return std::nullopt;
+    }
+    return TryAllocate(source, {}, entries, {}, entries.size());
+  }
+
+  template<mbo::memory::BlockSource Source>
+  static void Release(Source& source, node_type* node) noexcept {
+    if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {
+      return;
+    }
+    const std::size_t entry_count = node->EntryCount();
+    const index_type index = node->index_;
+    const auto block = node->block_;
+    for (node_type* child : node->children()) {
+      Release(source, child);
+    }
+    std::destroy_n(node->EntryPtr(), entry_count);
+    std::destroy_n(node->ChildPtr(), index.NodeSize());
+    std::destroy_at(node);
+    source.Release(block);
+  }
+
+ private:
+  using Layout = HamtPackedNodeLayout<node_type, Entry, node_type*>;
+
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryAllocate(
+      Source& source,
+      index_type index,
+      std::span<const Entry> entries,
+      std::span<node_type* const> children,
+      std::size_t collision_count) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
     for (const node_type* child : children) {
       if (child == nullptr) {
         return std::nullopt;
@@ -91,7 +138,7 @@ class HamtSharedNode final {
     }
     auto* const node = std::construct_at(
         reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        index);
+        index, collision_count);
     node->block_ = *block;
     std::uninitialized_copy(entries.begin(), entries.end(), node->EntryPtr());
     std::uninitialized_copy(children.begin(), children.end(), node->ChildPtr());
@@ -100,25 +147,6 @@ class HamtSharedNode final {
     }
     return node;
   }
-
-  template<mbo::memory::BlockSource Source>
-  static void Release(Source& source, node_type* node) noexcept {
-    if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {
-      return;
-    }
-    const index_type index = node->index_;
-    const auto block = node->block_;
-    for (node_type* child : node->children()) {
-      Release(source, child);
-    }
-    std::destroy_n(node->EntryPtr(), index.DataSize());
-    std::destroy_n(node->ChildPtr(), index.NodeSize());
-    std::destroy_at(node);
-    source.Release(block);
-  }
-
- private:
-  using Layout = HamtPackedNodeLayout<node_type, Entry, node_type*>;
 
   static bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {
     return block.data != nullptr && block.size >= layout.size && block.alignment >= layout.alignment
@@ -135,15 +163,18 @@ class HamtSharedNode final {
   node_type** ChildPtr() const noexcept {
     // TryCreate validates all size arithmetic before constructing this immutable index.
     // The node header and therefore EntryPtr() are already pointer-aligned; only the entry-array size needs padding.
-    const std::size_t data_size = index_.DataSize() * sizeof(Entry);
+    const std::size_t data_size = EntryCount() * sizeof(Entry);
     auto* const data_end = reinterpret_cast<std::byte*>(EntryPtr()) + data_size;  // NOLINT
     const std::size_t padding = (alignof(node_type*) - (data_size % alignof(node_type*))) % alignof(node_type*);
     return reinterpret_cast<node_type**>(data_end + padding);  // NOLINT
   }
 
+  std::size_t EntryCount() const noexcept { return is_collision() ? collision_count_ : index_.DataSize(); }
+
   std::atomic<std::uint32_t> references_{1};
   index_type index_;
   mbo::memory::MemoryBlock block_;
+  std::size_t collision_count_ = 0;
 };
 
 // NOLINTEND(readability-identifier-naming)

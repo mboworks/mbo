@@ -15,6 +15,7 @@ namespace mbo::container::container_internal {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::NotNull;
@@ -222,6 +223,68 @@ TEST_F(HamtSharedNodeTest, ReleasesTheOriginalAllocationMetadata) {
   ASSERT_THAT(node, NotNull());
   Node::Release(source, node);
   EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionNodeCanExceedTheIndexedSlotCount) {
+  CountingSource source;
+  std::array<int, Node::index_type::kSlotCount + 1> entries{};
+  int next_entry = 0;
+  for (int& entry : entries) {
+    entry = next_entry++;
+  }
+  auto* const node = Node::TryCreateCollision(source, entries).value_or(nullptr);
+  ASSERT_THAT(node, NotNull());
+  const Node& view = *node;
+  EXPECT_THAT(view.is_collision(), Eq(true));
+  EXPECT_THAT(view.entries(), ElementsAreArray(entries));
+  EXPECT_THAT(view.children(), IsEmpty());
+  EXPECT_THAT(view.index().DataSize(), Eq(0));
+  Node::Retain(node);
+  Node::Release(source, node);
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, EmptyCollisionIsRejectedBeforeAllocation) {
+  CountingSource source;
+  EXPECT_THAT(Node::TryCreateCollision(source, {}), Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtSharedNodeTest, SingletonCollisionKeepsItsRepresentationAcrossSharedOwnership) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({42});
+  auto* const node = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(node, NotNull());
+  Node::Retain(node);
+  Node::Release(source, node);
+  const Node& view = *node;
+  EXPECT_THAT(view.is_collision(), Eq(true));
+  EXPECT_THAT(view.entries(), ElementsAre(42));
+  EXPECT_THAT(view.children(), IsEmpty());
+  EXPECT_THAT(view.index().DataSize(), Eq(0));
+  EXPECT_THAT(view.index().NodeSize(), Eq(0));
+  EXPECT_THAT(view.use_count(), Eq(1));
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionReleasePreservesOriginalAllocationMetadata) {
+  OversizedSource source;
+  constexpr auto kEntries = std::to_array<int>({1, 2, 3});
+  auto* const node = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(node, NotNull());
+  EXPECT_THAT(node->entries(), ElementsAre(1, 2, 3));
+  Node::Release(source, node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionAllocationReportsExhaustion) {
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  constexpr auto kEntries = std::to_array<int>({1, 2});
+  EXPECT_THAT(Node::TryCreateCollision(exhausted, kEntries), Eq(std::nullopt));
 }
 
 }  // namespace

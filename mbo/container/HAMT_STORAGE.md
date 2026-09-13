@@ -42,3 +42,17 @@ reference before retaining; using a released node or releasing an unowned refere
 The reference count is 32-bit; callers must not retain when the count is already its maximum.
 Higher-level persistent operations retain immutable nodes; direct mutable spans are internal
 construction machinery and must not modify nodes shared by snapshots.
+
+## Hash paths
+
+`HamtHashPath<Hash, FragmentBits>` consumes an unsigned hash from its least-significant fragment
+upward. Fragment widths 4–7 are supported for later benchmark comparison, not a performance
+recommendation. A final partial fragment has zero bits beyond the hash width. `Fragment(level)`
+requires `level < kLevels`.
+
+`FindHamtMergePath` identifies a shared suffix of path levels and the first divergent fragments,
+or reports a full-hash collision. `common_levels` counts levels from the supplied `start_level`,
+not from the root. The caller must have established equal fragments before `start_level`, and
+`start_level <= kLevels`; an exhausted path is valid. Both helpers are constexpr and allocate
+no storage. Full-hash collisions still require key equality; shared fragments never establish
+key equality by themselves.

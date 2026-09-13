@@ -102,6 +102,23 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_merge_path_cc",
+    hdrs = ["internal/hamt_merge_path.h"],
+    deps = [":hamt_hash_path_cc"],
+)
+
+cc_test(
+    name = "hamt_merge_path_test",
+    size = "small",
+    srcs = ["internal/hamt_merge_path_test.cc"],
+    deps = [
+        ":hamt_merge_path_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_node_index_cc",
     hdrs = ["internal/hamt_node_index.h"],
     deps = [":hamt_bitmap_cc"],

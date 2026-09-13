@@ -110,11 +110,7 @@ class HamtSharedNode final {
       return std::nullopt;
     }
     node_type* const node = *result;
-    const auto entries = original.entries();
-    std::uninitialized_copy_n(entries.begin(), position, node->EntryPtr());
-    std::construct_at(node->EntryPtr() + position, entry);
-    std::uninitialized_copy(
-        entries.begin() + static_cast<std::ptrdiff_t>(position), entries.end(), node->EntryPtr() + position + 1);
+    CopyInsertedEntries(*node, original.entries(), position, entry);
     CopyChildren(*node, original.children());
     return node;
   }
@@ -198,10 +194,7 @@ class HamtSharedNode final {
       return std::nullopt;
     }
     node_type* const node = *result;
-    const auto entries = original.entries();
-    std::uninitialized_copy_n(entries.begin(), position, node->EntryPtr());
-    std::uninitialized_copy(
-        entries.begin() + static_cast<std::ptrdiff_t>(position + 1), entries.end(), node->EntryPtr() + position);
+    CopyErasedEntries(*node, original.entries(), position);
     CopyChildren(*node, original.children());
     return node;
   }
@@ -232,6 +225,46 @@ class HamtSharedNode final {
         children.begin() + static_cast<std::ptrdiff_t>(position + 1), children.end(), node->ChildPtr() + position);
     RetainChildren(node->children());
     return node;
+  }
+
+  // The caller establishes that entry has the collision node's full hash.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryInsertCollisionEntry(
+      Source& source,
+      const node_type& original,
+      std::size_t position,
+      const Entry& entry) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (!original.is_collision() || position > original.entries().size()) {
+      return std::nullopt;
+    }
+    const std::size_t count = original.entries().size() + 1;
+    const auto result = TryAllocateUninitialized(source, {}, count, 0, count);
+    if (result) {
+      CopyInsertedEntries(**result, original.entries(), position, entry);
+    }
+    return result;
+  }
+
+  // Removing the final entry is a tree-level removal, not an empty collision
+  // allocation. The caller handles that case by removing the parent slot.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryEraseCollisionEntry(
+      Source& source,
+      const node_type& original,
+      std::size_t position) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (!original.is_collision() || original.entries().size() <= 1 || position >= original.entries().size()) {
+      return std::nullopt;
+    }
+    const std::size_t count = original.entries().size() - 1;
+    const auto result = TryAllocateUninitialized(source, {}, count, 0, count);
+    if (result) {
+      CopyErasedEntries(**result, original.entries(), position);
+    }
+    return result;
   }
 
   template<mbo::memory::BlockSource Source>
@@ -299,6 +332,23 @@ class HamtSharedNode final {
   static void CopyChildren(node_type& node, std::span<node_type* const> children) noexcept {
     std::uninitialized_copy(children.begin(), children.end(), node.ChildPtr());
     RetainChildren(children);
+  }
+
+  static void CopyInsertedEntries(
+      node_type& node,
+      std::span<const Entry> entries,
+      std::size_t position,
+      const Entry& entry) noexcept {
+    std::uninitialized_copy_n(entries.begin(), position, node.EntryPtr());
+    std::construct_at(node.EntryPtr() + position, entry);
+    std::uninitialized_copy(
+        entries.begin() + static_cast<std::ptrdiff_t>(position), entries.end(), node.EntryPtr() + position + 1);
+  }
+
+  static void CopyErasedEntries(node_type& node, std::span<const Entry> entries, std::size_t position) noexcept {
+    std::uninitialized_copy_n(entries.begin(), position, node.EntryPtr());
+    std::uninitialized_copy(
+        entries.begin() + static_cast<std::ptrdiff_t>(position + 1), entries.end(), node.EntryPtr() + position);
   }
 
   static void RetainChildren(std::span<node_type* const> children) noexcept {

@@ -26,6 +26,7 @@ struct HamtNodeCollisionInsertResult final {
   std::optional<HamtError> error;
 };
 
+// NOLINTBEGIN(readability-identifier-naming): collision buckets use STL container vocabulary.
 template<
     typename Value,
     typename KeyOf,
@@ -35,6 +36,8 @@ template<
     mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource>
 requires ValidHamtOptions<Options>
 class HamtNodeCollisionBucket final {
+  static_assert(std::is_nothrow_invocable_v<const KeyOf&, const Value&>);
+
  private:
   struct Node;
 
@@ -74,11 +77,12 @@ class HamtNodeCollisionBucket final {
   constexpr HamtNodeCollisionInsertResult<Entry> try_insert(Hash hash, Value value) noexcept
   requires(
       std::is_nothrow_move_constructible_v<Value>
-      && noexcept(std::declval<Equal&>()(
-          std::declval<KeyOf&>()(std::declval<const Value&>()),
-          std::declval<KeyOf&>()(std::declval<const Value&>()))))
+      && noexcept(std::declval<const Equal&>()(
+          std::declval<const KeyOf&>()(std::declval<const Value&>()),
+          std::declval<const KeyOf&>()(std::declval<const Value&>()))))
   {
-    if (Entry* const existing = find(hash, std::invoke(key_of_, value)); existing != nullptr) {
+    if (Entry* const existing = find(hash, std::invoke(std::as_const(key_of_), std::as_const(value)));
+        existing != nullptr) {
       return {.entry = existing};
     }
     if (size_ >= Options.maximum_size) {
@@ -93,7 +97,7 @@ class HamtNodeCollisionBucket final {
     }
     Node* const node = std::construct_at(
         reinterpret_cast<Node*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        Node{.next = head_, .entry = Entry{.hash = hash, .value = std::move(value)}});
+        Node{.next = head_, .block = *block, .entry = Entry{.hash = hash, .value = std::move(value)}});
     head_ = node;
     ++size_;
     return {.entry = std::addressof(node->entry), .inserted = true};
@@ -104,7 +108,9 @@ class HamtNodeCollisionBucket final {
     Node** link = &head_;
     while (*link != nullptr) {
       Node* const node = *link;
-      if (node->entry.hash == hash && std::invoke(equal_, std::invoke(key_of_, node->entry.value), key)) {
+      if (node->entry.hash == hash
+          && std::invoke(
+              std::as_const(equal_), std::invoke(std::as_const(key_of_), std::as_const(node->entry.value)), key)) {
         *link = node->next;
         Destroy(node);
         --size_;
@@ -131,6 +137,7 @@ class HamtNodeCollisionBucket final {
  private:
   struct Node final {
     Node* next;
+    mbo::memory::MemoryBlock block;
     Entry entry;
   };
 
@@ -140,8 +147,9 @@ class HamtNodeCollisionBucket final {
   }
 
   constexpr void Destroy(Node* node) noexcept {
+    const mbo::memory::MemoryBlock block = node->block;
     std::destroy_at(node);
-    source_.Release({.data = reinterpret_cast<std::byte*>(node), .size = sizeof(Node), .alignment = alignof(Node)});
+    source_.Release(block);
   }
 
   [[no_unique_address]] Source source_{};
@@ -150,6 +158,8 @@ class HamtNodeCollisionBucket final {
   Node* head_ = nullptr;
   std::size_t size_ = 0;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::container::container_internal
 

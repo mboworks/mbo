@@ -129,10 +129,11 @@ class HamtSharedNode final {
       return std::nullopt;
     }
     const auto block = source.TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source.Release(*block);
-      }
+    if (!block) {
+      return std::nullopt;
+    }
+    if (!Usable(*block, *layout)) {
+      source.Release(*block);
       return std::nullopt;
     }
     auto* const node = std::construct_at(
@@ -147,21 +148,25 @@ class HamtSharedNode final {
     return node;
   }
 
-  static bool Usable(const std::optional<mbo::memory::MemoryBlock>& block, const Layout& layout) noexcept {
-    return block && block->data != nullptr && block->size >= layout.size && block->alignment >= layout.alignment
-           && std::bit_cast<std::uintptr_t>(block->data) % layout.alignment == 0;
+  static bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {
+    return block.data != nullptr && block.size >= layout.size && block.alignment >= layout.alignment
+           && std::bit_cast<std::uintptr_t>(block.data) % layout.alignment == 0;
   }
 
   Entry* EntryPtr() const noexcept {
-    const auto layout = *Layout::TryMake(EntryCount(), index_.NodeSize());
+    constexpr std::size_t kDataOffset =
+        sizeof(node_type) + ((alignof(Entry) - (sizeof(node_type) % alignof(Entry))) % alignof(Entry));
     auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
-    return reinterpret_cast<Entry*>(bytes + layout.data_offset);                     // NOLINT
+    return reinterpret_cast<Entry*>(bytes + kDataOffset);                            // NOLINT
   }
 
   node_type** ChildPtr() const noexcept {
-    const auto layout = *Layout::TryMake(EntryCount(), index_.NodeSize());
-    auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
-    return reinterpret_cast<node_type**>(bytes + layout.child_offset);               // NOLINT
+    // TryCreate validates all size arithmetic before constructing this immutable index.
+    // The node header and therefore EntryPtr() are already pointer-aligned; only the entry-array size needs padding.
+    const std::size_t data_size = EntryCount() * sizeof(Entry);
+    auto* const data_end = reinterpret_cast<std::byte*>(EntryPtr()) + data_size;  // NOLINT
+    const std::size_t padding = (alignof(node_type*) - (data_size % alignof(node_type*))) % alignof(node_type*);
+    return reinterpret_cast<node_type**>(data_end + padding);  // NOLINT
   }
 
   std::size_t EntryCount() const noexcept { return is_collision() ? collision_count_ : index_.DataSize(); }

@@ -47,6 +47,25 @@ using Node = HamtSharedNode<5, int>;
 
 struct HamtSharedNodeTest : ::testing::Test {};
 
+TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(3), Eq(true));
+  ASSERT_THAT(index.InsertData(7), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({3, 5});
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(index.InsertData(5), Eq(true));
+  auto* const inserted =
+      Node::TryInsertEntry(source, *original, index, 1, original->entries().front()).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(original->entries(), ElementsAre(3, 5));
+  Node::Release(source, original);
+  EXPECT_THAT(inserted->entries(), ElementsAre(3, 3, 5));
+  Node::Release(source, inserted);
+  EXPECT_THAT(source.acquired, Eq(source.released));
+}
+
 TEST_F(HamtSharedNodeTest, PadsByteEntriesBeforeChildPointers) {
   using ByteNode = HamtSharedNode<5, std::byte>;
   CountingSource source;
@@ -285,6 +304,87 @@ TEST_F(HamtSharedNodeTest, CollisionAllocationReportsExhaustion) {
   mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
   constexpr auto kEntries = std::to_array<int>({1, 2});
   EXPECT_THAT(Node::TryCreateCollision(exhausted, kEntries), Eq(std::nullopt));
+}
+
+TEST_F(HamtSharedNodeTest, InsertsWithoutChangingTheOriginalNode) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertData(3), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10, 30});
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(index.InsertData(2), Eq(true));
+  auto* const inserted = Node::TryInsertEntry(source, *original, index, 1, 20).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(original->entries(), ElementsAre(10, 30));
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 20, 30));
+  Node::Release(source, original);
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 20, 30));
+  Node::Release(source, inserted);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, InsertsAtBothEndsOfTheDenseEntryArray) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(2), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({20});
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto before_index = index;
+  ASSERT_THAT(before_index.InsertData(1), Eq(true));
+  auto* const before = Node::TryInsertEntry(source, *original, before_index, 0, 10).value_or(nullptr);
+  ASSERT_THAT(before, NotNull());
+  auto after_index = index;
+  ASSERT_THAT(after_index.InsertData(3), Eq(true));
+  auto* const after = Node::TryInsertEntry(source, *original, after_index, 1, 30).value_or(nullptr);
+  ASSERT_THAT(after, NotNull());
+  EXPECT_THAT(before->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(after->entries(), ElementsAre(20, 30));
+  Node::Release(source, original);
+  Node::Release(source, before);
+  Node::Release(source, after);
+  EXPECT_THAT(source.released, Eq(3));
+}
+
+TEST_F(HamtSharedNodeTest, InsertionFailurePreservesTheOriginal) {
+  CountingSource source;
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, {}, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, index, 1, 10), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryInsertEntry(exhausted, *original, index, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(original->entries().empty(), Eq(true));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  Node::Release(source, original);
+  EXPECT_THAT(source.acquired, Eq(1));
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, InsertedNodeRetainsSharedChildrenUntilItsLastRelease) {
+  CountingSource source;
+  auto* const leaf = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(leaf, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(7), Eq(true));
+  const auto children = std::to_array<Node*>({leaf});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  auto* const inserted = Node::TryInsertEntry(source, *original, index, 0, 10).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(leaf->use_count(), Eq(3));
+  Node::Release(source, original);
+  EXPECT_THAT(leaf->use_count(), Eq(2));
+  Node::Release(source, leaf);
+  EXPECT_THAT(inserted->children().front()->use_count(), Eq(1));
+  EXPECT_THAT(inserted->entries(), ElementsAre(10));
+  Node::Release(source, inserted);
+  EXPECT_THAT(source.released, Eq(3));
 }
 
 }  // namespace

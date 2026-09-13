@@ -24,7 +24,7 @@ namespace mbo::container::container_internal {
 // are retained on creation and released with the last parent reference. Atomic
 // reference counting does not make entry or child mutation thread-safe; callers
 // must externally synchronize access and retain a live reference before use.
-// Entry copying must be nothrow. Allocation failure is reported as nullopt;
+// Entry copying and destruction must be nothrow. Allocation failure is reported as nullopt;
 // exceptions escaping a block source terminate through this noexcept interface.
 // NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.
 template<std::size_t FragmentBits, typename Entry>
@@ -90,6 +90,36 @@ class HamtSharedNode final {
     return TryAllocate(source, {}, entries, {}, entries.size());
   }
 
+  // index describes the resulting occupancy; position is the dense entry rank
+  // of the newly occupied slot. The caller preserves all existing data/child
+  // slots and inserts exactly one data slot. The original remains untouched;
+  // entry may alias one of its entries. This layer does not deduplicate keys.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryInsertEntry(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t position,
+      const Entry& entry) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (original.is_collision() || index.DataSize() != original.entries().size() + 1
+        || index.NodeSize() != original.children().size() || position >= index.DataSize()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), original.children(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    const node_type* const node = *result;
+    const auto entries = original.entries();
+    std::uninitialized_copy_n(entries.begin(), position, node->EntryPtr());
+    std::construct_at(node->EntryPtr() + position, entry);
+    std::uninitialized_copy(
+        entries.begin() + static_cast<std::ptrdiff_t>(position), entries.end(), node->EntryPtr() + position + 1);
+    return result;
+  }
+
   template<mbo::memory::BlockSource Source>
   static void Release(Source& source, node_type* node) noexcept {
     if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {
@@ -119,12 +149,26 @@ class HamtSharedNode final {
       std::size_t collision_count) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
+    const auto result = TryAllocateUninitialized(source, index, entries.size(), children, collision_count);
+    if (result) {
+      std::uninitialized_copy(entries.begin(), entries.end(), (*result)->EntryPtr());
+    }
+    return result;
+  }
+
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryAllocateUninitialized(
+      Source& source,
+      index_type index,
+      std::size_t entry_count,
+      std::span<node_type* const> children,
+      std::size_t collision_count) noexcept {
     for (const node_type* child : children) {
       if (child == nullptr) {
         return std::nullopt;
       }
     }
-    const auto layout = Layout::TryMake(entries.size(), children.size());
+    const auto layout = Layout::TryMake(entry_count, children.size());
     if (!layout) {
       return std::nullopt;
     }
@@ -140,7 +184,6 @@ class HamtSharedNode final {
         reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         index, collision_count);
     node->block_ = *block;
-    std::uninitialized_copy(entries.begin(), entries.end(), node->EntryPtr());
     std::uninitialized_copy(children.begin(), children.end(), node->ChildPtr());
     for (node_type* child : children) {
       Retain(child);

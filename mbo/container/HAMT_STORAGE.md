@@ -21,3 +21,24 @@ Initialization is `noexcept`: a source must report recoverable exhaustion throug
 an unexpected exception escaping the source terminates rather than providing rollback.
 Declaring an operation `noexcept` does not make a throwing implementation recoverable.
 The source and block require external synchronization.
+
+## Shared nodes
+
+`HamtSharedNode<FragmentBits, Entry>::TryCreate` creates a packed node with one owned reference.
+Entry and child counts must match the bitmap index; occupied child slots require non-null nodes.
+Each child acquires an additional reference only after allocation succeeds. Failure returns
+`std::nullopt`, without consuming borrowed inputs or changing child reference counts.
+
+`Retain` acquires one additional reference; every owned reference must be balanced by one
+`Release`. Null retain/release operations are harmless. The final release destroys entries and
+releases each owned child reference recursively, returning the original allocation metadata.
+The source must outlive every node and must be the same source used for the node and descendants.
+Nodes must be created through `TryCreate`, not as standalone stack objects.
+
+Entry copies and destruction must be non-throwing. Unexpected source exceptions terminate under
+the allocation method's `noexcept` contract. Atomic reference counting protects reference updates,
+not mutation of entries, topology, publication, or source access. Callers must already hold a live
+reference before retaining; using a released node or releasing an unowned reference is invalid.
+The reference count is 32-bit; callers must not retain when the count is already its maximum.
+Higher-level persistent operations retain immutable nodes; direct mutable spans are internal
+construction machinery and must not modify nodes shared by snapshots.

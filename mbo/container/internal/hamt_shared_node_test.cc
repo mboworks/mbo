@@ -424,6 +424,44 @@ TEST_F(HamtSharedNodeTest, InsertsChildrenAtBothEndsWithoutChangingOriginal) {
   EXPECT_THAT(source.released, Eq(5));
 }
 
+TEST_F(HamtSharedNodeTest, RejectsInsertionThatChangesUnrelatedPayloadCounts) {
+  CountingSource source;
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, index, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), IsEmpty());
+  EXPECT_THAT(original->children(), IsEmpty());
+  EXPECT_THAT(child->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsChildInsertionIntoTerminalCollisions) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(child->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 TEST_F(HamtSharedNodeTest, FailedChildInsertionDoesNotRetainTheChild) {
   CountingSource source;
   auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);

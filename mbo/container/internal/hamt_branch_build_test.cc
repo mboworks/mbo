@@ -3,7 +3,9 @@
 
 #include "mbo/container/internal/hamt_branch_build.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -58,12 +60,75 @@ TEST_F(HamtBranchBuildTest, BuildsEveryCommonPrefixLevelAndDivergence) {
 
 TEST_F(HamtBranchBuildTest, BuildsTerminalFullHashCollisionNodes) {
   mbo::memory::NewDeleteBlockSource source;
-  const auto root =
-      TryBuildHamtBranch<5>(source, 7ULL, Entry{.hash = 7, .key = 10}, 7ULL, Entry{.hash = 7, .key = 20}, 0);
+  const auto root = TryBuildHamtBranch<5>(
+      source, std::uint64_t{7}, Entry{.hash = 7, .key = 10}, std::uint64_t{7}, Entry{.hash = 7, .key = 20}, 0);
   ASSERT_THAT(root, Optional(_));
   EXPECT_THAT((*root)->is_collision(), Eq(true));
-  ASSERT_THAT(FindHamtEntry(*root, 7ULL, 20, HashOf{}, KeyOf{}, Equal{}), NotNull());
+  ASSERT_THAT(FindHamtEntry(*root, std::uint64_t{7}, 20, HashOf{}, KeyOf{}, Equal{}), NotNull());
   Node::Release(source, *root);
+}
+
+struct BudgetSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    if (remaining == 0) {
+      return std::nullopt;
+    }
+    auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+    if (block) {
+      --remaining;
+      ++acquired;
+    }
+    return block;
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept {
+    ++released;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
+
+  std::size_t remaining = 0;
+  std::size_t acquired = 0;
+  std::size_t released = 0;
+};
+
+TEST_F(HamtBranchBuildTest, ReclaimsEveryPartialBranchWhenAnyAllocationFails) {
+  constexpr std::uint64_t kFirstHash = 3;
+  constexpr std::uint64_t kSecondHash = 3 + (std::uint64_t{7} << 15);
+  for (std::size_t allowed = 0; allowed < 4; ++allowed) {
+    SCOPED_TRACE(allowed);
+    BudgetSource source{.remaining = allowed};
+    EXPECT_THAT(
+        TryBuildHamtBranch<5>(source, kFirstHash, Entry{kFirstHash, 10}, kSecondHash, Entry{kSecondHash, 20}, 0),
+        Eq(std::nullopt));
+    EXPECT_THAT(source.acquired, Eq(allowed));
+    EXPECT_THAT(source.released, Eq(allowed));
+  }
+}
+
+TEST_F(HamtBranchBuildTest, OrdersDivergingEntriesByTheirFragmentsNotInsertionOrder) {
+  mbo::memory::NewDeleteBlockSource source;
+  const auto root = TryBuildHamtBranch<5>(source, std::uint64_t{2}, Entry{2, 10}, std::uint64_t{1}, Entry{1, 20}, 0);
+  ASSERT_THAT(root, Optional(_));
+  ASSERT_THAT((*root)->entries().size(), Eq(2));
+  EXPECT_THAT((*root)->entries()[0].key, Eq(20));
+  EXPECT_THAT((*root)->entries()[1].key, Eq(10));
+  Node::Release(source, *root);
+}
+
+TEST_F(HamtBranchBuildTest, RejectsStartingPastTheHashBeforeAllocation) {
+  BudgetSource source{.remaining = 4};
+  constexpr std::size_t kEnd = HamtHashPath<std::uint64_t, 5>::kLevels;
+  EXPECT_THAT(
+      TryBuildHamtBranch<5>(source, std::uint64_t{1}, Entry{1, 10}, std::uint64_t{1}, Entry{1, 20}, kEnd + 1),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      TryBuildHamtBranch<5>(source, std::uint64_t{1}, Entry{1, 10}, std::uint64_t{2}, Entry{2, 20}, kEnd),
+      Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(0));
 }
 
 }  // namespace

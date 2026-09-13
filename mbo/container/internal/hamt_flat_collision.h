@@ -1,0 +1,141 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#ifndef MBO_CONTAINER_INTERNAL_HAMT_FLAT_COLLISION_H_
+#define MBO_CONTAINER_INTERNAL_HAMT_FLAT_COLLISION_H_
+
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <optional>
+#include <type_traits>
+#include <utility>
+
+#include "mbo/container/hamt_options.h"
+#include "mbo/container/internal/hamt_collision.h"
+#include "mbo/container/segmented_sequence.h"
+
+namespace mbo::container::container_internal {
+
+template<typename Hash, typename Value>
+struct HamtStoredValue final {
+  Hash hash;
+  Value value;
+};
+
+template<typename Entry>
+struct HamtCollisionInsertResult final {
+  Entry* entry = nullptr;
+  bool inserted = false;
+  std::optional<HamtError> error;
+};
+
+// NOLINTBEGIN(readability-identifier-naming): collision buckets use the STL container vocabulary.
+template<
+    typename Value,
+    typename KeyOf,
+    typename Equal,
+    HamtOptions Options = {},
+    typename Hash = std::uint64_t,
+    typename Entry = HamtStoredValue<Hash, Value>,
+    typename Storage = SegmentedSequence<Entry>>
+requires ValidHamtOptions<Options>
+class HamtFlatCollisionBucket final {
+  static_assert(std::is_nothrow_invocable_v<const KeyOf&, const Value&>);
+
+ public:
+  // Append preserves existing entry addresses with the default segmented storage. Erasure moves
+  // the last entry into the erased slot and invalidates references to both affected entries.
+  // Hashes must be consistent with equality. Keys and equality are invoked through const references
+  // without copying callable state; supplied operations must not throw.
+  using entry_type = Entry;
+  using iterator = Storage::iterator;
+  using const_iterator = Storage::const_iterator;
+
+  constexpr HamtFlatCollisionBucket() = default;
+
+  constexpr explicit HamtFlatCollisionBucket(KeyOf key_of, Equal equal)
+      : key_of_(std::move(key_of)), equal_(std::move(equal)) {}
+
+  template<typename Key>
+  constexpr iterator find(Hash hash, const Key& key) noexcept {
+    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{std::cref(key_of_)}, std::cref(equal_));
+  }
+
+  template<typename Key>
+  constexpr const_iterator find(Hash hash, const Key& key) const noexcept {
+    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{std::cref(key_of_)}, std::cref(equal_));
+  }
+
+  constexpr HamtCollisionInsertResult<Entry> try_insert(Hash hash, Value value) noexcept
+  requires(
+      std::is_nothrow_move_constructible_v<Value>
+      && noexcept(std::declval<const Equal&>()(
+          std::declval<const KeyOf&>()(std::declval<const Value&>()),
+          std::declval<const KeyOf&>()(std::declval<const Value&>()))))
+  {
+    const auto existing = find(hash, std::invoke(std::as_const(key_of_), std::as_const(value)));
+    if (existing != end()) {
+      return {.entry = std::addressof(*existing), .inserted = false};
+    }
+    if (size() >= Options.maximum_size) {
+      return {.error = HamtError::kMaxSizeExceeded};
+    }
+    auto inserted = entries_.try_emplace_back(Entry{.hash = hash, .value = std::move(value)});
+    if (!inserted) {
+      return {.error = HamtError::kAllocationExhausted};
+    }
+    return {.entry = std::addressof(inserted->get()), .inserted = true};
+  }
+
+  template<typename Key>
+  constexpr bool erase(Hash hash, const Key& key) noexcept
+  requires std::is_nothrow_move_assignable_v<Entry>
+  {
+    const auto pos = find(hash, key);
+    if (pos == end()) {
+      return false;
+    }
+    if (pos != end() - 1) {
+      *pos = std::move(entries_.back());
+    }
+    entries_.pop_back();
+    return true;
+  }
+
+  constexpr iterator begin() noexcept { return entries_.begin(); }
+
+  constexpr const_iterator begin() const noexcept { return entries_.begin(); }
+
+  constexpr iterator end() noexcept { return entries_.end(); }
+
+  constexpr const_iterator end() const noexcept { return entries_.end(); }
+
+  constexpr std::size_t size() const noexcept { return entries_.size(); }
+
+  constexpr bool empty() const noexcept { return entries_.empty(); }
+
+ private:
+  struct HashOf final {
+    constexpr Hash operator()(const Entry& entry) const noexcept { return entry.hash; }
+  };
+
+  struct EntryKeyOf final {
+    std::reference_wrapper<const KeyOf> key_of;
+
+    constexpr decltype(auto) operator()(const Entry& entry) const
+        noexcept(std::is_nothrow_invocable_v<const KeyOf&, const Value&>) {
+      return std::invoke(key_of, entry.value);
+    }
+  };
+
+  [[no_unique_address]] KeyOf key_of_;
+  [[no_unique_address]] Equal equal_;
+  Storage entries_;
+};
+
+// NOLINTEND(readability-identifier-naming)
+
+}  // namespace mbo::container::container_internal
+
+#endif  // MBO_CONTAINER_INTERNAL_HAMT_FLAT_COLLISION_H_

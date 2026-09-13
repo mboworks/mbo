@@ -3,6 +3,7 @@
 
 #include "mbo/container/internal/hamt_erase.h"
 
+#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -131,6 +132,48 @@ TEST_F(HamtEraseTest, ErasesTheLastEntryToAnEmptyRoot) {
   EXPECT_THAT(erased->erased, Eq(true));
   EXPECT_THAT(erased->root, IsNull());
   Node::Release(source, first->root);
+}
+
+TEST_F(HamtEraseTest, ErasesASingleEntryCollisionToAnEmptyRoot) {
+  constexpr auto kEntries = std::to_array<Entry>({Entry{7, 10}});
+  const auto original = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(original, Optional(_));
+  const auto erased = Erase(*original, 7, 10);
+  ASSERT_THAT(erased, Optional(_));
+  EXPECT_THAT(erased->erased, Eq(true));
+  EXPECT_THAT(erased->root, IsNull());
+  EXPECT_THAT(Find(*original, 7, 10), NotNull());
+  Node::Release(source, *original);
+}
+
+TEST_F(HamtEraseTest, MixedHashCollisionDemotionAndReinsertionPreserveEverySnapshot) {
+  const auto first = Insert(nullptr, 7, 10);
+  ASSERT_THAT(first, Optional(_));
+  const auto second = Insert(first->root, 7, 20);
+  ASSERT_THAT(second, Optional(_));
+  constexpr std::uint64_t kNewHash = 7 + (std::uint64_t{7} << 15);
+  const auto split = Insert(second->root, kNewHash, 30);
+  ASSERT_THAT(split, Optional(_));
+  const auto erased = Erase(split->root, 7, 10);
+  ASSERT_THAT(erased, Optional(_));
+  EXPECT_THAT(Find(split->root, 7, 10), NotNull());
+  EXPECT_THAT(Find(erased->root, 7, 10), IsNull());
+  EXPECT_THAT(Find(erased->root, 7, 20), NotNull());
+  EXPECT_THAT(Find(erased->root, kNewHash, 30), NotNull());
+  const auto reinserted = Insert(erased->root, 7, 40);
+  ASSERT_THAT(reinserted, Optional(_));
+  EXPECT_THAT(Find(erased->root, 7, 40), IsNull());
+  const auto compacted = Erase(reinserted->root, kNewHash, 30);
+  ASSERT_THAT(compacted, Optional(_));
+  Node::Release(source, first->root);
+  Node::Release(source, second->root);
+  Node::Release(source, split->root);
+  Node::Release(source, erased->root);
+  Node::Release(source, reinserted->root);
+  EXPECT_THAT(Find(compacted->root, 7, 20), NotNull());
+  EXPECT_THAT(Find(compacted->root, 7, 40), NotNull());
+  EXPECT_THAT(Find(compacted->root, kNewHash, 30), IsNull());
+  Node::Release(source, compacted->root);
 }
 
 }  // namespace

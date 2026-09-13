@@ -218,39 +218,23 @@ class HamtSharedNode final {
       const Entry& entry) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
-    if (original.is_collision() || original.children().empty() || index.data_size() != original.entries().size() + 1
-        || index.node_size() + 1 != original.children().size() || child_position >= original.children().size()
-        || entry_position >= index.data_size()) {
+    if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size() + 1
+        || index.NodeSize() + 1 != original.children().size() || child_position >= original.children().size()
+        || entry_position >= index.DataSize()) {
       return std::nullopt;
     }
-    const auto layout = Layout::TryMake(index.data_size(), index.node_size());
-    if (!layout) {
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
       return std::nullopt;
     }
-    const auto block = source.TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source.Release(*block);
-      }
-      return std::nullopt;
-    }
-    auto* const node = std::construct_at(
-        reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        index);
-    const auto entries = original.entries();
-    std::uninitialized_copy_n(entries.begin(), entry_position, node->EntryPtr());
-    std::construct_at(node->EntryPtr() + entry_position, entry);
-    std::uninitialized_copy(
-        entries.begin() + static_cast<std::ptrdiff_t>(entry_position), entries.end(),
-        node->EntryPtr() + entry_position + 1);
+    node_type* const node = *result;
+    CopyInsertedEntries(*node, original.entries(), entry_position, entry);
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), child_position, node->ChildPtr());
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(child_position + 1), children.end(),
         node->ChildPtr() + child_position);
-    for (node_type* retained : node->children()) {
-      Retain(retained);
-    }
+    RetainChildren(node->children());
     return node;
   }
 

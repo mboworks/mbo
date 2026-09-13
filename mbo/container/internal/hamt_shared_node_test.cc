@@ -220,6 +220,25 @@ TEST_F(HamtSharedNodeTest, EmptyCollisionIsRejectedBeforeAllocation) {
   EXPECT_THAT(source.acquired, Eq(0));
 }
 
+TEST_F(HamtSharedNodeTest, SingletonCollisionKeepsItsRepresentationAcrossSharedOwnership) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({42});
+  const auto node = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(node, Optional(_));
+  Node::Retain(*node);
+  Node::Release(source, *node);
+  const Node& view = **node;
+  EXPECT_THAT(view.is_collision(), Eq(true));
+  EXPECT_THAT(view.entries(), ElementsAre(42));
+  EXPECT_THAT(view.children().empty(), Eq(true));
+  EXPECT_THAT(view.index().DataSize(), Eq(0));
+  EXPECT_THAT(view.index().NodeSize(), Eq(0));
+  EXPECT_THAT(view.use_count(), Eq(1));
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, *node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
 TEST_F(HamtSharedNodeTest, CollisionReleasePreservesOriginalAllocationMetadata) {
   OversizedSource source;
   constexpr auto kEntries = std::to_array<int>({1, 2, 3});

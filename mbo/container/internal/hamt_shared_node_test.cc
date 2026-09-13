@@ -265,5 +265,63 @@ TEST_F(HamtSharedNodeTest, InsertedNodeRetainsSharedChildrenUntilItsLastRelease)
   EXPECT_THAT(source.released, Eq(3));
 }
 
+TEST_F(HamtSharedNodeTest, InsertsChildrenAtBothEndsWithoutChangingOriginal) {
+  CountingSource source;
+  const auto existing = Node::TryCreate(source, {}, {}, {});
+  const auto added = Node::TryCreate(source, {}, {}, {});
+  ASSERT_THAT(existing, Optional(_));
+  ASSERT_THAT(added, Optional(_));
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(4), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10});
+  const auto children = std::to_array<Node*>({*existing});
+  const auto original = Node::TryCreate(source, index, kEntries, children);
+  ASSERT_THAT(original, Optional(_));
+  auto before_index = index;
+  ASSERT_THAT(before_index.InsertNode(2), Eq(true));
+  const auto before = Node::TryInsertChild(source, **original, before_index, 0, *added);
+  ASSERT_THAT(before, Optional(_));
+  auto after_index = index;
+  ASSERT_THAT(after_index.InsertNode(6), Eq(true));
+  const auto after = Node::TryInsertChild(source, **original, after_index, 1, *added);
+  ASSERT_THAT(after, Optional(_));
+  EXPECT_THAT((*original)->children(), ElementsAre(*existing));
+  EXPECT_THAT((*before)->children(), ElementsAre(*added, *existing));
+  EXPECT_THAT((*after)->children(), ElementsAre(*existing, *added));
+  EXPECT_THAT((*before)->entries(), ElementsAre(10));
+  EXPECT_THAT((*after)->entries(), ElementsAre(10));
+  EXPECT_THAT((*existing)->use_count(), Eq(4));
+  EXPECT_THAT((*added)->use_count(), Eq(3));
+  Node::Release(source, *existing);
+  Node::Release(source, *added);
+  Node::Release(source, *original);
+  Node::Release(source, *before);
+  EXPECT_THAT((*after)->children().front()->use_count(), Eq(1));
+  Node::Release(source, *after);
+  EXPECT_THAT(source.released, Eq(5));
+}
+
+TEST_F(HamtSharedNodeTest, FailedChildInsertionDoesNotRetainTheChild) {
+  CountingSource source;
+  const auto original = Node::TryCreate(source, {}, {}, {});
+  const auto child = Node::TryCreate(source, {}, {}, {});
+  ASSERT_THAT(original, Optional(_));
+  ASSERT_THAT(child, Optional(_));
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertChild(source, **original, index, 0, nullptr), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, **original, {}, 0, *child), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, **original, index, 1, *child), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryInsertChild(exhausted, **original, index, 0, *child), Eq(std::nullopt));
+  EXPECT_THAT((*child)->use_count(), Eq(1));
+  EXPECT_THAT((*original)->children().empty(), Eq(true));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, *original);
+  Node::Release(source, *child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 }  // namespace
 }  // namespace mbo::container::container_internal

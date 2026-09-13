@@ -16,6 +16,7 @@ namespace {
 
 using ::testing::_;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::Optional;
 
@@ -139,6 +140,48 @@ TEST_F(HamtSharedNodeTest, ReleasesTheOriginalAllocationMetadata) {
   ASSERT_THAT(node, Optional(_));
   Node::Release(source, *node);
   EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionNodeCanExceedTheIndexedSlotCount) {
+  CountingSource source;
+  std::array<int, Node::index_type::kSlotCount + 1> entries{};
+  for (std::size_t index = 0; index < entries.size(); ++index) {
+    entries[index] = static_cast<int>(index);
+  }
+  const auto node = Node::TryCreateCollision(source, entries);
+  ASSERT_THAT(node, Optional(_));
+  const Node& view = **node;
+  EXPECT_THAT(view.is_collision(), Eq(true));
+  EXPECT_THAT(view.entries(), ElementsAreArray(entries));
+  EXPECT_THAT(view.children().empty(), Eq(true));
+  EXPECT_THAT(view.index().DataSize(), Eq(0));
+  Node::Retain(*node);
+  Node::Release(source, *node);
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, *node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, EmptyCollisionIsRejectedBeforeAllocation) {
+  CountingSource source;
+  EXPECT_THAT(Node::TryCreateCollision(source, {}), Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionReleasePreservesOriginalAllocationMetadata) {
+  OversizedSource source;
+  constexpr auto kEntries = std::to_array<int>({1, 2, 3});
+  const auto node = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(node, Optional(_));
+  EXPECT_THAT((*node)->entries(), ElementsAre(1, 2, 3));
+  Node::Release(source, *node);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionAllocationReportsExhaustion) {
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  constexpr auto kEntries = std::to_array<int>({1, 2});
+  EXPECT_THAT(Node::TryCreateCollision(exhausted, kEntries), Eq(std::nullopt));
 }
 
 }  // namespace

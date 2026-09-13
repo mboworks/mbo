@@ -24,15 +24,16 @@ template<
     typename KeyOf,
     typename Equal>
 requires(
-    std::is_nothrow_invocable_r_v<Hash, HashOf&, const Entry&> && std::is_nothrow_invocable_v<KeyOf&, const Entry&>
-    && std::is_nothrow_invocable_r_v<bool, Equal&, std::invoke_result_t<KeyOf&, const Entry&>, const Key&>)
+    std::is_nothrow_invocable_r_v<Hash, const HashOf&, const Entry&>
+    && std::is_nothrow_invocable_v<const KeyOf&, const Entry&>
+    && std::is_nothrow_invocable_r_v<bool, const Equal&, std::invoke_result_t<const KeyOf&, const Entry&>, const Key&>)
 const Entry* FindHamtEntry(
     const HamtSharedNode<FragmentBits, Entry>* node,
     Hash hash,
     const Key& key,
-    HashOf hash_of,
-    KeyOf key_of,
-    Equal equal) noexcept {
+    const HashOf& hash_of,
+    const KeyOf& key_of,
+    const Equal& equal) noexcept {
   const HamtHashPath<Hash, FragmentBits> path(hash);
   std::size_t level = 0;
   while (node != nullptr) {
@@ -47,17 +48,17 @@ const Entry* FindHamtEntry(
     if (level >= path.kLevels) {
       return nullptr;
     }
-    const std::size_t fragment = path.fragment(level);
-    switch (node->index().kind(fragment)) {
+    const std::size_t fragment = path.Fragment(level);
+    switch (node->index().Kind(fragment)) {
       case HamtSlotKind::kEmpty: return nullptr;
       case HamtSlotKind::kData: {
-        const Entry& entry = node->entries()[node->index().data_index(fragment)];
+        const Entry& entry = node->entries()[node->index().DataIndex(fragment)];
         return std::invoke(hash_of, entry) == hash && std::invoke(equal, std::invoke(key_of, entry), key)
                    ? std::addressof(entry)
                    : nullptr;
       }
       case HamtSlotKind::kNode:
-        node = node->children()[node->index().node_index(fragment)];
+        node = node->children()[node->index().NodeIndex(fragment)];
         ++level;
         break;
     }

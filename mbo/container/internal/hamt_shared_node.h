@@ -91,7 +91,9 @@ class HamtSharedNode final {
   }
 
   // index describes the resulting occupancy; position is the dense entry rank
-  // of the newly occupied slot. The original node remains untouched.
+  // of the newly occupied slot. The caller preserves all existing data/child
+  // slots and inserts exactly one data slot. The original remains untouched;
+  // entry may alias one of its entries. This layer does not deduplicate keys.
   template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryInsertEntry(
       Source& source,

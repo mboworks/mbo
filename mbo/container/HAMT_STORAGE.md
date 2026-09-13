@@ -78,3 +78,16 @@ use const callable references without copying state; their invoked operations mu
 Heterogeneous keys are accepted when the equality callable supports the corresponding types.
 The tree must remain valid and alive throughout lookup and subsequent use of the returned pointer.
 Lookup acquires no ownership and performs no allocation or synchronization.
+
+## Persistent entry insertion
+
+`HamtSharedNode::TryInsertEntry` copies a normal node while inserting one dense entry and
+retaining its existing children. The caller supplies the new bitmap and insertion rank, preserving
+all old slots and adding exactly one data slot. This primitive does not perform key deduplication
+or hash routing. Collision nodes use separate operations.
+
+The entry argument may reference an original entry: the old node stays untouched, and a successful
+result owns an independent packed entry array with one node reference. Invalid counts/rank or
+allocation failure returns `std::nullopt`, preserving the original and its child reference counts.
+The caller must balance the returned reference and keep borrowed inputs alive through the call.
+Non-throwing copies/destruction are required; no exception rollback mechanism is introduced.

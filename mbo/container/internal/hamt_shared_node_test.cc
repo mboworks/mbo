@@ -45,6 +45,24 @@ using Node = HamtSharedNode<5, int>;
 
 struct HamtSharedNodeTest : ::testing::Test {};
 
+TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(3), Eq(true));
+  ASSERT_THAT(index.InsertData(7), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({3, 5});
+  const auto original = Node::TryCreate(source, index, kEntries, {});
+  ASSERT_THAT(original, Optional(_));
+  ASSERT_THAT(index.InsertData(5), Eq(true));
+  const auto inserted = Node::TryInsertEntry(source, **original, index, 1, (*original)->entries()[0]);
+  ASSERT_THAT(inserted, Optional(_));
+  EXPECT_THAT((*original)->entries(), ElementsAre(3, 5));
+  Node::Release(source, *original);
+  EXPECT_THAT((*inserted)->entries(), ElementsAre(3, 3, 5));
+  Node::Release(source, *inserted);
+  EXPECT_THAT(source.acquired, Eq(source.released));
+}
+
 TEST_F(HamtSharedNodeTest, RejectsOccupiedSlotsWithoutAChildBeforeAllocation) {
   CountingSource source;
   Node::index_type index;

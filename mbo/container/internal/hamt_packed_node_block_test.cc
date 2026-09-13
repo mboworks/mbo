@@ -15,6 +15,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::IsEmpty;
 
 struct Header final {
   std::uint64_t bitmap;
@@ -28,10 +29,10 @@ struct HamtPackedNodeBlockTest : ::testing::Test {};
 TEST_F(HamtPackedNodeBlockTest, OwnsOneAlignedBlockWithDenseArrays) {
   Source source;
   Block block(source);
-  constexpr std::array entries = {3, 5, 7};
-  const std::array<const void*, 2> children = {&source, &block};
+  constexpr auto kEntries = std::to_array<int>({3, 5, 7});
+  const auto children = std::to_array<const void*>({&source, &block});
 
-  ASSERT_THAT(block.TryInitialize(Header{.bitmap = 42}, entries, children), Eq(true));
+  ASSERT_THAT(block.TryInitialize(Header{.bitmap = 42}, kEntries, children), Eq(true));
   EXPECT_THAT(block.header().bitmap, Eq(42));
   EXPECT_THAT(block.entries(), ElementsAre(3, 5, 7));
   EXPECT_THAT(block.children(), ElementsAre(&source, &block));
@@ -41,6 +42,41 @@ TEST_F(HamtPackedNodeBlockTest, OwnsOneAlignedBlockWithDenseArrays) {
   EXPECT_THAT(block.empty(), Eq(true));
   EXPECT_THAT(block.TryInitialize(Header{.bitmap = 9}, {}, {}), Eq(true));
   EXPECT_THAT(block.header().bitmap, Eq(9));
+}
+
+TEST_F(HamtPackedNodeBlockTest, EmptyAndClearedBlocksExposeEmptySpans) {
+  Source source;
+  Block block(source);
+  const auto& const_block = block;
+  EXPECT_THAT(block.entries(), IsEmpty());
+  EXPECT_THAT(block.children(), IsEmpty());
+  EXPECT_THAT(const_block.entries(), IsEmpty());
+  EXPECT_THAT(const_block.children(), IsEmpty());
+  ASSERT_THAT(block.TryInitialize(Header{}, {}, {}), Eq(true));
+  block.clear();
+  block.clear();
+  EXPECT_THAT(const_block.entries(), IsEmpty());
+  EXPECT_THAT(const_block.children(), IsEmpty());
+}
+
+TEST_F(HamtPackedNodeBlockTest, HeaderAccessRequiresInitialization) {
+  Source source;
+  Block block(source);
+  const auto& const_block = block;
+  EXPECT_DEATH((void)block.header(), "requires an initialized block");
+  EXPECT_DEATH((void)const_block.header(), "requires an initialized block");
+}
+
+TEST_F(HamtPackedNodeBlockTest, SourceExhaustionLeavesBlockEmptyAndDestructionReleasesStorage) {
+  Source source;
+  Block waiting(source);
+  {
+    Block owner(source);
+    ASSERT_THAT(owner.TryInitialize(Header{}, {}, {}), Eq(true));
+    EXPECT_THAT(waiting.TryInitialize(Header{}, {}, {}), Eq(false));
+    EXPECT_THAT(waiting.empty(), Eq(true));
+  }
+  EXPECT_THAT(waiting.TryInitialize(Header{}, {}, {}), Eq(true));
 }
 
 }  // namespace

@@ -139,6 +139,7 @@ cc_library(
     hdrs = ["internal/hamt_packed_node_block.h"],
     deps = [
         ":hamt_packed_node_layout_cc",
+        "//mbo/config:require_cc",
         "//mbo/memory:block_source_cc",
     ],
 )

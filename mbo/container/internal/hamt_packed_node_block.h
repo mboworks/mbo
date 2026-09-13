@@ -12,11 +12,13 @@
 #include <type_traits>
 #include <utility>
 
+#include "mbo/config/require.h"
 #include "mbo/container/internal/hamt_packed_node_layout.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container::container_internal {
 
+// NOLINTBEGIN(readability-identifier-naming): packed storage exposes STL-style span accessors.
 template<typename Header, typename Entry, typename Child, mbo::memory::BlockSource Source>
 class HamtPackedNodeBlock final {
  public:
@@ -61,17 +63,31 @@ class HamtPackedNodeBlock final {
     return true;
   }
 
-  constexpr Header& header() noexcept { return *HeaderPtr(); }
+  constexpr Header& header() noexcept {
+    MBO_CONFIG_REQUIRE(!empty(), "Packed HAMT header access requires an initialized block");
+    return *HeaderPtr();
+  }
 
-  constexpr const Header& header() const noexcept { return *HeaderPtr(); }
+  constexpr const Header& header() const noexcept {
+    MBO_CONFIG_REQUIRE(!empty(), "Packed HAMT header access requires an initialized block");
+    return *HeaderPtr();
+  }
 
-  constexpr std::span<Entry> entries() noexcept { return {EntryPtr(), entry_count_}; }
+  constexpr std::span<Entry> entries() noexcept {
+    return empty() ? std::span<Entry>{} : std::span<Entry>{EntryPtr(), entry_count_};
+  }
 
-  constexpr std::span<const Entry> entries() const noexcept { return {EntryPtr(), entry_count_}; }
+  constexpr std::span<const Entry> entries() const noexcept {
+    return empty() ? std::span<const Entry>{} : std::span<const Entry>{EntryPtr(), entry_count_};
+  }
 
-  constexpr std::span<Child> children() noexcept { return {ChildPtr(), child_count_}; }
+  constexpr std::span<Child> children() noexcept {
+    return empty() ? std::span<Child>{} : std::span<Child>{ChildPtr(), child_count_};
+  }
 
-  constexpr std::span<const Child> children() const noexcept { return {ChildPtr(), child_count_}; }
+  constexpr std::span<const Child> children() const noexcept {
+    return empty() ? std::span<const Child>{} : std::span<const Child>{ChildPtr(), child_count_};
+  }
 
   constexpr bool empty() const noexcept { return block_.data == nullptr; }
 
@@ -116,6 +132,8 @@ class HamtPackedNodeBlock final {
   std::size_t entry_count_ = 0;
   std::size_t child_count_ = 0;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::container::container_internal
 

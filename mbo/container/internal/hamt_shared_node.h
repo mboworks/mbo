@@ -206,6 +206,34 @@ class HamtSharedNode final {
     return node;
   }
 
+  // The copied node owns only the remaining children. The removed child stays
+  // owned by the original node until that original owner's last release.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryEraseChild(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t position) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size()
+        || index.NodeSize() + 1 != original.children().size() || position >= original.children().size()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    node_type* const node = *result;
+    std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(position + 1), children.end(), node->ChildPtr() + position);
+    RetainChildren(node->children());
+    return node;
+  }
+
   template<mbo::memory::BlockSource Source>
   static void Release(Source& source, node_type* node) noexcept {
     if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {

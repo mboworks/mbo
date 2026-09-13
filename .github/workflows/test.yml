@@ -186,6 +186,9 @@ jobs:
             if [ "${{inputs.compiler}}" == "gcc" ]; then
               BAZEL_ARGS+=("--config=asan-gcc")
             fi
+            if [ "${RUNNER_OS}" == "macOS" ] && [ "${{inputs.compiler}}" == "clang" ]; then
+              BAZEL_ARGS+=("--config=asan-macos")
+            fi
           elif [ "${{inputs.bazel_config}}" == "coverage" ]; then
             BAZEL_ARGS+=("-c" "dbg")
             if [ "${{inputs.compiler}}" == "clang" ]; then

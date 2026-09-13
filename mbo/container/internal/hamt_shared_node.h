@@ -29,7 +29,7 @@ namespace mbo::container::container_internal {
 // NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.
 template<std::size_t FragmentBits, typename Entry>
 class HamtSharedNode final {
-  static_assert(std::is_nothrow_destructible_v<Entry>, "Packed HAMT entries must have nothrow destruction");
+  static_assert(std::is_nothrow_destructible_v<Entry>, "Shared HAMT entries require non-throwing destruction");
 
  public:
   using node_type = HamtSharedNode;
@@ -161,6 +161,11 @@ class HamtSharedNode final {
       std::size_t entry_count,
       std::span<node_type* const> children,
       std::size_t collision_count) noexcept {
+    for (const node_type* child : children) {
+      if (child == nullptr) {
+        return std::nullopt;
+      }
+    }
     const auto layout = Layout::TryMake(entry_count, children.size());
     if (!layout) {
       return std::nullopt;

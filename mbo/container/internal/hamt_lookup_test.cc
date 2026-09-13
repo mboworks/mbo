@@ -39,6 +39,39 @@ using Node = HamtSharedNode<5, Entry>;
 
 struct HamtLookupTest : ::testing::Test {};
 
+struct NonCopyingKeyOf final {
+  explicit NonCopyingKeyOf(int& calls) noexcept : calls(calls) {}
+
+  NonCopyingKeyOf(const NonCopyingKeyOf&) = delete;
+  NonCopyingKeyOf& operator=(const NonCopyingKeyOf&) = delete;
+  NonCopyingKeyOf(NonCopyingKeyOf&&) = delete;
+  NonCopyingKeyOf& operator=(NonCopyingKeyOf&&) = delete;
+  ~NonCopyingKeyOf() = default;
+
+  int operator()(const Entry& entry) const noexcept {
+    ++calls;
+    return entry.key;
+  }
+
+  int& calls;
+};
+
+TEST_F(HamtLookupTest, BorrowsCallableStateAndRejectsHashesBeforeKeyExtraction) {
+  mbo::memory::NewDeleteBlockSource source;
+  constexpr auto kEntries = std::to_array<Entry>({Entry{2, 20}, Entry{2, 21}});
+  const auto node = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(node, Optional(_));
+  int calls = 0;
+  const NonCopyingKeyOf key_of(calls);
+  EXPECT_THAT(FindHamtEntry(*node, std::uint64_t{34}, 21, HashOf{}, key_of, Equal{}), Eq(nullptr));
+  EXPECT_THAT(calls, Eq(0));
+  const Entry* found = FindHamtEntry(*node, std::uint64_t{2}, 21, HashOf{}, key_of, Equal{});
+  ASSERT_THAT(found, NotNull());
+  EXPECT_THAT(found->key, Eq(21));
+  EXPECT_THAT(calls, Eq(2));
+  Node::Release(source, *node);
+}
+
 TEST_F(HamtLookupTest, TraversesBitmapNodesAndTerminalCollisions) {
   mbo::memory::NewDeleteBlockSource source;
   constexpr auto kCollisions = std::to_array<Entry>({Entry{.hash = 2, .key = 20}, Entry{.hash = 2, .key = 21}});

@@ -56,3 +56,15 @@ not from the root. The caller must have established equal fragments before `star
 `start_level <= kLevels`; an exhausted path is valid. Both helpers are constexpr and allocate
 no storage. Full-hash collisions still require key equality; shared fragments never establish
 key equality by themselves.
+
+## Full-hash collision nodes
+
+`HamtSharedNode::TryCreateCollision` creates a non-empty dense entry array with no indexed
+children. Collision entry counts are independent of the bitmap slot count. The caller must
+establish that every entry has the same complete hash; this storage layer neither extracts
+hashes nor deduplicates keys. The collision flag distinguishes this representation even for
+a singleton bucket. Ordinary nodes still require matching bitmap counts and non-null children.
+
+Normal and collision construction share allocation validation, object construction, and exact
+source-metadata reclamation. Empty collision input, invalid layout, exhaustion, or unusable
+source storage returns `std::nullopt`. Owned references and lifetime rules are unchanged.

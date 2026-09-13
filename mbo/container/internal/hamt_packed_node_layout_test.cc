@@ -47,7 +47,31 @@ TEST_F(HamtPackedNodeLayoutTest, RejectsArithmeticOverflowBeforeAllocation) {
   EXPECT_THAT(Layout::TryMake(0, std::numeric_limits<std::size_t>::max()), Eq(std::nullopt));
 }
 
+TEST_F(HamtPackedNodeLayoutTest, RejectsAlignmentPaddingOverflow) {
+  using PaddingLayout = HamtPackedNodeLayout<Header, char, Entry>;
+  constexpr auto kMax = std::numeric_limits<std::size_t>::max();
+  EXPECT_THAT(PaddingLayout::TryMake(kMax - sizeof(Header), 0), Eq(std::nullopt));
+}
+
+TEST_F(HamtPackedNodeLayoutTest, EmptyArraysStillReserveAnAlignedHeader) {
+  const auto layout = Layout::TryMake(0, 0);
+  ASSERT_THAT(layout, Optional(_));
+  EXPECT_THAT(layout->data_offset, Eq(alignof(Entry)));
+  EXPECT_THAT(layout->child_offset, Eq(layout->data_offset));
+  EXPECT_THAT(layout->size, Eq(layout->child_offset));
+}
+
+TEST_F(HamtPackedNodeLayoutTest, AcceptsLargestRepresentableDenseEntryArray) {
+  constexpr auto kMax = std::numeric_limits<std::size_t>::max();
+  constexpr std::size_t kCount = (kMax - alignof(Entry)) / sizeof(Entry);
+  EXPECT_THAT(Layout::TryMake(kCount, 0), Optional(_));
+  EXPECT_THAT(Layout::TryMake(kCount + 1, 0), Eq(std::nullopt));
+}
+
 static_assert(Layout::TryMake(1, 1).has_value());
+static_assert(Layout::TryMake(1, 1)->data_offset == 16);
+static_assert(Layout::TryMake(1, 1)->child_offset == 32);
+static_assert(Layout::TryMake(1, 1)->size == 40);
 
 }  // namespace
 }  // namespace mbo::container::container_internal

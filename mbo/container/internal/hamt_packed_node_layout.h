@@ -18,7 +18,9 @@ struct HamtPackedNodeLayout final {
   std::size_t size;
   std::size_t alignment;
 
-  static constexpr std::optional<HamtPackedNodeLayout> TryMake(
+  // Computes a single allocation containing the header, dense entries, and child handles.
+  // Every offset is relative to an allocation aligned to `alignment`; overflow fails before IO.
+  [[nodiscard]] static constexpr std::optional<HamtPackedNodeLayout> TryMake(
       std::size_t data_count,
       std::size_t child_count) noexcept {
     const auto data_offset = Align(sizeof(Header), alignof(Entry));

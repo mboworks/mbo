@@ -29,7 +29,7 @@ namespace mbo::container::container_internal {
 // NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.
 template<std::size_t FragmentBits, typename Entry>
 class HamtSharedNode final {
-  static_assert(std::is_nothrow_destructible_v<Entry>, "Packed HAMT entries must have nothrow destruction");
+  static_assert(std::is_nothrow_destructible_v<Entry>, "Shared HAMT entries require non-throwing destruction");
 
  public:
   using node_type = HamtSharedNode;
@@ -91,7 +91,9 @@ class HamtSharedNode final {
   }
 
   // index describes the resulting occupancy; position is the dense entry rank
-  // of the newly occupied slot. The original node remains untouched.
+  // of the newly occupied slot. The caller preserves all existing data/child
+  // slots and inserts exactly one data slot. The original remains untouched;
+  // entry may alias one of its entries. This layer does not deduplicate keys.
   template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryInsertEntry(
       Source& source,
@@ -178,6 +180,11 @@ class HamtSharedNode final {
       std::size_t collision_count) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
+    for (const node_type* child : children) {
+      if (child == nullptr) {
+        return std::nullopt;
+      }
+    }
     const auto result = TryAllocateUninitialized(source, index, entries.size(), children.size(), collision_count);
     if (result) {
       std::uninitialized_copy(entries.begin(), entries.end(), (*result)->EntryPtr());

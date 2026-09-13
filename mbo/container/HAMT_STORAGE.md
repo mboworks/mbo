@@ -91,3 +91,14 @@ result owns an independent packed entry array with one node reference. Invalid c
 allocation failure returns `std::nullopt`, preserving the original and its child reference counts.
 The caller must balance the returned reference and keep borrowed inputs alive through the call.
 Non-throwing copies/destruction are required; no exception rollback mechanism is introduced.
+
+## Persistent child insertion
+
+`TryInsertChild` copies a normal node, preserving its entries and adding one child at the
+supplied dense rank. The caller preserves all old slots and adds exactly one node slot in the
+result bitmap. The child must be non-null and alive throughout the call; it may already be
+referenced by the original. Successful construction retains every resulting child reference.
+
+Invalid counts/rank, a null child, or allocation failure returns `std::nullopt` without changing
+the original or retaining the proposed child. The result owns one node reference. Releasing
+the original cannot invalidate children retained by the result; the source must outlive both.

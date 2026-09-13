@@ -267,6 +267,34 @@ class HamtSharedNode final {
     return result;
   }
 
+  // The caller preserves the entry's routing hash and the container's key
+  // uniqueness. This primitive copies storage; it does not reindex a new key.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryReplaceEntry(
+      Source& source,
+      const node_type& original,
+      std::size_t position,
+      const Entry& replacement) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (position >= original.entries().size()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(
+        source, original.index_, original.entries().size(), original.children().size(), original.collision_count_);
+    if (!result) {
+      return std::nullopt;
+    }
+    node_type* const node = *result;
+    const auto entries = original.entries();
+    std::uninitialized_copy_n(entries.begin(), position, node->EntryPtr());
+    std::construct_at(node->EntryPtr() + position, replacement);
+    std::uninitialized_copy(
+        entries.begin() + static_cast<std::ptrdiff_t>(position + 1), entries.end(), node->EntryPtr() + position + 1);
+    CopyChildren(*node, original.children());
+    return node;
+  }
+
   template<mbo::memory::BlockSource Source>
   static void Release(Source& source, node_type* node) noexcept {
     if (node == nullptr || node->references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {

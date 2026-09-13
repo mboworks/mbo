@@ -4,6 +4,7 @@
 #include "mbo/container/internal/hamt_lookup.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 #include "gmock/gmock.h"
@@ -102,6 +103,39 @@ TEST_F(HamtLookupTest, TraversesBitmapNodesAndTerminalCollisions) {
 TEST_F(HamtLookupTest, NullRootIsAnEmptyLookup) {
   EXPECT_THAT(
       FindHamtEntry(static_cast<const Node*>(nullptr), std::uint64_t{0}, 0, HashOf{}, KeyOf{}, Equal{}), Eq(nullptr));
+}
+
+TEST_F(HamtLookupTest, TraversesTheEntireHashWidthForEverySupportedFragmentSize) {
+  const auto check_width = []<std::size_t FragmentBits>() {
+    using DeepNode = HamtSharedNode<FragmentBits, Entry>;
+    using Path = HamtHashPath<std::uint64_t, FragmentBits>;
+    mbo::memory::NewDeleteBlockSource source;
+    constexpr std::uint64_t kHash = std::uint64_t{1} << 63;
+    constexpr Path kPath(kHash);
+    typename DeepNode::index_type leaf_index;
+    ASSERT_THAT(leaf_index.InsertData(kPath.Fragment(Path::kLevels - 1)), Eq(true));
+    constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = kHash, .key = 42}});
+    const auto leaf = DeepNode::TryCreate(source, leaf_index, kEntries, {});
+    ASSERT_THAT(leaf, Optional(_));
+    DeepNode* root = *leaf;
+    for (std::size_t level = Path::kLevels - 1; level > 0; --level) {
+      typename DeepNode::index_type index;
+      ASSERT_THAT(index.InsertNode(kPath.Fragment(level - 1)), Eq(true));
+      const auto children = std::to_array<DeepNode*>({root});
+      const auto parent = DeepNode::TryCreate(source, index, {}, children);
+      ASSERT_THAT(parent, Optional(_));
+      DeepNode::Release(source, root);
+      root = *parent;
+    }
+    EXPECT_THAT(FindHamtEntry(root, kHash, 42, HashOf{}, KeyOf{}, Equal{}), Eq(&(*leaf)->entries().front()));
+    EXPECT_THAT(FindHamtEntry(root, kHash, 43, HashOf{}, KeyOf{}, Equal{}), Eq(nullptr));
+    EXPECT_THAT(FindHamtEntry(root, std::uint64_t{0}, 42, HashOf{}, KeyOf{}, Equal{}), Eq(nullptr));
+    DeepNode::Release(source, root);
+  };
+  check_width.operator()<4>();
+  check_width.operator()<5>();
+  check_width.operator()<6>();
+  check_width.operator()<7>();
 }
 
 TEST_F(HamtLookupTest, DirectEntryRequiresBothFullHashAndKeyToMatch) {

@@ -68,3 +68,13 @@ a singleton bucket. Ordinary nodes still require matching bitmap counts and non-
 Normal and collision construction share allocation validation, object construction, and exact
 source-metadata reclamation. Empty collision input, invalid layout, exhaustion, or unusable
 source storage returns `std::nullopt`. Owned references and lifetime rules are unchanged.
+
+## Borrowed lookup
+
+`FindHamtEntry` follows one bitmap hash path, scanning only terminal full-hash collision buckets.
+It returns a borrowed `const Entry*`, or null for an empty tree or absent key. Complete hashes
+are compared before key extraction/equality. Hash extraction, key extraction, and equality
+use const callable references without copying state; their invoked operations must be non-throwing.
+Heterogeneous keys are accepted when the equality callable supports the corresponding types.
+The tree must remain valid and alive throughout lookup and subsequent use of the returned pointer.
+Lookup acquires no ownership and performs no allocation or synchronization.

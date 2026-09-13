@@ -102,6 +102,29 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_lookup_cc",
+    hdrs = ["internal/hamt_lookup.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_node_index_cc",
+        ":hamt_shared_node_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_lookup_test",
+    size = "small",
+    srcs = ["internal/hamt_lookup_test.cc"],
+    deps = [
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_merge_path_cc",
     hdrs = ["internal/hamt_merge_path.h"],
     deps = [":hamt_hash_path_cc"],

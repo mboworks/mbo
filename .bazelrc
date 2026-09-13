@@ -101,6 +101,12 @@ common:asan --linkopt -ldl
 common:asan --define tcmalloc=disabled
 common:asan --define signal_trace=disabled
 
+# LLVM 22's Darwin lld fails exception unwinding with ASan and UBSan together.
+# Keep both sanitizers, but use Apple's linker and real archives on macOS.
+# Add this config alongside --config=clang --config=asan on macOS only.
+common:asan-macos --features=-supports_start_end_lib
+common:asan-macos --linkopt=--ld-path=/usr/bin/ld
+
 # GCC 14 cannot compile Abseil's constexpr function-pointer comparison when
 # the UBSan umbrella is enabled, including when an external header template is
 # instantiated by first-party code. Keep GCC's sanitizer cell ASan-only; the

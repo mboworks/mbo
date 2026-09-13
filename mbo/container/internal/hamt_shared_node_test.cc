@@ -387,5 +387,101 @@ TEST_F(HamtSharedNodeTest, InsertedNodeRetainsSharedChildrenUntilItsLastRelease)
   EXPECT_THAT(source.released, Eq(3));
 }
 
+TEST_F(HamtSharedNodeTest, InsertsChildrenAtBothEndsWithoutChangingOriginal) {
+  CountingSource source;
+  auto* const existing = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const added = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(existing, NotNull());
+  ASSERT_THAT(added, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(4), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10});
+  const auto children = std::to_array<Node*>({existing});
+  auto* const original = Node::TryCreate(source, index, kEntries, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto before_index = index;
+  ASSERT_THAT(before_index.InsertNode(2), Eq(true));
+  auto* const before = Node::TryInsertChild(source, *original, before_index, 0, added).value_or(nullptr);
+  ASSERT_THAT(before, NotNull());
+  auto after_index = index;
+  ASSERT_THAT(after_index.InsertNode(6), Eq(true));
+  auto* const after = Node::TryInsertChild(source, *original, after_index, 1, added).value_or(nullptr);
+  ASSERT_THAT(after, NotNull());
+  EXPECT_THAT(original->children(), ElementsAre(existing));
+  EXPECT_THAT(before->children(), ElementsAre(added, existing));
+  EXPECT_THAT(after->children(), ElementsAre(existing, added));
+  EXPECT_THAT(before->entries(), ElementsAre(10));
+  EXPECT_THAT(after->entries(), ElementsAre(10));
+  EXPECT_THAT(existing->use_count(), Eq(4));
+  EXPECT_THAT(added->use_count(), Eq(3));
+  Node::Release(source, existing);
+  Node::Release(source, added);
+  Node::Release(source, original);
+  Node::Release(source, before);
+  EXPECT_THAT(after->children().front()->use_count(), Eq(1));
+  Node::Release(source, after);
+  EXPECT_THAT(source.released, Eq(5));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsInsertionThatChangesUnrelatedPayloadCounts) {
+  CountingSource source;
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, index, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), IsEmpty());
+  EXPECT_THAT(original->children(), IsEmpty());
+  EXPECT_THAT(child->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsChildInsertionIntoTerminalCollisions) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(child->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, FailedChildInsertionDoesNotRetainTheChild) {
+  CountingSource source;
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 0, nullptr), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, {}, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertChild(source, *original, index, 1, child), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryInsertChild(exhausted, *original, index, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(child->use_count(), Eq(1));
+  EXPECT_THAT(original->children().empty(), Eq(true));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 }  // namespace
 }  // namespace mbo::container::container_internal

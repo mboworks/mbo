@@ -107,7 +107,7 @@ class HamtSharedNode final {
         || index.NodeSize() != original.children().size() || position >= index.DataSize()) {
       return std::nullopt;
     }
-    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), original.children(), 0);
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
     if (!result) {
       return std::nullopt;
     }
@@ -117,6 +117,37 @@ class HamtSharedNode final {
     std::construct_at(node->EntryPtr() + position, entry);
     std::uninitialized_copy(
         entries.begin() + static_cast<std::ptrdiff_t>(position), entries.end(), node->EntryPtr() + position + 1);
+    CopyChildren(*node, original.children());
+    return result;
+  }
+
+  // index describes the resulting occupancy; position is the dense child rank
+  // of the new node slot. The new node owns an additional reference to child.
+  template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryInsertChild(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t position,
+      node_type* child) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (child == nullptr || original.is_collision() || index.DataSize() != original.entries().size()
+        || index.NodeSize() != original.children().size() + 1 || position >= index.NodeSize()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    const node_type* const node = *result;
+    std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
+    std::construct_at(node->ChildPtr() + position, child);
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(position), children.end(), node->ChildPtr() + position + 1);
+    RetainChildren(node->children());
     return result;
   }
 
@@ -149,9 +180,15 @@ class HamtSharedNode final {
       std::size_t collision_count) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
-    const auto result = TryAllocateUninitialized(source, index, entries.size(), children, collision_count);
+    for (const node_type* child : children) {
+      if (child == nullptr) {
+        return std::nullopt;
+      }
+    }
+    const auto result = TryAllocateUninitialized(source, index, entries.size(), children.size(), collision_count);
     if (result) {
       std::uninitialized_copy(entries.begin(), entries.end(), (*result)->EntryPtr());
+      CopyChildren(**result, children);
     }
     return result;
   }
@@ -161,14 +198,9 @@ class HamtSharedNode final {
       Source& source,
       index_type index,
       std::size_t entry_count,
-      std::span<node_type* const> children,
+      std::size_t child_count,
       std::size_t collision_count) noexcept {
-    for (const node_type* child : children) {
-      if (child == nullptr) {
-        return std::nullopt;
-      }
-    }
-    const auto layout = Layout::TryMake(entry_count, children.size());
+    const auto layout = Layout::TryMake(entry_count, child_count);
     if (!layout) {
       return std::nullopt;
     }
@@ -184,11 +216,18 @@ class HamtSharedNode final {
         reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         index, collision_count);
     node->block_ = *block;
-    std::uninitialized_copy(children.begin(), children.end(), node->ChildPtr());
+    return node;
+  }
+
+  static void CopyChildren(const node_type& node, std::span<node_type* const> children) noexcept {
+    std::uninitialized_copy(children.begin(), children.end(), node.ChildPtr());
+    RetainChildren(children);
+  }
+
+  static void RetainChildren(std::span<node_type* const> children) noexcept {
     for (node_type* child : children) {
       Retain(child);
     }
-    return node;
   }
 
   static bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {

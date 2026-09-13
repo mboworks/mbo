@@ -123,13 +123,13 @@ class HamtPackedNodeBlock final {
   }
 
   constexpr Entry* EntryPtr() const noexcept {
-    return reinterpret_cast<Entry*>(
-        block_.data + layout_.data_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Entry*>(block_.data + layout_.data_offset);
   }
 
   constexpr Child* ChildPtr() const noexcept {
-    return reinterpret_cast<Child*>(
-        block_.data + layout_.child_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Child*>(block_.data + layout_.child_offset);
   }
 
   Source* source_;

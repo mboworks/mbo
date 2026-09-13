@@ -53,15 +53,16 @@ TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {
   ASSERT_THAT(index.InsertData(3), Eq(true));
   ASSERT_THAT(index.InsertData(7), Eq(true));
   constexpr auto kEntries = std::to_array<int>({3, 5});
-  const auto original = Node::TryCreate(source, index, kEntries, {});
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   ASSERT_THAT(index.InsertData(5), Eq(true));
-  const auto inserted = Node::TryInsertEntry(source, **original, index, 1, (*original)->entries()[0]);
-  ASSERT_THAT(inserted, Optional(_));
-  EXPECT_THAT((*original)->entries(), ElementsAre(3, 5));
-  Node::Release(source, *original);
-  EXPECT_THAT((*inserted)->entries(), ElementsAre(3, 3, 5));
-  Node::Release(source, *inserted);
+  auto* const inserted =
+      Node::TryInsertEntry(source, *original, index, 1, original->entries().front()).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(original->entries(), ElementsAre(3, 5));
+  Node::Release(source, original);
+  EXPECT_THAT(inserted->entries(), ElementsAre(3, 3, 5));
+  Node::Release(source, inserted);
   EXPECT_THAT(source.acquired, Eq(source.released));
 }
 
@@ -311,16 +312,16 @@ TEST_F(HamtSharedNodeTest, InsertsWithoutChangingTheOriginalNode) {
   ASSERT_THAT(index.InsertData(1), Eq(true));
   ASSERT_THAT(index.InsertData(3), Eq(true));
   constexpr auto kEntries = std::to_array<int>({10, 30});
-  const auto original = Node::TryCreate(source, index, kEntries, {});
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   ASSERT_THAT(index.InsertData(2), Eq(true));
-  const auto inserted = Node::TryInsertEntry(source, **original, index, 1, 20);
-  ASSERT_THAT(inserted, Optional(_));
-  EXPECT_THAT((*original)->entries(), ElementsAre(10, 30));
-  EXPECT_THAT((*inserted)->entries(), ElementsAre(10, 20, 30));
-  Node::Release(source, *original);
-  EXPECT_THAT((*inserted)->entries(), ElementsAre(10, 20, 30));
-  Node::Release(source, *inserted);
+  auto* const inserted = Node::TryInsertEntry(source, *original, index, 1, 20).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(original->entries(), ElementsAre(10, 30));
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 20, 30));
+  Node::Release(source, original);
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 20, 30));
+  Node::Release(source, inserted);
   EXPECT_THAT(source.released, Eq(2));
 }
 
@@ -329,60 +330,60 @@ TEST_F(HamtSharedNodeTest, InsertsAtBothEndsOfTheDenseEntryArray) {
   Node::index_type index;
   ASSERT_THAT(index.InsertData(2), Eq(true));
   constexpr auto kEntries = std::to_array<int>({20});
-  const auto original = Node::TryCreate(source, index, kEntries, {});
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   auto before_index = index;
   ASSERT_THAT(before_index.InsertData(1), Eq(true));
-  const auto before = Node::TryInsertEntry(source, **original, before_index, 0, 10);
-  ASSERT_THAT(before, Optional(_));
+  auto* const before = Node::TryInsertEntry(source, *original, before_index, 0, 10).value_or(nullptr);
+  ASSERT_THAT(before, NotNull());
   auto after_index = index;
   ASSERT_THAT(after_index.InsertData(3), Eq(true));
-  const auto after = Node::TryInsertEntry(source, **original, after_index, 1, 30);
-  ASSERT_THAT(after, Optional(_));
-  EXPECT_THAT((*before)->entries(), ElementsAre(10, 20));
-  EXPECT_THAT((*after)->entries(), ElementsAre(20, 30));
-  Node::Release(source, *original);
-  Node::Release(source, *before);
-  Node::Release(source, *after);
+  auto* const after = Node::TryInsertEntry(source, *original, after_index, 1, 30).value_or(nullptr);
+  ASSERT_THAT(after, NotNull());
+  EXPECT_THAT(before->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(after->entries(), ElementsAre(20, 30));
+  Node::Release(source, original);
+  Node::Release(source, before);
+  Node::Release(source, after);
   EXPECT_THAT(source.released, Eq(3));
 }
 
 TEST_F(HamtSharedNodeTest, InsertionFailurePreservesTheOriginal) {
   CountingSource source;
-  const auto original = Node::TryCreate(source, {}, {}, {});
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   Node::index_type index;
   ASSERT_THAT(index.InsertData(1), Eq(true));
-  EXPECT_THAT(Node::TryInsertEntry(source, **original, {}, 0, 10), Eq(std::nullopt));
-  EXPECT_THAT(Node::TryInsertEntry(source, **original, index, 1, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, {}, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, index, 1, 10), Eq(std::nullopt));
   mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
-  EXPECT_THAT(Node::TryInsertEntry(exhausted, **original, index, 0, 10), Eq(std::nullopt));
-  EXPECT_THAT((*original)->entries().empty(), Eq(true));
-  EXPECT_THAT((*original)->use_count(), Eq(1));
-  Node::Release(source, *original);
+  EXPECT_THAT(Node::TryInsertEntry(exhausted, *original, index, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(original->entries().empty(), Eq(true));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  Node::Release(source, original);
   EXPECT_THAT(source.acquired, Eq(1));
   EXPECT_THAT(source.released, Eq(1));
 }
 
 TEST_F(HamtSharedNodeTest, InsertedNodeRetainsSharedChildrenUntilItsLastRelease) {
   CountingSource source;
-  const auto leaf = Node::TryCreate(source, {}, {}, {});
-  ASSERT_THAT(leaf, Optional(_));
+  auto* const leaf = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(leaf, NotNull());
   Node::index_type index;
   ASSERT_THAT(index.InsertNode(7), Eq(true));
-  const auto children = std::to_array<Node*>({*leaf});
-  const auto original = Node::TryCreate(source, index, {}, children);
-  ASSERT_THAT(original, Optional(_));
+  const auto children = std::to_array<Node*>({leaf});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   ASSERT_THAT(index.InsertData(1), Eq(true));
-  const auto inserted = Node::TryInsertEntry(source, **original, index, 0, 10);
-  ASSERT_THAT(inserted, Optional(_));
-  EXPECT_THAT((*leaf)->use_count(), Eq(3));
-  Node::Release(source, *original);
-  EXPECT_THAT((*leaf)->use_count(), Eq(2));
-  Node::Release(source, *leaf);
-  EXPECT_THAT((*inserted)->children().front()->use_count(), Eq(1));
-  EXPECT_THAT((*inserted)->entries(), ElementsAre(10));
-  Node::Release(source, *inserted);
+  auto* const inserted = Node::TryInsertEntry(source, *original, index, 0, 10).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(leaf->use_count(), Eq(3));
+  Node::Release(source, original);
+  EXPECT_THAT(leaf->use_count(), Eq(2));
+  Node::Release(source, leaf);
+  EXPECT_THAT(inserted->children().front()->use_count(), Eq(1));
+  EXPECT_THAT(inserted->entries(), ElementsAre(10));
+  Node::Release(source, inserted);
   EXPECT_THAT(source.released, Eq(3));
 }
 

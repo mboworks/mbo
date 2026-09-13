@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <limits>
 
@@ -13,6 +14,10 @@
 
 namespace mbo::container::container_internal {
 
+// Borrows a valid immutable HAMT: its root and descendants must stay alive.
+// Active iterators compare within a root's range, not merely by shared entry
+// address. Exhausted and value-initialized iterators share the end value.
+// NOLINTBEGIN(readability-identifier-naming) -- STL iterator vocabulary.
 template<std::size_t FragmentBits, typename Entry>
 class HamtIterator final {
  public:
@@ -25,7 +30,7 @@ class HamtIterator final {
 
   constexpr HamtIterator() noexcept = default;
 
-  explicit HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root) noexcept {
+  explicit HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root) noexcept : root_(root) {
     if (root != nullptr) {
       frames_[0].node = root;
       depth_ = 1;
@@ -49,13 +54,13 @@ class HamtIterator final {
   }
 
   friend bool operator==(const HamtIterator& lhs, const HamtIterator& rhs) noexcept {
-    return lhs.current_ == rhs.current_;
+    return lhs.root_ == rhs.root_ && lhs.current_ == rhs.current_;
   }
 
  private:
   using Node = HamtSharedNode<FragmentBits, Entry>;
   static constexpr std::size_t kMaxDepth =
-      (std::numeric_limits<std::size_t>::digits + FragmentBits - 1) / FragmentBits + 1;
+      (std::numeric_limits<std::uintmax_t>::digits + FragmentBits - 1) / FragmentBits + 1;
 
   struct Frame final {
     const Node* node = nullptr;
@@ -78,12 +83,16 @@ class HamtIterator final {
       }
       --depth_;
     }
+    root_ = nullptr;
   }
 
   std::array<Frame, kMaxDepth> frames_{};
   std::size_t depth_ = 0;
   pointer current_ = nullptr;
+  const Node* root_ = nullptr;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::container::container_internal
 

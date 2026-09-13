@@ -4,7 +4,9 @@
 #include "mbo/container/internal/hamt_iterator.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -19,6 +21,7 @@ using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Optional;
+using ::testing::UnorderedElementsAre;
 
 struct Entry final {
   std::uint64_t hash;
@@ -42,13 +45,40 @@ using Iterator = HamtIterator<5, Entry>;
 
 struct HamtIteratorTest : ::testing::Test {
   mbo::memory::NewDeleteBlockSource source;
+
+  template<std::size_t FragmentBits>
+  void CheckDeepestTree() {
+    using DeepNode = HamtSharedNode<FragmentBits, Entry>;
+    using DeepIterator = HamtIterator<FragmentBits, Entry>;
+    const auto release = [this](DeepNode* node) noexcept { DeepNode::Release(source, node); };
+    std::unique_ptr<DeepNode, decltype(release)> root(nullptr, release);
+    constexpr auto kEntries = std::to_array<Entry>({Entry{0, 10}, Entry{std::uint64_t{1} << 63, 20}, Entry{0, 30}});
+    for (const Entry& entry : kEntries) {
+      const auto inserted = TryInsertHamtEntry<std::uint64_t, FragmentBits>(
+          source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{});
+      ASSERT_THAT(inserted, Optional(_));
+      root.reset(inserted->root);
+    }
+    std::vector<int> keys;
+    for (DeepIterator iter(root.get()); iter != DeepIterator{}; ++iter) {
+      keys.push_back(iter->key);
+    }
+    EXPECT_THAT(keys, UnorderedElementsAre(10, 20, 30));
+  }
 };
+
+TEST_F(HamtIteratorTest, TraversesDeepestPathsForEverySupportedFragmentWidth) {
+  CheckDeepestTree<4>();
+  CheckDeepestTree<5>();
+  CheckDeepestTree<6>();
+  CheckDeepestTree<7>();
+}
 
 TEST_F(HamtIteratorTest, TraversesEntriesInLeavesBranchesAndCollisions) {
   Node* root = nullptr;
-  constexpr std::array kEntries = {
-      Entry{.hash = 1, .key = 10}, Entry{.hash = 1 + (std::uint64_t{3} << 15), .key = 20}, Entry{.hash = 7, .key = 30},
-      Entry{.hash = 7, .key = 40}};
+  constexpr auto kEntries = std::to_array<Entry>(
+      {Entry{.hash = 1, .key = 10}, Entry{.hash = 1 + (std::uint64_t{3} << 15), .key = 20}, Entry{.hash = 7, .key = 30},
+       Entry{.hash = 7, .key = 40}});
   for (const Entry entry : kEntries) {
     auto inserted =
         TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{});
@@ -65,8 +95,28 @@ TEST_F(HamtIteratorTest, TraversesEntriesInLeavesBranchesAndCollisions) {
   Node::Release(source, root);
 }
 
-TEST_F(HamtIteratorTest, DefaultAndEmptyIteratorsAreEnd) {
+TEST_F(HamtIteratorTest, ValueInitializedIteratorsEqualTheEmptyRangeEnd) {
   EXPECT_THAT(Iterator{}, Eq(Iterator(nullptr)));
+}
+
+TEST_F(HamtIteratorTest, SharedEntriesInDifferentRootRangesDoNotCompareEqual) {
+  constexpr auto kEntries = std::to_array<Entry>({Entry{7, 10}, Entry{7, 20}});
+  const auto child = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(child, Optional(_));
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(7), Eq(true));
+  const auto children = std::to_array<Node*>({*child});
+  const auto first_root = Node::TryCreate(source, index, {}, children);
+  const auto second_root = Node::TryCreate(source, index, {}, children);
+  ASSERT_THAT(first_root, Optional(_));
+  ASSERT_THAT(second_root, Optional(_));
+  Iterator first(*first_root);
+  Iterator second(*second_root);
+  EXPECT_THAT(first.operator->(), Eq(second.operator->()));
+  EXPECT_THAT(first == second, Eq(false));
+  Node::Release(source, *child);
+  Node::Release(source, *first_root);
+  Node::Release(source, *second_root);
 }
 
 TEST_F(HamtIteratorTest, IsAMultiPassForwardIterator) {

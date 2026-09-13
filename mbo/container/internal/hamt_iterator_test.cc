@@ -99,6 +99,34 @@ TEST_F(HamtIteratorTest, ValueInitializedIteratorsEqualTheEmptyRangeEnd) {
   EXPECT_THAT(Iterator{}, Eq(Iterator(nullptr)));
 }
 
+TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
+  const auto release = [this](Node* node) noexcept { Node::Release(source, node); };
+  std::unique_ptr<Node, decltype(release)> root(nullptr, release);
+  constexpr auto kEntries = std::to_array<Entry>({Entry{1, 10}, Entry{1, 20}, Entry{std::uint64_t{1} << 63, 30}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted = TryInsertHamtEntry<std::uint64_t, 5>(
+        source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{});
+    ASSERT_THAT(inserted, Optional(_));
+    root.reset(inserted->root);
+  }
+  for (Iterator expected(root.get()); expected != Iterator{}; ++expected) {
+    Iterator actual = Iterator::At(root.get(), expected->hash, std::addressof(*expected));
+    EXPECT_THAT(actual, Eq(expected));
+    Iterator suffix = expected;
+    while (suffix != Iterator{}) {
+      ASSERT_THAT(actual, Eq(suffix));
+      ++actual;
+      ++suffix;
+    }
+    EXPECT_THAT(actual, Eq(Iterator{}));
+  }
+  const Entry foreign{1, 10};
+  EXPECT_THAT(Iterator::At(root.get(), foreign.hash, &foreign), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{7}, std::addressof(*Iterator(root.get()))), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(nullptr, std::uint64_t{0}, &foreign), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{0}, nullptr), Eq(Iterator{}));
+}
+
 TEST_F(HamtIteratorTest, SharedEntriesInDifferentRootRangesDoNotCompareEqual) {
   constexpr auto kEntries = std::to_array<Entry>({Entry{7, 10}, Entry{7, 20}});
   const auto child = Node::TryCreateCollision(source, kEntries);

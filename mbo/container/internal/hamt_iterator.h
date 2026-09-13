@@ -5,11 +5,14 @@
 #define MBO_CONTAINER_INTERNAL_HAMT_ITERATOR_H_
 
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <limits>
+#include <memory>
 
+#include "mbo/container/internal/hamt_hash_path.h"
 #include "mbo/container/internal/hamt_shared_node.h"
 
 namespace mbo::container::container_internal {
@@ -39,6 +42,56 @@ class HamtIterator final {
   }
 
   reference operator*() const noexcept { return *current_; }
+
+  // Positions by hash path rather than scanning the range. The target must be
+  // the exact borrowed entry address; missing or mismatched targets yield end.
+  // Collision buckets alone require a linear scan. No ownership is acquired.
+  template<std::unsigned_integral Hash>
+  static HamtIterator At(const HamtSharedNode<FragmentBits, Entry>* root, Hash hash, pointer target) noexcept {
+    HamtIterator result;
+    if (root == nullptr || target == nullptr) {
+      return result;
+    }
+    const HamtHashPath<Hash, FragmentBits> path(hash);
+    result.root_ = root;
+    result.frames_[0].node = root;
+    result.depth_ = 1;
+    std::size_t level = 0;
+    while (root != nullptr) {
+      Frame& frame = result.frames_[result.depth_ - 1];
+      if (root->is_collision()) {
+        for (std::size_t position = 0; position < root->entries().size(); ++position) {
+          if (std::addressof(root->entries()[position]) == target) {
+            frame.entry = position + 1;
+            result.current_ = target;
+            return result;
+          }
+        }
+        return {};
+      }
+      if (level >= path.kLevels) {
+        return {};
+      }
+      const std::size_t fragment = path.Fragment(level++);
+      switch (root->index().Kind(fragment)) {
+        case HamtSlotKind::kEmpty: return {};
+        case HamtSlotKind::kData:
+          if (std::addressof(root->entries()[root->index().DataIndex(fragment)]) == target) {
+            frame.entry = root->index().DataIndex(fragment) + 1;
+            result.current_ = target;
+            return result;
+          }
+          return {};
+        case HamtSlotKind::kNode:
+          frame.entry = root->entries().size();
+          frame.child = root->index().NodeIndex(fragment) + 1;
+          root = root->children()[root->index().NodeIndex(fragment)];
+          result.frames_[result.depth_++].node = root;
+          break;
+      }
+    }
+    return {};
+  }
 
   pointer operator->() const noexcept { return current_; }
 

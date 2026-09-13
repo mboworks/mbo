@@ -21,22 +21,23 @@ using ::testing::NotNull;
 using ::testing::Optional;
 
 struct CountingSource {
-  static constexpr bool supports_recoverable_failure = true;
+  static constexpr bool supports_recoverable_failure =
+      true;  // NOLINT(readability-identifier-naming): block-source contract
 
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
 
   std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
-    auto block = source.TryAcquire(size, alignment);
+    auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
     acquired += block.has_value() ? 1 : 0;
     return block;
   }
 
   void Release(mbo::memory::MemoryBlock block) noexcept {
     ++released;
-    source.Release(block);
+    mbo::memory::NewDeleteBlockSource::Release(block);
   }
 
-  mbo::memory::NewDeleteBlockSource source;
   std::size_t acquired = 0;
   std::size_t released = 0;
 };
@@ -65,8 +66,10 @@ TEST_F(HamtSharedNodeTest, PadsByteEntriesBeforeChildPointers) {
 }
 
 struct OfferedSource final {
-  static constexpr bool supports_recoverable_failure = true;
+  static constexpr bool supports_recoverable_failure =
+      true;  // NOLINT(readability-identifier-naming): block-source contract
 
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
 
   mbo::memory::MemoryBlock offered;
@@ -191,18 +194,26 @@ TEST_F(HamtSharedNodeTest, EmptyNodeCanBeRetainedAndReleasedThroughConstViews) {
   EXPECT_THAT(source.released, Eq(1));
 }
 
-struct OversizedSource final : CountingSource {
+struct OversizedSource final {
+  static constexpr bool supports_recoverable_failure =
+      true;  // NOLINT(readability-identifier-naming): block-source contract
+
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
   std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
-    block = source.TryAcquire(size + 64, alignment);
+    block = mbo::memory::NewDeleteBlockSource::TryAcquire(size + 64, alignment);
     return block;
   }
 
   void Release(mbo::memory::MemoryBlock released_block) noexcept {
     EXPECT_THAT(block, Optional(Eq(released_block)));
-    CountingSource::Release(released_block);
+    ++released;
+    mbo::memory::NewDeleteBlockSource::Release(released_block);
   }
 
   std::optional<mbo::memory::MemoryBlock> block;
+  std::size_t released = 0;
 };
 
 TEST_F(HamtSharedNodeTest, ReleasesTheOriginalAllocationMetadata) {

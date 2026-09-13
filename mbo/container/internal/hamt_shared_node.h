@@ -140,7 +140,7 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
@@ -148,7 +148,7 @@ class HamtSharedNode final {
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(position), children.end(), node->ChildPtr() + position + 1);
     RetainChildren(node->children());
-    return node;
+    return result;
   }
 
   template<mbo::memory::BlockSource Source>
@@ -219,7 +219,7 @@ class HamtSharedNode final {
     return node;
   }
 
-  static void CopyChildren(node_type& node, std::span<node_type* const> children) noexcept {
+  static void CopyChildren(const node_type& node, std::span<node_type* const> children) noexcept {
     std::uninitialized_copy(children.begin(), children.end(), node.ChildPtr());
     RetainChildren(children);
   }

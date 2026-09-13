@@ -21,8 +21,8 @@ using ::testing::NotNull;
 using ::testing::Optional;
 
 struct CountingSource {
-  static constexpr bool supports_recoverable_failure =
-      true;  // NOLINT(readability-identifier-naming): block-source contract
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr bool supports_recoverable_failure = true;
 
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
@@ -66,8 +66,8 @@ TEST_F(HamtSharedNodeTest, PadsByteEntriesBeforeChildPointers) {
 }
 
 struct OfferedSource final {
-  static constexpr bool supports_recoverable_failure =
-      true;  // NOLINT(readability-identifier-naming): block-source contract
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr bool supports_recoverable_failure = true;
 
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
@@ -195,8 +195,8 @@ TEST_F(HamtSharedNodeTest, EmptyNodeCanBeRetainedAndReleasedThroughConstViews) {
 }
 
 struct OversizedSource final {
-  static constexpr bool supports_recoverable_failure =
-      true;  // NOLINT(readability-identifier-naming): block-source contract
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr bool supports_recoverable_failure = true;
 
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }

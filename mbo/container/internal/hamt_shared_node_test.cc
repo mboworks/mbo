@@ -228,8 +228,9 @@ TEST_F(HamtSharedNodeTest, ReleasesTheOriginalAllocationMetadata) {
 TEST_F(HamtSharedNodeTest, CollisionNodeCanExceedTheIndexedSlotCount) {
   CountingSource source;
   std::array<int, Node::index_type::kSlotCount + 1> entries{};
-  for (std::size_t index = 0; index < entries.size(); ++index) {
-    entries[index] = static_cast<int>(index);
+  int next_entry = 0;
+  for (int& entry : entries) {
+    entry = next_entry++;
   }
   auto* const node = Node::TryCreateCollision(source, entries).value_or(nullptr);
   ASSERT_THAT(node, NotNull());

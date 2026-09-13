@@ -40,7 +40,13 @@ template<
     typename Storage = SegmentedSequence<Entry>>
 requires ValidHamtOptions<Options>
 class HamtFlatCollisionBucket final {
+  static_assert(std::is_nothrow_invocable_v<const KeyOf&, const Value&>);
+
  public:
+  // Append preserves existing entry addresses with the default segmented storage. Erasure moves
+  // the last entry into the erased slot and invalidates references to both affected entries.
+  // Hashes must be consistent with equality. Keys and equality are invoked through const references
+  // without copying callable state; supplied operations must not throw.
   using entry_type = Entry;
   using iterator = typename Storage::iterator;
   using const_iterator = typename Storage::const_iterator;
@@ -52,20 +58,20 @@ class HamtFlatCollisionBucket final {
 
   template<typename Key>
   constexpr iterator find(Hash hash, const Key& key) noexcept {
-    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{key_of_}, equal_);
+    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{std::cref(key_of_)}, std::cref(equal_));
   }
 
   template<typename Key>
   constexpr const_iterator find(Hash hash, const Key& key) const noexcept {
-    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{key_of_}, equal_);
+    return FindHamtCollision(begin(), end(), hash, key, HashOf{}, EntryKeyOf{std::cref(key_of_)}, std::cref(equal_));
   }
 
   constexpr HamtCollisionInsertResult<Entry> try_insert(Hash hash, Value value) noexcept
   requires(
       std::is_nothrow_move_constructible_v<Value>
       && noexcept(std::declval<Equal&>()(
-          std::declval<KeyOf&>()(std::declval<const Value&>()),
-          std::declval<KeyOf&>()(std::declval<const Value&>()))))
+          std::declval<const KeyOf&>()(std::declval<const Value&>()),
+          std::declval<const KeyOf&>()(std::declval<const Value&>()))))
   {
     const auto existing = find(hash, std::invoke(key_of_, value));
     if (existing != end()) {
@@ -114,9 +120,12 @@ class HamtFlatCollisionBucket final {
   };
 
   struct EntryKeyOf final {
-    KeyOf key_of;
+    std::reference_wrapper<const KeyOf> key_of;
 
-    constexpr decltype(auto) operator()(const Entry& entry) const noexcept { return std::invoke(key_of, entry.value); }
+    constexpr decltype(auto) operator()(const Entry& entry) const
+        noexcept(std::is_nothrow_invocable_v<const KeyOf&, const Value&>) {
+      return std::invoke(key_of, entry.value);
+    }
   };
 
   [[no_unique_address]] KeyOf key_of_;

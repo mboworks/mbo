@@ -19,9 +19,7 @@ struct Identity final {
 };
 
 struct Equal final {
-  constexpr bool operator()(int lhs, long rhs) const noexcept { return lhs == rhs; }
-
-  constexpr bool operator()(int lhs, int rhs) const noexcept { return lhs == rhs; }
+  constexpr bool operator()(int lhs, std::int64_t rhs) const noexcept { return lhs == rhs; }
 };
 
 struct HamtFlatCollisionTest : ::testing::Test {};
@@ -38,17 +36,32 @@ TEST_F(HamtFlatCollisionTest, InsertsFindsDeduplicatesAndErasesFullHashCollision
   EXPECT_THAT(first.inserted, Eq(true));
   EXPECT_THAT(second.inserted, Eq(true));
   EXPECT_THAT(duplicate.inserted, Eq(false));
-  EXPECT_THAT(bucket.find(7, 13L)->value, Eq(13));
-  EXPECT_THAT(bucket.erase(7, 11L), Eq(true));
-  EXPECT_THAT(bucket.erase(7, 11L), Eq(false));
+  EXPECT_THAT(bucket.find(7, std::int64_t{13})->value, Eq(13));
+  EXPECT_THAT(bucket.erase(7, std::int64_t{11}), Eq(true));
+  EXPECT_THAT(bucket.erase(7, std::int64_t{11}), Eq(false));
   EXPECT_THAT(bucket.size(), Eq(1));
   EXPECT_THAT(bucket.begin()->value, Eq(13));
+}
+
+TEST_F(HamtFlatCollisionTest, ConstLookupChecksFullHashAndLastErasureEmptiesBucket) {
+  HamtFlatCollisionBucket<int, Identity, Equal> bucket;
+  ASSERT_THAT(bucket.try_insert(7, 11).entry, NotNull());
+  const auto& const_bucket = bucket;
+  EXPECT_THAT(const_bucket.find(7, std::int64_t{11})->value, Eq(11));
+  EXPECT_THAT(const_bucket.find(8, std::int64_t{11}), Eq(const_bucket.end()));
+  EXPECT_THAT(bucket.erase(7, std::int64_t{11}), Eq(true));
+  EXPECT_THAT(bucket.begin(), Eq(bucket.end()));
+  EXPECT_THAT(bucket.empty(), Eq(true));
 }
 
 TEST_F(HamtFlatCollisionTest, ReportsMaximumSizeWithoutMutation) {
   constexpr HamtOptions kOneEntry{.maximum_size = 1};
   HamtFlatCollisionBucket<int, Identity, Equal, kOneEntry> bucket;
   ASSERT_THAT(bucket.try_insert(1, 1).entry, NotNull());
+
+  const auto duplicate = bucket.try_insert(1, 1);
+  EXPECT_THAT(duplicate.inserted, Eq(false));
+  EXPECT_THAT(duplicate.error, Eq(std::nullopt));
 
   const auto exhausted = bucket.try_insert(1, 2);
 

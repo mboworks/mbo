@@ -21,6 +21,11 @@ namespace mbo::container::container_internal {
 // NOLINTBEGIN(readability-identifier-naming): packed storage exposes STL-style span accessors.
 template<typename Header, typename Entry, typename Child, mbo::memory::BlockSource Source>
 class HamtPackedNodeBlock final {
+  static_assert(
+      std::is_nothrow_destructible_v<Header> && std::is_nothrow_destructible_v<Entry>
+          && std::is_nothrow_destructible_v<Child>,
+      "Packed HAMT storage requires non-throwing destruction");
+
  public:
   constexpr explicit HamtPackedNodeBlock(Source& source) noexcept : source_(std::addressof(source)) {}
 

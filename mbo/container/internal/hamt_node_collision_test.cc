@@ -42,7 +42,7 @@ struct OversizedSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size + 64, alignment);
     if (block) {
       state.get().acquired = *block;
@@ -50,7 +50,7 @@ struct OversizedSource final {
     return block;
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     state.get().exact_release = state.get().exact_release && block == state.get().acquired;
     ++state.get().releases;
     mbo::memory::NewDeleteBlockSource::Release(block);
@@ -66,9 +66,11 @@ struct OfferedSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t, std::size_t) noexcept { return state.get().acquired; }
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t /*alignment*/) const noexcept {
+    return state.get().acquired;
+  }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     state.get().exact_release = state.get().exact_release && block == state.get().acquired;
     ++state.get().releases;
   }

@@ -24,6 +24,25 @@ struct Equal final {
 
 struct HamtFlatCollisionTest : ::testing::Test {};
 
+struct MoveOnlyIdentity final {
+  MoveOnlyIdentity() = default;
+  MoveOnlyIdentity(const MoveOnlyIdentity&) = delete;
+  MoveOnlyIdentity& operator=(const MoveOnlyIdentity&) = delete;
+  MoveOnlyIdentity(MoveOnlyIdentity&&) noexcept = default;
+  MoveOnlyIdentity& operator=(MoveOnlyIdentity&&) noexcept = default;
+  ~MoveOnlyIdentity() = default;
+
+  constexpr int operator()(int value) const noexcept { return value; }
+};
+
+TEST_F(HamtFlatCollisionTest, LookupDoesNotCopyKeyExtractionState) {
+  HamtFlatCollisionBucket<int, MoveOnlyIdentity, Equal> bucket;
+  ASSERT_THAT(bucket.try_insert(7, 11).entry, NotNull());
+  EXPECT_THAT(bucket.find(7, std::int64_t{11})->value, Eq(11));
+  const auto& const_bucket = bucket;
+  EXPECT_THAT(const_bucket.find(7, std::int64_t{11})->value, Eq(11));
+}
+
 TEST_F(HamtFlatCollisionTest, InsertsFindsDeduplicatesAndErasesFullHashCollisions) {
   HamtFlatCollisionBucket<int, Identity, Equal> bucket;
 
@@ -67,6 +86,22 @@ TEST_F(HamtFlatCollisionTest, ReportsMaximumSizeWithoutMutation) {
 
   EXPECT_THAT(exhausted.error, Eq(HamtError::kMaxSizeExceeded));
   EXPECT_THAT(bucket.size(), Eq(1));
+}
+
+TEST_F(HamtFlatCollisionTest, StorageExhaustionPreservesExistingEntriesAndAllowsReuse) {
+  constexpr SegmentedSequenceOptions kStorageOptions{
+      .segment_capacities = {1}, .repeat_last = false, .maximum_size = 1};
+  using Entry = HamtStoredValue<std::uint64_t, int>;
+  using Storage = SegmentedSequence<Entry, kStorageOptions>;
+  HamtFlatCollisionBucket<int, Identity, Equal, HamtOptions{}, std::uint64_t, Entry, Storage> bucket;
+  ASSERT_THAT(bucket.try_insert(7, 11).entry, NotNull());
+  const auto exhausted = bucket.try_insert(7, 13);
+  EXPECT_THAT(exhausted.error, Eq(HamtError::kAllocationExhausted));
+  EXPECT_THAT(exhausted.entry, Eq(nullptr));
+  EXPECT_THAT(bucket.find(7, std::int64_t{11})->value, Eq(11));
+  EXPECT_THAT(bucket.erase(7, std::int64_t{11}), Eq(true));
+  ASSERT_THAT(bucket.try_insert(7, 13).entry, NotNull());
+  EXPECT_THAT(bucket.begin()->value, Eq(13));
 }
 
 }  // namespace

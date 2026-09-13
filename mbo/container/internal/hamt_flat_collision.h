@@ -30,6 +30,7 @@ struct HamtCollisionInsertResult final {
   std::optional<HamtError> error;
 };
 
+// NOLINTBEGIN(readability-identifier-naming): collision buckets use the STL container vocabulary.
 template<
     typename Value,
     typename KeyOf,
@@ -69,11 +70,11 @@ class HamtFlatCollisionBucket final {
   constexpr HamtCollisionInsertResult<Entry> try_insert(Hash hash, Value value) noexcept
   requires(
       std::is_nothrow_move_constructible_v<Value>
-      && noexcept(std::declval<Equal&>()(
+      && noexcept(std::declval<const Equal&>()(
           std::declval<const KeyOf&>()(std::declval<const Value&>()),
           std::declval<const KeyOf&>()(std::declval<const Value&>()))))
   {
-    const auto existing = find(hash, std::invoke(key_of_, value));
+    const auto existing = find(hash, std::invoke(std::as_const(key_of_), std::as_const(value)));
     if (existing != end()) {
       return {.entry = std::addressof(*existing), .inserted = false};
     }
@@ -132,6 +133,8 @@ class HamtFlatCollisionBucket final {
   [[no_unique_address]] Equal equal_;
   Storage entries_;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::container::container_internal
 

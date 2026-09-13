@@ -28,3 +28,12 @@ stored value during insertion, and moving an entry during erasure, must also be 
 Allocation exhaustion is a separate recoverable outcome, not a thrown exception.
 
 Buckets require external synchronization. The helper performs no atomic publication or reclamation.
+
+## Validation
+
+Run `bazel test //...` for the normal suite. On macOS, run the hermetic Clang sanitizer suite with
+`bazel test --config=clang --config=asan --config=asan-macos //...`.
+The additional macOS config selects Apple's linker and archive-based linkage: LLVM 22's Darwin
+lld aborts a minimal `std::bad_alloc` throw/catch program when ASan and UBSan are combined.
+Both sanitizers and the exception-enabled allocator/PMR tests remain enabled. CI selects this
+config for macOS Clang sanitizer jobs; Linux retains lld.

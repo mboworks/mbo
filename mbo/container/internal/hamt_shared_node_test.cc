@@ -44,6 +44,16 @@ using Node = HamtSharedNode<5, int>;
 
 struct HamtSharedNodeTest : ::testing::Test {};
 
+TEST_F(HamtSharedNodeTest, RejectsOccupiedSlotsWithoutAChildBeforeAllocation) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(7), Eq(true));
+  const auto children = std::to_array<Node*>({nullptr});
+  EXPECT_THAT(Node::TryCreate(source, index, {}, children).has_value(), Eq(false));
+  EXPECT_THAT(source.acquired, Eq(std::size_t{0}));
+  EXPECT_THAT(source.released, Eq(std::size_t{0}));
+}
+
 TEST_F(HamtSharedNodeTest, SharesChildrenAndReclaimsTheTreeAtLastRelease) {
   CountingSource source;
   Node::index_type leaf_index;

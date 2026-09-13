@@ -45,6 +45,48 @@ using Node = HamtSharedNode<5, int>;
 
 struct HamtSharedNodeTest : ::testing::Test {};
 
+struct OfferedSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
+
+  mbo::memory::MemoryBlock offered;
+  mbo::memory::MemoryBlock released;
+  std::size_t release_count = 0;
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t, std::size_t) noexcept { return offered; }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept {
+    released = block;
+    ++release_count;
+  }
+};
+
+TEST_F(HamtSharedNodeTest, RejectsUnusableBlocksWithoutRetainingChildren) {
+  CountingSource source;
+  const auto leaf = Node::TryCreate(source, {}, {}, {});
+  ASSERT_THAT(leaf, Optional(_));
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(3), Eq(true));
+  const auto children = std::to_array<Node*>({*leaf});
+  alignas(std::max_align_t) std::array<std::byte, 256> storage{};
+  const auto offers = std::to_array<mbo::memory::MemoryBlock>({
+      {.data = nullptr, .size = storage.size(), .alignment = alignof(std::max_align_t)},
+      {.data = storage.data(), .size = 1, .alignment = alignof(std::max_align_t)},
+      {.data = storage.data(), .size = storage.size(), .alignment = 1},
+      {.data = storage.data() + 1, .size = storage.size() - 1, .alignment = alignof(std::max_align_t)},
+  });
+  for (const auto offer : offers) {
+    OfferedSource invalid{.offered = offer, .released = {}};
+    EXPECT_THAT(Node::TryCreate(invalid, index, {}, children), Eq(std::nullopt));
+    EXPECT_THAT((*leaf)->use_count(), Eq(1));
+    EXPECT_THAT(invalid.release_count, Eq(1));
+    EXPECT_THAT(invalid.released, Eq(offer));
+  }
+  Node::Release(source, *leaf);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
 TEST_F(HamtSharedNodeTest, RejectsOccupiedSlotsWithoutAChildBeforeAllocation) {
   CountingSource source;
   Node::index_type index;
@@ -176,6 +218,25 @@ TEST_F(HamtSharedNodeTest, EmptyCollisionIsRejectedBeforeAllocation) {
   CountingSource source;
   EXPECT_THAT(Node::TryCreateCollision(source, {}), Eq(std::nullopt));
   EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtSharedNodeTest, SingletonCollisionKeepsItsRepresentationAcrossSharedOwnership) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({42});
+  const auto node = Node::TryCreateCollision(source, kEntries);
+  ASSERT_THAT(node, Optional(_));
+  Node::Retain(*node);
+  Node::Release(source, *node);
+  const Node& view = **node;
+  EXPECT_THAT(view.is_collision(), Eq(true));
+  EXPECT_THAT(view.entries(), ElementsAre(42));
+  EXPECT_THAT(view.children().empty(), Eq(true));
+  EXPECT_THAT(view.index().DataSize(), Eq(0));
+  EXPECT_THAT(view.index().NodeSize(), Eq(0));
+  EXPECT_THAT(view.use_count(), Eq(1));
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, *node);
+  EXPECT_THAT(source.released, Eq(1));
 }
 
 TEST_F(HamtSharedNodeTest, CollisionReleasePreservesOriginalAllocationMetadata) {

@@ -18,13 +18,16 @@ struct HamtMergePath final {
   bool full_hash_collision;
 };
 
+// The caller has already established that the fragments before start_level are
+// equal. start_level must not exceed HamtHashPath<Hash, FragmentBits>::kLevels;
+// equality is allowed and represents an already exhausted hash path.
 template<std::unsigned_integral Hash, std::size_t FragmentBits>
 requires(FragmentBits >= 4 && FragmentBits <= 7)
 constexpr HamtMergePath FindHamtMergePath(Hash existing, Hash inserted, std::size_t start_level = 0) noexcept {
   const HamtHashPath<Hash, FragmentBits> existing_path(existing);
   const HamtHashPath<Hash, FragmentBits> inserted_path(inserted);
   std::size_t level = start_level;
-  while (level < existing_path.kLevels && existing_path.fragment(level) == inserted_path.fragment(level)) {
+  while (level < existing_path.kLevels && existing_path.Fragment(level) == inserted_path.Fragment(level)) {
     ++level;
   }
   if (level == existing_path.kLevels) {
@@ -37,8 +40,8 @@ constexpr HamtMergePath FindHamtMergePath(Hash existing, Hash inserted, std::siz
   }
   return {
       .common_levels = level - start_level,
-      .existing_fragment = existing_path.fragment(level),
-      .inserted_fragment = inserted_path.fragment(level),
+      .existing_fragment = existing_path.Fragment(level),
+      .inserted_fragment = inserted_path.Fragment(level),
       .full_hash_collision = false,
   };
 }

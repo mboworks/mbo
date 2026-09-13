@@ -34,6 +34,27 @@ TEST_F(HamtMergePathTest, IdentifiesExhaustedFullHashCollisions) {
   EXPECT_THAT(collision.full_hash_collision, Eq(true));
 }
 
+TEST_F(HamtMergePathTest, CountsOnlyLevelsAfterTheStartingLevel) {
+  const auto path = FindHamtMergePath<std::uint64_t, 5>(3, 3 + (std::uint64_t{7} << 15), 2);
+  EXPECT_THAT(path.common_levels, Eq(1));
+  EXPECT_THAT(path.inserted_fragment, Eq(7));
+  EXPECT_THAT(path.full_hash_collision, Eq(false));
+}
+
+TEST_F(HamtMergePathTest, HandlesThePartialFinalFragment) {
+  const auto path = FindHamtMergePath<std::uint32_t, 7>(0, std::uint32_t{15} << 28);
+  EXPECT_THAT(path.common_levels, Eq(4));
+  EXPECT_THAT(path.existing_fragment, Eq(0));
+  EXPECT_THAT(path.inserted_fragment, Eq(15));
+  EXPECT_THAT(path.full_hash_collision, Eq(false));
+}
+
+TEST_F(HamtMergePathTest, StartingAtTheEndReportsAnExhaustedPath) {
+  const auto path = FindHamtMergePath<std::uint32_t, 7>(42, 42, HamtHashPath<std::uint32_t, 7>::kLevels);
+  EXPECT_THAT(path.common_levels, Eq(0));
+  EXPECT_THAT(path.full_hash_collision, Eq(true));
+}
+
 constexpr auto kConstexprPath = FindHamtMergePath<std::uint32_t, 4>(0x12345678U, 0x123456f8U);
 static_assert(kConstexprPath.common_levels == 1);
 static_assert(kConstexprPath.existing_fragment == 7);

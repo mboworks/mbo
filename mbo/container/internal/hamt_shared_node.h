@@ -19,6 +19,14 @@
 
 namespace mbo::container::container_internal {
 
+// Intrusive ownership of one packed node allocation. Every Release must use the
+// same block source that created the node and its descendants. Child references
+// are retained on creation and released with the last parent reference. Atomic
+// reference counting does not make entry or child mutation thread-safe; callers
+// must externally synchronize access and retain a live reference before use.
+// Entry copying must be nothrow. Allocation failure is reported as nullopt;
+// exceptions escaping a block source terminate through this noexcept interface.
+// NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.
 template<std::size_t FragmentBits, typename Entry>
 class HamtSharedNode final {
  public:
@@ -29,14 +37,17 @@ class HamtSharedNode final {
 
   HamtSharedNode(const HamtSharedNode&) = delete;
   HamtSharedNode& operator=(const HamtSharedNode&) = delete;
+  HamtSharedNode(HamtSharedNode&&) = delete;
+  HamtSharedNode& operator=(HamtSharedNode&&) = delete;
+  ~HamtSharedNode() = default;
 
-  std::span<Entry> entries() noexcept { return {EntryPtr(), index_.data_size()}; }
+  std::span<Entry> entries() noexcept { return {EntryPtr(), index_.DataSize()}; }
 
-  std::span<const Entry> entries() const noexcept { return {EntryPtr(), index_.data_size()}; }
+  std::span<const Entry> entries() const noexcept { return {EntryPtr(), index_.DataSize()}; }
 
-  std::span<node_type*> children() noexcept { return {ChildPtr(), index_.node_size()}; }
+  std::span<node_type*> children() noexcept { return {ChildPtr(), index_.NodeSize()}; }
 
-  std::span<node_type* const> children() const noexcept { return {ChildPtr(), index_.node_size()}; }
+  std::span<node_type* const> children() const noexcept { return {ChildPtr(), index_.NodeSize()}; }
 
   const index_type& index() const noexcept { return index_; }
 
@@ -56,7 +67,7 @@ class HamtSharedNode final {
       std::span<node_type* const> children) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
-    if (entries.size() != index.data_size() || children.size() != index.node_size()) {
+    if (entries.size() != index.DataSize() || children.size() != index.NodeSize()) {
       return std::nullopt;
     }
     const auto layout = Layout::TryMake(entries.size(), children.size());
@@ -73,6 +84,7 @@ class HamtSharedNode final {
     auto* const node = std::construct_at(
         reinterpret_cast<node_type*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         index);
+    node->block_ = *block;
     std::uninitialized_copy(entries.begin(), entries.end(), node->EntryPtr());
     std::uninitialized_copy(children.begin(), children.end(), node->ChildPtr());
     for (node_type* child : children) {
@@ -87,18 +99,14 @@ class HamtSharedNode final {
       return;
     }
     const index_type index = node->index_;
-    const auto layout = *Layout::TryMake(index.data_size(), index.node_size());
+    const auto block = node->block_;
     for (node_type* child : node->children()) {
       Release(source, child);
     }
-    std::destroy_n(node->EntryPtr(), index.data_size());
-    std::destroy_n(node->ChildPtr(), index.node_size());
+    std::destroy_n(node->EntryPtr(), index.DataSize());
+    std::destroy_n(node->ChildPtr(), index.NodeSize());
     std::destroy_at(node);
-    source.Release({
-        .data = reinterpret_cast<std::byte*>(node),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        .size = layout.size,
-        .alignment = layout.alignment,
-    });
+    source.Release(block);
   }
 
  private:
@@ -110,20 +118,23 @@ class HamtSharedNode final {
   }
 
   Entry* EntryPtr() const noexcept {
-    const auto layout = *Layout::TryMake(index_.data_size(), index_.node_size());
+    const auto layout = *Layout::TryMake(index_.DataSize(), index_.NodeSize());
     auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
     return reinterpret_cast<Entry*>(bytes + layout.data_offset);                     // NOLINT
   }
 
   node_type** ChildPtr() const noexcept {
-    const auto layout = *Layout::TryMake(index_.data_size(), index_.node_size());
+    const auto layout = *Layout::TryMake(index_.DataSize(), index_.NodeSize());
     auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
     return reinterpret_cast<node_type**>(bytes + layout.child_offset);               // NOLINT
   }
 
   std::atomic<std::uint32_t> references_{1};
   index_type index_;
+  mbo::memory::MemoryBlock block_;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::container::container_internal
 

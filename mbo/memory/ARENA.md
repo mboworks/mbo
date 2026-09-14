@@ -1,5 +1,20 @@
 # Arena design
 
+## Implemented tail checkpoints
+
+`checkpoint()` returns a borrowed, rule-zero `Checkpoint` capturing the current byte
+tail. `rewind(checkpoint)` invalidates later allocations while preserving earlier
+addresses and contents. It resets later block cursors and restores `bytes_used()`;
+blocks remain reserved for reuse, so `bytes_reserved()` and `block_count()` do not
+decrease. Growth progression is retained, not rolled back. This supports reclaiming
+uncommitted string bytes after another insertion component fails.
+
+Checkpoints do not own the arena or rewind automatically. The arena must outlive
+them. Reset, release, move, swap, destruction, or rewinding before a checkpoint
+invalidates it. Invalidated checkpoints must not be reused. A checkpoint from another
+arena is a contract violation. External synchronization is required. Rewind does not
+destroy objects placed in raw byte storage.
+
 This document specifies the general arena component in `mbo::memory`, where aligned storage
 acquisition and region lifetime belong because they are memory-management facilities rather than
 container or string semantics.

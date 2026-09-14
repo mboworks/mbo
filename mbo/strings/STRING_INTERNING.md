@@ -28,6 +28,19 @@ independently before selecting the interner's default composition.
 
 ## Core model
 
+The initial [`StringInterner`](string_interner.h) implementation composes configurable
+character storage, a dense entry sequence, and an index constrained by
+`StringInternerIndex`. It implements captured parent cutoffs, forward/reverse lookup,
+whole-chain bidirectional iteration yielding only string views, and staged insertion
+with entry/byte rollback when indexing fails. Declared empty parents retain their
+identity; a zero local starting ID does not imply a null parent. Index/storage member
+destruction order preserves borrowed character lifetimes.
+
+The implementation is still incomplete: diagnostics, standard/Abseil index adapters,
+extended bounded-failure tests, injected backend construction, and performance tuning
+remain outstanding. Forward lookup currently recurses through ancestors, while reverse
+lookup iterates. These are initial algorithms, not benchmark-selected strategies.
+
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false
 for a duplicate, and an empty optional for size or allocation exhaustion. A duplicate

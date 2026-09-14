@@ -280,6 +280,7 @@ class StringInterner final {
     const auto checkpoint = storage_.checkpoint();
     const auto stored = storage_.try_store(key);
     if (!stored) {
+      storage_.rewind(checkpoint);
       return StringInternError::kCharacterStorageExhausted;
     }
     if (!entries_.try_emplace_back(*stored)) {

@@ -149,15 +149,18 @@ class HamtTree final {
   template<typename Key>
   requires requires(const HamtTree& tree, const Key& key) { tree.Find(key); }
   [[nodiscard]] std::variant<mutable_iterator, HamtError> TryMutableFind(const Key& key) noexcept {
-    if (Find(key) == nullptr) {
+    const Entry* const original = Find(key);
+    if (original == nullptr) {
       return mutable_iterator{};
     }
+    const hash_type hash = std::invoke(hash_, key);
+    // A lookup key may borrow a unique node released while detaching the tree.
+    const Entry lookup = *original;
     const auto error = TryMakeUnique();
     if (error) {
       return *error;
     }
-    const hash_type hash = std::invoke(hash_, key);
-    const Entry* const target = Find(key);
+    const Entry* const target = Find(std::invoke(key_of_, lookup));
     Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target);
     return mutable_iterator::At(root_.get(), hash, found, this);
   }

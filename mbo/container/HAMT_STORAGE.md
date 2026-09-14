@@ -219,3 +219,10 @@ Synchronization remains external.
 Active iterator equality includes root identity, so two snapshots sharing an entry do not
 accidentally compare equal. Exhausted, null-root, empty-root, and default-constructed iterators
 all represent the common end value. Dereference and increment require a non-end iterator.
+
+`HamtIterator::At(root, hash, target)` positions an iterator at the exact borrowed entry address
+using the hash path, rather than scanning the complete range. Only a terminal collision bucket
+requires a linear scan. Advancing this iterator visits precisely the same suffix as ordinary
+iteration from that entry. A missing route, null input, or address mismatch returns end.
+The caller supplies the target's correct hash; `At` performs neither key lookup nor ownership
+acquisition. It has the same snapshot lifetime and external synchronization requirements.

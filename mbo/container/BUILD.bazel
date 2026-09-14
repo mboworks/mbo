@@ -139,7 +139,10 @@ cc_library(
 cc_library(
     name = "hamt_iterator_cc",
     hdrs = ["internal/hamt_iterator.h"],
-    deps = [":hamt_shared_node_cc"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_shared_node_cc",
+    ],
 )
 
 cc_test(

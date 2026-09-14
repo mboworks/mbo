@@ -285,6 +285,28 @@ cc_library(
     hdrs = ["internal/hamt_key_of.h"],
 )
 
+cc_library(
+    name = "hamt_node_key_of_cc",
+    hdrs = ["internal/hamt_node_key_of.h"],
+)
+
+cc_test(
+    name = "hamt_node_key_of_test",
+    size = "small",
+    srcs = ["internal/hamt_node_key_of_test.cc"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_source_domain_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_key_of_test",
     size = "small",

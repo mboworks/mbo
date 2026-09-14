@@ -93,7 +93,7 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
     }
     case HamtSlotKind::kData: {
       const std::size_t position = index.DataIndex(fragment);
-      const Entry& existing = original->entries()[position];
+      const Entry& existing = original->entries().subspan(position).front();
       const Hash existing_hash = std::invoke(hash_of, existing);
       if (existing_hash == hash && std::invoke(equal, std::invoke(key_of, existing), key)) {
         Node::Retain(original);
@@ -115,7 +115,7 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
     case HamtSlotKind::kNode: {
       const std::size_t position = index.NodeIndex(fragment);
       auto inserted = TryInsertAt<Hash, FragmentBits>(
-          source, original->children()[position], hash, key, entry, level + 1, hash_of, key_of, equal);
+          source, original->children().subspan(position).front(), hash, key, entry, level + 1, hash_of, key_of, equal);
       if (!inserted) {
         return std::nullopt;
       }

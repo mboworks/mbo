@@ -7,6 +7,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <type_traits>
 
 #include "mbo/container/internal/hamt_hash_path.h"
@@ -14,6 +15,11 @@
 #include "mbo/container/internal/hamt_shared_node.h"
 
 namespace mbo::container::container_internal {
+
+// Borrows a valid immutable tree and returns a borrowed entry or nullptr.
+// Bitmap routing follows one hash path; terminal collision buckets are scanned.
+// Full hashes are checked before invoking key extraction or equality. Callable
+// state is never copied and const invocation must be non-throwing.
 
 template<
     std::unsigned_integral Hash,
@@ -52,13 +58,13 @@ const Entry* FindHamtEntry(
     switch (node->index().Kind(fragment)) {
       case HamtSlotKind::kEmpty: return nullptr;
       case HamtSlotKind::kData: {
-        const Entry& entry = node->entries()[node->index().DataIndex(fragment)];
+        const Entry& entry = node->entries().subspan(node->index().DataIndex(fragment)).front();
         return std::invoke(hash_of, entry) == hash && std::invoke(equal, std::invoke(key_of, entry), key)
                    ? std::addressof(entry)
                    : nullptr;
       }
       case HamtSlotKind::kNode:
-        node = node->children()[node->index().NodeIndex(fragment)];
+        node = node->children().subspan(node->index().NodeIndex(fragment)).front();
         ++level;
         break;
     }

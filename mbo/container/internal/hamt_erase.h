@@ -84,7 +84,8 @@ std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEras
           return HamtEraseStep<Node, Entry>{.erased = true};
         }
         if (original->entries().size() == 2) {
-          return HamtEraseStep<Node, Entry>{.singleton = original->entries()[position == 0 ? 1 : 0], .erased = true};
+          return HamtEraseStep<Node, Entry>{
+              .singleton = position == 0 ? original->entries().back() : original->entries().front(), .erased = true};
         }
         auto erased = Node::TryEraseCollisionEntry(source, *original, position);
         if (!erased) {
@@ -111,7 +112,7 @@ std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEras
       return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
     case HamtSlotKind::kData: {
       const std::size_t position = index.DataIndex(fragment);
-      const Entry& existing = original->entries()[position];
+      const Entry& existing = original->entries().subspan(position).front();
       if (std::invoke(hash_of, existing) != hash || !std::invoke(equal, std::invoke(key_of, existing), key)) {
         Node::Retain(original);
         return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
@@ -129,7 +130,7 @@ std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEras
     case HamtSlotKind::kNode: {
       const std::size_t position = index.NodeIndex(fragment);
       auto erased = TryEraseAt<Hash, FragmentBits>(
-          source, original->children()[position], hash, key, level + 1, hash_of, key_of, equal);
+          source, original->children().subspan(position).front(), hash, key, level + 1, hash_of, key_of, equal);
       if (!erased) {
         return std::nullopt;
       }

@@ -27,7 +27,7 @@ struct HamtPackedNodeLayout final {
     if (!data_offset || data_count > (std::numeric_limits<std::size_t>::max() - *data_offset) / sizeof(Entry)) {
       return std::nullopt;
     }
-    const std::size_t data_end = *data_offset + data_count * sizeof(Entry);
+    const std::size_t data_end = *data_offset + (data_count * sizeof(Entry));
     const auto child_offset = Align(data_end, alignof(Child));
     if (!child_offset || child_count > (std::numeric_limits<std::size_t>::max() - *child_offset) / sizeof(Child)) {
       return std::nullopt;
@@ -35,7 +35,7 @@ struct HamtPackedNodeLayout final {
     return HamtPackedNodeLayout{
         .data_offset = *data_offset,
         .child_offset = *child_offset,
-        .size = *child_offset + child_count * sizeof(Child),
+        .size = *child_offset + (child_count * sizeof(Child)),
         .alignment = std::max({alignof(Header), alignof(Entry), alignof(Child)}),
     };
   }

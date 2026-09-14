@@ -7,6 +7,7 @@
 #include <concepts>
 #include <exception>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -215,6 +216,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;
   using update_result = std::variant<bool, HamtError>;
+  using access_result = std::variant<Mapped*, HamtError>;
 
   explicit transient_type(HamtFlatMap snapshot) noexcept : map_(std::move(snapshot)) {}
 
@@ -258,6 +260,51 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   requires requires(const HamtFlatMap& map, const LookupKey& key) { map.at(key); }
   const Mapped& at(const LookupKey& key) const noexcept {
     return map_.at(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(Tree& tree, const LookupKey& key) { tree.TryGetMutable(key); }
+  [[nodiscard]] access_result try_at(const LookupKey& key) noexcept {
+    auto result = map_.owned_.tree().TryGetMutable(key);
+    if (auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
+      return *entry == nullptr ? nullptr : std::addressof((*entry)->second);
+    }
+    return std::get<HamtError>(result);
+  }
+
+  template<typename LookupKey>
+  requires requires(transient_type& map, const LookupKey& key) { map.try_at(key); }
+  Mapped& at(const LookupKey& key) noexcept {
+    auto result = try_at(key);
+    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
+      return **mapped;
+    }
+    std::terminate();
+  }
+
+  [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
+  requires std::is_nothrow_default_constructible_v<Mapped>
+  {
+    auto found = try_at(key);
+    const auto* const mapped = std::get_if<Mapped*>(&found);
+    if (mapped == nullptr || *mapped != nullptr) {
+      return found;
+    }
+    const auto inserted = map_.owned_.tree().try_insert(value_type(key, Mapped{}));
+    if (inserted.error) {
+      return *inserted.error;
+    }
+    return try_at(key);
+  }
+
+  Mapped& operator[](const Key& key) noexcept
+  requires std::is_nothrow_default_constructible_v<Mapped>
+  {
+    auto result = try_get_or_insert(key);
+    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
+      return **mapped;
+    }
+    std::terminate();
   }
 
   template<typename LookupKey, typename Editor>

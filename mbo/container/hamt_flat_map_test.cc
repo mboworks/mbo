@@ -77,6 +77,39 @@ TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
   EXPECT_THAT(edit.erase(2), Eq(1));
 }
 
+TEST_F(HamtFlatMapTest, MutableAccessDetachesSnapshotsAndSubscriptInsertsZeroInitializedValues) {
+  Map empty;
+  auto [one, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  auto edit = one.transient();
+  edit.at(1) = 99;
+  EXPECT_THAT(one.at(1), Eq(10));
+  EXPECT_THAT(std::as_const(edit).at(1), Eq(99));
+  EXPECT_THAT(edit.operator[](2), Eq(0));
+  edit.operator[](2) = 20;
+  EXPECT_THAT(edit.size(), Eq(2));
+  EXPECT_THAT(edit.operator[](2), Eq(20));
+  EXPECT_THAT(edit.try_at(3), VariantWith<int*>(Eq(nullptr)));
+  auto snapshot = std::move(edit).persistent();
+  EXPECT_THAT(snapshot.at(1), Eq(99));
+  EXPECT_THAT(snapshot.at(2), Eq(20));
+}
+
+TEST_F(HamtFlatMapTest, RecoverableMutableAccessPreservesSharedValuesWhenAllocationFails) {
+  using BoundedMap =
+      HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<512>>;
+  BoundedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
+  auto snapshot = std::move(edit).persistent();
+  auto shared = snapshot.transient();
+  EXPECT_THAT(shared.try_at(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(shared.try_get_or_insert(2), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(std::as_const(shared).at(1), Eq(10));
+  EXPECT_THAT(shared.size(), Eq(1));
+}
+
 TEST_F(HamtFlatMapTest, UniqueMappedUpdateWorksWhenSharedPathCopyCannotAllocate) {
   using BoundedMap =
       HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<512>>;

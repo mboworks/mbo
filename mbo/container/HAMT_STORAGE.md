@@ -313,3 +313,23 @@ on the tree. Node-storage wrappers must additionally establish unique element-pa
 unique tree nodes alone do not establish uniqueness of separately shared payloads.
 Consuming transient-to-persistent conversion and structural transient insertion/erasure remain
 separate container operations.
+
+## Mutable iteration preparation
+
+The iterator implementation also supplies a mutable instantiation, sharing the
+same fixed-stack traversal rather than introducing a second traversal algorithm.
+It requires exclusive ownership of every node. `TryMutableBegin` first checks that
+ownership; shared trees are cloned before returning mutable references, and failed
+cloning preserves the original. Iterator copies remain multipass and advancement
+does not allocate or change the tree. Empty and already unique trees need no clone.
+The uniqueness scan is linear in the node count; this is a baseline candidate, not
+a benchmark-backed performance decision. Detachment invalidates prior references
+and iterators from the modified container, but not those from unchanged snapshots.
+Public mutable map-iterator integration remains outstanding.
+
+`TryMutableFind` uses the same whole-tree preparation for found keys so that
+advancing a returned iterator cannot expose shared descendants. Missing keys
+return end without detachment or allocation, even when storage is exhausted.
+Found-key preparation reports allocation exhaustion without changing values.
+Mutable iterators convert to const iterators, never the reverse, and comparisons
+across these roles preserve container identity and the common end value.

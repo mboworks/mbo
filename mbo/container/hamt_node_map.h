@@ -202,6 +202,23 @@ class HamtNodeMap final {
 
   transient_type transient() && noexcept { return transient_type(std::move(*this)); }
 
+  [[nodiscard]] mutation_result try_insert(value_type&& entry) const noexcept
+  requires std::is_nothrow_move_constructible_v<value_type>
+  {
+    HamtNodeMap next(*this);
+    const auto result = next.TryInsert(std::move(entry));
+    if (result.error) {
+      return *result.error;
+    }
+    return std::pair<HamtNodeMap, bool>(std::move(next), result.changed);
+  }
+
+  [[nodiscard]] std::pair<HamtNodeMap, bool> insert(value_type&& entry) const noexcept
+  requires std::is_nothrow_move_constructible_v<value_type>
+  {
+    return RequireValue(try_insert(std::move(entry)));
+  }
+
   void swap(HamtNodeMap& other) noexcept { owned_.swap(other.owned_); }
 
   friend void swap(HamtNodeMap& first, HamtNodeMap& second) noexcept { first.swap(second); }
@@ -227,9 +244,9 @@ class HamtNodeMap final {
     return std::nullopt;
   }
 
-  container_internal::HamtMutationResult TryInsert(const value_type& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  template<typename EntryArg>
+  requires std::is_nothrow_constructible_v<Entry, EntryArg&&>
+  container_internal::HamtMutationResult TryInsert(EntryArg&& entry) noexcept {
     auto& tree = owned_.tree();
     if (tree.contains(entry.first)) {
       return {};
@@ -237,7 +254,7 @@ class HamtNodeMap final {
     if (tree.size() == max_size()) {
       return {.changed = false, .error = HamtError::kMaxSizeExceeded};
     }
-    auto payload = Payload::TryCreate(owned_.domain(), entry);
+    auto payload = Payload::TryCreate(owned_.domain(), std::forward<EntryArg>(entry));
     if (!payload) {
       return {.changed = false, .error = HamtError::kAllocationExhausted};
     }

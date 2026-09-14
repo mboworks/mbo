@@ -3,6 +3,7 @@
 
 #include "mbo/container/hamt_node_map.h"
 
+#include <memory>
 #include <utility>
 
 #include "gmock/gmock.h"
@@ -60,6 +61,23 @@ struct AllocationBudget final {
   std::size_t acquired = 0;
   std::size_t released = 0;
 };
+
+TEST_F(HamtNodeMapTest, MoveOnlyMappedValuesShareOwnershipWithoutConsumingDuplicates) {
+  using Map = HamtNodeMap<int, std::unique_ptr<int>>;
+  Map::value_type entry(42, std::make_unique<int>(99));
+  auto inserted = Map{}.insert(std::move(entry));
+  EXPECT_THAT(entry.second.get(), Eq(nullptr));
+  EXPECT_THAT(*inserted.first.at(42), Eq(99));
+  const Map snapshot = inserted.first;
+  EXPECT_THAT(snapshot.at(42).get(), Eq(inserted.first.at(42).get()));
+  Map::value_type duplicate(42, std::make_unique<int>(100));
+  auto unchanged = snapshot.insert(std::move(duplicate));
+  EXPECT_THAT(unchanged.second, Eq(false));
+  ASSERT_THAT(duplicate.second.get(), NotNull());
+  EXPECT_THAT(*duplicate.second, Eq(100));
+  EXPECT_THAT(unchanged.first.erase(42).first.empty(), Eq(true));
+  EXPECT_THAT(*snapshot.at(42), Eq(99));
+}
 
 struct BudgetSource final {
   explicit BudgetSource(AllocationBudget& budget) noexcept : budget(&budget) {}

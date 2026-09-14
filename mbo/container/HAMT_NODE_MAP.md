@@ -7,6 +7,14 @@ surviving payloads; mapped edits detach shared payloads before exposing mutation
 The existing HAMT traversal and mutation algorithms remain the single routing
 implementation.
 
+Persistent rvalue insertion accepts nothrow-movable entries, including move-only
+mapped values. Duplicate detection happens before moving the entry, so a duplicate
+does not consume its argument. Once payload construction succeeds, a later topology
+allocation failure can leave the input moved-from while preserving all container
+values. Snapshot sharing and erasure do not copy the mapped value. Editing a shared
+payload and independent cloning require nothrow entry copying; move-only ownership
+does not imply copy-on-write editing support.
+
 Persistent iteration is read-only. Transient `at` detaches only the edited path
 and payload. Mutable iteration and mutable `find` prepare unique ownership of the
 whole tree and all payloads before exposing a forward iterator. Iterator copies

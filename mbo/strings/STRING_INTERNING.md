@@ -28,6 +28,17 @@ independently before selecting the interner's default composition.
 
 ## Core model
 
+The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
+ownership independently of the index. `try_store` copies exactly the view length,
+including embedded NUL bytes, without adding a terminator. Empty strings need no
+allocation. Exhaustion returns an empty optional; successful views remain stable
+until destruction or an explicit rewind that covers their allocation. The adapter
+is neither copyable nor movable and requires external synchronization. Its arena
+type is configurable. Checkpoints permit rollback of uncommitted bytes, not deletion
+of published strings. Unexpected arena exceptions terminate through the adapter's
+`noexcept` boundary; it does not convert exceptions into allocation-failure results.
+This is an initial implementation, not a benchmark-selected storage strategy.
+
 An interner consists conceptually of three independent facilities:
 
 1. stable character storage that owns the bytes behind returned `std::string_view` values;

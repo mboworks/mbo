@@ -48,6 +48,66 @@ using Node = HamtSharedNode<5, int>;
 
 struct HamtSharedNodeTest : ::testing::Test {};
 
+TEST_F(HamtSharedNodeTest, DemotionRejectsInvalidOccupancyAndPositionsBeforeAllocation) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({42});
+  auto* const empty = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(empty, NotNull());
+  ASSERT_THAT(collision, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(1), Eq(true));
+  const auto children = std::to_array<Node*>({empty});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  Node::index_type demoted;
+  ASSERT_THAT(demoted.InsertData(1), Eq(true));
+  const std::size_t acquired = source.acquired;
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *collision, demoted, 0, 0, 42), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *empty, demoted, 0, 0, 42), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, {}, 0, 0, 42), Eq(std::nullopt));
+  Node::index_type wrong_nodes = demoted;
+  ASSERT_THAT(wrong_nodes.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, wrong_nodes, 0, 0, 42), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, demoted, 1, 0, 42), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, demoted, 0, 1, 42), Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(acquired));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  EXPECT_THAT(empty->use_count(), Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, collision);
+  Node::Release(source, empty);
+  EXPECT_THAT(source.released, Eq(source.acquired));
+}
+
+TEST_F(HamtSharedNodeTest, PromotionRejectsInvalidOccupancyAndPositionsBeforeAllocation) {
+  CountingSource source;
+  auto* const empty = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(empty, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({42});
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  Node::index_type promoted;
+  ASSERT_THAT(promoted.InsertNode(1), Eq(true));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *original, promoted, 0, 0, nullptr), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *collision, promoted, 0, 0, empty), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *empty, promoted, 0, 0, empty), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *original, index, 0, 0, empty), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *original, {}, 0, 0, empty), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *original, promoted, 1, 0, empty), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryPromoteEntryToChild(source, *original, promoted, 0, 1, empty), Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(3));
+  EXPECT_THAT(empty->use_count(), Eq(1));
+  Node::Release(source, original);
+  Node::Release(source, collision);
+  Node::Release(source, empty);
+  EXPECT_THAT(source.released, Eq(source.acquired));
+}
+
 TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {
   CountingSource source;
   Node::index_type index;
@@ -692,7 +752,7 @@ TEST_F(HamtSharedNodeTest, ErasesEachChildWhilePreservingTheOriginalOwners) {
     ASSERT_THAT(erased->children(), SizeIs(2));
     EXPECT_THAT(children.at(position)->use_count(), Eq(2));
     Node* const * expected = children.data();
-    for (Node* const remaining : erased->children()) {
+    for (const Node* const remaining : erased->children()) {
       if (expected == children.data() + position) {
         ++expected;
       }

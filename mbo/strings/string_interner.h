@@ -16,6 +16,7 @@
 #include <utility>
 #include <variant>
 
+#include "mbo/config/require.h"
 #include "mbo/container/segmented_sequence.h"
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/hamt_string_index.h"
@@ -67,27 +68,34 @@ class StringInterner final {
     using iterator_concept = std::bidirectional_iterator_tag;
     iterator() noexcept = default;
 
-    reference operator*() const noexcept {
+    reference operator*() const noexcept(!::mbo::config::kRequireThrows) {
+      MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot dereference a singular StringInterner iterator");
+      MBO_CONFIG_REQUIRE_DEBUG(position_ < owner_->size(), "Cannot dereference a StringInterner end iterator");
       return owner_->get(id_type(static_cast<Representation>(position_))).value_or(std::string_view{});
     }
 
-    iterator& operator++() noexcept {
+    iterator& operator++() noexcept(!::mbo::config::kRequireThrows) {
+      MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot increment a singular StringInterner iterator");
+      MBO_CONFIG_REQUIRE_DEBUG(position_ < owner_->size(), "Cannot increment a StringInterner end iterator");
       ++position_;
       return *this;
     }
 
-    iterator operator++(int) noexcept {
+    iterator operator++(int) noexcept(!::mbo::config::kRequireThrows) {
       auto before = *this;
       ++*this;
       return before;
     }
 
-    iterator& operator--() noexcept {
+    iterator& operator--() noexcept(!::mbo::config::kRequireThrows) {
+      MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot decrement a singular StringInterner iterator");
+      MBO_CONFIG_REQUIRE_DEBUG(position_ > 0, "Cannot decrement a StringInterner begin iterator");
+      MBO_CONFIG_REQUIRE_DEBUG(position_ <= owner_->size(), "StringInterner iterator is out of range");
       --position_;
       return *this;
     }
 
-    iterator operator--(int) noexcept {
+    iterator operator--(int) noexcept(!::mbo::config::kRequireThrows) {
       auto before = *this;
       --*this;
       return before;

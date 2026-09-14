@@ -68,6 +68,33 @@ class HamtOwnedTree final {
 
   const Tree& tree() const noexcept { return tree_; }
 
+  template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
+    using ClonedTree = typename decltype(tree_.try_clone_to(std::declval<OtherSource&>()))::value_type;
+    using ClonedOwned = HamtOwnedTree<ClonedTree, OtherSource>;
+    auto domain = HamtSourceDomain<OtherSource>::TryCreate(std::forward<SourceArgs>(source_args)...);
+    if (!domain) {
+      return std::optional<ClonedOwned>{};
+    }
+    auto cloned = tree_.try_clone_to(*domain->get());
+    if (!cloned) {
+      return std::optional<ClonedOwned>{};
+    }
+    return std::optional<ClonedOwned>(ClonedOwned(std::move(*domain), std::move(*cloned)));
+  }
+
+  // Failure does not consume the original; success leaves a reusable empty core.
+  template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) && noexcept {
+    auto cloned = std::as_const(*this).template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
+    if (cloned) {
+      tree_.clear();
+    }
+    return cloned;
+  }
+
   void swap(HamtOwnedTree& other) noexcept {
     domain_.swap(other.domain_);
     tree_.swap(other.tree_);
@@ -76,6 +103,11 @@ class HamtOwnedTree final {
   friend void swap(HamtOwnedTree& first, HamtOwnedTree& second) noexcept { first.swap(second); }
 
  private:
+  template<typename, mbo::memory::BlockSource>
+  friend class HamtOwnedTree;
+
+  HamtOwnedTree(domain_type domain, Tree tree) noexcept : domain_(std::move(domain)), tree_(std::move(tree)) {}
+
   template<typename Hash, typename KeyOf, typename Equal>
   HamtOwnedTree(domain_type domain, Hash hash, KeyOf key_of, Equal equal) noexcept
       : domain_(std::move(domain)), tree_(*domain_.get(), std::move(hash), std::move(key_of), std::move(equal)) {}

@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <optional>
 #include <utility>
@@ -85,6 +86,10 @@ struct BudgetSource final {
 constexpr HamtOptions kOptions{.fragment_bits = 5, .maximum_size = 2};
 using Tree = HamtTree<kOptions, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
 
+static_assert(std::forward_iterator<Tree::mutable_iterator>);
+static_assert(std::convertible_to<Tree::mutable_iterator, Tree::iterator>);
+static_assert(!std::convertible_to<Tree::iterator, Tree::mutable_iterator>);
+
 ::testing::Matcher<HamtMutationResult> MutationIs(bool changed, std::optional<HamtError> error = {}) {
   return AllOf(
       Field("changed", &HamtMutationResult::changed, Eq(changed)),
@@ -95,6 +100,108 @@ struct HamtTreeTest : ::testing::Test {
   BudgetSource source;
   Tree tree{source, SeedHash{}, KeyOf{}, Equal{}};
 };
+
+TEST_F(HamtTreeTest, MutableIterationDetachesSnapshotsAndKeepsCopiedIteratorsMultipass) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  const Tree snapshot = tree;
+  auto result = tree.TryMutableBegin();
+  auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  auto current = *beginning;
+  auto copied = current;
+  Tree::iterator immutable = current;
+  EXPECT_THAT(immutable == current, IsTrue());
+  EXPECT_THAT(current == immutable, IsTrue());
+  const int key = current->key;
+  const int original_value = current->value;
+  current->value = 99;
+  EXPECT_THAT(copied->value, Eq(99));
+  const auto* const previous = snapshot.Find(key);
+  ASSERT_THAT(previous, NotNull());
+  EXPECT_THAT(previous->value, Eq(original_value));
+  ++current;
+  EXPECT_THAT(current == copied, IsFalse());
+  EXPECT_THAT(current == immutable, IsFalse());
+  ++copied;
+  ++immutable;
+  EXPECT_THAT(current == copied, IsTrue());
+  EXPECT_THAT(immutable == current, IsTrue());
+}
+
+TEST_F(HamtTreeTest, EmptyMutableIterationNeedsNoAllocationAndConvertsToTheCommonEnd) {
+  source.remaining = 0;
+  auto result = tree.TryMutableBegin();
+  const auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  EXPECT_THAT(*beginning == Tree::mutable_iterator{}, IsTrue());
+  EXPECT_THAT(*beginning == Tree::iterator{}, IsTrue());
+  EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtTreeTest, MutableIterationReportsExhaustionButNeedsNoAllocationAfterSharingEnds) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree snapshot = tree;
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMutableBegin(), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(tree.size(), Eq(1));
+  snapshot.clear();
+  const auto acquired = source.acquired;
+  auto result = tree.TryMutableBegin();
+  auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  EXPECT_THAT((*beginning)->value, Eq(10));
+  EXPECT_THAT(source.acquired, Eq(acquired));
+}
+
+TEST_F(HamtTreeTest, MutableIterationDetachesSharedDescendantsEvenWhenTheRootIsUnique) {
+  constexpr HamtOptions kDeepOptions{.fragment_bits = 5, .maximum_size = 8};
+  using DeepTree = HamtTree<kDeepOptions, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  DeepTree current{source, SeedHash{}, KeyOf{}, Equal{}};
+  EXPECT_THAT(current.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(current.try_insert(Entry{.key = 33, .value = 330}), MutationIs(true));
+  const DeepTree snapshot = current;
+  EXPECT_THAT(current.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+
+  source.remaining = 0;
+  EXPECT_THAT(current.TryMutableBegin(), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  source.remaining = 64;
+  auto result = current.TryMutableBegin();
+  const auto* const beginning = std::get_if<DeepTree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  for (auto iter = *beginning; iter != DeepTree::mutable_iterator{}; ++iter) {
+    iter->value += 1'000;
+  }
+  const auto* const old_first = snapshot.Find(1);
+  const auto* const old_second = snapshot.Find(33);
+  ASSERT_THAT(old_first, NotNull());
+  ASSERT_THAT(old_second, NotNull());
+  EXPECT_THAT(old_first->value, Eq(10));
+  EXPECT_THAT(old_second->value, Eq(330));
+  EXPECT_THAT(current.size(), Eq(3));
+}
+
+TEST_F(HamtTreeTest, MutableFindDoesNotDetachForMissingKeysAndPreservesSnapshotsForFoundKeys) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree snapshot = tree;
+  source.remaining = 0;
+  auto missing = tree.TryMutableFind(std::int64_t{2});
+  const auto* const missing_iterator = std::get_if<Tree::mutable_iterator>(&missing);
+  ASSERT_THAT(missing_iterator, NotNull());
+  EXPECT_THAT(*missing_iterator == Tree::iterator{}, IsTrue());
+  EXPECT_THAT(
+      tree.TryMutableFind(std::int64_t{1}), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  source.remaining = 64;
+  auto found = tree.TryMutableFind(std::int64_t{1});
+  const auto* const found_iterator = std::get_if<Tree::mutable_iterator>(&found);
+  ASSERT_THAT(found_iterator, NotNull());
+  ASSERT_THAT(*found_iterator == Tree::mutable_iterator{}, IsFalse());
+  EXPECT_THAT(*found_iterator == tree.find(1), IsTrue());
+  (*found_iterator)->value = 99;
+  const auto* const original = snapshot.Find(1);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(original->value, Eq(10));
+}
 
 struct SetValue final {
   int value;

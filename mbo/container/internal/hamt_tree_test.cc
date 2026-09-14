@@ -166,6 +166,13 @@ TEST_F(HamtTreeTest, MutableIterationDetachesSharedDescendantsEvenWhenTheRootIsU
   source.remaining = 0;
   EXPECT_THAT(current.TryMutableBegin(), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   source.remaining = 64;
+  const auto* const root_entry = current.Find(2);
+  ASSERT_THAT(root_entry, NotNull());
+  auto borrowed_lookup = current.TryMutableFind(root_entry->key);
+  const auto* const borrowed_position = std::get_if<DeepTree::mutable_iterator>(&borrowed_lookup);
+  ASSERT_THAT(borrowed_position, NotNull());
+  ASSERT_THAT(*borrowed_position == DeepTree::mutable_iterator{}, IsFalse());
+  EXPECT_THAT((*borrowed_position)->key, Eq(2));
   auto result = current.TryMutableBegin();
   const auto* const beginning = std::get_if<DeepTree::mutable_iterator>(&result);
   ASSERT_THAT(beginning, NotNull());

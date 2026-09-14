@@ -80,6 +80,22 @@ TEST_F(HamtFlatMapTest, MutableIteratorsKeepKeysConstAndDetachFromPersistentSnap
   EXPECT_THAT(alias->first->second, Eq(55));
 }
 
+TEST_F(HamtFlatMapTest, MaximumSizeFailurePrecedesSharedIteratorAllocation) {
+  constexpr HamtOptions kOneEntry{.fragment_bits = 5, .maximum_size = 1};
+  using BoundedMap =
+      HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, kOneEntry, mbo::memory::InlineBlockSource<512>>;
+  BoundedMap empty;
+  auto builder = std::move(empty).transient();
+  EXPECT_THAT(builder.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
+  const auto snapshot = std::move(builder).persistent();
+  auto edit = snapshot.transient();
+  EXPECT_THAT(edit.try_insert(BoundedMap::value_type(2, 20)), VariantWith<HamtError>(Eq(HamtError::kMaxSizeExceeded)));
+  EXPECT_THAT(
+      edit.try_insert(BoundedMap::value_type(1, 99)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(edit.size(), Eq(1));
+}
+
 TEST_F(HamtFlatMapTest, PublicCloneChangesSourceAndConsumesOnlyOnSuccess) {
   Map empty;
   auto [one, inserted] = empty.insert(Map::value_type(1, 10));

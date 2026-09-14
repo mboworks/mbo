@@ -285,8 +285,8 @@ size. Standalone primitive iterators retain root identity when no container iden
 `try_insert`, `try_replace`, and `try_erase` return a mutation flag plus an optional `HamtError`.
 Duplicate insertion is successful even at maximum size and does not replace an existing value.
 Maximum-size and allocation exhaustion leave the value unchanged. Missing replacement/erasure
-is successful without mutation. The initial core uses path copying for every structural update;
-uniquely owned transient editing is a separate optimization, not provided by this primitive.
+is successful without mutation. Structural insertion and erasure still use path copying;
+the transient mapped-editing primitive below additionally supports uniquely owned in-place updates.
 
 `try_clone_to` deep-copies into another source while preserving size and callable state. Empty
 clones succeed without allocation. The source is borrowed; public wrappers provide allocation-domain
@@ -294,3 +294,22 @@ lifetime and immutable-key enforcement. Entries require non-throwing copying, mo
 destruction. Callable invocation is constrained for the actual lookup type; callable copies,
 moves, swaps, and destruction are non-throwing. These internal requirements are not a claim that
 all public storage variants have identical element constraints or invalidation guarantees.
+
+## Transient mapped editing
+
+`TryUpdateHamtEntry` and the core's `try_update` accept a non-throwing editor that preserves
+the key and full hash and returns `void`. Throwing or result-returning editors are rejected by
+constraints, rather than translating exceptions or silently discarding error results.
+They are internal transient operations, not mutable persistent APIs.
+Every node on the path must be uniquely owned before editing in place: leaf uniqueness alone
+is insufficient when an ancestor is shared. A unique path can be edited without allocating,
+even with an exhausted block source. Collision updates locate the entry's dense position from
+the existing lookup result rather than scanning the bucket twice.
+
+A shared path copies the entry, edits the temporary, and publishes a copied path only after
+allocation succeeds. Failure leaves all container values unchanged. External editor side effects
+are not rolled back; missing keys do not invoke the editor. Editors must not reenter operations
+on the tree. Node-storage wrappers must additionally establish unique element-payload ownership;
+unique tree nodes alone do not establish uniqueness of separately shared payloads.
+Consuming transient-to-persistent conversion and structural transient insertion/erasure remain
+separate container operations.

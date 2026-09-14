@@ -19,6 +19,7 @@
 #include "mbo/container/internal/hamt_lookup.h"
 #include "mbo/container/internal/hamt_replace.h"
 #include "mbo/container/internal/hamt_root_owner.h"
+#include "mbo/container/internal/hamt_update.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container::container_internal {
@@ -169,6 +170,22 @@ class HamtTree final {
     }
     root_.reset(replaced->root);
     return {.changed = replaced->replaced};
+  }
+
+  template<typename Key, typename Editor>
+  requires(
+      requires(const HamtTree& tree, const Key& key) { tree.Find(key); }
+      && std::is_nothrow_invocable_v<const Editor&, Entry&>
+      && std::same_as<std::invoke_result_t<const Editor&, Entry&>, void>)
+  [[nodiscard]] HamtMutationResult try_update(const Key& key, const Editor& editor) noexcept {
+    const auto updated = TryUpdateHamtEntry(
+        root_.source(), root_.get(), std::invoke(hash_, key), key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_,
+        equal_, editor);
+    if (!updated) {
+      return {.error = HamtError::kAllocationExhausted};
+    }
+    root_.reset(updated->root);
+    return {.changed = updated->replaced};
   }
 
   void clear() noexcept {

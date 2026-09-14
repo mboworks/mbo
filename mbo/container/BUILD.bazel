@@ -186,6 +186,7 @@ cc_library(
         ":hamt_options_cc",
         ":hamt_replace_cc",
         ":hamt_root_owner_cc",
+        ":hamt_update_cc",
         "//mbo/memory:block_source_cc",
     ],
 )
@@ -196,11 +197,25 @@ cc_test(
     srcs = ["internal/hamt_tree_test.cc"],
     deps = [
         ":hamt_tree_cc",
+        ":hamt_update_cc",
         "//mbo/memory:block_source_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "hamt_update_cc",
+    hdrs = ["internal/hamt_update.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_lookup_cc",
+        ":hamt_replace_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
 
 cc_test(
     name = "hamt_root_owner_test",

@@ -1,0 +1,326 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#ifndef MBO_CONTAINER_HAMT_FLAT_MAP_H_
+#define MBO_CONTAINER_HAMT_FLAT_MAP_H_
+
+#include <concepts>
+#include <exception>
+#include <functional>
+#include <optional>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+#include "mbo/container/hamt_options.h"
+#include "mbo/container/internal/hamt_owned_tree.h"
+#include "mbo/container/internal/hamt_tree.h"
+#include "mbo/memory/block_source.h"
+
+namespace mbo::container {
+
+// Persistent, unordered map with entries stored directly in packed HAMT nodes.
+// NOLINTBEGIN(readability-identifier-naming): container vocabulary.
+template<
+    typename Key,
+    typename Mapped,
+    typename Hash = std::hash<Key>,
+    typename Equal = std::equal_to<>,
+    HamtOptions Options = HamtOptions{},
+    mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource>
+requires ValidHamtOptions<Options>
+class HamtFlatMap final {
+ private:
+  using Entry = std::pair<const Key, Mapped>;
+
+  struct KeyOf final {
+    const Key& operator()(const Entry& entry) const noexcept { return entry.first; }
+  };
+
+  using Tree = container_internal::HamtTree<Options, Entry, Hash, KeyOf, Equal, Source>;
+  using Owned = container_internal::HamtOwnedTree<Tree, Source>;
+
+  template<typename Editor>
+  struct MappedEditor final {
+    const Editor& editor;
+
+    void operator()(Entry& entry) const noexcept { std::invoke(editor, entry.second); }
+  };
+
+ public:
+  using key_type = Key;
+  using value_type = Entry;
+  using mapped_type = Mapped;
+  using size_type = typename Tree::size_type;
+  using iterator = typename Tree::iterator;
+  using const_iterator = iterator;
+  using mutation_result = std::variant<std::pair<HamtFlatMap, bool>, HamtError>;
+
+  class transient_type;
+
+  explicit HamtFlatMap(Hash hash = Hash{}, Equal equal = Equal{}) noexcept
+  requires std::is_nothrow_default_constructible_v<Source>
+      : owned_(MakeOwned(std::move(hash), std::move(equal))) {}
+
+  HamtFlatMap(const HamtFlatMap&) noexcept = default;
+  HamtFlatMap& operator=(const HamtFlatMap&) noexcept = default;
+  HamtFlatMap(HamtFlatMap&&) noexcept = default;
+  HamtFlatMap& operator=(HamtFlatMap&&) noexcept = default;
+  ~HamtFlatMap() = default;
+
+  template<typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<Source, SourceArgs...>
+  [[nodiscard]] static std::optional<HamtFlatMap> TryCreate(
+      Hash hash = Hash{},
+      Equal equal = Equal{},
+      SourceArgs&&... source_args) noexcept {
+    auto owned = Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal), std::forward<SourceArgs>(source_args)...);
+    if (!owned) {
+      return std::nullopt;
+    }
+    return HamtFlatMap(std::move(*owned));
+  }
+
+  size_type size() const noexcept { return owned_.tree().size(); }
+
+  bool empty() const noexcept { return owned_.tree().empty(); }
+
+  static constexpr size_type max_size() noexcept { return Tree::max_size(); }
+
+  iterator begin() const noexcept { return owned_.tree().begin(); }
+
+  static iterator end() noexcept { return Tree::end(); }
+
+  iterator cbegin() const noexcept { return begin(); }
+
+  static iterator cend() noexcept { return end(); }
+
+  const Hash& hash_function() const noexcept { return owned_.tree().hash_function(); }
+
+  const Equal& key_eq() const noexcept { return owned_.tree().key_eq(); }
+
+  template<typename LookupKey>
+  requires requires(const Tree& tree, const LookupKey& key) { tree.find(key); }
+  iterator find(const LookupKey& key) const noexcept {
+    return owned_.tree().find(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(const Tree& tree, const LookupKey& key) { tree.contains(key); }
+  bool contains(const LookupKey& key) const noexcept {
+    return owned_.tree().contains(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(const Tree& tree, const LookupKey& key) { tree.Find(key); }
+  const Mapped& at(const LookupKey& key) const noexcept {
+    const auto* const entry = owned_.tree().Find(key);
+    if (entry == nullptr) {
+      std::terminate();
+    }
+    return entry->second;
+  }
+
+  template<typename LookupKey, typename Editor>
+  requires(
+      std::is_nothrow_invocable_v<const Editor&, Mapped&>
+      && std::same_as<std::invoke_result_t<const Editor&, Mapped&>, void>
+      && requires(Tree& tree, const LookupKey& key) { tree.Find(key); })
+  [[nodiscard]] mutation_result try_update(const LookupKey& key, const Editor& editor) const noexcept {
+    HamtFlatMap next(*this);
+    const auto result = next.owned_.tree().try_update(key, MappedEditor<Editor>{.editor = editor});
+    if (result.error) {
+      return *result.error;
+    }
+    return std::pair<HamtFlatMap, bool>(std::move(next), result.changed);
+  }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.contains(key); }
+  size_type count(const LookupKey& key) const noexcept {
+    return static_cast<size_type>(contains(key));
+  }
+
+  [[nodiscard]] mutation_result try_insert(const value_type& entry) const noexcept {
+    HamtFlatMap next(*this);
+    const auto result = next.owned_.tree().try_insert(entry);
+    if (result.error) {
+      return *result.error;
+    }
+    return std::pair<HamtFlatMap, bool>(std::move(next), result.changed);
+  }
+
+  [[nodiscard]] std::pair<HamtFlatMap, bool> insert(const value_type& entry) const noexcept {
+    return RequireValue(try_insert(entry));
+  }
+
+  template<typename LookupKey>
+  requires requires(Tree& tree, const LookupKey& key) { tree.try_erase(key); }
+  [[nodiscard]] mutation_result try_erase(const LookupKey& key) const noexcept {
+    HamtFlatMap next(*this);
+    const auto result = next.owned_.tree().try_erase(key);
+    if (result.error) {
+      return *result.error;
+    }
+    return std::pair<HamtFlatMap, bool>(std::move(next), result.changed);
+  }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.try_erase(key); }
+  [[nodiscard]] std::pair<HamtFlatMap, bool> erase(const LookupKey& key) const noexcept {
+    return RequireValue(try_erase(key));
+  }
+
+  transient_type transient() const & noexcept { return transient_type(*this); }
+
+  transient_type transient() && noexcept { return transient_type(std::move(*this)); }
+
+  void swap(HamtFlatMap& other) noexcept { owned_.swap(other.owned_); }
+
+  friend void swap(HamtFlatMap& first, HamtFlatMap& second) noexcept { first.swap(second); }
+
+ private:
+  static Owned MakeOwned(Hash hash, Equal equal) noexcept {
+    auto owned = Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal));
+    if (!owned) {
+      std::terminate();
+    }
+    return std::move(*owned);
+  }
+
+  template<typename Value>
+  static Value RequireValue(std::variant<Value, HamtError> result) noexcept {
+    if (auto* const value = std::get_if<Value>(&result); value != nullptr) {
+      return std::move(*value);
+    }
+    std::terminate();
+  }
+
+  explicit HamtFlatMap(Owned owned) noexcept : owned_(std::move(owned)) {}
+
+  Owned owned_;
+};
+
+template<
+    typename Key,
+    typename Mapped,
+    typename Hash,
+    typename Equal,
+    HamtOptions Options,
+    mbo::memory::BlockSource Source>
+requires ValidHamtOptions<Options>
+class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type final {
+ public:
+  using iterator = typename HamtFlatMap::iterator;
+  using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
+  using erasure_result = std::variant<size_type, HamtError>;
+  using update_result = std::variant<bool, HamtError>;
+
+  explicit transient_type(HamtFlatMap snapshot) noexcept : map_(std::move(snapshot)) {}
+
+  transient_type(const transient_type&) = delete;
+  transient_type& operator=(const transient_type&) = delete;
+  transient_type(transient_type&&) noexcept = default;
+  transient_type& operator=(transient_type&&) noexcept = default;
+  ~transient_type() = default;
+
+  size_type size() const noexcept { return map_.size(); }
+
+  bool empty() const noexcept { return map_.empty(); }
+
+  static constexpr size_type max_size() noexcept { return HamtFlatMap::max_size(); }
+
+  iterator begin() const noexcept { return map_.begin(); }
+
+  static iterator end() noexcept { return HamtFlatMap::end(); }
+
+  iterator cbegin() const noexcept { return begin(); }
+
+  static iterator cend() noexcept { return end(); }
+
+  const Hash& hash_function() const noexcept { return map_.hash_function(); }
+
+  const Equal& key_eq() const noexcept { return map_.key_eq(); }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.find(key); }
+  iterator find(const LookupKey& key) const noexcept {
+    return map_.find(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.contains(key); }
+  bool contains(const LookupKey& key) const noexcept {
+    return map_.contains(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.at(key); }
+  const Mapped& at(const LookupKey& key) const noexcept {
+    return map_.at(key);
+  }
+
+  template<typename LookupKey, typename Editor>
+  requires(
+      std::is_nothrow_invocable_v<const Editor&, Mapped&>
+      && std::same_as<std::invoke_result_t<const Editor&, Mapped&>, void>
+      && requires(Tree& tree, const LookupKey& key) { tree.Find(key); })
+  [[nodiscard]] update_result try_update(const LookupKey& key, const Editor& editor) noexcept {
+    const auto result = map_.owned_.tree().try_update(key, MappedEditor<Editor>{.editor = editor});
+    if (result.error) {
+      return *result.error;
+    }
+    return result.changed;
+  }
+
+  template<typename LookupKey>
+  requires requires(const HamtFlatMap& map, const LookupKey& key) { map.count(key); }
+  size_type count(const LookupKey& key) const noexcept {
+    return map_.count(key);
+  }
+
+  [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept {
+    const auto result = map_.owned_.tree().try_insert(entry);
+    if (result.error) {
+      return *result.error;
+    }
+    return std::pair<iterator, bool>(map_.find(entry.first), result.changed);
+  }
+
+  std::pair<iterator, bool> insert(const value_type& entry) noexcept {
+    return HamtFlatMap::RequireValue(try_insert(entry));
+  }
+
+  template<typename LookupKey>
+  requires requires(Tree& tree, const LookupKey& key) { tree.try_erase(key); }
+  [[nodiscard]] erasure_result try_erase(const LookupKey& key) noexcept {
+    const auto result = map_.owned_.tree().try_erase(key);
+    if (result.error) {
+      return *result.error;
+    }
+    return static_cast<size_type>(result.changed);
+  }
+
+  template<typename LookupKey>
+  requires requires(transient_type& transient, const LookupKey& key) { transient.try_erase(key); }
+  size_type erase(const LookupKey& key) noexcept {
+    return HamtFlatMap::RequireValue(try_erase(key));
+  }
+
+  void clear() noexcept { map_.owned_.tree().clear(); }
+
+  [[nodiscard]] HamtFlatMap persistent() && noexcept { return std::move(map_); }
+
+  void swap(transient_type& other) noexcept { map_.swap(other.map_); }
+
+  friend void swap(transient_type& first, transient_type& second) noexcept { first.swap(second); }
+
+ private:
+  HamtFlatMap map_;
+};
+
+// NOLINTEND(readability-identifier-naming)
+
+}  // namespace mbo::container
+
+#endif  // MBO_CONTAINER_HAMT_FLAT_MAP_H_

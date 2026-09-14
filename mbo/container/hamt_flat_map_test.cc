@@ -1,0 +1,95 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#include "mbo/container/hamt_flat_map.h"
+
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "mbo/container/hamt_options.h"
+#include "mbo/memory/block_source.h"
+
+namespace mbo::container {
+namespace {
+using ::testing::Eq;
+using ::testing::IsEmpty;
+using ::testing::NotNull;
+using ::testing::VariantWith;
+using Map = HamtFlatMap<int, int>;
+
+struct HamtFlatMapTest : ::testing::Test {};
+
+struct SetValue final {
+  void operator()(int& mapped) const noexcept { mapped = value; }
+
+  int value = 0;
+};
+
+struct ThrowingEditor final {
+  void operator()(int&) const noexcept(false) {}
+};
+
+struct ReturningEditor final {
+  bool operator()(int&) const noexcept { return true; }
+};
+
+template<typename Editor>
+concept SupportsEditor = requires(const Map& map, const Editor& editor) { map.try_update(1, editor); };
+static_assert(SupportsEditor<SetValue>);
+static_assert(!SupportsEditor<ThrowingEditor>);
+static_assert(!SupportsEditor<ReturningEditor>);
+
+static_assert(std::is_const_v<std::remove_reference_t<decltype(std::declval<Map::value_type>().first)>>);
+
+TEST_F(HamtFlatMapTest, PersistentInsertAndDuplicatePreserveOriginalMappedValues) {
+  const Map empty;
+  auto [one, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  EXPECT_THAT(empty, IsEmpty());
+  EXPECT_THAT(one.at(1), Eq(10));
+  auto [duplicate, changed] = one.insert(Map::value_type(1, 99));
+  EXPECT_THAT(changed, Eq(false));
+  EXPECT_THAT(duplicate.at(1), Eq(10));
+  EXPECT_THAT(one.at(1), Eq(10));
+}
+
+TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
+  Map empty;
+  auto [one, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  auto edit = one.transient();
+  EXPECT_THAT(edit.try_update(1, SetValue{.value = 99}), VariantWith<bool>(Eq(true)));
+  EXPECT_THAT(edit.at(1), Eq(99));
+  EXPECT_THAT(one.at(1), Eq(10));
+  EXPECT_THAT(edit.try_update(2, SetValue{.value = 77}), VariantWith<bool>(Eq(false)));
+  auto snapshot = std::move(edit).persistent();
+  auto updated = snapshot.try_update(1, SetValue{.value = 42});
+  auto* const result = std::get_if<std::pair<Map, bool>>(&updated);
+  ASSERT_THAT(result, NotNull());
+  EXPECT_THAT(result->second, Eq(true));
+  EXPECT_THAT(result->first.at(1), Eq(42));
+  EXPECT_THAT(snapshot.at(1), Eq(99));
+  EXPECT_THAT(edit.empty(), Eq(true));
+  EXPECT_THAT(edit.insert(Map::value_type(2, 20)).second, Eq(true));
+  EXPECT_THAT(edit.erase(2), Eq(1));
+}
+
+TEST_F(HamtFlatMapTest, UniqueMappedUpdateWorksWhenSharedPathCopyCannotAllocate) {
+  using BoundedMap =
+      HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<512>>;
+  BoundedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
+  auto snapshot = std::move(edit).persistent();
+  EXPECT_THAT(
+      snapshot.try_update(1, SetValue{.value = 99}), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  auto unique = std::move(snapshot).transient();
+  EXPECT_THAT(unique.try_update(1, SetValue{.value = 99}), VariantWith<bool>(Eq(true)));
+  EXPECT_THAT(unique.at(1), Eq(99));
+}
+}  // namespace
+}  // namespace mbo::container

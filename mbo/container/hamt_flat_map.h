@@ -242,7 +242,9 @@ template<
 requires ValidHamtOptions<Options>
 class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type final {
  public:
-  using iterator = typename HamtFlatMap::iterator;
+  using iterator = typename Tree::mutable_iterator;
+  using const_iterator = typename HamtFlatMap::iterator;
+  using iterator_result = std::variant<iterator, HamtError>;
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;
   using update_result = std::variant<bool, HamtError>;
@@ -262,13 +264,19 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   static constexpr size_type max_size() noexcept { return HamtFlatMap::max_size(); }
 
-  iterator begin() const noexcept { return map_.begin(); }
+  [[nodiscard]] iterator_result try_begin() noexcept { return map_.owned_.tree().TryMutableBegin(); }
 
-  static iterator end() noexcept { return HamtFlatMap::end(); }
+  iterator begin() noexcept { return HamtFlatMap::RequireValue(try_begin()); }
 
-  iterator cbegin() const noexcept { return begin(); }
+  const_iterator begin() const noexcept { return map_.begin(); }
 
-  static iterator cend() noexcept { return end(); }
+  iterator end() noexcept { return {}; }
+
+  const_iterator end() const noexcept { return {}; }
+
+  const_iterator cbegin() const noexcept { return map_.begin(); }
+
+  const_iterator cend() const noexcept { return {}; }
 
   const Hash& hash_function() const noexcept { return map_.hash_function(); }
 
@@ -276,8 +284,20 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   template<typename LookupKey>
   requires requires(const HamtFlatMap& map, const LookupKey& key) { map.find(key); }
-  iterator find(const LookupKey& key) const noexcept {
+  const_iterator find(const LookupKey& key) const noexcept {
     return map_.find(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(Tree& tree, const LookupKey& key) { tree.TryMutableFind(key); }
+  [[nodiscard]] iterator_result try_find(const LookupKey& key) noexcept {
+    return map_.owned_.tree().TryMutableFind(key);
+  }
+
+  template<typename LookupKey>
+  requires requires(transient_type& map, const LookupKey& key) { map.try_find(key); }
+  iterator find(const LookupKey& key) noexcept {
+    return HamtFlatMap::RequireValue(try_find(key));
   }
 
   template<typename LookupKey>
@@ -357,11 +377,21 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept {
-    const auto result = map_.owned_.tree().try_insert(entry);
+    auto& tree = map_.owned_.tree();
+    if (tree.size() == max_size() && !tree.contains(entry.first)) {
+      return HamtError::kMaxSizeExceeded;
+    }
+    // The argument may borrow an entry invalidated by ownership preparation.
+    const value_type insertion = entry;
+    const auto preparation = tree.TryMakeUnique();
+    if (preparation) {
+      return *preparation;
+    }
+    const auto result = map_.owned_.tree().try_insert(insertion);
     if (result.error) {
       return *result.error;
     }
-    return std::pair<iterator, bool>(map_.find(entry.first), result.changed);
+    return std::pair<iterator, bool>(HamtFlatMap::RequireValue(try_find(insertion.first)), result.changed);
   }
 
   std::pair<iterator, bool> insert(const value_type& entry) noexcept {

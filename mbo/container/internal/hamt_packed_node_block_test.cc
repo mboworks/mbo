@@ -28,6 +28,52 @@ using Block = HamtPackedNodeBlock<Header, int, const void*, Source>;
 
 struct HamtPackedNodeBlockTest : ::testing::Test {};
 
+struct LifetimeValue final {
+  int* copies;
+  int* destructions;
+
+  LifetimeValue(int& copy_count, int& destruction_count) noexcept
+      : copies(&copy_count), destructions(&destruction_count) {}
+
+  LifetimeValue(const LifetimeValue& other) noexcept : copies(other.copies), destructions(other.destructions) {
+    ++*copies;
+  }
+
+  LifetimeValue& operator=(const LifetimeValue&) = delete;
+  LifetimeValue(LifetimeValue&&) = delete;
+  LifetimeValue& operator=(LifetimeValue&&) = delete;
+
+  ~LifetimeValue() noexcept { ++*destructions; }
+};
+
+TEST_F(HamtPackedNodeBlockTest, DestroysEveryOwnedObjectExactlyOnceBeforeReuse) {
+  int copies = 0;
+  int destructions = 0;
+  const LifetimeValue header(copies, destructions);
+  const std::array<LifetimeValue, 2> entries = {
+      LifetimeValue(copies, destructions), LifetimeValue(copies, destructions)};
+  const std::array<LifetimeValue, 2> children = {
+      LifetimeValue(copies, destructions), LifetimeValue(copies, destructions)};
+  Source source;
+  {
+    HamtPackedNodeBlock<LifetimeValue, LifetimeValue, LifetimeValue, Source> block(source);
+    ASSERT_THAT(block.TryInitialize(header, entries, children), Eq(true));
+    EXPECT_THAT(copies, Eq(5));
+    EXPECT_THAT(destructions, Eq(0));
+    const auto& const_block = block;
+    EXPECT_THAT(const_block.entries().size(), Eq(2));
+    EXPECT_THAT(const_block.children().size(), Eq(2));
+    EXPECT_THAT(const_block.header().copies, Eq(&copies));
+    block.clear();
+    EXPECT_THAT(destructions, Eq(5));
+    block.clear();
+    EXPECT_THAT(destructions, Eq(5));
+    ASSERT_THAT(block.TryInitialize(header, {}, {}), Eq(true));
+    EXPECT_THAT(copies, Eq(6));
+  }
+  EXPECT_THAT(destructions, Eq(6));
+}
+
 // NOLINTBEGIN(readability-identifier-naming) -- BlockSource vocabulary.
 struct RecordingSource final {
   static constexpr bool supports_recoverable_failure = true;
@@ -39,7 +85,9 @@ struct RecordingSource final {
   mbo::memory::MemoryBlock released{};
   std::size_t release_count = 0;
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t, std::size_t) noexcept { return offered; }
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t /*alignment*/) const noexcept {
+    return offered;
+  }
 
   void Release(mbo::memory::MemoryBlock block) noexcept {
     released = block;

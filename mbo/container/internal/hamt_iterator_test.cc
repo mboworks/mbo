@@ -113,7 +113,7 @@ TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
   for (const Entry& entry : kEntries) {
     const auto inserted = TryInsertHamtEntry<std::uint64_t, 5>(
                               source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
-                              .value_or({.root = nullptr, .inserted = false});
+                              .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
     ASSERT_THAT(inserted.root, NotNull());
     root.reset(inserted.root);
   }

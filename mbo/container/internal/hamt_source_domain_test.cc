@@ -19,6 +19,23 @@ using ::testing::NotNull;
 
 struct HamtSourceDomainTest : ::testing::Test {};
 
+TEST_F(HamtSourceDomainTest, CallerOwnedControlStorageIsReleasedOnlyByLastSnapshot) {
+  mbo::memory::InlineBlockSource<4'096> storage;
+  using Domain = HamtSourceDomain<mbo::memory::InlineBlockSource<1>>;
+  auto first = Domain::TryCreateIn(storage);
+  ASSERT_THAT(first.has_value(), Eq(true));
+  auto snapshot = first;
+  first.reset();
+  EXPECT_THAT(Domain::TryCreateIn(storage).has_value(), Eq(false));
+  snapshot.reset();
+  EXPECT_THAT(Domain::TryCreateIn(storage).has_value(), Eq(true));
+}
+
+TEST_F(HamtSourceDomainTest, ExhaustedControlStorageFailsBeforeConstructingNodeSource) {
+  mbo::memory::InlineBlockSource<1> storage;
+  EXPECT_THAT(HamtSourceDomain<mbo::memory::NewDeleteBlockSource>::TryCreateIn(storage).has_value(), Eq(false));
+}
+
 struct ObservedSource final {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
   static constexpr bool supports_recoverable_failure = true;

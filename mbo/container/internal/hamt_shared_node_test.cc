@@ -692,7 +692,7 @@ TEST_F(HamtSharedNodeTest, ErasesEachChildWhilePreservingTheOriginalOwners) {
     ASSERT_THAT(erased->children(), SizeIs(2));
     EXPECT_THAT(children.at(position)->use_count(), Eq(2));
     Node* const * expected = children.data();
-    for (Node* const remaining : erased->children()) {
+    for (const Node* const remaining : erased->children()) {
       if (expected == children.data() + position) {
         ++expected;
       }

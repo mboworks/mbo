@@ -74,6 +74,19 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
   EXPECT_THAT(snapshot.at(2), Eq(20));
 }
 
+TEST_F(HamtFlatMapTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
+  mbo::memory::InlineBlockSource<4'096> storage;
+  auto created = Map::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
+  ASSERT_THAT(created.has_value(), Eq(true));
+  created = created.value().insert({1, 99}).first;
+  EXPECT_THAT(created.value().at(1), Eq(99));
+  EXPECT_THAT(Map::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+  created.reset();
+  EXPECT_THAT(Map::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(true));
+  mbo::memory::InlineBlockSource<1> exhausted;
+  EXPECT_THAT(Map::try_create_in(exhausted, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+}
+
 struct CollisionHash final {
   constexpr std::uint64_t operator()([[maybe_unused]] int value) const noexcept { return 7; }
 };

@@ -66,6 +66,30 @@ class HamtOwnedTree final {
 
   Tree& tree() noexcept { return tree_; }
 
+  template<
+      mbo::memory::BlockSource ControlSource,
+      typename Hash,
+      typename KeyOf,
+      typename Equal,
+      typename... SourceArgs>
+  requires(
+      std::is_nothrow_constructible_v<Source, SourceArgs...>
+      && std::is_nothrow_constructible_v<Tree, Source&, Hash, KeyOf, Equal>
+      && std::is_nothrow_move_constructible_v<Hash> && std::is_nothrow_move_constructible_v<KeyOf>
+      && std::is_nothrow_move_constructible_v<Equal>)
+  [[nodiscard]] static std::optional<HamtOwnedTree> TryCreateIn(
+      ControlSource& storage,
+      Hash hash,
+      KeyOf key_of,
+      Equal equal,
+      SourceArgs&&... source_args) noexcept {
+    auto domain = domain_type::TryCreateIn(storage, std::forward<SourceArgs>(source_args)...);
+    if (!domain) {
+      return std::nullopt;
+    }
+    return HamtOwnedTree(std::move(*domain), std::move(hash), std::move(key_of), std::move(equal));
+  }
+
   const Tree& tree() const noexcept { return tree_; }
 
   // Node payload allocation must retain the same stable source as its tree.

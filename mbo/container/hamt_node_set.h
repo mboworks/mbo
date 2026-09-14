@@ -72,6 +72,21 @@ class HamtNodeSet final {
     return HamtNodeSet(std::move(*owned));
   }
 
+  template<mbo::memory::BlockSource ControlSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<Source, SourceArgs...>
+  [[nodiscard]] static std::optional<HamtNodeSet> try_create_in(
+      ControlSource& storage,
+      Hash hash,
+      Equal equal,
+      SourceArgs&&... source_args) noexcept {
+    auto owned = Owned::TryCreateIn(
+        storage, std::move(hash), KeyOf{}, std::move(equal), std::forward<SourceArgs>(source_args)...);
+    if (!owned) {
+      return std::nullopt;
+    }
+    return HamtNodeSet(std::move(*owned));
+  }
+
   size_type size() const noexcept { return owned_.tree().size(); }
 
   bool empty() const noexcept { return owned_.tree().empty(); }

@@ -70,6 +70,19 @@ TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
   EXPECT_THAT(snapshot.size(), Eq(2));
 }
 
+TEST_F(HamtFlatSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
+  mbo::memory::InlineBlockSource<4'096> storage;
+  auto created = Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
+  ASSERT_THAT(created.has_value(), Eq(true));
+  created = created.value().insert(1).first;
+  EXPECT_THAT(created.value().contains(1), Eq(true));
+  EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+  created.reset();
+  EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(true));
+  mbo::memory::InlineBlockSource<1> exhausted;
+  EXPECT_THAT(Set::try_create_in(exhausted, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+}
+
 TEST_F(HamtFlatSetTest, PublicCloneReturnsTheDestinationSourceSpecialization) {
   using BoundedSet =
       HamtFlatSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1'024>>;

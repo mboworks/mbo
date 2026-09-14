@@ -66,8 +66,8 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
   EXPECT_THAT(shared.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(shared, SizeIs(2));
   EXPECT_THAT(snapshot, SizeIs(2));
-  EXPECT_THAT(shared.at(1), Eq(10));
-  EXPECT_THAT(shared.at(2), Eq(20));
+  EXPECT_THAT(std::as_const(shared).at(1), Eq(10));
+  EXPECT_THAT(std::as_const(shared).at(2), Eq(20));
   EXPECT_THAT(snapshot.at(1), Eq(10));
   EXPECT_THAT(snapshot.at(2), Eq(20));
 }
@@ -208,7 +208,7 @@ TEST_F(HamtFlatMapTest, UniqueMappedUpdateWorksWhenSharedPathCopyCannotAllocate)
     auto shared = snapshot.transient();
     EXPECT_THAT(
         shared.try_update(1, SetValue{.value = 77}), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
-    EXPECT_THAT(shared.at(1), Eq(10));
+    EXPECT_THAT(std::as_const(shared).at(1), Eq(10));
     EXPECT_THAT(snapshot.at(1), Eq(10));
   }
   auto unique = std::move(snapshot).transient();

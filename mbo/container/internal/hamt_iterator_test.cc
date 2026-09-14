@@ -182,6 +182,39 @@ TEST_F(HamtIteratorTest, EmptyAllocatedRootHasTheSameEndAsANullRoot) {
   Node::Release(source, root);
 }
 
+TEST_F(HamtIteratorTest, IteratorCopiesKeepIndependentTraversalPositionsAcrossBranches) {
+  Node* root = nullptr;
+  constexpr auto kEntries =
+      std::to_array<Entry>({Entry{.hash = 1, .key = 10}, Entry{.hash = 33, .key = 20}, Entry{.hash = 7, .key = 30}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or({.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+  Iterator first(root);
+  Iterator second = first;
+  const int original_key = second->key;
+  ++first;
+  EXPECT_THAT(second->key, Eq(original_key));
+  EXPECT_THAT(first == second, Eq(false));
+  ++second;
+  EXPECT_THAT(first, Eq(second));
+  std::vector<int> first_remaining;
+  std::vector<int> second_remaining;
+  for (; first != Iterator{}; ++first) {
+    first_remaining.push_back(first->key);
+  }
+  for (; second != Iterator{}; ++second) {
+    second_remaining.push_back(second->key);
+  }
+  EXPECT_THAT(first_remaining, ElementsAre(10, 20));
+  EXPECT_THAT(second_remaining, ElementsAre(10, 20));
+  Node::Release(source, root);
+}
+
 static_assert(std::forward_iterator<Iterator>);
 
 }  // namespace

@@ -113,3 +113,22 @@ replacement, and owns one node reference. The original remains untouched.
 A collision node, invalid position, null replacement, or allocation failure returns
 `std::nullopt` without changing child reference counts. Releasing the old node does not
 invalidate the replacement snapshot. Non-throwing entry copies and destruction remain required.
+
+## Persistent entry and child erasure
+
+`TryEraseEntry` and `TryEraseChild` copy a normal node, omitting the entry or child at the
+supplied dense position. The caller supplies the resulting bitmap, preserving all other slots
+and removing exactly the selected data or node slot. These storage primitives validate payload
+counts and positions; they do not validate the caller's hash routing or normalize the full tree.
+Collision nodes require separate mutation operations.
+
+Entry erasure retains every original child in the new node. Child erasure retains only the
+remaining children; the removed child remains owned by the original node. Neither operation
+changes the original entries, topology, or reference counts on failure. Success returns one
+owned reference, including when removal produces an empty normal node.
+
+Collision input, an empty relevant payload, inconsistent counts, an invalid position, or
+allocation failure returns `std::nullopt`. Inputs remain borrowed throughout the operation.
+The source must outlive all resulting nodes; entry copies and destruction must be non-throwing.
+These primitives do not mutate existing snapshots and require external synchronization under
+the shared-node contract above.

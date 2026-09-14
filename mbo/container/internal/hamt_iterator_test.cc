@@ -130,6 +130,8 @@ TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
   }
   const Entry foreign{.hash = 1, .key = 10};
   EXPECT_THAT(Iterator::At(root.get(), foreign.hash, &foreign), Eq(Iterator{}));
+  const Entry foreign_data{.hash = std::uint64_t{1} << 63, .key = 30};
+  EXPECT_THAT(Iterator::At(root.get(), foreign_data.hash, &foreign_data), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{7}, std::addressof(*Iterator(root.get()))), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(nullptr, std::uint64_t{0}, &foreign), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{0}, nullptr), Eq(Iterator{}));

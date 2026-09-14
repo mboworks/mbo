@@ -28,6 +28,15 @@ independently before selecting the interner's default composition.
 
 ## Core model
 
+`StringInterner(parent, storage_factory, entries_factory, index_factory)` directly
+constructs all three backend members from nothrow factories returning their exact
+configured types. This supports nonmovable character storage without control blocks
+or relocation. Factories run once during construction, not during lookup or insertion.
+Each must return a fresh empty backend. `ArenaStringStorage` likewise accepts a
+nothrow arena factory, permitting caller-configured source construction while retaining
+its anchored lifetime. Returning an already populated backend violates the interner's
+ownership and dense-ID invariants; concepts verify types, not that semantic contract.
+
 Stateful index construction is supported by `StringInterner(parent, index_factory)`.
 The nothrow factory returns a fresh, empty index of the configured type; guaranteed
 copy elision initializes it without imposing index moveability. Storage and entry

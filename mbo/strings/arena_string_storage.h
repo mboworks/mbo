@@ -4,10 +4,13 @@
 #ifndef MBO_STRINGS_ARENA_STRING_STORAGE_H_
 #define MBO_STRINGS_ARENA_STRING_STORAGE_H_
 
+#include <concepts>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 
 #include "mbo/memory/arena.h"
 
@@ -22,6 +25,11 @@ class ArenaStringStorage final {
   using checkpoint_type = Arena::Checkpoint;
 
   ArenaStringStorage() = default;
+
+  template<typename ArenaFactory>
+  requires(std::is_nothrow_invocable_v<ArenaFactory&> && std::same_as<std::invoke_result_t<ArenaFactory&>, Arena>)
+  explicit ArenaStringStorage(ArenaFactory factory) noexcept : arena_(std::invoke(factory)) {}
+
   ArenaStringStorage(const ArenaStringStorage&) = delete;
   ArenaStringStorage& operator=(const ArenaStringStorage&) = delete;
   ArenaStringStorage(ArenaStringStorage&&) = delete;

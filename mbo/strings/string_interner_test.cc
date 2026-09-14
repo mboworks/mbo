@@ -19,6 +19,56 @@ struct StringInternerTest : ::testing::Test {};
 
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
 
+// Implements ownership and rollback without promising memory accounting.
+struct UnmeasuredStorage final {
+  using checkpoint_type = ArenaStringStorage<>::checkpoint_type;
+
+  std::optional<std::string_view> try_store(std::string_view text) noexcept { return storage.try_store(text); }
+
+  checkpoint_type checkpoint() const noexcept { return storage.checkpoint(); }
+
+  void rewind(const checkpoint_type& checkpoint) noexcept { storage.rewind(checkpoint); }
+
+  ArenaStringStorage<> storage;
+};
+
+TEST_F(StringInternerTest, UnsupportedStorageStatisticsAreUnknownRatherThanZero) {
+  StringInterner<std::uint32_t, UnmeasuredStorage> interner;
+  EXPECT_THAT(interner.local_character_bytes_used().has_value(), Eq(false));
+  EXPECT_THAT(interner.local_character_bytes_reserved().has_value(), Eq(false));
+  EXPECT_THAT(interner.intern("owned").index(), Eq(0));
+  EXPECT_THAT(interner.local_character_bytes_used().has_value(), Eq(false));
+  std::size_t measured = 0;
+  interner.visit_string_sizes([&](std::size_t size) noexcept { measured += size; });
+  EXPECT_THAT(measured, Eq(5));
+}
+
+TEST_F(StringInternerTest, SizeDiagnosticsRespectCapturedPrefixesAndLocalMemoryOwnership) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("").index(), Eq(0));
+  EXPECT_THAT(root.intern("abc").index(), Eq(0));
+  StringInterner<> child(&root);
+  EXPECT_THAT(root.intern("invisible").index(), Eq(0));
+  EXPECT_THAT(child.intern(std::string_view("a\0", 2)).index(), Eq(0));
+  std::size_t count = 0;
+  std::size_t total = 0;
+  std::size_t empty = 0;
+  child.visit_string_sizes([&](std::size_t size) noexcept {
+    ++count;
+    total += size;
+    empty += size == 0 ? 1 : 0;
+  });
+  EXPECT_THAT(count, Eq(3));
+  EXPECT_THAT(total, Eq(5));
+  EXPECT_THAT(empty, Eq(1));
+  EXPECT_THAT(child.local_character_bytes_used(), Optional(2));
+  EXPECT_THAT(child.local_character_bytes_reserved().value_or(0) >= 2, Eq(true));
+  StringInterner<> unused;
+  unused.visit_string_sizes([&](std::size_t) noexcept { ++count; });
+  EXPECT_THAT(count, Eq(3));
+  EXPECT_THAT(unused.local_character_bytes_used(), Optional(0));
+}
+
 TEST_F(StringInternerTest, FactoriesConstructAllBackendsOnceWithoutMovingCharacterStorage) {
   int storage_calls = 0;
   int entry_calls = 0;

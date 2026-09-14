@@ -163,6 +163,38 @@ class StringInterner final {
 
   size_type first_local_id() const noexcept { return first_local_id_; }
 
+  // Cold-path diagnostics: no counters or allocations on insertion and lookup.
+  // Visits exactly the visible prefix, in ID order, including empty strings.
+  template<typename Visitor>
+  requires(std::is_nothrow_invocable_r_v<void, Visitor&, size_type>)
+  void visit_string_sizes(Visitor&& visitor) const noexcept {
+    for (const std::string_view text : *this) {
+      std::invoke(visitor, text.size());
+    }
+  }
+
+  // These figures belong to this node's character storage, not its ancestors,
+  // entry descriptors, or index. Unsupported backends report unknown, not zero.
+  std::optional<size_type> local_character_bytes_used() const noexcept {
+    if constexpr (requires(const Storage& storage) {
+                    { storage.bytes_used() } noexcept -> std::same_as<size_type>;
+                  }) {
+      return storage_.bytes_used();
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  std::optional<size_type> local_character_bytes_reserved() const noexcept {
+    if constexpr (requires(const Storage& storage) {
+                    { storage.bytes_reserved() } noexcept -> std::same_as<size_type>;
+                  }) {
+      return storage_.bytes_reserved();
+    } else {
+      return std::nullopt;
+    }
+  }
+
   std::optional<std::string_view> get(id_type identifier) const noexcept {
     if (std::cmp_greater_equal(identifier.value(), size())) {
       return std::nullopt;

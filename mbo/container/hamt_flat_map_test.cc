@@ -3,7 +3,9 @@
 
 #include "mbo/container/hamt_flat_map.h"
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -18,6 +20,7 @@ namespace {
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::NotNull;
+using ::testing::SizeIs;
 using ::testing::VariantWith;
 using Map = HamtFlatMap<int, int>;
 
@@ -47,6 +50,82 @@ TEST_F(HamtFlatMapTest, PublicCloneChangesSourceAndConsumesOnlyOnSuccess) {
   auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed.has_value(), Eq(true));
   EXPECT_THAT(one, IsEmpty());
+}
+
+struct BudgetSource final {
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr bool supports_recoverable_failure = true;
+
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  explicit BudgetSource(std::size_t& budget) noexcept : budget(budget) {}
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    if (budget == 0) {
+      return std::nullopt;
+    }
+    --budget;
+    return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+
+  std::size_t& budget;
+};
+
+TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) {
+  using BudgetMap = HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  std::size_t budget = 8;
+  auto created = BudgetMap::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+  if (!created) {
+    FAIL() << "map creation failed";
+    return;
+  }
+  auto edit = created->transient();
+  EXPECT_THAT(edit.insert(BudgetMap::value_type(1, 10)).second, Eq(true));
+  EXPECT_THAT(edit.insert(BudgetMap::value_type(2, 20)).second, Eq(true));
+  const auto snapshot = std::move(edit).persistent();
+  auto shared = snapshot.transient();
+  budget = 0;
+  EXPECT_THAT(shared.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(shared, SizeIs(2));
+  EXPECT_THAT(snapshot, SizeIs(2));
+  EXPECT_THAT(std::as_const(shared).at(1), Eq(10));
+  EXPECT_THAT(std::as_const(shared).at(2), Eq(20));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(snapshot.at(2), Eq(20));
+}
+
+TEST_F(HamtFlatMapTest, ExhaustedNodeStorageReportsInsertionFailureWithoutPublishingEntries) {
+  using BoundedMap =
+      HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1>>;
+  auto created = BoundedMap::TryCreate();
+  if (!created) {
+    FAIL() << "map creation failed";
+    return;
+  }
+  EXPECT_THAT(
+      created->try_insert(BoundedMap::value_type(1, 10)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  auto edit = created->transient();
+  EXPECT_THAT(
+      edit.try_insert(BoundedMap::value_type(1, 10)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(*created, IsEmpty());
+  EXPECT_THAT(edit, IsEmpty());
+}
+
+TEST_F(HamtFlatMapTest, SwapAndConstRangesPreserveTheVisibleKeyAndMappedValue) {
+  Map empty;
+  auto [one, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  swap(empty, one);
+  EXPECT_THAT(empty, SizeIs(1));
+  EXPECT_THAT(one, IsEmpty());
+  EXPECT_THAT(empty.count(1), Eq(1));
+  EXPECT_THAT(empty.count(2), Eq(0));
+  EXPECT_THAT(empty.cbegin() == empty.begin(), Eq(true));
+  EXPECT_THAT(empty.cend() == empty.end(), Eq(true));
+  EXPECT_THAT(empty.at(1), Eq(10));
 }
 
 struct SetValue final {
@@ -147,6 +226,13 @@ TEST_F(HamtFlatMapTest, UniqueMappedUpdateWorksWhenSharedPathCopyCannotAllocate)
   EXPECT_THAT(
       snapshot.try_update(1, SetValue{.value = 99}), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(snapshot.at(1), Eq(10));
+  {
+    auto shared = snapshot.transient();
+    EXPECT_THAT(
+        shared.try_update(1, SetValue{.value = 77}), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+    EXPECT_THAT(std::as_const(shared).at(1), Eq(10));
+    EXPECT_THAT(snapshot.at(1), Eq(10));
+  }
   auto unique = std::move(snapshot).transient();
   EXPECT_THAT(unique.try_update(1, SetValue{.value = 99}), VariantWith<bool>(Eq(true)));
   EXPECT_THAT(unique.at(1), Eq(99));

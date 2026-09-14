@@ -3,6 +3,7 @@
 
 #include "mbo/container/internal/hamt_branch_build.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -19,6 +20,7 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::NotNull;
+using ::testing::SizeIs;
 
 struct Entry final {
   std::uint64_t hash;
@@ -143,6 +145,28 @@ TEST_F(HamtBranchBuildTest, RejectsStartingPastTheHashBeforeAllocation) {
   EXPECT_THAT(source.acquired, Eq(0));
 }
 
+TEST_F(HamtBranchBuildTest, FailedCollisionSplitReclaimsOnlyTheNewBranchNodes) {
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
+  constexpr std::uint64_t kNewHash = 7 + (std::uint64_t{7} << 15);
+  for (std::size_t allowed = 0; allowed < 4; ++allowed) {
+    SCOPED_TRACE(allowed);
+    BudgetSource source{.remaining = 1};
+    auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+    ASSERT_THAT(original, NotNull());
+    source.remaining = allowed;
+    EXPECT_THAT(
+        TryBuildHamtCollisionBranch<5>(
+            source, original, std::uint64_t{7}, kNewHash, Entry{.hash = kNewHash, .key = 30}, 0),
+        Eq(std::nullopt));
+    EXPECT_THAT(source.acquired, Eq(allowed + 1));
+    EXPECT_THAT(source.released, Eq(allowed));
+    EXPECT_THAT(original->use_count(), Eq(1));
+    EXPECT_THAT(original->entries(), SizeIs(2));
+    Node::Release(source, original);
+    EXPECT_THAT(source.released, Eq(source.acquired));
+  }
+}
+
 TEST_F(HamtBranchBuildTest, BuildsFullHashCollisionAtTheExhaustedPathBoundary) {
   BudgetSource source{.remaining = 1};
   constexpr std::size_t kEnd = HamtHashPath<std::uint64_t, 5>::kLevels;
@@ -156,6 +180,35 @@ TEST_F(HamtBranchBuildTest, BuildsFullHashCollisionAtTheExhaustedPathBoundary) {
   EXPECT_THAT(source.acquired, Eq(1));
   Node::Release(source, root);
   EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtBranchBuildTest, RejectsInvalidCollisionSplitInputsBeforeAllocation) {
+  BudgetSource source{.remaining = 2};
+  auto* const empty = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(empty, NotNull());
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  constexpr Entry kInserted{.hash = 39, .key = 30};
+  EXPECT_THAT(
+      TryBuildHamtCollisionBranch<5>(
+          source, static_cast<Node*>(nullptr), std::uint64_t{7}, std::uint64_t{39}, kInserted, 0),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      TryBuildHamtCollisionBranch<5>(source, empty, std::uint64_t{7}, std::uint64_t{39}, kInserted, 0),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      TryBuildHamtCollisionBranch<5>(source, collision, std::uint64_t{7}, std::uint64_t{7}, kInserted, 0),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      TryBuildHamtCollisionBranch<5>(
+          source, collision, std::uint64_t{7}, std::uint64_t{39}, kInserted, HamtHashPath<std::uint64_t, 5>::kLevels),
+      Eq(std::nullopt));
+  EXPECT_THAT(source.acquired, Eq(2));
+  EXPECT_THAT(collision->use_count(), Eq(1));
+  Node::Release(source, empty);
+  Node::Release(source, collision);
+  EXPECT_THAT(source.released, Eq(source.acquired));
 }
 
 }  // namespace

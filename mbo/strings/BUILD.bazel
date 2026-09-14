@@ -41,6 +41,26 @@ cc_test(
 )
 
 cc_library(
+    name = "arena_string_storage_cc",
+    hdrs = ["arena_string_storage.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//mbo/memory:arena_cc"],
+)
+
+cc_test(
+    name = "arena_string_storage_test",
+    size = "small",
+    srcs = ["arena_string_storage_test.cc"],
+    deps = [
+        ":arena_string_storage_cc",
+        "//mbo/memory:arena_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "string_id_cc",
     hdrs = ["string_id.h"],
     visibility = ["//visibility:public"],

@@ -67,6 +67,9 @@ class HamtOwnedTree final {
 
   const Tree& tree() const noexcept { return tree_; }
 
+  // Node payload allocation must retain the same stable source as its tree.
+  const domain_type& domain() const noexcept { return domain_; }
+
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
   requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {

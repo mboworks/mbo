@@ -3,6 +3,7 @@
 
 #include "mbo/container/internal/hamt_owned_tree.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -10,6 +11,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/container/hamt_options.h"
+#include "mbo/container/internal/hamt_node_value.h"
 #include "mbo/container/internal/hamt_tree.h"
 #include "mbo/memory/block_source.h"
 
@@ -38,6 +40,48 @@ using Tree = HamtTree<HamtOptions{}, int, Hash, KeyOf, Equal, Source>;
 using Owned = HamtOwnedTree<Tree, Source>;
 
 struct HamtOwnedTreeTest : ::testing::Test {};
+
+TEST_F(HamtOwnedTreeTest, PayloadAllocatedFromTheTreeDomainOutlivesTheTree) {
+  using Payload = HamtNodeValue<int, Source>;
+  Payload retained;
+  {
+    auto created = Owned::TryCreate(Hash{}, KeyOf{}, Equal{});
+    if (!created) {
+      FAIL() << "allocation-domain creation failed";
+      return;
+    }
+    EXPECT_THAT(created->tree().try_insert(1).changed, Eq(true));
+    auto payload = Payload::TryCreate(created->domain(), 42);
+    ASSERT_THAT(payload.has_value(), Eq(true));
+    retained = std::move(payload).value_or(Payload{});
+  }
+  ASSERT_THAT(retained.get(), NotNull());
+  EXPECT_THAT(*retained.get(), Eq(42));
+}
+
+TEST_F(HamtOwnedTreeTest, RetainedDomainKeepsThePairedSourceAliveAfterTheContainerDisappears) {
+  Owned::domain_type retained;
+  const Source* address = nullptr;
+  {
+    auto created = Owned::TryCreate(Hash{}, KeyOf{}, Equal{});
+    if (!created) {
+      FAIL() << "allocation-domain creation failed";
+      return;
+    }
+    retained = created->domain();
+    address = created->domain().get();
+    const Owned snapshot = *created;
+    EXPECT_THAT(snapshot.domain().get(), Eq(address));
+  }
+  ASSERT_THAT(retained.get(), NotNull());
+  EXPECT_THAT(retained.get(), Eq(address));
+  auto block = retained.get()->TryAcquire(64, alignof(std::max_align_t));
+  if (!block) {
+    FAIL() << "retained source allocation failed";
+    return;
+  }
+  retained.get()->Release(*block);
+}
 
 TEST_F(HamtOwnedTreeTest, SnapshotOutlivesOriginalAndPreservesItsValues) {
   std::optional<Owned> snapshot;

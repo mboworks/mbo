@@ -323,6 +323,7 @@ cc_test(
     size = "small",
     srcs = ["internal/hamt_owned_tree_test.cc"],
     deps = [
+        ":hamt_node_value_cc",
         ":hamt_options_cc",
         ":hamt_owned_tree_cc",
         ":hamt_tree_cc",

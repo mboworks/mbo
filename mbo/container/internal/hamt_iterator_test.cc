@@ -148,8 +148,8 @@ TEST_F(HamtIteratorTest, SharedEntriesInDifferentRootRangesDoNotCompareEqual) {
   auto* const second_root = Node::TryCreate(source, index, {}, children).value_or(nullptr);
   ASSERT_THAT(first_root, NotNull());
   ASSERT_THAT(second_root, NotNull());
-  Iterator first(first_root);
-  Iterator second(second_root);
+  const Iterator first(first_root);
+  const Iterator second(second_root);
   EXPECT_THAT(first.operator->(), Eq(second.operator->()));
   EXPECT_THAT(first == second, Eq(false));
   Node::Release(source, child);
@@ -163,7 +163,7 @@ TEST_F(HamtIteratorTest, IsAMultiPassForwardIterator) {
           source, static_cast<Node*>(nullptr), 1ULL, 10, Entry{.hash = 1, .key = 10}, HashOf{}, KeyOf{}, Equal{})
           .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
   ASSERT_THAT(inserted.root, NotNull());
-  Iterator first(inserted.root);
+  const Iterator first(inserted.root);
   Iterator copy = first;
 
   EXPECT_THAT(first, Eq(copy));

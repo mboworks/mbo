@@ -19,6 +19,23 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
+    name = "string_id_cc",
+    hdrs = ["string_id.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "string_id_test",
+    size = "small",
+    srcs = ["string_id_test.cc"],
+    deps = [
+        ":string_id_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "contains_cc",
     hdrs = ["contains.h"],
     visibility = ["//visibility:public"],

@@ -23,10 +23,11 @@ template<
     typename Hash = std::hash<std::string_view>,
     typename Equal = std::equal_to<>,
     mbo::container::HamtOptions Options = {},
-    mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource>
+    mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
+    typename MapBackend = mbo::container::HamtFlatMap<std::string_view, Id, Hash, Equal, Options, Source>>
 class HamtStringIndex final {
  private:
-  using Map = mbo::container::HamtFlatMap<std::string_view, Id, Hash, Equal, Options, Source>;
+  using Map = MapBackend;
 
  public:
   HamtStringIndex() = default;

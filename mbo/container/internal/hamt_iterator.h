@@ -139,7 +139,7 @@ class HamtIterator final {
   friend class HamtIterator;
 
   static constexpr std::size_t kMaxDepth =
-      (std::numeric_limits<std::uintmax_t>::digits + FragmentBits - 1) / FragmentBits + 1;
+      ((std::numeric_limits<std::uintmax_t>::digits + FragmentBits - 1) / FragmentBits) + 1;
 
   struct Frame final {
     node_type* node = nullptr;

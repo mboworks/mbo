@@ -16,6 +16,22 @@ using ::testing::Eq;
 using ::testing::NotNull;
 using ::testing::VariantWith;
 
+template<typename Map>
+concept SupportsPayloadUpdate = requires(Map& map) { map.try_update(0, [](auto&) noexcept {}); };
+
+template<typename Map>
+concept SupportsIndependentClone =
+    requires(const Map& map) { map.template try_clone_to<mbo::memory::NewDeleteBlockSource>(); };
+
+using CopyableMap = HamtNodeMap<int, int>;
+using MoveOnlyMap = HamtNodeMap<int, std::unique_ptr<int>>;
+static_assert(SupportsPayloadUpdate<CopyableMap>);
+static_assert(SupportsPayloadUpdate<CopyableMap::transient_type>);
+static_assert(!SupportsPayloadUpdate<MoveOnlyMap>);
+static_assert(!SupportsPayloadUpdate<MoveOnlyMap::transient_type>);
+static_assert(SupportsIndependentClone<CopyableMap>);
+static_assert(!SupportsIndependentClone<MoveOnlyMap>);
+
 struct HamtNodeMapTest : ::testing::Test {
   template<std::size_t Bits>
   void CheckFragmentWidth() {

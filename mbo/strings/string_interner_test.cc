@@ -23,6 +23,28 @@ static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo:
 
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
 
+TEST_F(StringInternerTest, RootIdentityAndParentGrowthDoNotChangeCapturedVisibility) {
+  StringInterner<> root;
+  StringInterner<> child(&root);
+  const StringInterner<> grandchild(&child);
+  EXPECT_THAT(root.root(), Eq(&root));
+  EXPECT_THAT(child.root(), Eq(&root));
+  EXPECT_THAT(grandchild.root(), Eq(&root));
+  EXPECT_THAT(child.parent(), Eq(&root));
+  EXPECT_THAT(child.first_local_id(), Eq(0));
+  EXPECT_THAT(root.parent_has_grown(), Eq(false));
+  EXPECT_THAT(child.parent_has_grown(), Eq(false));
+  EXPECT_THAT(root.intern("root-later").index(), Eq(0));
+  EXPECT_THAT(child.parent_has_grown(), Eq(true));
+  EXPECT_THAT(grandchild.parent_has_grown(), Eq(false));
+  EXPECT_THAT(child.find("root-later").has_value(), Eq(false));
+  EXPECT_THAT(child.intern("child-later").index(), Eq(0));
+  EXPECT_THAT(grandchild.parent_has_grown(), Eq(true));
+  EXPECT_THAT(grandchild.find("child-later").has_value(), Eq(false));
+  EXPECT_THAT(child.intern("child-later").index(), Eq(0));
+  EXPECT_THAT(grandchild.parent_has_grown(), Eq(true));
+}
+
 TEST_F(StringInternerTest, IteratorBoundariesSupportEmptyStringsAndDecrementingEnd) {
   StringInterner<> interner;
   EXPECT_THAT(interner.begin() == interner.end(), Eq(true));

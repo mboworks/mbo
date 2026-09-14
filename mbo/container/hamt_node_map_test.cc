@@ -32,6 +32,16 @@ static_assert(!SupportsPayloadUpdate<MoveOnlyMap::transient_type>);
 static_assert(SupportsIndependentClone<CopyableMap>);
 static_assert(!SupportsIndependentClone<MoveOnlyMap>);
 
+template<typename Map>
+concept SupportsMutablePayloadAccess = requires(Map& map) {
+  map.try_begin();
+  map.try_find(0);
+  map.try_at(0);
+  map.try_get_or_insert(0);
+};
+static_assert(SupportsMutablePayloadAccess<CopyableMap::transient_type>);
+static_assert(!SupportsMutablePayloadAccess<MoveOnlyMap::transient_type>);
+
 struct HamtNodeMapTest : ::testing::Test {
   template<std::size_t Bits>
   void CheckFragmentWidth() {

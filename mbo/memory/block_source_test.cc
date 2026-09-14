@@ -23,6 +23,22 @@ using ::testing::IsTrue;
 
 struct BlockSourceTest : ::testing::Test {};
 
+TEST_F(BlockSourceTest, BlockEqualityComparesAddressSizeAndAlignment) {
+  std::array<std::byte, 2> storage{};
+  const MemoryBlock block{.data = storage.data(), .size = 2, .alignment = 1};
+  EXPECT_THAT(block == block, IsTrue());
+  EXPECT_THAT(block == (MemoryBlock{.data = storage.data() + 1, .size = 2, .alignment = 1}), IsFalse());
+  EXPECT_THAT(block == (MemoryBlock{.data = storage.data(), .size = 1, .alignment = 1}), IsFalse());
+  EXPECT_THAT(block == (MemoryBlock{.data = storage.data(), .size = 2, .alignment = 2}), IsFalse());
+}
+
+TEST_F(BlockSourceTest, FixedSourceRejectsMisalignedBackingStorage) {
+  alignas(16) std::array<std::byte, 32> storage{};
+  FixedBlockSource source(std::span<std::byte>(storage).subspan(1), 16);
+  EXPECT_THAT(source.TryAcquire(1, 16).has_value(), IsFalse());
+  EXPECT_THAT(source.TryAcquire(1, 1).has_value(), IsTrue());
+}
+
 // NOLINTBEGIN(readability-identifier-naming): models the standard allocator interface.
 template<typename Value>
 struct FailingAllocator {

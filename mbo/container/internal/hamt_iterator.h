@@ -33,7 +33,11 @@ class HamtIterator final {
 
   constexpr HamtIterator() noexcept = default;
 
-  explicit HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root) noexcept : root_(root) {
+  explicit HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root) noexcept : HamtIterator(root, root) {}
+
+  // A non-null range identity distinguishes container objects sharing one root.
+  HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root, const void* range) noexcept
+      : range_(root != nullptr ? range : nullptr) {
     if (root != nullptr) {
       frames_.front().node = root;
       depth_ = 1;
@@ -47,13 +51,17 @@ class HamtIterator final {
   // the exact borrowed entry address; missing or mismatched targets yield end.
   // Collision buckets alone require a linear scan. No ownership is acquired.
   template<std::unsigned_integral Hash>
-  static HamtIterator At(const HamtSharedNode<FragmentBits, Entry>* root, Hash hash, pointer target) noexcept {
+  static HamtIterator At(
+      const HamtSharedNode<FragmentBits, Entry>* root,
+      Hash hash,
+      pointer target,
+      const void* range = nullptr) noexcept {
     HamtIterator result;
     if (root == nullptr || target == nullptr) {
       return result;
     }
     const HamtHashPath<Hash, FragmentBits> path(hash);
-    result.root_ = root;
+    result.range_ = range != nullptr ? range : root;
     result.frames_.front().node = root;
     result.depth_ = 1;
     std::size_t level = 0;
@@ -109,7 +117,7 @@ class HamtIterator final {
   }
 
   friend bool operator==(const HamtIterator& lhs, const HamtIterator& rhs) noexcept {
-    return lhs.root_ == rhs.root_ && lhs.current_ == rhs.current_;
+    return lhs.range_ == rhs.range_ && lhs.current_ == rhs.current_;
   }
 
  private:
@@ -138,13 +146,13 @@ class HamtIterator final {
       }
       --depth_;
     }
-    root_ = nullptr;
+    range_ = nullptr;
   }
 
   std::array<Frame, kMaxDepth> frames_{};
   std::size_t depth_ = 0;
   pointer current_ = nullptr;
-  const Node* root_ = nullptr;
+  const void* range_ = nullptr;
 };
 
 // NOLINTEND(readability-identifier-naming)

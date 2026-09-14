@@ -174,6 +174,34 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "hamt_tree_cc",
+    hdrs = ["internal/hamt_tree.h"],
+    deps = [
+        ":hamt_clone_cc",
+        ":hamt_erase_cc",
+        ":hamt_insert_cc",
+        ":hamt_iterator_cc",
+        ":hamt_lookup_cc",
+        ":hamt_options_cc",
+        ":hamt_replace_cc",
+        ":hamt_root_owner_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_tree_test",
+    size = "small",
+    srcs = ["internal/hamt_tree_test.cc"],
+    deps = [
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_root_owner_test",
     size = "small",

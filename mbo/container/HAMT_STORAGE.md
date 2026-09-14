@@ -270,3 +270,27 @@ source. `get()` borrows, never retains. The helper neither owns the source nor a
 metadata to individual nodes; public allocation-domain wrappers must supply source lifetime.
 All ownership operations are non-throwing and require external synchronization for shared owner
 objects. This internal helper does not grant mutable access to a public persistent container.
+
+## Shared container core
+
+`HamtTree` combines root ownership with constant-time visible size, compile-time maximum size,
+stateful hash/key-extraction/equality objects, heterogeneous lookup, and borrowed const iteration.
+Map-shaped entries and set-shaped entries use the same implementation through key extraction.
+Copies retain snapshots without allocating. Moves leave valid empty trees with the same callable
+state; swaps and assignments preserve the pairing of roots, callables, and allocation sources.
+The core supplies its container address as iterator range identity, distinguishing even containers
+that share an entire root. This reuses the iterator's existing identity slot without increasing its
+size. Standalone primitive iterators retain root identity when no container identity is supplied.
+
+`try_insert`, `try_replace`, and `try_erase` return a mutation flag plus an optional `HamtError`.
+Duplicate insertion is successful even at maximum size and does not replace an existing value.
+Maximum-size and allocation exhaustion leave the value unchanged. Missing replacement/erasure
+is successful without mutation. The initial core uses path copying for every structural update;
+uniquely owned transient editing is a separate optimization, not provided by this primitive.
+
+`try_clone_to` deep-copies into another source while preserving size and callable state. Empty
+clones succeed without allocation. The source is borrowed; public wrappers provide allocation-domain
+lifetime and immutable-key enforcement. Entries require non-throwing copying, movement, and
+destruction. Callable invocation is constrained for the actual lookup type; callable copies,
+moves, swaps, and destruction are non-throwing. These internal requirements are not a claim that
+all public storage variants have identical element constraints or invalidation guarantees.

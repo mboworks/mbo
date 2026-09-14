@@ -203,3 +203,19 @@ allocation failure, with temporary nodes reclaimed and original ownership preser
 Singleton propagation requires both non-throwing entry copying and moving. Hash/key extraction
 and equality must also be non-throwing. Equivalent keys require equal hashes. The source and
 all borrowed inputs follow the shared-node lifetime and external synchronization contracts.
+
+## Borrowed forward iteration
+
+`HamtIterator` is a multipass forward iterator exposing only `const Entry&` and `const Entry*`.
+It visits dense entries before descendants, including every entry in collision buckets. This
+is structural traversal order, not insertion order or key order. Its fixed frame stack covers
+the complete hash width for fragment sizes 4 through 7 without traversal allocations.
+
+Iterators borrow the entire snapshot: keep its root and block source alive throughout iteration.
+Copying an iterator does not retain its root. Changing another snapshot does not change the
+borrowed tree, but releasing the last owner invalidates its iterators and entry references.
+Synchronization remains external.
+
+Active iterator equality includes root identity, so two snapshots sharing an entry do not
+accidentally compare equal. Exhausted, null-root, empty-root, and default-constructed iterators
+all represent the common end value. Dereference and increment require a non-end iterator.

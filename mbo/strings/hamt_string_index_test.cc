@@ -22,6 +22,35 @@ struct CollisionHash final {
   std::size_t operator()(std::string_view /*text*/) const noexcept { return 7; }
 };
 
+struct CountingHash final {
+  std::size_t operator()(std::string_view key) const noexcept {
+    ++*calls;
+    return std::hash<std::string_view>{}(key);
+  }
+
+  std::size_t* calls;
+};
+
+TEST_F(HamtStringIndexTest, StatefulHashIsRetainedAcrossIndexMutation) {
+  std::size_t calls = 0;
+  HamtStringIndex<StringId<>, CountingHash> index(CountingHash{.calls = &calls});
+  EXPECT_THAT(index.try_insert("stateful", StringId<>(0)), Optional(true));
+  const auto before = calls;
+  EXPECT_THAT(index.find("stateful"), Optional(StringId<>(0)));
+  EXPECT_THAT(calls > before, Eq(true));
+}
+
+TEST_F(HamtStringIndexTest, FactoryConstructsNonDefaultSourceWithRecoverableNodeFailure) {
+  std::byte buffer{};
+  using Index =
+      HamtStringIndex<StringId<>, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::FixedBlockSource>;
+  auto index = Index::try_create(std::hash<std::string_view>{}, std::equal_to<>{}, std::span<std::byte>(&buffer, 1));
+  ASSERT_THAT(index.has_value(), Eq(true));
+  auto& value = index.value();  // NOLINT(bugprone-unchecked-optional-access): guarded by ASSERT_THAT above.
+  EXPECT_THAT(value.try_insert("too-large", StringId<>(0)).has_value(), Eq(false));
+  EXPECT_THAT(value.find("too-large").has_value(), Eq(false));
+}
+
 TEST_F(HamtStringIndexTest, FullHashCollisionsAndEmbeddedNulsRetainDistinctDenseIds) {
   HamtStringIndex<StringId<>, CollisionHash> index;
   EXPECT_THAT(index.try_insert("a", StringId<>(0)), Optional(Eq(true)));

@@ -300,6 +300,32 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "hamt_node_map_cc",
+    hdrs = ["hamt_node_map.h"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_node_iterator_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_map_test",
+    size = "small",
+    srcs = ["hamt_node_map_test.cc"],
+    deps = [
+        ":hamt_node_map_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_node_set_test",
     size = "small",

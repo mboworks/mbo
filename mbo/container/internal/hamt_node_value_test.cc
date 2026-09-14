@@ -25,6 +25,25 @@ using Payload = HamtNodeValue<int, Source>;
 
 struct HamtNodeValueTest : ::testing::Test {};
 
+TEST_F(HamtNodeValueTest, NonallocatingMutableAccessRejectsSharedAndEmptyHandles) {
+  Payload empty;
+  EXPECT_THAT(empty.get_unique_mutable(), Eq(nullptr));
+  const auto domain = Domain::TryCreate().value_or(Domain{});
+  auto current = Payload::TryCreate(domain, 42).value_or(Payload{});
+  ASSERT_THAT(current.get(), NotNull());
+  const auto* const address = current.get();
+  auto* const editable = current.get_unique_mutable();
+  ASSERT_THAT(editable, NotNull());
+  EXPECT_THAT(editable, Eq(address));
+  *editable = 99;
+  Payload snapshot = current;
+  EXPECT_THAT(current.get_unique_mutable(), Eq(nullptr));
+  EXPECT_THAT(snapshot.get_unique_mutable(), Eq(nullptr));
+  EXPECT_THAT(*snapshot.get(), Eq(99));
+  snapshot = Payload{};
+  EXPECT_THAT(current.get_unique_mutable(), Eq(address));
+}
+
 struct NonMovableValue final {
   explicit NonMovableValue(int& destructions) noexcept : destructions(&destructions) {}
 

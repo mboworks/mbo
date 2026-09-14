@@ -673,33 +673,36 @@ TEST_F(HamtSharedNodeTest, ErasesEachChildWhilePreservingTheOriginalOwners) {
   CountingSource source;
   std::array<Node*, 3> children{};
   Node::index_type index;
-  for (std::size_t position = 0; position < children.size(); ++position) {
-    const auto child = Node::TryCreate(source, {}, {}, {});
-    ASSERT_THAT(child, Optional(_));
-    children[position] = *child;
-    ASSERT_THAT(index.InsertNode(position + 1), Eq(true));
+  std::size_t fragment = 1;
+  for (Node*& child : children) {
+    child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+    ASSERT_THAT(child, NotNull());
+    ASSERT_THAT(index.InsertNode(fragment++), Eq(true));
   }
   ASSERT_THAT(index.InsertData(7), Eq(true));
   constexpr auto kEntries = std::to_array<int>({70});
-  const auto original = Node::TryCreate(source, index, kEntries, children);
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, index, kEntries, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   for (std::size_t position = 0; position < children.size(); ++position) {
     auto erased_index = index;
     ASSERT_THAT(erased_index.EraseNode(position + 1), Eq(true));
-    const auto erased = Node::TryEraseChild(source, **original, erased_index, position);
-    ASSERT_THAT(erased, Optional(_));
-    EXPECT_THAT((*erased)->entries(), ElementsAre(70));
-    EXPECT_THAT((*erased)->children().size(), Eq(2));
-    EXPECT_THAT(children[position]->use_count(), Eq(2));
-    for (std::size_t remaining = 0; remaining < 2; ++remaining) {
-      Node* const expected = children[remaining + (remaining >= position ? 1 : 0)];
-      EXPECT_THAT((*erased)->children()[remaining], Eq(expected));
-      EXPECT_THAT(expected->use_count(), Eq(3));
+    auto* const erased = Node::TryEraseChild(source, *original, erased_index, position).value_or(nullptr);
+    ASSERT_THAT(erased, NotNull());
+    EXPECT_THAT(erased->entries(), ElementsAre(70));
+    ASSERT_THAT(erased->children(), SizeIs(2));
+    EXPECT_THAT(children.at(position)->use_count(), Eq(2));
+    Node* const * expected = children.data();
+    for (Node* const remaining : erased->children()) {
+      if (expected == children.data() + position) {
+        ++expected;
+      }
+      EXPECT_THAT(remaining, Eq(*expected++));
+      EXPECT_THAT(remaining->use_count(), Eq(3));
     }
-    Node::Release(source, *erased);
-    EXPECT_THAT((*original)->children(), ElementsAreArray(children));
+    Node::Release(source, erased);
+    EXPECT_THAT(original->children(), ElementsAreArray(children));
   }
-  Node::Release(source, *original);
+  Node::Release(source, original);
   for (Node* child : children) {
     EXPECT_THAT(child->use_count(), Eq(1));
     Node::Release(source, child);
@@ -709,41 +712,77 @@ TEST_F(HamtSharedNodeTest, ErasesEachChildWhilePreservingTheOriginalOwners) {
 
 TEST_F(HamtSharedNodeTest, ErasesTheOnlyChildIntoAnEmptyNode) {
   CountingSource source;
-  const auto child = Node::TryCreate(source, {}, {}, {});
-  ASSERT_THAT(child, Optional(_));
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
   Node::index_type index;
   ASSERT_THAT(index.InsertNode(1), Eq(true));
-  const auto children = std::to_array<Node*>({*child});
-  const auto original = Node::TryCreate(source, index, {}, children);
-  ASSERT_THAT(original, Optional(_));
-  const auto erased = Node::TryEraseChild(source, **original, {}, 0);
-  ASSERT_THAT(erased, Optional(_));
-  EXPECT_THAT((*erased)->children().empty(), Eq(true));
-  EXPECT_THAT((*erased)->entries().empty(), Eq(true));
-  EXPECT_THAT((*child)->use_count(), Eq(2));
-  Node::Release(source, *original);
-  Node::Release(source, *child);
-  Node::Release(source, *erased);
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const erased = Node::TryEraseChild(source, *original, {}, 0).value_or(nullptr);
+  ASSERT_THAT(erased, NotNull());
+  EXPECT_THAT(erased->children(), IsEmpty());
+  EXPECT_THAT(erased->entries(), IsEmpty());
+  EXPECT_THAT(child->use_count(), Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  Node::Release(source, erased);
   EXPECT_THAT(source.released, Eq(3));
 }
 
 TEST_F(HamtSharedNodeTest, FailedChildErasurePreservesReferenceCounts) {
   CountingSource source;
-  const auto child = Node::TryCreate(source, {}, {}, {});
-  ASSERT_THAT(child, Optional(_));
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
   Node::index_type index;
   ASSERT_THAT(index.InsertNode(1), Eq(true));
-  const auto children = std::to_array<Node*>({*child});
-  const auto original = Node::TryCreate(source, index, {}, children);
-  ASSERT_THAT(original, Optional(_));
-  EXPECT_THAT(Node::TryEraseChild(source, **original, index, 0), Eq(std::nullopt));
-  EXPECT_THAT(Node::TryEraseChild(source, **original, {}, 1), Eq(std::nullopt));
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryEraseChild(source, *original, index, 0), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseChild(source, *original, {}, 1), Eq(std::nullopt));
   mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
-  EXPECT_THAT(Node::TryEraseChild(exhausted, **original, {}, 0), Eq(std::nullopt));
-  EXPECT_THAT((*child)->use_count(), Eq(2));
-  EXPECT_THAT((*original)->children(), ElementsAre(*child));
-  Node::Release(source, *original);
-  Node::Release(source, *child);
+  EXPECT_THAT(Node::TryEraseChild(exhausted, *original, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(child->use_count(), Eq(2));
+  EXPECT_THAT(original->children(), ElementsAre(child));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsChildErasureFromCollisionsAndEmptyNodes) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const empty = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  ASSERT_THAT(empty, NotNull());
+  EXPECT_THAT(Node::TryEraseChild(source, *collision, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseChild(source, *empty, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(collision->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, collision);
+  Node::Release(source, empty);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsChildErasureThatChangesEntryOccupancy) {
+  CountingSource source;
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(1), Eq(true));
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  Node::index_type invalid_index;
+  ASSERT_THAT(invalid_index.InsertData(2), Eq(true));
+  EXPECT_THAT(Node::TryEraseChild(source, *original, invalid_index, 0), Eq(std::nullopt));
+  EXPECT_THAT(original->children(), ElementsAre(child));
+  EXPECT_THAT(child->use_count(), Eq(2));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, child);
   EXPECT_THAT(source.released, Eq(2));
 }
 

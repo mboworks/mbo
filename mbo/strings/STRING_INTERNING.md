@@ -530,6 +530,12 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+Iterator dereference requires a non-singular iterator positioned before `end()`. Incrementing
+`end()` or decrementing `begin()` violates the iterator contract; decrementing a nonempty `end()`
+is valid. Debug builds diagnose these violations rather than confusing an invalid dereference with
+a valid interned empty string. Release builds retain the standard preconditions without evaluating
+the debug checks. Iterator equality still includes interner identity, including for empty ranges.
+
 `visit_string_sizes(visitor)` invokes a nothrow visitor once per visible string, in dense-ID order.
 It includes empty strings and embedded NUL bytes and excludes later parent insertions. Callers can
 build exact histograms, totals, and maxima without adding counters to insertion or lookup. The

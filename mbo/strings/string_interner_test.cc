@@ -17,7 +17,33 @@ using ::testing::VariantWith;
 
 struct StringInternerTest : ::testing::Test {};
 
+static_assert(noexcept(*std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
+static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
+static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
+
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
+
+TEST_F(StringInternerTest, IteratorBoundariesSupportEmptyStringsAndDecrementingEnd) {
+  StringInterner<> interner;
+  EXPECT_THAT(interner.begin() == interner.end(), Eq(true));
+  EXPECT_THAT(interner.rbegin() == interner.rend(), Eq(true));
+  EXPECT_THAT(interner.intern("").index(), Eq(0));
+  auto position = interner.end();
+  EXPECT_THAT(*--position, Eq(std::string_view{}));
+  EXPECT_THAT(position == interner.begin(), Eq(true));
+  EXPECT_THAT(++position == interner.end(), Eq(true));
+}
+
+#ifndef NDEBUG
+TEST_F(StringInternerTest, InvalidIteratorOperationsFailDebugContracts) {
+  StringInterner<> interner;
+  const StringInterner<>::iterator singular;
+  EXPECT_DEATH(static_cast<void>(*singular), "singular StringInterner iterator");
+  EXPECT_DEATH(static_cast<void>(*interner.end()), "StringInterner end iterator");
+  EXPECT_DEATH(static_cast<void>(++interner.end()), "StringInterner end iterator");
+  EXPECT_DEATH(static_cast<void>(--interner.begin()), "StringInterner begin iterator");
+}
+#endif
 
 // Implements ownership and rollback without promising memory accounting.
 struct UnmeasuredStorage final {

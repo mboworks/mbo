@@ -308,8 +308,9 @@ jobs:
             //mbo/container:limited_map_require_exceptions_test \
             //mbo/container:segmented_sequence_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
+            //mbo/strings:string_interner_require_exceptions_test \
             --combined_report=lcov \
-            --instrumentation_filter='^//mbo/(container|json)[/:].*'
+            --instrumentation_filter='^//mbo/(container|json|strings)[/:].*'
           cp "$(bazel ${BAZEL_INIT} info output_path)/_coverage/_coverage_report.dat" coverage-exceptions.lcov
           # Apply the source-owned normalization before LCOV reads and combines
           # GCC's repeated template records. This retains LCOV's integrity

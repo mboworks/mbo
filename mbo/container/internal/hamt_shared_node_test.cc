@@ -786,5 +786,93 @@ TEST_F(HamtSharedNodeTest, RejectsChildErasureThatChangesEntryOccupancy) {
   EXPECT_THAT(source.released, Eq(2));
 }
 
+TEST_F(HamtSharedNodeTest, CollisionInsertionPreservesOrderAtEveryPosition) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 30});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  for (std::size_t position = 0; position <= kEntries.size(); ++position) {
+    SCOPED_TRACE(position);
+    auto* const inserted = Node::TryInsertCollisionEntry(source, *original, position, 20).value_or(nullptr);
+    ASSERT_THAT(inserted, NotNull());
+    EXPECT_THAT(inserted->is_collision(), Eq(true));
+    EXPECT_THAT(inserted->children(), IsEmpty());
+    ASSERT_THAT(inserted->entries(), SizeIs(3));
+    const int* expected = kEntries.data();
+    std::size_t rank = 0;
+    for (const int entry : inserted->entries()) {
+      EXPECT_THAT(entry, Eq(rank++ == position ? 20 : *expected++));
+    }
+    EXPECT_THAT(original->entries(), ElementsAre(10, 30));
+    Node::Release(source, inserted);
+  }
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(4));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionErasureCanLeaveASingleEntry) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  for (std::size_t position = 0; position < kEntries.size(); ++position) {
+    SCOPED_TRACE(position);
+    auto* const erased = Node::TryEraseCollisionEntry(source, *original, position).value_or(nullptr);
+    ASSERT_THAT(erased, NotNull());
+    EXPECT_THAT(erased->is_collision(), Eq(true));
+    EXPECT_THAT(erased->entries(), ElementsAre(kEntries.at(1 - position)));
+    EXPECT_THAT(Node::TryEraseCollisionEntry(source, *erased, 0), Eq(std::nullopt));
+    EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+    Node::Release(source, erased);
+  }
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(3));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionMutationFailureDoesNotChangeOriginal) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryInsertCollisionEntry(source, *original, 3, 30), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseCollisionEntry(source, *original, 2), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryInsertCollisionEntry(exhausted, *original, 2, 30), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseCollisionEntry(exhausted, *original, 0), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(1));
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionMutationRejectsNormalNodes) {
+  CountingSource source;
+  auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryInsertCollisionEntry(source, *original, 0, 10), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseCollisionEntry(source, *original, 0), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), IsEmpty());
+  EXPECT_THAT(source.acquired, Eq(1));
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, CollisionInsertionCanCopyAnAliasedEntry) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const inserted =
+      Node::TryInsertCollisionEntry(source, *original, 1, original->entries().front()).value_or(nullptr);
+  ASSERT_THAT(inserted, NotNull());
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 10, 20));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  Node::Release(source, original);
+  EXPECT_THAT(inserted->entries(), ElementsAre(10, 10, 20));
+  Node::Release(source, inserted);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 }  // namespace
 }  // namespace mbo::container::container_internal

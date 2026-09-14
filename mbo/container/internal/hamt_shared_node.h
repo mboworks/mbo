@@ -211,6 +211,36 @@ class HamtSharedNode final {
   }
 
   template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryDemoteChildToEntry(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t child_position,
+      std::size_t entry_position,
+      const Entry& entry) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size() + 1
+        || index.NodeSize() + 1 != original.children().size() || child_position >= original.children().size()
+        || entry_position >= index.DataSize()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    const node_type* const node = *result;
+    CopyInsertedEntries(*node, original.entries(), entry_position, entry);
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), child_position, node->ChildPtr());
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(child_position + 1), children.end(),
+        node->ChildPtr() + child_position);
+    RetainChildren(node->children());
+    return result;
+  }
+
+  template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryEraseEntry(
       Source& source,
       const node_type& original,

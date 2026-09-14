@@ -16,6 +16,21 @@ using ::testing::Eq;
 
 struct ArenaStringStorageTest : ::testing::Test {};
 
+TEST_F(ArenaStringStorageTest, ArenaFactoryConstructsConfiguredStorageExactlyOnce) {
+  using SmallArena = mbo::memory::Arena<
+      mbo::memory::NewDeleteBlockSource,
+      mbo::memory::ArenaOptions{.initial_block_size = 256, .maximum_block_size = 1'024}>;
+  int calls = 0;
+  ArenaStringStorage<SmallArena> storage([&calls]() noexcept {
+    ++calls;
+    return SmallArena();
+  });
+  EXPECT_THAT(calls, Eq(1));
+  EXPECT_THAT(storage.try_store("configured").value_or(std::string_view{}), Eq("configured"));
+  EXPECT_THAT(storage.bytes_reserved(), Eq(256));
+  EXPECT_THAT(calls, Eq(1));
+}
+
 TEST_F(ArenaStringStorageTest, CopiesBytesIncludingEmbeddedNulsAndDoesNotBorrowInput) {
   ArenaStringStorage<> storage;
   std::string input("a\0b", 3);

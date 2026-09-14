@@ -132,6 +132,23 @@ class StringInterner final {
       : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()), index_(std::invoke(factory)) {}
 
   StringInterner(const StringInterner&) = delete;
+
+  template<typename StorageFactory, typename EntriesFactory, typename IndexFactory>
+  requires(std::is_nothrow_invocable_v<StorageFactory&> && std::same_as<std::invoke_result_t<StorageFactory&>, Storage>
+           && std::is_nothrow_invocable_v<EntriesFactory&>
+           && std::same_as<std::invoke_result_t<EntriesFactory&>, Entries> && std::is_nothrow_invocable_v<IndexFactory&>
+           && std::same_as<std::invoke_result_t<IndexFactory&>, Index>)
+  StringInterner(
+      const StringInterner* parent,
+      StorageFactory storage,
+      EntriesFactory entries,
+      IndexFactory index) noexcept
+      : parent_(parent),
+        first_local_id_(parent == nullptr ? 0 : parent->size()),
+        storage_(std::invoke(storage)),
+        entries_(std::invoke(entries)),
+        index_(std::invoke(index)) {}
+
   StringInterner& operator=(const StringInterner&) = delete;
   StringInterner(StringInterner&&) = delete;
   StringInterner& operator=(StringInterner&&) = delete;

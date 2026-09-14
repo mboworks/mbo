@@ -44,7 +44,7 @@ struct HamtReplaceTest : ::testing::Test {
 
   void Insert(Entry entry) {
     const auto inserted = TryInsertHamtEntry(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
-                              .value_or({.root = nullptr, .inserted = false});
+                              .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
     ASSERT_THAT(inserted.root, NotNull());
     Node::Release(source, root);
     root = inserted.root;
@@ -63,14 +63,14 @@ TEST_F(HamtReplaceTest, NullRootAndMissingKeysSucceedWithoutAllocation) {
   constexpr Entry kReplacement{.hash = 1, .key = 10, .value = 99};
   const auto empty = TryReplaceHamtEntry(
                          exhausted, root, kReplacement.hash, kReplacement.key, kReplacement, HashOf{}, KeyOf{}, Equal{})
-                         .value_or({.root = nullptr, .replaced = true});
+                         .value_or(HamtReplaceResult<Node>{.root = nullptr, .replaced = true});
   EXPECT_THAT(empty.root, IsNull());
   EXPECT_THAT(empty.replaced, Eq(false));
   Insert(Entry{.hash = 2, .key = 20, .value = 20});
   const auto missing =
       TryReplaceHamtEntry(
           exhausted, root, kReplacement.hash, kReplacement.key, kReplacement, HashOf{}, KeyOf{}, Equal{})
-          .value_or({.root = nullptr, .replaced = true});
+          .value_or(HamtReplaceResult<Node>{.root = nullptr, .replaced = true});
   ASSERT_THAT(missing.root, NotNull());
   EXPECT_THAT(missing.root, Eq(root));
   EXPECT_THAT(missing.replaced, Eq(false));
@@ -85,7 +85,7 @@ TEST_F(HamtReplaceTest, ReplacesDeepCollisionValueWithoutChangingTheOriginalSnap
   Insert(Entry{.hash = kHash, .key = 30, .value = 30});
   constexpr Entry kReplacement{.hash = kHash, .key = 20, .value = 99};
   const auto changed = TryReplaceHamtEntry(source, root, kHash, 20, kReplacement, HashOf{}, KeyOf{}, Equal{})
-                           .value_or({.root = nullptr, .replaced = false});
+                           .value_or(HamtReplaceResult<Node>{.root = nullptr, .replaced = false});
   ASSERT_THAT(changed.root, NotNull());
   EXPECT_THAT(changed.replaced, Eq(true));
   const Entry* original = Find(root, kHash, 20);
@@ -118,7 +118,7 @@ TEST_F(HamtReplaceTest, DirectReplacementCanAliasTheExistingEntry) {
   const Entry* const existing = Find(root, 1, 10);
   ASSERT_THAT(existing, NotNull());
   const auto changed = TryReplaceHamtEntry(source, root, std::uint64_t{1}, 10, *existing, HashOf{}, KeyOf{}, Equal{})
-                           .value_or({.root = nullptr, .replaced = false});
+                           .value_or(HamtReplaceResult<Node>{.root = nullptr, .replaced = false});
   ASSERT_THAT(changed.root, NotNull());
   EXPECT_THAT(changed.replaced, Eq(true));
   const Entry* const copied = Find(changed.root, 1, 10);

@@ -169,6 +169,17 @@ class StringInterner final {
 
   const StringInterner* parent() const noexcept { return parent_; }
 
+  const StringInterner* root() const noexcept {
+    const auto* owner = this;
+    while (owner->parent_ != nullptr) {
+      owner = owner->parent_;
+    }
+    return owner;
+  }
+
+  // Direct-parent growth only. Later ancestor entries never become visible.
+  bool parent_has_grown() const noexcept { return parent_ != nullptr && parent_->size() > first_local_id_; }
+
   size_type first_local_id() const noexcept { return first_local_id_; }
 
   // Cold-path diagnostics: no counters or allocations on insertion and lookup.

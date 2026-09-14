@@ -20,6 +20,7 @@ using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::NotNull;
 using ::testing::Optional;
+using ::testing::SizeIs;
 
 struct CountingSource {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
@@ -574,44 +575,48 @@ TEST_F(HamtSharedNodeTest, ErasesEachDenseEntryWithoutChangingOriginal) {
   ASSERT_THAT(index.InsertData(2), Eq(true));
   ASSERT_THAT(index.InsertData(3), Eq(true));
   constexpr auto kEntries = std::to_array<int>({10, 20, 30});
-  const auto original = Node::TryCreate(source, index, kEntries, {});
-  ASSERT_THAT(original, Optional(_));
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   for (std::size_t position = 0; position < kEntries.size(); ++position) {
     auto erased_index = index;
     ASSERT_THAT(erased_index.EraseData(position + 1), Eq(true));
-    const auto erased = Node::TryEraseEntry(source, **original, erased_index, position);
-    ASSERT_THAT(erased, Optional(_));
-    EXPECT_THAT((*erased)->entries().size(), Eq(2));
-    for (std::size_t remaining = 0; remaining < 2; ++remaining) {
-      EXPECT_THAT((*erased)->entries()[remaining], Eq(kEntries[remaining + (remaining >= position ? 1 : 0)]));
+    auto* const erased = Node::TryEraseEntry(source, *original, erased_index, position).value_or(nullptr);
+    ASSERT_THAT(erased, NotNull());
+    const int* expected = kEntries.data();
+    for (const int entry : erased->entries()) {
+      if (expected == kEntries.data() + position) {
+        ++expected;
+      }
+      EXPECT_THAT(entry, Eq(*expected++));
     }
-    EXPECT_THAT((*original)->entries(), ElementsAre(10, 20, 30));
-    Node::Release(source, *erased);
+    EXPECT_THAT(erased->entries(), SizeIs(2));
+    EXPECT_THAT(original->entries(), ElementsAre(10, 20, 30));
+    Node::Release(source, erased);
   }
-  Node::Release(source, *original);
+  Node::Release(source, original);
   EXPECT_THAT(source.released, Eq(4));
 }
 
 TEST_F(HamtSharedNodeTest, ErasingTheLastEntryRetainsItsSharedChildren) {
   CountingSource source;
-  const auto child = Node::TryCreate(source, {}, {}, {});
-  ASSERT_THAT(child, Optional(_));
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
   Node::index_type index;
   ASSERT_THAT(index.InsertData(1), Eq(true));
   ASSERT_THAT(index.InsertNode(2), Eq(true));
   constexpr auto kEntries = std::to_array<int>({10});
-  const auto children = std::to_array<Node*>({*child});
-  const auto original = Node::TryCreate(source, index, kEntries, children);
-  ASSERT_THAT(original, Optional(_));
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, kEntries, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
   ASSERT_THAT(index.EraseData(1), Eq(true));
-  const auto erased = Node::TryEraseEntry(source, **original, index, 0);
-  ASSERT_THAT(erased, Optional(_));
-  EXPECT_THAT((*erased)->entries().empty(), Eq(true));
-  EXPECT_THAT((*child)->use_count(), Eq(3));
-  Node::Release(source, *original);
-  Node::Release(source, *child);
-  EXPECT_THAT((*erased)->children().front()->use_count(), Eq(1));
-  Node::Release(source, *erased);
+  auto* const erased = Node::TryEraseEntry(source, *original, index, 0).value_or(nullptr);
+  ASSERT_THAT(erased, NotNull());
+  EXPECT_THAT(erased->entries(), IsEmpty());
+  EXPECT_THAT(child->use_count(), Eq(3));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(erased->children().front()->use_count(), Eq(1));
+  Node::Release(source, erased);
   EXPECT_THAT(source.released, Eq(3));
 }
 
@@ -620,15 +625,47 @@ TEST_F(HamtSharedNodeTest, FailedErasurePreservesEntries) {
   Node::index_type index;
   ASSERT_THAT(index.InsertData(1), Eq(true));
   constexpr auto kEntries = std::to_array<int>({10});
-  const auto original = Node::TryCreate(source, index, kEntries, {});
-  ASSERT_THAT(original, Optional(_));
-  EXPECT_THAT(Node::TryEraseEntry(source, **original, index, 0), Eq(std::nullopt));
-  EXPECT_THAT(Node::TryEraseEntry(source, **original, {}, 1), Eq(std::nullopt));
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryEraseEntry(source, *original, index, 0), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseEntry(source, *original, {}, 1), Eq(std::nullopt));
   mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
-  EXPECT_THAT(Node::TryEraseEntry(exhausted, **original, {}, 0), Eq(std::nullopt));
-  EXPECT_THAT((*original)->entries(), ElementsAre(10));
+  EXPECT_THAT(Node::TryEraseEntry(exhausted, *original, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10));
   EXPECT_THAT(source.acquired, Eq(1));
-  Node::Release(source, *original);
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsEntryErasureFromCollisionsAndEmptyNodes) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const empty = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  ASSERT_THAT(empty, NotNull());
+  EXPECT_THAT(Node::TryEraseEntry(source, *collision, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryEraseEntry(source, *empty, {}, 0), Eq(std::nullopt));
+  EXPECT_THAT(collision->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, collision);
+  Node::Release(source, empty);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsEntryErasureThatChangesChildOccupancy) {
+  CountingSource source;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10});
+  auto* const original = Node::TryCreate(source, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  Node::index_type invalid_index;
+  ASSERT_THAT(invalid_index.InsertNode(2), Eq(true));
+  EXPECT_THAT(Node::TryEraseEntry(source, *original, invalid_index, 0), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10));
+  EXPECT_THAT(source.acquired, Eq(1));
+  Node::Release(source, original);
   EXPECT_THAT(source.released, Eq(1));
 }
 

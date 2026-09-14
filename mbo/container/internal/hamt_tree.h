@@ -153,6 +153,10 @@ class HamtTree final {
       return mutable_iterator{};
     }
     const hash_type hash = std::invoke(hash_, key);
+    if (AllUnique(root_.get())) {
+      Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, original);
+      return mutable_iterator::At(root_.get(), hash, found, this);
+    }
     // A lookup key may borrow a unique node released while detaching the tree.
     const Entry lookup = *original;
     const auto error = TryMakeUnique();

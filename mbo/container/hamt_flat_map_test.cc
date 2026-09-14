@@ -28,6 +28,33 @@ struct CollisionHash final {
   constexpr std::uint64_t operator()(int) const noexcept { return 7; }
 };
 
+struct CopyObservedMapped final {
+  explicit CopyObservedMapped(int& copies) noexcept : copies(&copies) {}
+
+  CopyObservedMapped(const CopyObservedMapped& other) noexcept : copies(other.copies) { ++*copies; }
+
+  CopyObservedMapped& operator=(const CopyObservedMapped&) noexcept = default;
+  CopyObservedMapped(CopyObservedMapped&&) noexcept = default;
+  CopyObservedMapped& operator=(CopyObservedMapped&&) noexcept = default;
+  ~CopyObservedMapped() = default;
+
+  int* copies;
+};
+
+TEST_F(HamtFlatMapTest, UniqueMutableLookupDoesNotCopyMappedValues) {
+  using ObservedMap = HamtFlatMap<int, CopyObservedMapped>;
+  int copies = 0;
+  ObservedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(ObservedMap::value_type(1, CopyObservedMapped(copies))).second, Eq(true));
+  copies = 0;
+  auto result = edit.try_find(1);
+  const auto* const position = std::get_if<ObservedMap::transient_type::iterator>(&result);
+  ASSERT_THAT(position, NotNull());
+  EXPECT_THAT(*position == edit.end(), Eq(false));
+  EXPECT_THAT(copies, Eq(0));
+}
+
 TEST_F(HamtFlatMapTest, MutableCollisionIteratorsAdvanceWithoutChangingSnapshots) {
   using CollisionMap = HamtFlatMap<int, int, CollisionHash>;
   CollisionMap empty;

@@ -38,7 +38,16 @@ Uniqueness checks use acquire loads to observe prior ownership releases. This do
 not make concurrent retain or mutation safe; the existing external-synchronization
 contract still applies.
 
-Mutable mapped iterators, consuming allocation-domain clones, node
+`try_clone_to<OtherSource>(source_constructor_args...)` returns an optional map of
+the destination-source specialization, preserving keys, mapped values, and callable
+state in independently owned nodes. The rvalue overload consumes only on success;
+failure preserves the original. The new domain owns its source object, not any
+external storage or resource that source borrows. Mapped pointer/handle copies
+retain their usual shallow-copy semantics.
+The transient's rvalue clone overload returns a persistent destination map and
+likewise consumes only on success.
+
+Mutable mapped iterators, node
 storage variants, and unique in-place structural mutation are still outstanding.
 Result representations and performance decisions remain provisional until the
 complete implementation is benchmarked. This is C++20-compatible work; no C++26

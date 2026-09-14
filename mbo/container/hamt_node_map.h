@@ -138,7 +138,8 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] mutation_result try_insert(const value_type& entry) const noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type> {
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
     HamtNodeMap next(*this);
     const auto result = next.TryInsert(entry);
     if (result.error) {
@@ -148,7 +149,8 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] std::pair<HamtNodeMap, bool> insert(const value_type& entry) const noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type> {
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
     return RequireValue(try_insert(entry));
   }
 
@@ -202,7 +204,8 @@ class HamtNodeMap final {
   transient_type transient() && noexcept { return transient_type(std::move(*this)); }
 
   [[nodiscard]] mutation_result try_insert(value_type&& entry) const noexcept
-  requires std::is_nothrow_move_constructible_v<value_type> {
+  requires std::is_nothrow_move_constructible_v<value_type>
+  {
     HamtNodeMap next(*this);
     const auto result = next.TryInsert(std::move(entry));
     if (result.error) {
@@ -212,7 +215,8 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] std::pair<HamtNodeMap, bool> insert(value_type&& entry) const noexcept
-  requires std::is_nothrow_move_constructible_v<value_type> {
+  requires std::is_nothrow_move_constructible_v<value_type>
+  {
     return RequireValue(try_insert(std::move(entry)));
   }
 
@@ -222,7 +226,8 @@ class HamtNodeMap final {
 
  private:
   std::optional<HamtError> TryPrepareMutable() noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry> {
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
     auto& tree = owned_.tree();
     if (auto error = tree.TryMakeUnique()) {
       return error;
@@ -343,14 +348,20 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   static constexpr size_type max_size() noexcept { return HamtNodeMap::max_size(); }
 
-  [[nodiscard]] iterator_result try_begin() noexcept {
+  [[nodiscard]] iterator_result try_begin() noexcept
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
     if (auto error = map_.TryPrepareMutable()) {
       return *error;
     }
     return iterator(std::get<typename Tree::mutable_iterator>(map_.owned_.tree().TryMutableBegin()));
   }
 
-  iterator begin() noexcept { return HamtNodeMap::RequireValue(try_begin()); }
+  iterator begin() noexcept
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
+    return HamtNodeMap::RequireValue(try_begin());
+  }
 
   const_iterator begin() const noexcept { return map_.begin(); }
 
@@ -373,7 +384,9 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   template<typename LookupKey>
-  requires requires(Tree& tree, const LookupKey& key) { tree.TryMutableFind(key); }
+  requires(
+      std::is_nothrow_copy_constructible_v<value_type>
+      && requires(Tree& tree, const LookupKey& key) { tree.TryMutableFind(key); })
   [[nodiscard]] iterator_result try_find(const LookupKey& key) noexcept {
     const auto* const payload = map_.owned_.tree().Find(key);
     if (payload == nullptr) {
@@ -405,7 +418,9 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   template<typename LookupKey>
-  requires requires(Tree& tree, const LookupKey& key) { tree.TryGetMutable(key); }
+  requires(
+      std::is_nothrow_copy_constructible_v<value_type>
+      && requires(Tree& tree, const LookupKey& key) { tree.TryGetMutable(key); })
   [[nodiscard]] access_result try_at(const LookupKey& key) noexcept {
     auto result = map_.TryMutableEntry(key);
     if (auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
@@ -421,7 +436,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped> {
+  requires(std::is_nothrow_default_constructible_v<Mapped> && std::is_nothrow_copy_constructible_v<value_type>)
+  {
     auto found = try_at(key);
     const auto* const mapped = std::get_if<Mapped*>(&found);
     if (mapped == nullptr || *mapped != nullptr) {
@@ -435,7 +451,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   Mapped& operator[](const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped> {
+  requires(std::is_nothrow_default_constructible_v<Mapped> && std::is_nothrow_copy_constructible_v<value_type>)
+  {
     return RequireMapped(try_get_or_insert(key));
   }
 
@@ -459,7 +476,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type> {
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
     auto& tree = map_.owned_.tree();
     if (tree.size() == max_size() && !tree.contains(entry.first)) {
       return HamtError::kMaxSizeExceeded;
@@ -478,7 +496,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   std::pair<iterator, bool> insert(const value_type& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type> {
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
     return HamtNodeMap::RequireValue(try_insert(entry));
   }
 
@@ -501,7 +520,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   void clear() noexcept { map_.owned_.tree().clear(); }
 
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
-  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  requires(
+      std::is_nothrow_constructible_v<OtherSource, SourceArgs...> && std::is_nothrow_copy_constructible_v<value_type>)
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) && noexcept {
     return std::move(map_).template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
   }

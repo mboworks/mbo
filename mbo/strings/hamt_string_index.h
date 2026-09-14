@@ -54,6 +54,20 @@ class HamtStringIndex final {
     return found == map_.end() ? std::optional<Id>{} : std::optional<Id>(found->second);
   }
 
+  template<mbo::memory::BlockSource ControlSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<Source, SourceArgs...>
+  [[nodiscard]] static std::optional<HamtStringIndex> try_create_in(
+      ControlSource& storage,
+      Hash hash,
+      Equal equal,
+      SourceArgs&&... source_args) noexcept {
+    auto map = Map::try_create_in(storage, std::move(hash), std::move(equal), std::forward<SourceArgs>(source_args)...);
+    if (!map) {
+      return std::nullopt;
+    }
+    return HamtStringIndex(std::move(*map));
+  }
+
   // true: inserted; false: duplicate; nullopt: allocation or size exhaustion.
   // Failed insertion preserves all previous keys and IDs.
   std::optional<bool> try_insert(std::string_view key, Id identifier) noexcept {

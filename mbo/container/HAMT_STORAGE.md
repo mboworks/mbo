@@ -241,3 +241,16 @@ Child staging uses bounded stack storage rather than another allocator. Repeated
 references are copied independently; this primitive does not preserve graph aliasing or perform
 cross-domain structural sharing. Public `clone_to(source)` wrappers also preserve hash/equality
 state and container-level metadata; those responsibilities are not handled by this node primitive.
+
+## Persistent value replacement
+
+`TryReplaceHamtEntry` finds an existing key and copies only its affected path, replacing the
+stored entry without changing the original snapshot. The replacement must preserve the key
+and full hash; public map wrappers enforce immutable keys while replacing mapped values.
+Collision siblings and unaffected branches remain unchanged.
+
+Success returns an owned root and `replaced == true`. A missing key returns a retained original
+root and `replaced == false`, without allocating; a null root is a successful missing-key result.
+`std::nullopt` means allocation failure, with temporary nodes reclaimed and original ownership
+unchanged. Release successful roots through their original block source. Copies, destruction,
+hash/key extraction, and equality must be non-throwing; access remains externally synchronized.

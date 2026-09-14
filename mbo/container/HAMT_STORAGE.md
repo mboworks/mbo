@@ -1,5 +1,11 @@
 # Packed HAMT storage
 
+Node-map mutable payload access, updates, and independent cloning require nothrow-copyable
+entries: detaching shared payloads must preserve the original snapshot. Public constraints expose
+this requirement to generic capability checks. Move-only payloads still support persistent rvalue
+insertion, shared snapshots, lookup, and structural erasure. Snapshot copying shares ownership
+handles; it does not copy payloads. Use const transient access for read-only move-only payloads.
+
 These internal building blocks support general HAMT containers; they are not public map/set APIs.
 
 `HamtPackedNodeLayout<Header, Entry, Child>::TryMake` computes aligned offsets and allocation

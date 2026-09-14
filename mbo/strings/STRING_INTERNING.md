@@ -530,6 +530,12 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+The HAMT index accepts stateful hash/equality objects directly. Its `try_create(hash, equal,
+source_args...)` factory also constructs non-default-constructible block sources, preserving their
+configuration across persistent index mutations. Node-allocation failure remains recoverable;
+source-domain control allocation is still separate from the supplied node budget. Borrowed backing
+buffers must outlive the index and every snapshot sharing that source domain.
+
 `root()` follows the borrowed parent links and returns the topmost interner, including a declared
 parent whose captured prefix is empty. `parent_has_grown()` compares the direct parent's current
 visible size with the captured prefix boundary. It does not refresh that boundary, expose later

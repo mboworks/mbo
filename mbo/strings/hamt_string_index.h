@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -28,6 +29,25 @@ class HamtStringIndex final {
   using Map = mbo::container::HamtFlatMap<std::string_view, Id, Hash, Equal, Options, Source>;
 
  public:
+  HamtStringIndex() = default;
+
+  explicit HamtStringIndex(Hash hash, Equal equal = Equal{}) noexcept
+  requires std::is_nothrow_default_constructible_v<Source>
+      : map_(std::move(hash), std::move(equal)) {}
+
+  template<typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<Source, SourceArgs...>
+  [[nodiscard]] static std::optional<HamtStringIndex> try_create(
+      Hash hash,
+      Equal equal,
+      SourceArgs&&... source_args) noexcept {
+    auto map = Map::try_create(std::move(hash), std::move(equal), std::forward<SourceArgs>(source_args)...);
+    if (map) {
+      return HamtStringIndex(std::move(map).value());
+    }
+    return std::nullopt;
+  }
+
   std::optional<Id> find(std::string_view key) const noexcept {
     const auto found = map_.find(key);
     return found == map_.end() ? std::optional<Id>{} : std::optional<Id>(found->second);
@@ -47,6 +67,8 @@ class HamtStringIndex final {
   }
 
  private:
+  explicit HamtStringIndex(Map&& map) noexcept : map_(std::move(map)) {}
+
   Map map_;
 };
 

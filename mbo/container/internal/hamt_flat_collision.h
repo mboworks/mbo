@@ -49,8 +49,8 @@ class HamtFlatCollisionBucket final {
   // Hashes must be consistent with equality. Keys and equality are invoked through const references
   // without copying callable state; supplied operations must not throw.
   using entry_type = Entry;
-  using iterator = typename Storage::iterator;
-  using const_iterator = typename Storage::const_iterator;
+  using iterator = Storage::iterator;
+  using const_iterator = Storage::const_iterator;
 
   constexpr HamtFlatCollisionBucket() = default;
 

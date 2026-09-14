@@ -531,6 +531,22 @@ TEST_F(HamtSharedNodeTest, SelfReplacementCreatesAnotherOwnerOfTheSameChild) {
   EXPECT_THAT(source.released, Eq(3));
 }
 
+TEST_F(HamtSharedNodeTest, RejectsChildReplacementInTerminalCollisions) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const replacement = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(replacement, NotNull());
+  EXPECT_THAT(Node::TryReplaceChild(source, *original, 0, replacement), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(replacement->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, replacement);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 TEST_F(HamtSharedNodeTest, FailedReplacementLeavesBothChildrenUnchanged) {
   CountingSource source;
   auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);

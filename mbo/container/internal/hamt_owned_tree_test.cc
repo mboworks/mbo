@@ -117,6 +117,9 @@ TEST_F(HamtOwnedTreeTest, MoveLeavesReusableEmptyContainerAndAssignmentsKeepDoma
   }
   Owned first = std::move(*created);
   EXPECT_THAT(first.tree().try_insert(1).changed, Eq(true));
+  auto& self = first;
+  first = std::move(self);
+  EXPECT_THAT(first.tree().contains(1), Eq(true));
   Owned moved = std::move(first);
   EXPECT_THAT(first.tree().empty(), Eq(true));
   EXPECT_THAT(first.tree().try_insert(2).changed, Eq(true));

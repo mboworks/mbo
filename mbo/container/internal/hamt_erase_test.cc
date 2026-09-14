@@ -57,7 +57,7 @@ struct HamtEraseTest : ::testing::Test {
         .value_or(HamtEraseResult<Node>{.root = nullptr, .erased = false});
   }
 
-  const Entry* Find(Node* root, std::uint64_t hash, int key) {
+  static const Entry* Find(Node* root, std::uint64_t hash, int key) {
     return FindHamtEntry(root, hash, key, HashOf{}, KeyOf{}, Equal{});
   }
 };
@@ -204,6 +204,105 @@ TEST_F(HamtEraseTest, AllocationFailurePreservesTheOriginalSnapshot) {
   EXPECT_THAT(second.root->use_count(), Eq(1));
   Node::Release(source, first.root);
   Node::Release(source, second.root);
+}
+
+struct BudgetSource final {
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr bool supports_recoverable_failure = true;
+
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    if (remaining == 0) {
+      return std::nullopt;
+    }
+    auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+    if (block) {
+      --remaining;
+      ++acquired;
+    }
+    return block;
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept {
+    ++released;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
+
+  std::size_t remaining = 0;
+  std::size_t acquired = 0;
+  std::size_t released = 0;
+};
+
+TEST_F(HamtEraseTest, CollisionPathCopyBudgetsPreserveSnapshotsAndReclaimTemporaryNodes) {
+  const auto first = Insert(nullptr, 7, 10);
+  ASSERT_THAT(first.root, NotNull());
+  const auto second = Insert(first.root, 7, 20);
+  ASSERT_THAT(second.root, NotNull());
+  const auto third = Insert(second.root, 7, 30);
+  ASSERT_THAT(third.root, NotNull());
+  const auto split = Insert(third.root, 39, 40);
+  ASSERT_THAT(split.root, NotNull());
+  for (auto* const original : std::to_array<Node*>({third.root, split.root})) {
+    for (std::size_t allowed = 0; allowed <= 5; ++allowed) {
+      SCOPED_TRACE(allowed);
+      BudgetSource budget{.remaining = allowed};
+      const auto result =
+          TryEraseHamtEntry<std::uint64_t, 5>(budget, original, std::uint64_t{7}, 30, HashOf{}, KeyOf{}, Equal{});
+      if (result) {
+        EXPECT_THAT(result->erased, Eq(true));
+        EXPECT_THAT(Find(result->root, 7, 30), IsNull());
+        EXPECT_THAT(Find(result->root, 7, 10), NotNull());
+        EXPECT_THAT(Find(result->root, 7, 20), NotNull());
+        Node::Release(budget, result->root);
+      }
+      if (allowed == 0) {
+        EXPECT_THAT(result.has_value(), Eq(false));
+      } else if (allowed == 5) {
+        EXPECT_THAT(result.has_value(), Eq(true));
+      }
+      EXPECT_THAT(Find(original, 7, 30), NotNull());
+      EXPECT_THAT(original->use_count(), Eq(1));
+      EXPECT_THAT(budget.released, Eq(budget.acquired));
+    }
+  }
+  Node::Release(source, first.root);
+  Node::Release(source, second.root);
+  Node::Release(source, third.root);
+  Node::Release(source, split.root);
+}
+
+TEST_F(HamtEraseTest, MissingHashesAndKeysPreserveLeafCollisionAndNestedVersions) {
+  const auto leaf = Insert(nullptr, 7, 10);
+  ASSERT_THAT(leaf.root, NotNull());
+  const auto nested = Insert(leaf.root, 7, 20);
+  ASSERT_THAT(nested.root, NotNull());
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  for (auto* const original : std::to_array<Node*>({leaf.root, nested.root, collision})) {
+    for (const std::uint64_t hash : std::to_array<std::uint64_t>({7, 39})) {
+      const auto missing = Erase(original, hash, 99);
+      EXPECT_THAT(missing.root, Eq(original));
+      EXPECT_THAT(missing.erased, Eq(false));
+      Node::Release(source, missing.root);
+    }
+  }
+  const auto erased = Erase(collision, 7, 20);
+  ASSERT_THAT(erased.root, NotNull());
+  EXPECT_THAT(erased.erased, Eq(true));
+  EXPECT_THAT(Find(erased.root, 7, 10), NotNull());
+  EXPECT_THAT(Find(erased.root, 7, 20), IsNull());
+  Node::Release(source, erased.root);
+  BudgetSource exhausted;
+  EXPECT_THAT(
+      (TryEraseHamtEntry<std::uint64_t, 5>(exhausted, collision, std::uint64_t{7}, 20, HashOf{}, KeyOf{}, Equal{})),
+      Eq(std::nullopt));
+  EXPECT_THAT(Find(collision, 7, 20), NotNull());
+  Node::Release(source, leaf.root);
+  Node::Release(source, nested.root);
+  Node::Release(source, collision);
 }
 
 }  // namespace

@@ -27,7 +27,18 @@ allocation exhaustion separately from maximum size. Neither throwing user callba
 nor throwing entry copy/move construction are supported. `TryCreate` separately
 reports allocation-domain creation failure with `std::nullopt`.
 
-Mutable mapped iterators, `operator[]`, consuming allocation-domain clones, node
+Transient nonconst `at` detaches a shared path before returning a mutable mapped
+reference. `try_at` returns a variant containing a mapped pointer (null for a missing
+key) or an allocation error. `operator[]` value-initializes missing mapped values and
+requires nothrow default construction; `try_get_or_insert` is its recoverable form.
+Const access never detaches. Mutable references are invalidated by structural
+mutation, assignment, move, and consuming conversion to persistence. Do not retain
+such a reference and mutate through it after publishing a persistent snapshot.
+Uniqueness checks use acquire loads to observe prior ownership releases. This does
+not make concurrent retain or mutation safe; the existing external-synchronization
+contract still applies.
+
+Mutable mapped iterators, consuming allocation-domain clones, node
 storage variants, and unique in-place structural mutation are still outstanding.
 Result representations and performance decisions remain provisional until the
 complete implementation is benchmarked. This is C++20-compatible work; no C++26

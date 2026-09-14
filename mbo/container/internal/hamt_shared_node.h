@@ -58,6 +58,10 @@ class HamtSharedNode final {
 
   std::uint32_t use_count() const noexcept { return references_.load(std::memory_order_relaxed); }
 
+  // Permission to mutate additionally observes work preceding previous releases.
+  // A live owner and exclusion of concurrent retain/mutation are still required.
+  bool is_unique() const noexcept { return references_.load(std::memory_order_acquire) == 1; }
+
   static void Retain(node_type* node) noexcept {
     if (node != nullptr) {
       node->references_.fetch_add(1, std::memory_order_relaxed);

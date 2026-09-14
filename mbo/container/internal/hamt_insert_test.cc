@@ -50,7 +50,7 @@ struct HamtInsertTest : ::testing::Test {
         .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
   }
 
-  const Entry* Find(Node* root, std::uint64_t hash, int key) {
+  static const Entry* Find(Node* root, std::uint64_t hash, int key) {
     return FindHamtEntry(root, hash, key, HashOf{}, KeyOf{}, Equal{});
   }
 };
@@ -65,6 +65,11 @@ TEST_F(HamtInsertTest, InsertsIntoEmptyRootAndPreservesTheOriginalVersion) {
   EXPECT_THAT(second.inserted, Eq(true));
   EXPECT_THAT(Find(first.root, 1, 10), NotNull());
   EXPECT_THAT(Find(first.root, 2, 20), IsNull());
+  const auto duplicate = Insert(first.root, 1, 10);
+  ASSERT_THAT(duplicate.root, NotNull());
+  EXPECT_THAT(duplicate.root, Eq(first.root));
+  EXPECT_THAT(duplicate.inserted, Eq(false));
+  Node::Release(source, duplicate.root);
   EXPECT_THAT(Find(second.root, 1, 10), NotNull());
   EXPECT_THAT(Find(second.root, 2, 20), NotNull());
   Node::Release(source, first.root);
@@ -113,6 +118,11 @@ TEST_F(HamtInsertTest, ReportsAllocationFailureWithoutChangingTheOriginal) {
   auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
   mbo::memory::InlineBlockSource<1> exhausted;
+  EXPECT_THAT(
+      (TryInsertHamtEntry<std::uint64_t, 5>(
+          exhausted, static_cast<Node*>(nullptr), std::uint64_t{1}, 10, Entry{.hash = 1, .key = 10}, HashOf{}, KeyOf{},
+          Equal{})),
+      Eq(std::nullopt));
   const auto failed = TryInsertHamtEntry<std::uint64_t, 5>(
       exhausted, first.root, 2ULL, 20, Entry{.hash = 2, .key = 20}, HashOf{}, KeyOf{}, Equal{});
 
@@ -242,6 +252,44 @@ TEST_F(HamtInsertTest, ReclaimsEveryFailedPathCopyWithoutChangingSnapshots) {
   Node::Release(budget, first.root);
   Node::Release(budget, second.root);
   EXPECT_THAT(budget.released, Eq(budget.acquired));
+}
+
+TEST_F(HamtInsertTest, AllocationBudgetsCoverCollisionGrowthSplittingAndEntryPromotion) {
+  for (const bool collision_root : std::to_array({false, true})) {
+    for (const std::uint64_t new_hash : std::to_array<std::uint64_t>({7, 39, 8})) {
+      for (std::size_t allowed = 0; allowed <= 3; ++allowed) {
+        SCOPED_TRACE(collision_root);
+        SCOPED_TRACE(new_hash);
+        SCOPED_TRACE(allowed);
+        BudgetSource budget;
+        constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
+        auto* const original = collision_root
+                                   ? Node::TryCreateCollision(budget, kEntries).value_or(nullptr)
+                                   : TryInsertHamtEntry<std::uint64_t, 5>(
+                                         budget, static_cast<Node*>(nullptr), std::uint64_t{7}, 10,
+                                         Entry{.hash = 7, .key = 10}, HashOf{}, KeyOf{}, Equal{})
+                                         .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false})
+                                         .root;
+        ASSERT_THAT(original, NotNull());
+        budget.remaining = allowed;
+        const auto result = TryInsertHamtEntry<std::uint64_t, 5>(
+            budget, original, new_hash, 30, Entry{.hash = new_hash, .key = 30}, HashOf{}, KeyOf{}, Equal{});
+        if (result) {
+          EXPECT_THAT(result->inserted, Eq(true));
+          EXPECT_THAT(Find(result->root, new_hash, 30), NotNull());
+          EXPECT_THAT(Find(result->root, 7, 10), NotNull());
+          Node::Release(budget, result->root);
+        }
+        const std::size_t required = new_hash == 8 || (collision_root && new_hash == 7) ? 1 : 2;
+        EXPECT_THAT(result.has_value(), Eq(allowed >= required));
+        EXPECT_THAT(Find(original, 7, 10), NotNull());
+        EXPECT_THAT(Find(original, new_hash, 30), IsNull());
+        EXPECT_THAT(original->use_count(), Eq(1));
+        Node::Release(budget, original);
+        EXPECT_THAT(budget.released, Eq(budget.acquired));
+      }
+    }
+  }
 }
 
 }  // namespace

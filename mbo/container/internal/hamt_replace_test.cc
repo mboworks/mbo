@@ -129,6 +129,24 @@ TEST_F(HamtReplaceTest, DirectReplacementCanAliasTheExistingEntry) {
   Node::Release(source, changed.root);
 }
 
+TEST_F(HamtReplaceTest, FailedChildCopyPreservesTheEntireOriginalPath) {
+  Insert(Entry{.hash = 1, .key = 10, .value = 10});
+  Insert(Entry{.hash = 33, .key = 20, .value = 20});
+  mbo::memory::InlineBlockSource<1> exhausted;
+  constexpr Entry kReplacement{.hash = 33, .key = 20, .value = 99};
+  EXPECT_THAT(
+      TryReplaceHamtEntry(exhausted, root, std::uint64_t{33}, 20, kReplacement, HashOf{}, KeyOf{}, Equal{}),
+      Eq(std::nullopt));
+  const Entry* const unchanged = Find(root, 33, 20);
+  const Entry* const sibling = Find(root, 1, 10);
+  ASSERT_THAT(unchanged, NotNull());
+  ASSERT_THAT(sibling, NotNull());
+  EXPECT_THAT(unchanged->value, Eq(20));
+  EXPECT_THAT(sibling->value, Eq(10));
+  EXPECT_THAT(root->use_count(), Eq(1));
+  EXPECT_THAT(root->children().front()->use_count(), Eq(1));
+}
+
 TEST_F(HamtReplaceTest, FailedParentCopyReclaimsTheAlreadyCopiedChild) {
   Insert(Entry{.hash = 1, .key = 10, .value = 10});
   Insert(Entry{.hash = 33, .key = 20, .value = 20});

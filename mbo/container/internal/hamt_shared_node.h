@@ -8,6 +8,8 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -18,6 +20,18 @@
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container::container_internal {
+
+// A retain requires an existing live owner. Reject both resurrection and
+// overflow without changing the count; relaxed ordering only tracks ownership.
+inline bool TryRetainHamtReference(std::atomic<std::uint32_t>& references) noexcept {
+  auto count = references.load(std::memory_order_relaxed);
+  while (count != 0 && count != std::numeric_limits<std::uint32_t>::max()) {
+    if (references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 // Intrusive ownership of one packed node allocation. Every Release must use the
 // same block source that created the node and its descendants. Child references
@@ -64,7 +78,9 @@ class HamtSharedNode final {
 
   static void Retain(node_type* node) noexcept {
     if (node != nullptr) {
-      node->references_.fetch_add(1, std::memory_order_relaxed);
+      if (!TryRetainHamtReference(node->references_)) {
+        std::terminate();
+      }
     }
   }
 

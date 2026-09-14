@@ -130,6 +130,8 @@ TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
   }
   const Entry foreign{.hash = 1, .key = 10};
   EXPECT_THAT(Iterator::At(root.get(), foreign.hash, &foreign), Eq(Iterator{}));
+  const Entry foreign_data{.hash = std::uint64_t{1} << 63, .key = 30};
+  EXPECT_THAT(Iterator::At(root.get(), foreign_data.hash, &foreign_data), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{7}, std::addressof(*Iterator(root.get()))), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(nullptr, std::uint64_t{0}, &foreign), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{0}, nullptr), Eq(Iterator{}));
@@ -179,6 +181,39 @@ TEST_F(HamtIteratorTest, EmptyAllocatedRootHasTheSameEndAsANullRoot) {
   EXPECT_THAT(Iterator(root), Eq(Iterator{}));
   const Entry foreign{.hash = 0, .key = 10};
   EXPECT_THAT(Iterator::At(root, foreign.hash, &foreign), Eq(Iterator{}));
+  Node::Release(source, root);
+}
+
+TEST_F(HamtIteratorTest, IteratorCopiesKeepIndependentTraversalPositionsAcrossBranches) {
+  Node* root = nullptr;
+  constexpr auto kEntries =
+      std::to_array<Entry>({Entry{.hash = 1, .key = 10}, Entry{.hash = 33, .key = 20}, Entry{.hash = 7, .key = 30}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or({.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+  Iterator first(root);
+  Iterator second = first;
+  const int original_key = second->key;
+  ++first;
+  EXPECT_THAT(second->key, Eq(original_key));
+  EXPECT_THAT(first == second, Eq(false));
+  ++second;
+  EXPECT_THAT(first, Eq(second));
+  std::vector<int> first_remaining;
+  std::vector<int> second_remaining;
+  for (; first != Iterator{}; ++first) {
+    first_remaining.push_back(first->key);
+  }
+  for (; second != Iterator{}; ++second) {
+    second_remaining.push_back(second->key);
+  }
+  EXPECT_THAT(first_remaining, ElementsAre(10, 20));
+  EXPECT_THAT(second_remaining, ElementsAre(10, 20));
   Node::Release(source, root);
 }
 

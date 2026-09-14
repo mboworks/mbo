@@ -4,12 +4,15 @@
 #include "mbo/container/hamt_flat_set.h"
 
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <variant>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/memory/block_source.h"
 
 namespace mbo::container {
 namespace {
@@ -45,6 +48,49 @@ TEST_F(HamtFlatSetTest, PublicCloneReturnsTheDestinationSourceSpecialization) {
   auto failed = std::move(reuse).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
   EXPECT_THAT(reuse.contains(2), Eq(true));
+}
+
+struct BudgetSource final {
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr bool supports_recoverable_failure = true;
+
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  explicit BudgetSource(std::size_t& remaining) noexcept : remaining(remaining) {}
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    if (remaining == 0) {
+      return std::nullopt;
+    }
+    --remaining;
+    return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+
+  std::size_t& remaining;
+};
+
+TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
+  using BudgetSet = HamtFlatSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  std::size_t remaining = 8;
+  auto created = BudgetSet::TryCreate(std::hash<int>{}, std::equal_to<>{}, remaining);
+  if (!created) {
+    FAIL() << "set creation failed";
+    return;
+  }
+  auto edit = created->transient();
+  EXPECT_THAT(edit.insert(1).second, Eq(true));
+  EXPECT_THAT(edit.insert(2).second, Eq(true));
+  const auto snapshot = std::move(edit).persistent();
+  remaining = 0;
+  EXPECT_THAT(snapshot.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  auto shared_edit = snapshot.transient();
+  EXPECT_THAT(shared_edit.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot, UnorderedElementsAre(1, 2));
+  EXPECT_THAT(shared_edit, UnorderedElementsAre(1, 2));
+  EXPECT_THAT(snapshot.size(), Eq(2));
 }
 
 struct CollisionHash final {

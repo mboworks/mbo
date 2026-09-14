@@ -13,7 +13,9 @@ namespace mbo::container::container_internal {
 namespace {
 
 using ::testing::_;
+using ::testing::AllOf;
 using ::testing::Eq;
+using ::testing::Field;
 using ::testing::Optional;
 
 struct Header final {
@@ -33,13 +35,13 @@ using Layout = HamtPackedNodeLayout<Header, Entry, Child>;
 struct HamtPackedNodeLayoutTest : ::testing::Test {};
 
 TEST_F(HamtPackedNodeLayoutTest, AlignsDenseDataAndChildArrays) {
-  const auto layout = Layout::TryMake(3, 2);
-  ASSERT_THAT(layout, Optional(_));
-  EXPECT_THAT(layout->data_offset % alignof(Entry), Eq(0));
-  EXPECT_THAT(layout->child_offset % alignof(Child), Eq(0));
-  EXPECT_THAT(layout->child_offset, Eq(layout->data_offset + 3 * sizeof(Entry)));
-  EXPECT_THAT(layout->size, Eq(layout->child_offset + 2 * sizeof(Child)));
-  EXPECT_THAT(layout->alignment, Eq(alignof(Entry)));
+  constexpr std::size_t kChildOffset = alignof(Entry) + (3 * sizeof(Entry));
+  EXPECT_THAT(
+      Layout::TryMake(3, 2), Optional(AllOf(
+                                 Field("data_offset", &Layout::data_offset, Eq(alignof(Entry))),
+                                 Field("child_offset", &Layout::child_offset, Eq(kChildOffset)),
+                                 Field("size", &Layout::size, Eq(kChildOffset + (2 * sizeof(Child)))),
+                                 Field("alignment", &Layout::alignment, Eq(alignof(Entry))))));
 }
 
 TEST_F(HamtPackedNodeLayoutTest, RejectsArithmeticOverflowBeforeAllocation) {
@@ -54,11 +56,11 @@ TEST_F(HamtPackedNodeLayoutTest, RejectsAlignmentPaddingOverflow) {
 }
 
 TEST_F(HamtPackedNodeLayoutTest, EmptyArraysStillReserveAnAlignedHeader) {
-  const auto layout = Layout::TryMake(0, 0);
-  ASSERT_THAT(layout, Optional(_));
-  EXPECT_THAT(layout->data_offset, Eq(alignof(Entry)));
-  EXPECT_THAT(layout->child_offset, Eq(layout->data_offset));
-  EXPECT_THAT(layout->size, Eq(layout->child_offset));
+  EXPECT_THAT(
+      Layout::TryMake(0, 0), Optional(AllOf(
+                                 Field("data_offset", &Layout::data_offset, Eq(alignof(Entry))),
+                                 Field("child_offset", &Layout::child_offset, Eq(alignof(Entry))),
+                                 Field("size", &Layout::size, Eq(alignof(Entry))))));
 }
 
 TEST_F(HamtPackedNodeLayoutTest, AcceptsLargestRepresentableDenseEntryArray) {
@@ -66,6 +68,24 @@ TEST_F(HamtPackedNodeLayoutTest, AcceptsLargestRepresentableDenseEntryArray) {
   constexpr std::size_t kCount = (kMax - alignof(Entry)) / sizeof(Entry);
   EXPECT_THAT(Layout::TryMake(kCount, 0), Optional(_));
   EXPECT_THAT(Layout::TryMake(kCount + 1, 0), Eq(std::nullopt));
+}
+
+TEST_F(HamtPackedNodeLayoutTest, AcceptsLargestRepresentableChildArray) {
+  constexpr auto kMax = std::numeric_limits<std::size_t>::max();
+  constexpr std::size_t kCount = (kMax - alignof(Entry)) / sizeof(Child);
+  EXPECT_THAT(
+      Layout::TryMake(0, kCount),
+      Optional(Field("size", &Layout::size, Eq(alignof(Entry) + (kCount * sizeof(Child))))));
+  EXPECT_THAT(Layout::TryMake(0, kCount + 1), Eq(std::nullopt));
+}
+
+TEST_F(HamtPackedNodeLayoutTest, PadsBetweenByteEntriesAndAlignedChildren) {
+  using ByteLayout = HamtPackedNodeLayout<Header, char, Child>;
+  EXPECT_THAT(
+      ByteLayout::TryMake(2, 1), Optional(AllOf(
+                                     Field("data_offset", &ByteLayout::data_offset, Eq(sizeof(Header))),
+                                     Field("child_offset", &ByteLayout::child_offset, Eq(alignof(Child))),
+                                     Field("size", &ByteLayout::size, Eq(alignof(Child) + sizeof(Child))))));
 }
 
 static_assert(Layout::TryMake(1, 1).has_value());

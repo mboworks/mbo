@@ -107,6 +107,14 @@ fingerprint with a 32-bit ID in one 64-bit word, satisfying an index backend who
 coupling. They must not truncate the default hash merely because the default ID is `std::uint32_t`.
 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
+
+The initial [`StringId`](string_id.h) helper provides all four unsigned representations,
+explicit underlying-value access, ordering, and constexpr checked ordinal conversion via
+`TryFromOrdinal`. Every underlying value remains valid; exhaustion returns an empty optional.
+The count type is separate: an 8-bit ID supports 256 entries, not merely 255. Hash width
+remains independent. Direct construction assumes an already representable underlying value;
+use checked conversion when assigning from a wider count. This helper does not establish
+membership in any particular interner or chain.
 `local_size()` is the number added directly to that interner.
 
 Looking up an invalid or non-visible identifier returns `std::optional<std::string_view>` in the

@@ -62,6 +62,10 @@ struct HamtIteratorTest : ::testing::Test {
     }
     std::vector<int> keys;
     for (DeepIterator iter(root.get()); iter != DeepIterator{}; ++iter) {
+      DeepIterator positioned = DeepIterator::At(root.get(), iter->hash, std::addressof(*iter));
+      EXPECT_THAT(positioned, Eq(iter));
+      DeepIterator next = iter;
+      EXPECT_THAT(++positioned, Eq(++next));
       keys.push_back(iter->key);
     }
     EXPECT_THAT(keys, UnorderedElementsAre(10, 20, 30));
@@ -104,12 +108,14 @@ TEST_F(HamtIteratorTest, ValueInitializedIteratorsEqualTheEmptyRangeEnd) {
 TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
   const auto release = [this](Node* node) noexcept { Node::Release(source, node); };
   std::unique_ptr<Node, decltype(release)> root(nullptr, release);
-  constexpr auto kEntries = std::to_array<Entry>({Entry{1, 10}, Entry{1, 20}, Entry{std::uint64_t{1} << 63, 30}});
+  constexpr auto kEntries = std::to_array<Entry>(
+      {Entry{.hash = 1, .key = 10}, Entry{.hash = 1, .key = 20}, Entry{.hash = std::uint64_t{1} << 63, .key = 30}});
   for (const Entry& entry : kEntries) {
     const auto inserted = TryInsertHamtEntry<std::uint64_t, 5>(
-        source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{});
-    ASSERT_THAT(inserted, Optional(_));
-    root.reset(inserted->root);
+                              source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+                              .value_or({.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    root.reset(inserted.root);
   }
   for (Iterator expected(root.get()); expected != Iterator{}; ++expected) {
     Iterator actual = Iterator::At(root.get(), expected->hash, std::addressof(*expected));
@@ -122,7 +128,7 @@ TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
     }
     EXPECT_THAT(actual, Eq(Iterator{}));
   }
-  const Entry foreign{1, 10};
+  const Entry foreign{.hash = 1, .key = 10};
   EXPECT_THAT(Iterator::At(root.get(), foreign.hash, &foreign), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{7}, std::addressof(*Iterator(root.get()))), Eq(Iterator{}));
   EXPECT_THAT(Iterator::At(nullptr, std::uint64_t{0}, &foreign), Eq(Iterator{}));
@@ -171,6 +177,8 @@ TEST_F(HamtIteratorTest, EmptyAllocatedRootHasTheSameEndAsANullRoot) {
   auto* const root = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
   ASSERT_THAT(root, NotNull());
   EXPECT_THAT(Iterator(root), Eq(Iterator{}));
+  const Entry foreign{.hash = 0, .key = 10};
+  EXPECT_THAT(Iterator::At(root, foreign.hash, &foreign), Eq(Iterator{}));
   Node::Release(source, root);
 }
 

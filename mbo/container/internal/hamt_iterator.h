@@ -54,18 +54,20 @@ class HamtIterator final {
     }
     const HamtHashPath<Hash, FragmentBits> path(hash);
     result.root_ = root;
-    result.frames_[0].node = root;
+    result.frames_.front().node = root;
     result.depth_ = 1;
     std::size_t level = 0;
     while (root != nullptr) {
-      Frame& frame = result.frames_[result.depth_ - 1];
+      Frame& frame = result.frames_.at(result.depth_ - 1);
       if (root->is_collision()) {
-        for (std::size_t position = 0; position < root->entries().size(); ++position) {
-          if (std::addressof(root->entries()[position]) == target) {
+        std::size_t position = 0;
+        for (const Entry& entry : root->entries()) {
+          if (std::addressof(entry) == target) {
             frame.entry = position + 1;
             result.current_ = target;
             return result;
           }
+          ++position;
         }
         return {};
       }
@@ -76,7 +78,7 @@ class HamtIterator final {
       switch (root->index().Kind(fragment)) {
         case HamtSlotKind::kEmpty: return {};
         case HamtSlotKind::kData:
-          if (std::addressof(root->entries()[root->index().DataIndex(fragment)]) == target) {
+          if (std::addressof(root->entries().subspan(root->index().DataIndex(fragment)).front()) == target) {
             frame.entry = root->index().DataIndex(fragment) + 1;
             result.current_ = target;
             return result;
@@ -85,8 +87,8 @@ class HamtIterator final {
         case HamtSlotKind::kNode:
           frame.entry = root->entries().size();
           frame.child = root->index().NodeIndex(fragment) + 1;
-          root = root->children()[root->index().NodeIndex(fragment)];
-          result.frames_[result.depth_++].node = root;
+          root = root->children().subspan(root->index().NodeIndex(fragment)).front();
+          result.frames_.at(result.depth_++).node = root;
           break;
       }
     }

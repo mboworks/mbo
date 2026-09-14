@@ -175,6 +175,24 @@ cc_library(
 )
 
 cc_library(
+    name = "hamt_source_domain_cc",
+    hdrs = ["internal/hamt_source_domain.h"],
+    deps = ["//mbo/memory:block_source_cc"],
+)
+
+cc_test(
+    name = "hamt_source_domain_test",
+    size = "small",
+    srcs = ["internal/hamt_source_domain_test.cc"],
+    deps = [
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_tree_cc",
     hdrs = ["internal/hamt_tree.h"],
     deps = [

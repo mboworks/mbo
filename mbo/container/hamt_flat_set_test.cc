@@ -3,6 +3,7 @@
 
 #include "mbo/container/hamt_flat_set.h"
 
+#include <concepts>
 #include <cstdint>
 #include <utility>
 #include <variant>
@@ -20,6 +21,31 @@ using ::testing::VariantWith;
 using Set = HamtFlatSet<int>;
 
 struct HamtFlatSetTest : ::testing::Test {};
+
+TEST_F(HamtFlatSetTest, PublicCloneReturnsTheDestinationSourceSpecialization) {
+  using BoundedSet =
+      HamtFlatSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1'024>>;
+  BoundedSet empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(1).second, Eq(true));
+  auto original = std::move(edit).persistent();
+  auto cloned = original.try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  static_assert(std::same_as<typename decltype(cloned)::value_type, Set>);
+  if (!cloned) {
+    FAIL() << "cross-source clone failed";
+    return;
+  }
+  EXPECT_THAT(*cloned, UnorderedElementsAre(1));
+  EXPECT_THAT(original, UnorderedElementsAre(1));
+  auto consumed = std::move(original).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  EXPECT_THAT(consumed.has_value(), Eq(true));
+  EXPECT_THAT(original, IsEmpty());
+  auto reuse = std::move(original).transient();
+  EXPECT_THAT(reuse.insert(2).second, Eq(true));
+  auto failed = std::move(reuse).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  EXPECT_THAT(failed.has_value(), Eq(false));
+  EXPECT_THAT(reuse.contains(2), Eq(true));
+}
 
 struct CollisionHash final {
   std::uint64_t operator()(std::int64_t) const noexcept { return seed; }

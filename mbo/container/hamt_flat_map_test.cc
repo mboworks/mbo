@@ -3,6 +3,7 @@
 
 #include "mbo/container/hamt_flat_map.h"
 
+#include <memory>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -21,6 +22,32 @@ using ::testing::VariantWith;
 using Map = HamtFlatMap<int, int>;
 
 struct HamtFlatMapTest : ::testing::Test {};
+
+TEST_F(HamtFlatMapTest, PublicCloneChangesSourceAndConsumesOnlyOnSuccess) {
+  Map empty;
+  auto [one, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  auto copied = one.try_clone_to<mbo::memory::InlineBlockSource<1'024>>();
+  if (!copied) {
+    FAIL() << "cross-source clone failed";
+    return;
+  }
+  EXPECT_THAT(copied->at(1), Eq(10));
+  EXPECT_THAT(std::addressof(*copied->find(1)) == std::addressof(*one.find(1)), Eq(false));
+  auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  EXPECT_THAT(failed.has_value(), Eq(false));
+  EXPECT_THAT(one.at(1), Eq(10));
+  auto edit = one.transient();
+  auto failed_transient = std::move(edit).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  EXPECT_THAT(failed_transient.has_value(), Eq(false));
+  EXPECT_THAT(std::as_const(edit).at(1), Eq(10));
+  auto consumed_transient = std::move(edit).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  EXPECT_THAT(consumed_transient.has_value(), Eq(true));
+  EXPECT_THAT(edit.empty(), Eq(true));
+  auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  EXPECT_THAT(consumed.has_value(), Eq(true));
+  EXPECT_THAT(one, IsEmpty());
+}
 
 struct SetValue final {
   void operator()(int& mapped) const noexcept { mapped = value; }

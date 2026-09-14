@@ -42,7 +42,7 @@ struct OversizedSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size + 64, alignment);
     if (block) {
       state.get().acquired = *block;
@@ -50,7 +50,7 @@ struct OversizedSource final {
     return block;
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     state.get().exact_release = state.get().exact_release && block == state.get().acquired;
     ++state.get().releases;
     mbo::memory::NewDeleteBlockSource::Release(block);
@@ -58,6 +58,61 @@ struct OversizedSource final {
 };
 
 // NOLINTEND(readability-identifier-naming)
+
+// NOLINTBEGIN(readability-identifier-naming): implements the BlockSource contract.
+struct OfferedSource final {
+  static constexpr bool supports_recoverable_failure = true;
+  std::reference_wrapper<SourceState> state;
+
+  static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t /*alignment*/) const noexcept {
+    return state.get().acquired;
+  }
+
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
+    state.get().exact_release = state.get().exact_release && block == state.get().acquired;
+    ++state.get().releases;
+  }
+};
+
+// NOLINTEND(readability-identifier-naming)
+
+TEST_F(HamtNodeCollisionTest, RejectsUnusableOfferedBlocksAndReturnsExactMetadata) {
+  alignas(std::max_align_t) std::array<std::byte, 256> storage{};
+  const auto offers = std::to_array<mbo::memory::MemoryBlock>({
+      {.data = nullptr, .size = storage.size(), .alignment = alignof(std::max_align_t)},
+      {.data = storage.data(), .size = 1, .alignment = alignof(std::max_align_t)},
+      {.data = storage.data(), .size = storage.size(), .alignment = 1},
+      {.data = storage.data() + 1, .size = storage.size() - 1, .alignment = alignof(std::max_align_t)},
+  });
+  for (const auto offer : offers) {
+    SourceState state{.acquired = offer};
+    HamtNodeCollisionBucket<int, Identity, Equal, HamtOptions{}, std::uint64_t, OfferedSource> bucket(
+        OfferedSource{std::ref(state)});
+    EXPECT_THAT(bucket.try_insert(7, 11).error, Eq(HamtError::kAllocationExhausted));
+    EXPECT_THAT(bucket.empty(), Eq(true));
+    EXPECT_THAT(state.releases, Eq(1));
+    EXPECT_THAT(state.exact_release, Eq(true));
+  }
+}
+
+TEST_F(HamtNodeCollisionTest, SizeLimitStillAllowsDuplicatesAndErasureReusesCapacity) {
+  constexpr HamtOptions kOptions{.maximum_size = 1};
+  HamtNodeCollisionBucket<int, Identity, Equal, kOptions> bucket;
+  EXPECT_THAT(bucket.find(7, 11), Eq(nullptr));
+  EXPECT_THAT(bucket.erase(7, 11), Eq(false));
+  ASSERT_THAT(bucket.try_insert(7, 11).entry, NotNull());
+  EXPECT_THAT(bucket.try_insert(7, 11).inserted, Eq(false));
+  EXPECT_THAT(bucket.try_insert(7, 13).error, Eq(HamtError::kMaxSizeExceeded));
+  EXPECT_THAT(bucket.erase(8, 11), Eq(false));
+  EXPECT_THAT(bucket.erase(7, 13), Eq(false));
+  EXPECT_THAT(bucket.erase(7, 11), Eq(true));
+  EXPECT_THAT(bucket.try_insert(7, 13).inserted, Eq(true));
+  bucket.clear();
+  bucket.clear();
+  EXPECT_THAT(bucket.size(), Eq(0));
+}
 
 TEST_F(HamtNodeCollisionTest, ReturnsOriginalOversizedBlockOnErasureAndDestruction) {
   SourceState state;

@@ -35,7 +35,7 @@ class HamtIterator final {
 
   explicit HamtIterator(const HamtSharedNode<FragmentBits, Entry>* root) noexcept : root_(root) {
     if (root != nullptr) {
-      frames_[0].node = root;
+      frames_.front().node = root;
       depth_ = 1;
       Seek();
     }
@@ -124,14 +124,14 @@ class HamtIterator final {
   void Seek() noexcept {
     current_ = nullptr;
     while (depth_ != 0) {
-      Frame& frame = frames_[depth_ - 1];
+      Frame& frame = frames_.at(depth_ - 1);
       if (frame.entry < frame.node->entries().size()) {
-        current_ = &frame.node->entries()[frame.entry++];
+        current_ = &frame.node->entries().subspan(frame.entry++).front();
         return;
       }
       if (frame.child < frame.node->children().size()) {
-        const Node* const child = frame.node->children()[frame.child++];
-        frames_[depth_++] = Frame{.node = child};
+        const Node* const child = frame.node->children().subspan(frame.child++).front();
+        frames_.at(depth_++) = Frame{.node = child};
         continue;
       }
       --depth_;

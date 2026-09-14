@@ -115,7 +115,7 @@ class HamtIterator final {
  private:
   using Node = HamtSharedNode<FragmentBits, Entry>;
   static constexpr std::size_t kMaxDepth =
-      (std::numeric_limits<std::uintmax_t>::digits + FragmentBits - 1) / FragmentBits + 1;
+      ((std::numeric_limits<std::uintmax_t>::digits + FragmentBits - 1) / FragmentBits) + 1;
 
   struct Frame final {
     const Node* node = nullptr;

@@ -29,7 +29,7 @@ namespace mbo::container::container_internal {
 // NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.
 template<std::size_t FragmentBits, typename Entry>
 class HamtSharedNode final {
-  static_assert(std::is_nothrow_destructible_v<Entry>, "Packed HAMT entries must have nothrow destruction");
+  static_assert(std::is_nothrow_destructible_v<Entry>, "Shared HAMT entries require non-throwing destruction");
 
  public:
   using node_type = HamtSharedNode;
@@ -91,7 +91,9 @@ class HamtSharedNode final {
   }
 
   // index describes the resulting occupancy; position is the dense entry rank
-  // of the newly occupied slot. The original node remains untouched.
+  // of the newly occupied slot. The caller preserves all existing data/child
+  // slots and inserts exactly one data slot. The original remains untouched;
+  // entry may alias one of its entries. This layer does not deduplicate keys.
   template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryInsertEntry(
       Source& source,
@@ -109,10 +111,10 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     CopyInsertedEntries(*node, original.entries(), position, entry);
     CopyChildren(*node, original.children());
-    return node;
+    return result;
   }
 
   // index describes the resulting occupancy; position is the dense child rank
@@ -134,7 +136,7 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
@@ -142,7 +144,7 @@ class HamtSharedNode final {
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(position), children.end(), node->ChildPtr() + position + 1);
     RetainChildren(node->children());
-    return node;
+    return result;
   }
 
   // Path-copy a child slot without changing either the original node or its
@@ -164,7 +166,7 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
@@ -172,7 +174,7 @@ class HamtSharedNode final {
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(position + 1), children.end(), node->ChildPtr() + position + 1);
     RetainChildren(node->children());
-    return node;
+    return result;
   }
 
   // index describes occupancy after removal. Path copying preserves the
@@ -193,10 +195,10 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     CopyErasedEntries(*node, original.entries(), position);
     CopyChildren(*node, original.children());
-    return node;
+    return result;
   }
 
   // The copied node owns only the remaining children. The removed child stays
@@ -217,14 +219,14 @@ class HamtSharedNode final {
     if (!result) {
       return std::nullopt;
     }
-    node_type* const node = *result;
+    const node_type* const node = *result;
     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node->EntryPtr());
     const auto children = original.children();
     std::uninitialized_copy_n(children.begin(), position, node->ChildPtr());
     std::uninitialized_copy(
         children.begin() + static_cast<std::ptrdiff_t>(position + 1), children.end(), node->ChildPtr() + position);
     RetainChildren(node->children());
-    return node;
+    return result;
   }
 
   // The caller establishes that entry has the collision node's full hash.
@@ -324,6 +326,11 @@ class HamtSharedNode final {
       std::size_t collision_count) noexcept
   requires std::is_nothrow_copy_constructible_v<Entry>
   {
+    for (const node_type* child : children) {
+      if (child == nullptr) {
+        return std::nullopt;
+      }
+    }
     const auto result = TryAllocateUninitialized(source, index, entries.size(), children.size(), collision_count);
     if (result) {
       std::uninitialized_copy(entries.begin(), entries.end(), (*result)->EntryPtr());
@@ -344,10 +351,11 @@ class HamtSharedNode final {
       return std::nullopt;
     }
     const auto block = source.TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source.Release(*block);
-      }
+    if (!block) {
+      return std::nullopt;
+    }
+    if (!Usable(*block, *layout)) {
+      source.Release(*block);
       return std::nullopt;
     }
     auto* const node = std::construct_at(
@@ -357,13 +365,13 @@ class HamtSharedNode final {
     return node;
   }
 
-  static void CopyChildren(node_type& node, std::span<node_type* const> children) noexcept {
+  static void CopyChildren(const node_type& node, std::span<node_type* const> children) noexcept {
     std::uninitialized_copy(children.begin(), children.end(), node.ChildPtr());
     RetainChildren(children);
   }
 
   static void CopyInsertedEntries(
-      node_type& node,
+      const node_type& node,
       std::span<const Entry> entries,
       std::size_t position,
       const Entry& entry) noexcept {
@@ -373,7 +381,7 @@ class HamtSharedNode final {
         entries.begin() + static_cast<std::ptrdiff_t>(position), entries.end(), node.EntryPtr() + position + 1);
   }
 
-  static void CopyErasedEntries(node_type& node, std::span<const Entry> entries, std::size_t position) noexcept {
+  static void CopyErasedEntries(const node_type& node, std::span<const Entry> entries, std::size_t position) noexcept {
     std::uninitialized_copy_n(entries.begin(), position, node.EntryPtr());
     std::uninitialized_copy(
         entries.begin() + static_cast<std::ptrdiff_t>(position + 1), entries.end(), node.EntryPtr() + position);
@@ -385,21 +393,25 @@ class HamtSharedNode final {
     }
   }
 
-  static bool Usable(const std::optional<mbo::memory::MemoryBlock>& block, const Layout& layout) noexcept {
-    return block && block->data != nullptr && block->size >= layout.size && block->alignment >= layout.alignment
-           && std::bit_cast<std::uintptr_t>(block->data) % layout.alignment == 0;
+  static bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {
+    return block.data != nullptr && block.size >= layout.size && block.alignment >= layout.alignment
+           && std::bit_cast<std::uintptr_t>(block.data) % layout.alignment == 0;
   }
 
   Entry* EntryPtr() const noexcept {
-    const auto layout = *Layout::TryMake(EntryCount(), index_.NodeSize());
+    constexpr std::size_t kDataOffset =
+        sizeof(node_type) + ((alignof(Entry) - (sizeof(node_type) % alignof(Entry))) % alignof(Entry));
     auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
-    return reinterpret_cast<Entry*>(bytes + layout.data_offset);                     // NOLINT
+    return reinterpret_cast<Entry*>(bytes + kDataOffset);                            // NOLINT
   }
 
   node_type** ChildPtr() const noexcept {
-    const auto layout = *Layout::TryMake(EntryCount(), index_.NodeSize());
-    auto* const bytes = reinterpret_cast<std::byte*>(const_cast<node_type*>(this));  // NOLINT
-    return reinterpret_cast<node_type**>(bytes + layout.child_offset);               // NOLINT
+    // TryCreate validates all size arithmetic before constructing this immutable index.
+    // The node header and therefore EntryPtr() are already pointer-aligned; only the entry-array size needs padding.
+    const std::size_t data_size = EntryCount() * sizeof(Entry);
+    auto* const data_end = reinterpret_cast<std::byte*>(EntryPtr()) + data_size;  // NOLINT
+    const std::size_t padding = (alignof(node_type*) - (data_size % alignof(node_type*))) % alignof(node_type*);
+    return reinterpret_cast<node_type**>(data_end + padding);  // NOLINT
   }
 
   std::size_t EntryCount() const noexcept { return is_collision() ? collision_count_ : index_.DataSize(); }

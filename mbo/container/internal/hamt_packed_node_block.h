@@ -21,6 +21,11 @@ namespace mbo::container::container_internal {
 // NOLINTBEGIN(readability-identifier-naming): packed storage exposes STL-style span accessors.
 template<typename Header, typename Entry, typename Child, mbo::memory::BlockSource Source>
 class HamtPackedNodeBlock final {
+  static_assert(
+      std::is_nothrow_destructible_v<Header> && std::is_nothrow_destructible_v<Entry>
+          && std::is_nothrow_destructible_v<Child>,
+      "Packed HAMT storage requires non-throwing destruction");
+
  public:
   constexpr explicit HamtPackedNodeBlock(Source& source) noexcept : source_(std::addressof(source)) {}
 
@@ -47,10 +52,11 @@ class HamtPackedNodeBlock final {
       return false;
     }
     const auto block = source_->TryAcquire(layout->size, layout->alignment);
-    if (!Usable(block, *layout)) {
-      if (block) {
-        source_->Release(*block);
-      }
+    if (!block) {
+      return false;
+    }
+    if (!Usable(*block, *layout)) {
+      source_->Release(*block);
       return false;
     }
     block_ = *block;
@@ -107,9 +113,9 @@ class HamtPackedNodeBlock final {
  private:
   using Layout = HamtPackedNodeLayout<Header, Entry, Child>;
 
-  static constexpr bool Usable(const std::optional<mbo::memory::MemoryBlock>& block, const Layout& layout) noexcept {
-    return block && block->data != nullptr && block->size >= layout.size && block->alignment >= layout.alignment
-           && std::bit_cast<std::uintptr_t>(block->data) % layout.alignment == 0;
+  static constexpr bool Usable(const mbo::memory::MemoryBlock& block, const Layout& layout) noexcept {
+    return block.data != nullptr && block.size >= layout.size && block.alignment >= layout.alignment
+           && std::bit_cast<std::uintptr_t>(block.data) % layout.alignment == 0;
   }
 
   constexpr Header* HeaderPtr() const noexcept {
@@ -117,13 +123,13 @@ class HamtPackedNodeBlock final {
   }
 
   constexpr Entry* EntryPtr() const noexcept {
-    return reinterpret_cast<Entry*>(
-        block_.data + layout_.data_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Entry*>(block_.data + layout_.data_offset);
   }
 
   constexpr Child* ChildPtr() const noexcept {
-    return reinterpret_cast<Child*>(
-        block_.data + layout_.child_offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): checked aligned packed object storage.
+    return reinterpret_cast<Child*>(block_.data + layout_.child_offset);
   }
 
   Source* source_;

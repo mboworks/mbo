@@ -89,10 +89,11 @@ class HamtNodeCollisionBucket final {
       return {.error = HamtError::kMaxSizeExceeded};
     }
     const auto block = source_.TryAcquire(sizeof(Node), alignof(Node));
-    if (!IsUsable(block)) {
-      if (block) {
-        source_.Release(*block);
-      }
+    if (!block) {
+      return {.error = HamtError::kAllocationExhausted};
+    }
+    if (!IsUsable(*block)) {
+      source_.Release(*block);
       return {.error = HamtError::kAllocationExhausted};
     }
     Node* const node = std::construct_at(
@@ -141,9 +142,9 @@ class HamtNodeCollisionBucket final {
     Entry entry;
   };
 
-  static constexpr bool IsUsable(const std::optional<mbo::memory::MemoryBlock>& block) noexcept {
-    return block && block->data != nullptr && block->size >= sizeof(Node) && block->alignment >= alignof(Node)
-           && std::bit_cast<std::uintptr_t>(block->data) % alignof(Node) == 0;
+  static constexpr bool IsUsable(const mbo::memory::MemoryBlock& block) noexcept {
+    return block.data != nullptr && block.size >= sizeof(Node) && block.alignment >= alignof(Node)
+           && std::bit_cast<std::uintptr_t>(block.data) % alignof(Node) == 0;
   }
 
   constexpr void Destroy(Node* node) noexcept {

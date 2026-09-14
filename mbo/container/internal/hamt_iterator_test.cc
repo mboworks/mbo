@@ -56,7 +56,7 @@ struct HamtIteratorTest : ::testing::Test {
     for (const Entry& entry : kEntries) {
       const auto inserted = TryInsertHamtEntry<std::uint64_t, FragmentBits>(
                                 source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
-                                .value_or({.root = nullptr, .inserted = false});
+                                .value_or(HamtInsertResult<DeepNode>{.root = nullptr, .inserted = false});
       ASSERT_THAT(inserted.root, NotNull());
       root.reset(inserted.root);
     }

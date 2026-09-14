@@ -846,6 +846,67 @@ TEST_F(HamtSharedNodeTest, CollisionMutationFailureDoesNotChangeOriginal) {
   EXPECT_THAT(source.released, Eq(1));
 }
 
+TEST_F(HamtSharedNodeTest, ReplacesCollisionEntriesAtEveryPositionWithoutChangingOriginal) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20, 30});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  for (std::size_t position = 0; position < kEntries.size(); ++position) {
+    SCOPED_TRACE(position);
+    auto* const replaced = Node::TryReplaceEntry(source, *original, position, 99).value_or(nullptr);
+    ASSERT_THAT(replaced, NotNull());
+    EXPECT_THAT(replaced->is_collision(), Eq(true));
+    ASSERT_THAT(replaced->entries(), SizeIs(kEntries.size()));
+    std::size_t rank = 0;
+    for (const int entry : replaced->entries()) {
+      EXPECT_THAT(entry, Eq(rank == position ? 99 : kEntries.at(rank)));
+      ++rank;
+    }
+    EXPECT_THAT(original->entries(), ElementsAre(10, 20, 30));
+    Node::Release(source, replaced);
+  }
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(4));
+}
+
+TEST_F(HamtSharedNodeTest, BitmapReplacementRetainsChildrenAndSupportsAliasedInput) {
+  CountingSource source;
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10});
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, kEntries, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const replaced = Node::TryReplaceEntry(source, *original, 0, original->entries().front()).value_or(nullptr);
+  ASSERT_THAT(replaced, NotNull());
+  EXPECT_THAT(replaced->is_collision(), Eq(false));
+  EXPECT_THAT(replaced->entries(), ElementsAre(10));
+  EXPECT_THAT(child->use_count(), Eq(3));
+  Node::Release(source, child);
+  Node::Release(source, original);
+  EXPECT_THAT(replaced->children().front()->use_count(), Eq(1));
+  Node::Release(source, replaced);
+  EXPECT_THAT(source.released, Eq(3));
+}
+
+TEST_F(HamtSharedNodeTest, EntryReplacementFailurePreservesOriginal) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryReplaceEntry(source, *original, 1, 20), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryReplaceEntry(exhausted, *original, 0, 20), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(1));
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(1));
+}
+
 TEST_F(HamtSharedNodeTest, CollisionMutationRejectsNormalNodes) {
   CountingSource source;
   auto* const original = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);

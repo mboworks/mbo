@@ -75,6 +75,7 @@ TEST_F(HamtOwnedTreeTest, MoveLeavesReusableEmptyContainerAndAssignmentsKeepDoma
   first = std::move(self);
   EXPECT_THAT(first.tree().contains(1), Eq(true));
   Owned moved = std::move(first);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): Verifies the moved-from contract.
   EXPECT_THAT(first.tree().empty(), Eq(true));
   EXPECT_THAT(first.tree().try_insert(2).changed, Eq(true));
   EXPECT_THAT(moved.tree().Find(1), NotNull());
@@ -82,6 +83,7 @@ TEST_F(HamtOwnedTreeTest, MoveLeavesReusableEmptyContainerAndAssignmentsKeepDoma
   first = moved;
   EXPECT_THAT(first.tree().Find(1), NotNull());
   first = std::move(moved);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): Verifies the moved-from contract.
   EXPECT_THAT(moved.tree().empty(), Eq(true));
   EXPECT_THAT(moved.tree().try_insert(3).changed, Eq(true));
   swap(first, moved);

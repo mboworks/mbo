@@ -22,6 +22,8 @@ struct HamtNodeIndexTest : ::testing::Test {
     EXPECT_THAT(index.InsertData(1), Eq(true));
     EXPECT_THAT(index.InsertData(last), Eq(true));
     EXPECT_THAT(index.InsertNode(2), Eq(true));
+    EXPECT_THAT(index.InsertData(1), Eq(false));
+    EXPECT_THAT(index.InsertNode(2), Eq(false));
     EXPECT_THAT(index.InsertNode(last), Eq(false));
     EXPECT_THAT(index.InsertData(2), Eq(false));
     EXPECT_THAT(index.DataIndex(last), Eq(1));

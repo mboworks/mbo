@@ -33,6 +33,7 @@ class HamtOwnedTree final {
   }
 
   // Retain the source in the empty moved-from container so it remains reusable.
+  // NOLINTNEXTLINE(cert-oop11-cpp,performance-move-constructor-init): Copying the domain is the contract.
   HamtOwnedTree(HamtOwnedTree&& other) noexcept : domain_(other.domain_), tree_(std::move(other.tree_)) {}
 
   HamtOwnedTree& operator=(HamtOwnedTree&& other) noexcept {

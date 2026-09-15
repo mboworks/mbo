@@ -5,7 +5,6 @@
 #define MBO_CONTAINER_INTERNAL_HAMT_SOURCE_DOMAIN_H_
 
 #include <atomic>
-#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <exception>
@@ -41,11 +40,14 @@ class HamtSourceDomain final {
   HamtSourceDomain(const HamtSourceDomain& other) noexcept : control_(other.control_) {
     if (control_ != nullptr) {
       auto count = control_->references.load(std::memory_order_relaxed);
-      do {
+      while (true) {
         if (count == std::numeric_limits<std::size_t>::max()) {
           std::terminate();
         }
-      } while (!control_->references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed));
+        if (control_->references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed)) {
+          break;
+        }
+      }
     }
   }
 
@@ -81,7 +83,8 @@ class HamtSourceDomain final {
       return std::nullopt;
     }
     HamtSourceDomain domain;
-    domain.control_ = std::construct_at(std::bit_cast<Control*>(block->data), *block, std::forward<Args>(args)...);
+    void* const storage = block->data;
+    domain.control_ = std::construct_at(static_cast<Control*>(storage), *block, std::forward<Args>(args)...);
     return domain;
   }
 

@@ -281,7 +281,6 @@ cc_library(
     ],
 )
 
-
 cc_test(
     name = "hamt_root_owner_test",
     size = "small",

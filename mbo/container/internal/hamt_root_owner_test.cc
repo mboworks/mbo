@@ -50,7 +50,7 @@ using Node = HamtSharedNode<5, int>;
 using Owner = HamtRootOwner<5, int, CountingSource>;
 
 struct HamtRootOwnerTest : ::testing::Test {
-  Node* Create(CountingSource& source, int value) {
+  static Node* Create(CountingSource& source, int value) {
     const auto entries = std::to_array<int>({value});
     return Node::TryCreateCollision(source, entries).value_or(nullptr);
   }
@@ -62,7 +62,7 @@ TEST_F(HamtRootOwnerTest, CopiesRetainAndOnlyTheLastOwnerReleases) {
   ASSERT_THAT(root, NotNull());
   {
     Owner first(source, root);
-    Owner second = first;
+    const Owner second = first;
     EXPECT_THAT(root->use_count(), Eq(2));
     first.reset();
     EXPECT_THAT(first.get(), IsNull());
@@ -80,10 +80,15 @@ TEST_F(HamtRootOwnerTest, MovesTransferWithoutRetainingAndLeaveReusableEmptyOwne
   ASSERT_THAT(root, NotNull());
   Owner first(source, root);
   Owner second(std::move(first));
+  // The owner contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_THAT(first.get(), IsNull());
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): moved-from state is under test.
   EXPECT_THAT(std::addressof(first.source()), Eq(&source));
   EXPECT_THAT(root->use_count(), Eq(1));
   first = std::move(second);
+  // The owner contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_THAT(second.get(), IsNull());
   EXPECT_THAT(first.get(), Eq(root));
   EXPECT_THAT(root->use_count(), Eq(1));
@@ -134,6 +139,8 @@ TEST_F(HamtRootOwnerTest, MoveAssignmentReleasesTheDestinationThroughItsPrevious
   Owner second(second_source, second_root);
   first = std::move(second);
   EXPECT_THAT(first_source.released, Eq(1));
+  // The owner contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_THAT(second.get(), IsNull());
   EXPECT_THAT(first.get(), Eq(second_root));
   EXPECT_THAT(second_root->use_count(), Eq(1));
@@ -150,6 +157,8 @@ TEST_F(HamtRootOwnerTest, EmptyCopiesMovesAndResetsDoNotAllocateOrReleaseBlocks)
   empty = moved;
   moved.reset();
   EXPECT_THAT(empty.get(), IsNull());
+  // The owner contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_THAT(copied.get(), IsNull());
   EXPECT_THAT(moved.get(), IsNull());
   EXPECT_THAT(source.acquired, Eq(0));

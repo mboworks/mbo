@@ -58,7 +58,8 @@ struct HamtCloneTest : ::testing::Test {
 struct ThrowingCopy final {
   ThrowingCopy() = default;
 
-  ThrowingCopy(const ThrowingCopy&) noexcept(false) {}
+  // NOLINTNEXTLINE(modernize-use-equals-default): the explicit exception specification is the test input.
+  ThrowingCopy(const ThrowingCopy& /*other*/) noexcept(false) {}
 
   ThrowingCopy& operator=(const ThrowingCopy&) = default;
   ThrowingCopy(ThrowingCopy&&) noexcept = default;
@@ -75,9 +76,9 @@ static_assert(CloneableEntry<int>);
 static_assert(!CloneableEntry<ThrowingCopy>);
 
 struct TrackedEntry final {
-  TrackedEntry(std::size_t& live, int entry_value) noexcept : value(entry_value), live_count_(&live) { ++live; }
+  TrackedEntry(std::size_t& live, int value) noexcept : value_(value), live_count_(&live) { ++live; }
 
-  TrackedEntry(const TrackedEntry& other) noexcept : value(other.value), live_count_(other.live_count_) {
+  TrackedEntry(const TrackedEntry& other) noexcept : value_(other.value_), live_count_(other.live_count_) {
     ++*live_count_;
   }
 
@@ -87,9 +88,10 @@ struct TrackedEntry final {
 
   ~TrackedEntry() { --*live_count_; }
 
-  int value;
+  [[nodiscard]] int value() const noexcept { return value_; }
 
  private:
+  int value_;
   std::size_t* live_count_;
 };
 
@@ -126,10 +128,10 @@ TEST_F(HamtCloneTest, NontrivialCopiesAreDestroyedOnFailureAndOwnTheirSuccessful
     EXPECT_THAT(cloned->children().front(), Ne(cloned->children().back()));
     TrackedNode::Release(source, root);
     EXPECT_THAT(live, Eq(8));
-    EXPECT_THAT(cloned->entries().front().value, Eq(30));
+    EXPECT_THAT(cloned->entries().front().value(), Eq(30));
     for (const TrackedNode* child : cloned->children()) {
-      EXPECT_THAT(child->entries().front().value, Eq(10));
-      EXPECT_THAT(child->entries().back().value, Eq(20));
+      EXPECT_THAT(child->entries().front().value(), Eq(10));
+      EXPECT_THAT(child->entries().back().value(), Eq(20));
     }
     TrackedNode::Release(destination, cloned);
     EXPECT_THAT(destination.acquired, Eq(destination.released));

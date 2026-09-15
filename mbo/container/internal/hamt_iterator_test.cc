@@ -19,6 +19,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Ne;
 using ::testing::NotNull;
 using ::testing::UnorderedElementsAre;
 
@@ -181,6 +182,25 @@ TEST_F(HamtIteratorTest, EmptyAllocatedRootHasTheSameEndAsANullRoot) {
   EXPECT_THAT(Iterator(root), Eq(Iterator{}));
   const Entry foreign{.hash = 0, .key = 10};
   EXPECT_THAT(Iterator::At(root, foreign.hash, &foreign), Eq(Iterator{}));
+  Node::Release(source, root);
+}
+
+TEST_F(HamtIteratorTest, NarrowHashCannotPositionBeyondItsAvailableFragments) {
+  Node* root = nullptr;
+  constexpr auto kEntries =
+      std::to_array<Entry>({Entry{.hash = 0, .key = 10}, Entry{.hash = std::uint64_t{1} << 63, .key = 20}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+  const Iterator first(root);
+  ASSERT_THAT(first, Ne(Iterator{}));
+  EXPECT_THAT(Iterator::At(root, std::uint8_t{0}, first.operator->()), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root, std::uint64_t{0}, first.operator->()), Eq(first));
   Node::Release(source, root);
 }
 

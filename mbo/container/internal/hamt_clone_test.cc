@@ -16,6 +16,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Ne;
 using ::testing::NotNull;
 using ::testing::Optional;
 
@@ -57,7 +58,8 @@ struct HamtCloneTest : ::testing::Test {
 struct ThrowingCopy final {
   ThrowingCopy() = default;
 
-  ThrowingCopy(const ThrowingCopy&) noexcept(false) {}
+  // NOLINTNEXTLINE(modernize-use-equals-default): the explicit exception specification is the test input.
+  ThrowingCopy(const ThrowingCopy& /*other*/) noexcept(false) {}
 
   ThrowingCopy& operator=(const ThrowingCopy&) = default;
   ThrowingCopy(ThrowingCopy&&) noexcept = default;
@@ -72,6 +74,71 @@ concept CloneableEntry = requires(mbo::memory::NewDeleteBlockSource& source, con
 
 static_assert(CloneableEntry<int>);
 static_assert(!CloneableEntry<ThrowingCopy>);
+
+struct TrackedEntry final {
+  TrackedEntry(std::size_t& live, int value) noexcept : value_(value), live_count_(&live) { ++live; }
+
+  TrackedEntry(const TrackedEntry& other) noexcept : value_(other.value_), live_count_(other.live_count_) {
+    ++*live_count_;
+  }
+
+  TrackedEntry& operator=(const TrackedEntry&) = delete;
+  TrackedEntry(TrackedEntry&&) = delete;
+  TrackedEntry& operator=(TrackedEntry&&) = delete;
+
+  ~TrackedEntry() { --*live_count_; }
+
+  [[nodiscard]] int Value() const noexcept { return value_; }
+
+ private:
+  int value_;
+  std::size_t* live_count_;
+};
+
+static_assert(CloneableEntry<TrackedEntry>);
+
+TEST_F(HamtCloneTest, NontrivialCopiesAreDestroyedOnFailureAndOwnTheirSuccessfulLifetime) {
+  using TrackedNode = HamtSharedNode<5, TrackedEntry>;
+  std::size_t live = 0;
+  {
+    const std::array<TrackedEntry, 2> entries{TrackedEntry(live, 10), TrackedEntry(live, 20)};
+    const std::array<TrackedEntry, 1> root_entries{TrackedEntry(live, 30)};
+    auto* const collision = TrackedNode::TryCreateCollision(source, entries).value_or(nullptr);
+    ASSERT_THAT(collision, NotNull());
+    TrackedNode::index_type index;
+    ASSERT_THAT(index.InsertNode(1), Eq(true));
+    ASSERT_THAT(index.InsertNode(2), Eq(true));
+    ASSERT_THAT(index.InsertData(3), Eq(true));
+    const auto children = std::to_array<TrackedNode*>({collision, collision});
+    auto* const root = TrackedNode::TryCreate(source, index, root_entries, children).value_or(nullptr);
+    ASSERT_THAT(root, NotNull());
+    TrackedNode::Release(source, collision);
+    const auto original_live = live;
+    EXPECT_THAT(original_live, Eq(6));
+    for (std::size_t allowance = 0; allowance < 3; ++allowance) {
+      BudgetSource destination{.remaining = allowance};
+      EXPECT_THAT(TryCloneHamtTree(destination, root), Eq(std::nullopt));
+      EXPECT_THAT(destination.acquired, Eq(destination.released));
+      EXPECT_THAT(live, Eq(original_live));
+    }
+    BudgetSource destination{.remaining = 3};
+    auto* const cloned = TryCloneHamtTree(destination, root).value_or(nullptr);
+    ASSERT_THAT(cloned, NotNull());
+    EXPECT_THAT(live, Eq(original_live + 5));
+    EXPECT_THAT(cloned->children().front(), Ne(cloned->children().back()));
+    TrackedNode::Release(source, root);
+    EXPECT_THAT(live, Eq(8));
+    EXPECT_THAT(cloned->entries().front().Value(), Eq(30));
+    for (const TrackedNode* child : cloned->children()) {
+      EXPECT_THAT(child->entries().front().Value(), Eq(10));
+      EXPECT_THAT(child->entries().back().Value(), Eq(20));
+    }
+    TrackedNode::Release(destination, cloned);
+    EXPECT_THAT(destination.acquired, Eq(destination.released));
+    EXPECT_THAT(live, Eq(3));
+  }
+  EXPECT_THAT(live, Eq(0));
+}
 
 TEST_F(HamtCloneTest, NullRootSucceedsWithoutAllocating) {
   BudgetSource destination;

@@ -88,7 +88,7 @@ struct TrackedEntry final {
 
   ~TrackedEntry() { --*live_count_; }
 
-  [[nodiscard]] int value() const noexcept { return value_; }
+  [[nodiscard]] int Value() const noexcept { return value_; }
 
  private:
   int value_;
@@ -128,10 +128,10 @@ TEST_F(HamtCloneTest, NontrivialCopiesAreDestroyedOnFailureAndOwnTheirSuccessful
     EXPECT_THAT(cloned->children().front(), Ne(cloned->children().back()));
     TrackedNode::Release(source, root);
     EXPECT_THAT(live, Eq(8));
-    EXPECT_THAT(cloned->entries().front().value(), Eq(30));
+    EXPECT_THAT(cloned->entries().front().Value(), Eq(30));
     for (const TrackedNode* child : cloned->children()) {
-      EXPECT_THAT(child->entries().front().value(), Eq(10));
-      EXPECT_THAT(child->entries().back().value(), Eq(20));
+      EXPECT_THAT(child->entries().front().Value(), Eq(10));
+      EXPECT_THAT(child->entries().back().Value(), Eq(20));
     }
     TrackedNode::Release(destination, cloned);
     EXPECT_THAT(destination.acquired, Eq(destination.released));

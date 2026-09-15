@@ -35,11 +35,11 @@ struct ObservedSource final {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  static std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
     return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
 
   int& destructions;
 };
@@ -60,6 +60,7 @@ TEST_F(HamtSourceDomainTest, SourceIsDestroyedExactlyOnceAfterItsLastHandle) {
     EXPECT_THAT(destructions, Eq(0));
     Domain replacement;
     replacement = std::move(last);
+    // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): moved-from handle contract under test.
     EXPECT_THAT(last.get(), IsNull());
     EXPECT_THAT(destructions, Eq(0));
   }
@@ -71,8 +72,9 @@ TEST_F(HamtSourceDomainTest, CopiesAndMovesKeepNonmovableSourceAtTheSameAddress)
   auto first = Domain::TryCreate().value_or(Domain{});
   ASSERT_THAT(first.get(), NotNull());
   auto* const source = first.get();
-  Domain copy = first;
+  const Domain copy = first;
   Domain moved = std::move(first);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): moved-from handle contract under test.
   EXPECT_THAT(first.get(), IsNull());
   EXPECT_THAT(copy.get(), Eq(source));
   EXPECT_THAT(moved.get(), Eq(source));
@@ -80,13 +82,13 @@ TEST_F(HamtSourceDomainTest, CopiesAndMovesKeepNonmovableSourceAtTheSameAddress)
   EXPECT_THAT(moved.get(), IsNull());
   const auto block = copy.get()->TryAcquire(16, 1);
   ASSERT_THAT(block.has_value(), Eq(true));
-  copy.get()->Release(block.value());
+  copy.get()->Release(block.value_or(mbo::memory::MemoryBlock{}));
 }
 
 TEST_F(HamtSourceDomainTest, EmptyHandlesAndSelfAssignmentRemainValid) {
   using Domain = HamtSourceDomain<mbo::memory::NewDeleteBlockSource>;
   Domain empty;
-  Domain copied = empty;
+  const Domain copied = empty;
   EXPECT_THAT(copied.get(), IsNull());
   auto domain = Domain::TryCreate().value_or(Domain{});
   ASSERT_THAT(domain.get(), NotNull());

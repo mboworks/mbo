@@ -254,3 +254,19 @@ root and `replaced == false`, without allocating; a null root is a successful mi
 `std::nullopt` means allocation failure, with temporary nodes reclaimed and original ownership
 unchanged. Release successful roots through their original block source. Copies, destruction,
 hash/key extraction, and equality must be non-throwing; access remains externally synchronized.
+
+## Snapshot root ownership
+
+`HamtRootOwner` owns one root reference and borrows the block source responsible for that
+entire tree. The source must outlive every owner and copy. Construction and `reset` adopt an
+already-owned reference; passing a borrowed `get()` result without retaining it is invalid.
+Copies retain the root without copying entries or allocating. Moves transfer the reference and
+leave a valid empty owner that still knows its source. Copy/move assignment and swapping carry
+the root and its source together, releasing previous roots through their original source.
+
+Destruction and `reset()` release ownership. `release()` transfers the owned reference to the
+caller without destroying it; the caller must subsequently release it through the matching
+source. `get()` borrows, never retains. The helper neither owns the source nor adds source
+metadata to individual nodes; public allocation-domain wrappers must supply source lifetime.
+All ownership operations are non-throwing and require external synchronization for shared owner
+objects. This internal helper does not grant mutable access to a public persistent container.

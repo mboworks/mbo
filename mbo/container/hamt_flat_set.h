@@ -30,6 +30,9 @@ requires ValidHamtOptions<Options>
 class HamtFlatSet final {
  private:
   struct KeyOf final {
+    // The tree owns every argument passed here, so the returned reference cannot
+    // outlive its key. The generic lint cannot infer that container contract.
+    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
     const Key& operator()(const Key& key) const noexcept { return key; }
   };
 
@@ -39,8 +42,8 @@ class HamtFlatSet final {
  public:
   using key_type = Key;
   using value_type = Key;
-  using size_type = typename Tree::size_type;
-  using iterator = typename Tree::iterator;
+  using size_type = Tree::size_type;
+  using iterator = Tree::iterator;
   using const_iterator = iterator;
   using mutation_result = std::variant<std::pair<HamtFlatSet, bool>, HamtError>;
 
@@ -169,7 +172,7 @@ template<typename Key, typename Hash, typename Equal, HamtOptions Options, mbo::
 requires ValidHamtOptions<Options>
 class HamtFlatSet<Key, Hash, Equal, Options, Source>::transient_type final {
  public:
-  using iterator = typename HamtFlatSet::iterator;
+  using iterator = HamtFlatSet::iterator;
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;
 

@@ -41,7 +41,7 @@ struct BudgetSource final {
     return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
 
   std::size_t& remaining;
 };
@@ -58,6 +58,8 @@ TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
   EXPECT_THAT(edit.insert(1).second, Eq(true));
   EXPECT_THAT(edit.insert(2).second, Eq(true));
   const auto snapshot = std::move(edit).persistent();
+  // BudgetSource observes this reference through type-erased tree storage.
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
   remaining = 0;
   EXPECT_THAT(snapshot.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   auto shared_edit = snapshot.transient();
@@ -68,7 +70,7 @@ TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
 }
 
 struct CollisionHash final {
-  std::uint64_t operator()(std::int64_t) const noexcept { return seed; }
+  std::uint64_t operator()([[maybe_unused]] std::int64_t key) const noexcept { return seed; }
 
   std::uint64_t seed = 19;
 };
@@ -112,6 +114,8 @@ TEST_F(HamtFlatSetTest, OrdinaryOperationsMatchTheDocumentedExample) {
   EXPECT_THAT(changed, Eq(true));
   EXPECT_THAT(removed, UnorderedElementsAre(2));
   EXPECT_THAT(two, UnorderedElementsAre(1, 2));
+  // persistent() specifies that the consumed transient becomes reusable and empty.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(edit.insert(3).second, Eq(true));
   EXPECT_THAT(edit.erase(3), Eq(1));
   EXPECT_THAT(edit.erase(3), Eq(0));
@@ -154,6 +158,8 @@ TEST_F(HamtFlatSetTest, TransientConversionIsConsumingAndLeavesReusableEmptyValu
   EXPECT_THAT(*original, IsEmpty());
   auto persistent = std::move(transient).persistent();
   EXPECT_THAT(persistent, UnorderedElementsAre(1));
+  // persistent() specifies that the consumed transient becomes reusable and empty.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(transient.empty(), Eq(true));
   EXPECT_THAT(std::holds_alternative<HamtError>(transient.try_insert(2)), Eq(false));
   EXPECT_THAT(persistent.contains(2), Eq(false));

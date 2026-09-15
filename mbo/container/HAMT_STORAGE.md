@@ -226,3 +226,18 @@ requires a linear scan. Advancing this iterator visits precisely the same suffix
 iteration from that entry. A missing route, null input, or address mismatch returns end.
 The caller supplies the target's correct hash; `At` performs neither key lookup nor ownership
 acquisition. It has the same snapshot lifetime and external synchronization requirements.
+
+## Explicit allocation-domain cloning
+
+`TryCloneHamtTree(destination, original)` copies entries, collision buckets, routing bitmaps,
+and descendants into the destination block source. No original node is retained. The returned
+root owns one reference and must be released exclusively through the destination source, which
+must outlive it. The original tree may be released independently after cloning succeeds.
+
+Null input returns an engaged optional containing a null root without allocating. Exhaustion
+returns `std::nullopt` after releasing every partial destination copy; original ownership remains
+unchanged. Entry copies and destruction must be non-throwing, and synchronization is external.
+Child staging uses bounded stack storage rather than another allocator. Repeated source child
+references are copied independently; this primitive does not preserve graph aliasing or perform
+cross-domain structural sharing. Public `clone_to(source)` wrappers also preserve hash/equality
+state and container-level metadata; those responsibilities are not handled by this node primitive.

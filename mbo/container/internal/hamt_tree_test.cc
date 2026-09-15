@@ -107,11 +107,11 @@ struct SetValue final {
 };
 
 struct ThrowingEditor final {
-  void operator()(Entry&) const noexcept(false) {}
+  void operator()([[maybe_unused]] Entry& entry) const noexcept(false) {}
 };
 
 struct ReturningEditor final {
-  bool operator()(Entry&) const noexcept { return false; }
+  bool operator()([[maybe_unused]] Entry& entry) const noexcept { return false; }
 };
 
 template<typename Editor>
@@ -135,7 +135,7 @@ TEST_F(HamtTreeTest, ASharedAncestorPreventsEditingAnOtherwiseUniqueDescendant) 
   LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
   EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
   EXPECT_THAT(branch.try_insert(Entry{.key = 98'305, .value = 20}), MutationIs(true));
-  LargerTree snapshot = branch;
+  const LargerTree snapshot = branch;
   EXPECT_THAT(branch.try_insert(Entry{.key = 2, .value = 30}), MutationIs(true));
   int calls = 0;
   EXPECT_THAT(branch.try_update(98'305, SetValue{.value = 99, .calls = calls}), MutationIs(true));
@@ -177,7 +177,7 @@ TEST_F(HamtTreeTest, UniqueDeepPathsUpdateWithoutAllocatingEvenWhenTheSourceIsEx
 
 TEST_F(HamtTreeTest, SharedUpdatesCopyInsteadOfEditingTheOriginalSnapshot) {
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
-  Tree snapshot = tree;
+  const Tree snapshot = tree;
   int calls = 0;
   EXPECT_THAT(tree.try_update(1, SetValue{.value = 99, .calls = calls}), MutationIs(true));
   EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 99}));
@@ -187,7 +187,7 @@ TEST_F(HamtTreeTest, SharedUpdatesCopyInsteadOfEditingTheOriginalSnapshot) {
 
 TEST_F(HamtTreeTest, FailedSharedUpdatesPreserveContainersButDoNotUndoEditorSideEffects) {
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
-  Tree snapshot = tree;
+  const Tree snapshot = tree;
   source.remaining = 0;
   int calls = 0;
   EXPECT_THAT(
@@ -225,7 +225,7 @@ TEST_F(HamtTreeTest, DuplicateInsertionStillSucceedsAtTheMaximumWithoutAllocatin
 TEST_F(HamtTreeTest, SharedSnapshotsPreserveValuesAndStatefulHashingAcrossMutations) {
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
   EXPECT_THAT(tree.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
-  Tree snapshot = tree;
+  const Tree snapshot = tree;
   EXPECT_THAT(tree.try_replace(Entry{.key = 33, .value = 99}), MutationIs(true));
   EXPECT_THAT(snapshot.hash_function().seed, Eq(13));
   EXPECT_THAT(snapshot.key_eq().tag, Eq(7));
@@ -270,6 +270,7 @@ TEST_F(HamtTreeTest, MovesLeaveValidEmptyContainersWithTheSameHashSeed) {
   EXPECT_THAT(tree.hash_function().seed, Eq(13));
   EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
   tree = std::move(moved);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): moved-from tree contract under test.
   EXPECT_THAT(moved, IsEmpty());
   EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 10}));
 }
@@ -315,7 +316,7 @@ TEST_F(HamtTreeTest, FailedErasurePreservesBothEntriesAndTheVisibleSize) {
 }
 
 struct IdentityKey final {
-  constexpr const int& operator()(const int& key) const noexcept { return key; }
+  constexpr int operator()(int key) const noexcept { return key; }
 };
 
 TEST_F(HamtTreeTest, TheSameCoreAlsoSupportsSetEntriesWithoutMappedStorage) {
@@ -332,7 +333,7 @@ TEST_F(HamtTreeTest, TheSameCoreAlsoSupportsSetEntriesWithoutMappedStorage) {
 
 TEST_F(HamtTreeTest, DifferentContainerRangesDoNotCompareEqualEvenWhenTheEntireRootIsShared) {
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
-  Tree copied = tree;
+  const Tree copied = tree;
   EXPECT_THAT(tree.begin().operator->(), Eq(copied.begin().operator->()));
   EXPECT_THAT(tree.begin() == copied.begin(), IsFalse());
   EXPECT_THAT(tree.find(1), Eq(tree.begin()));

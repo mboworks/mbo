@@ -40,8 +40,10 @@ struct Equal final {
 using Node = HamtSharedNode<5, Entry>;
 
 struct HamtReplaceTest : ::testing::Test {
+ protected:
   void TearDown() override { Node::Release(source, root); }
 
+ public:
   void Insert(Entry entry) {
     const auto inserted = TryInsertHamtEntry(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
                               .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
@@ -50,7 +52,7 @@ struct HamtReplaceTest : ::testing::Test {
     root = inserted.root;
   }
 
-  const Entry* Find(const Node* node, std::uint64_t hash, int key) {
+  static const Entry* Find(const Node* node, std::uint64_t hash, int key) {
     return FindHamtEntry(node, hash, key, HashOf{}, KeyOf{}, Equal{});
   }
 

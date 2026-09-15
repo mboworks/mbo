@@ -104,9 +104,6 @@ requires std::is_nothrow_copy_constructible_v<Entry>
     return std::nullopt;
   }
   const auto merge = FindHamtMergePath<Hash, FragmentBits>(existing_hash, inserted_hash, start_level);
-  if (merge.full_hash_collision) {
-    return std::nullopt;
-  }
   typename Node::index_type index;
   index.InsertNode(merge.existing_fragment);
   index.InsertData(merge.inserted_fragment);

@@ -15,6 +15,13 @@ The atomic count protects handle ownership, not concurrent container mutation or
 source operations. Those still require external synchronization. Counter overflow
 terminates rather than wrapping and permitting premature destruction.
 
-Public map/set integration and performance comparisons remain outstanding. This
+`HamtOwnedTree<Tree, Source>` pairs the domain with the existing map/set core.
+Snapshot copies retain both ownership layers. Moving transfers the root but retains
+the domain in the now-empty source container, making that container reusable without
+another control-block allocation. Assignment and swap keep roots paired with their
+original allocation domains. The declaration order guarantees that nodes are
+destroyed before the source, including when the original container has disappeared.
+
+Public map/set interfaces and performance comparisons remain outstanding. This
 internal candidate does not establish that shared domain ownership is the best
 representation for every storage configuration.

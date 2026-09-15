@@ -180,6 +180,29 @@ cc_library(
     deps = ["//mbo/memory:block_source_cc"],
 )
 
+cc_library(
+    name = "hamt_owned_tree_cc",
+    hdrs = ["internal/hamt_owned_tree.h"],
+    deps = [
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_owned_tree_test",
+    size = "small",
+    srcs = ["internal/hamt_owned_tree_test.cc"],
+    deps = [
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_source_domain_test",
     size = "small",

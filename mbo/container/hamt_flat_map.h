@@ -372,10 +372,18 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept {
     auto& tree = map_.owned_.tree();
-    if (tree.size() == max_size() && !tree.contains(entry.first)) {
+    if (tree.contains(entry.first)) {
+      auto existing = try_find(entry.first);
+      if (const auto* const error = std::get_if<HamtError>(&existing); error != nullptr) {
+        return *error;
+      }
+      return std::pair<iterator, bool>(HamtFlatMap::RequireValue(std::move(existing)), false);
+    }
+    if (tree.size() == max_size()) {
       return HamtError::kMaxSizeExceeded;
     }
     // The argument may borrow an entry invalidated by ownership preparation.
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization): the copy must outlive detachment.
     const value_type insertion = entry;
     const auto preparation = tree.TryMakeUnique();
     if (preparation) {

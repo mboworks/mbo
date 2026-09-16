@@ -75,7 +75,7 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
 }
 
 struct CollisionHash final {
-  constexpr std::uint64_t operator()(int) const noexcept { return 7; }
+  constexpr std::uint64_t operator()([[maybe_unused]] int value) const noexcept { return 7; }
 };
 
 struct CopyObservedMapped final {
@@ -102,6 +102,20 @@ TEST_F(HamtFlatMapTest, UniqueMutableLookupDoesNotCopyMappedValues) {
   const auto* const position = std::get_if<ObservedMap::transient_type::iterator>(&result);
   ASSERT_THAT(position, NotNull());
   EXPECT_THAT(*position == edit.end(), Eq(false));
+  EXPECT_THAT(copies, Eq(0));
+}
+
+TEST_F(HamtFlatMapTest, UniqueDuplicateInsertionDoesNotCopyMappedValues) {
+  using ObservedMap = HamtFlatMap<int, CopyObservedMapped>;
+  int copies = 0;
+  ObservedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(ObservedMap::value_type(1, CopyObservedMapped(copies))).second, Eq(true));
+  copies = 0;
+  auto result = edit.try_insert(ObservedMap::value_type(1, CopyObservedMapped(copies)));
+  const auto* const insertion = std::get_if<std::pair<ObservedMap::transient_type::iterator, bool>>(&result);
+  ASSERT_THAT(insertion, NotNull());
+  EXPECT_THAT(insertion->second, Eq(false));
   EXPECT_THAT(copies, Eq(0));
 }
 
@@ -173,7 +187,7 @@ TEST_F(HamtFlatMapTest, MutableIteratorsKeepKeysConstAndDetachFromPersistentSnap
   ASSERT_THAT(position == edit.end(), Eq(false));
   static_assert(std::is_const_v<std::remove_reference_t<decltype((position->first))>>);
   static_assert(!std::is_const_v<std::remove_reference_t<decltype((position->second))>>);
-  Map::iterator immutable = position;
+  const Map::iterator immutable = position;
   EXPECT_THAT(immutable == position, Eq(true));
   position->second = 99;
   EXPECT_THAT(snapshot.at(1), Eq(10));

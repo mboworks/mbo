@@ -11,18 +11,15 @@ an AI assistant) can follow them without reverse-engineering the tooling.
   best-effort basis.
 - **`clang-format`** with [`.clang-format`](.clang-format) formats all C++ code. Run
   it; do not hand-format against it. CI rejects any reformatting diff.
-- **`clang-tidy`** with [`.clang-tidy`](.clang-tidy) (`WarningsAsErrors: '*'`) runs via the
-  opt-in `clang-tidy` pre-commit hook (`pre-commit run clang-tidy --all-files --hook-stage manual`,
-  which shells out to [`tools/clang_tidy.sh`](tools/clang_tidy.sh)) against a `compile_commands.json`
-  you generate with [`./compile_commands-update.sh`](compile_commands-update.sh). It is report-only
-  (never `--fix`) and needs a hermetic clang-tidy (>= clang-22 for this C++20 code); it skips cleanly
-  when either is missing. It is **not** run by `trunk` (trunk pinned clang-tidy 16, which mis-parses
-  the code and auto-applied build-breaking fixes - do not re-add it there). In **CI** the dedicated
-  `clang-tidy` job owns it: it builds the compile DB (`compile_commands-update.sh`, hermetic clang)
-  and runs this hook, report-only (`continue-on-error`) until the finding sweep lands, then a hard
-  gate. A branch lints only the sources it changed; `main` lints the whole tree. The enabled set is
-  broad: `abseil-*`, `bugprone-*`, `cppcoreguidelines-*`, `google-*`, `misc-*`, `modernize-*`,
-  `performance-*`, `portability-*`, `readability-*`.
+- **`clang-tidy`** with [`.clang-tidy`](.clang-tidy) is an enforcing, report-only
+  pre-commit gate. Build with `bazel build --config=clang-tidy //...`, generate
+  `compile_commands.json` with [`./compile_commands-update.sh`](compile_commands-update.sh),
+  then run `pre-commit run clang-tidy --all-files`. Missing prerequisites, parse errors,
+  and findings fail the gate. Never run `--fix` automatically or return ownership to Trunk.
+  One coordinator owns at most two workers by default, leaving a CPU available when possible;
+  set `CLANG_TIDY_JOBS` explicitly to override. CI selects its worker count explicitly.
+  Source-only changes stay focused; headers and build changes retain the full-sweep policy.
+  See [infrastructure guidance](docs/infrastructure.md) for resource limits and diagnostics.
 
 ### What `.clang-format` decides (do not fight it)
 

@@ -1,6 +1,6 @@
-# MBO, a C++20 library
+# MBO, a C++20 library <img src="docs/assets/mboworks-logo.png" alt="MBO Works" width="64" height="64" align="right">
 
-[Release website](https://mboworks.github.io/mbo/)
+[Release website](https://mboworks.github.io/mbo/) · [Infrastructure and publishing](docs/infrastructure.md)
 
 This C++20 library provides some general useful building blocks and integrates
 with [Google's Abseil library](https://abseil.io/).

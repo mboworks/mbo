@@ -47,3 +47,6 @@ diagnostics to standard error.
 - Prefer `[[ ... ]]`, arithmetic `(( ... ))`, and arrays over legacy tests and stringly argument
   assembly.
 - Use lower-case names for local variables and functions. Preserve environment and runfile names.
+- Avoid GNU-only flags and `mapfile` where scripts must run on stock macOS Bash.
+- Read lines with `while IFS= read -r line`; use `jq`, `yq`, or Python for structured data.
+- Check required programs early and report missing prerequisites clearly.

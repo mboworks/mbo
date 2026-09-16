@@ -1,93 +1,40 @@
-name: Cleanup caches by head/ref after merging.
-on:
-  pull_request:
-    types:
-      - closed
+name: Maintain Actions caches
 
-# Cache deletion uses secrets.CACHE_ACCESS (a custom PAT), so the default
-# GITHUB_TOKEN needs only enough access for checkout; all cache and PR API
-# operations use secrets.CACHE_ACCESS instead.
+on:
+  workflow_run:
+    workflows: [Test, Release]
+    types: [completed]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+# This workflow runs trusted code from the default branch after another workflow completes. It
+# needs write access only to delete cache entries; it never checks out or executes a PR head.
 permissions:
+  actions: write
   contents: read
+  pull-requests: read
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Cleanup caches from current PR
-        # We could fetch the prefix list and per prefix keep only one.
-        # But for simplicity and safety we only work on the reported branch.
-        # On the main branch this `cache_cleanup` workflow may not delete the last version as that
-        # that would mean that the `test` workflow triggered for the same state will not find any
-        # caches. That is because the `cache_cleanup` workflow is much faster and will most
-        # likely finish during the initial `pre-commit` job of the `test` workflow.
-        # Note that last version for the head ref means last cache version per cache key prefix.
+        with:
+          ref: main
+      - name: Delete closed-PR, tag, superseded, and oversized cache entries
         run: |
           set -euo pipefail
-          echo "Fetching list of cache keys for head ref '${HEAD_REF}' on PR '${PULL_REQUEST}'."
-          if [ "${HEAD_REF}" == "refs/heads/main" ]; then
-            if ! cacheKeyPrefixList=$(gh cache list --ref refs/heads/main --limit 250 --json id,key,ref,createdAt --jq "[map((.ref as \$ref|.key|split(\"-\")|index(\$ref) as \$idx|select(.|\$idx)|.[0:\$idx+1]|join(\"-\")) as \$prefix|.prefix=\$prefix)|.[]|.prefix]|sort|unique|.[]" 2>&1); then
-              echo "::warning title=Cache cleanup skipped::Unable to list caches: ${cacheKeyPrefixList}"
-              exit 0
-            fi
-            echo "Deleting all but last cache per key prefix for 'refs/heads/main'..."
-            for cacheKeyPrefix in ${cacheKeyPrefixList}; do
-              if ! cacheJson=$(gh cache list --ref "${HEAD_REF}" --limit 250 --json id,key,createdAt 2>&1); then
-                echo "::warning title=Cache cleanup skipped::Unable to list caches: ${cacheJson}"
-                exit 0
-              fi
-              cacheKeyList=$(printf '%s' "${cacheJson}" | python3 tools/cache_cleanup.py "${cacheKeyPrefix}")
-              for cacheKey in ${cacheKeyList}; do
-                echo "Deleting cache: ${cacheKey}"
-                if ! deleteError=$(gh cache delete "${cacheKey}" 2>&1); then
-                  echo "::warning title=Cache deletion failed::Cache ${cacheKey}: ${deleteError}"
-                fi
-              done
-            done
-          else
-            if ! cacheKeyList=$(gh cache list --ref "${HEAD_REF}" --limit 250 --json id --jq '.[].id' 2>&1); then
-              echo "::warning title=Cache cleanup skipped::Unable to list caches: ${cacheKeyList}"
-              exit 0
-            fi
-            echo "Deleting all caches for '${HEAD_REF}'..."
-            for cacheKey in ${cacheKeyList}; do
-              echo "Deleting cache: ${cacheKey}"
-              if ! deleteError=$(gh cache delete "${cacheKey}" 2>&1); then
-                echo "::warning title=Cache deletion failed::Cache ${cacheKey}: ${deleteError}"
-              fi
-            done
-          fi
-          echo "Done"
-        env:
-          GH_TOKEN: ${{secrets.CACHE_ACCESS}}
-          GH_REPO: ${{github.repository}}
-          PULL_REQUEST: refs/pull/${{github.event.pull_request.number}}/merge
-          HEAD_REF: refs/heads/${{github.head_ref}}
-
-      - name: Cleanup caches from old PRs
-        run: |
-          set -euo pipefail
-          closedBeforeDate="$(date -Iminutes --date=-4hours)"
-          closedAfterDate="$(date -Iminutes --date=-14days)"
-          echo "Fetching list of branch names for PRs closed before: ${closedBeforeDate}."
-          if ! closedPrList=$(gh pr list -s closed --json headRefName,closedAt --jq "map(select(.closedAt > \"${closedAfterDate}\" and .closedAt < \"${closedBeforeDate}\"))|.[].headRefName" 2>&1); then
-            echo "::warning title=Cache cleanup skipped::Unable to list closed pull requests: ${closedPrList}"
+          if ! cache_json=$(gh cache list --limit 10000 --json id,key,ref,sizeInBytes,createdAt 2>&1); then
+            echo "::warning title=Cache size enforcement skipped::${cache_json}"
             exit 0
           fi
-          for closedPr in ${closedPrList}; do
-            echo "Deleting caches for '${closedPr}'..."
-            if ! cacheKeyList=$(gh cache list --ref "refs/heads/${closedPr}" --limit 250 --json id --jq '.[].id' 2>&1); then
-              echo "::warning title=Cache cleanup skipped::Unable to list caches for '${closedPr}': ${cacheKeyList}"
-              continue
-            fi
-            for cacheKey in ${cacheKeyList}; do
-              echo "Deleting cache: '${cacheKey}'"
-              if ! deleteError=$(gh cache delete "${cacheKey}" 2>&1); then
-                echo "::warning title=Cache deletion failed::Cache '${cacheKey}': ${deleteError}"
-              fi
-            done
+          gh api --paginate --slurp "repos/${GH_REPO}/pulls?state=closed&per_page=100" >closed-prs.json
+          obsolete=$(printf '%s' "${cache_json}" | python3 tools/cache_cleanup.py --closed-prs closed-prs.json)
+          for cache_id in ${obsolete}; do
+            echo "Deleting cache ${cache_id}: closed PR, tag, superseded generation, or size limit"
+            gh cache delete "${cache_id}"
           done
         env:
-          GH_TOKEN: ${{secrets.CACHE_ACCESS}}
-          GH_REPO: ${{github.repository}}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

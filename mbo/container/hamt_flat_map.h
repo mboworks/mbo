@@ -275,11 +275,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   template<typename LookupKey>
   requires requires(transient_type& map, const LookupKey& key) { map.try_at(key); }
   Mapped& at(const LookupKey& key) noexcept {
-    auto result = try_at(key);
-    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
-      return **mapped;
-    }
-    std::terminate();
+    return ValueOrTerminate(try_at(key));
   }
 
   [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
@@ -300,11 +296,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   Mapped& operator[](const Key& key) noexcept
   requires std::is_nothrow_default_constructible_v<Mapped>
   {
-    auto result = try_get_or_insert(key);
-    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
-      return **mapped;
-    }
-    std::terminate();
+    return ValueOrTerminate(try_get_or_insert(key));
   }
 
   template<typename LookupKey, typename Editor>
@@ -363,6 +355,13 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   friend void swap(transient_type& first, transient_type& second) noexcept { first.swap(second); }
 
  private:
+  static Mapped& ValueOrTerminate(access_result result) noexcept {
+    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
+      return **mapped;
+    }
+    std::terminate();
+  }
+
   HamtFlatMap map_;
 };
 

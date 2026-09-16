@@ -85,6 +85,7 @@ TEST_F(HamtFlatMapTest, ExhaustedNodeStorageReportsInsertionFailureWithoutPublis
   auto edit = created->transient();
   EXPECT_THAT(
       edit.try_insert(BoundedMap::value_type(1, 10)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(edit.try_get_or_insert(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(*created, IsEmpty());
   EXPECT_THAT(edit, IsEmpty());
   EXPECT_DEATH(static_cast<void>(created->insert(BoundedMap::value_type(1, 10))), "");

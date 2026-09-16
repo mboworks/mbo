@@ -2,7 +2,7 @@
 
 `HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>` uses the same packed-node,
 allocation-domain, collision, and path-copying core as `HamtFlatSet`. Its stored
-`value_type` is `std::pair<const Key, Mapped>`; public iterators are const views.
+`value_type` is `std::pair<const Key, Mapped>`; persistent iterators are const views.
 Keys cannot be edited through the mapped-value update API.
 
 Persistent insertion and erasure return `(new_map, changed)` without modifying the
@@ -47,8 +47,17 @@ retain their usual shallow-copy semantics.
 The transient's rvalue clone overload returns a persistent destination map and
 likewise consumes only on success.
 
-Mutable mapped iterators, node
-storage variants, and unique in-place structural mutation are still outstanding.
+Transient nonconst `begin` and `find` return mutable mapped iterators with immutable
+keys. Their recoverable forms, `try_begin` and `try_find`, report allocation errors;
+missing lookup returns end without allocation. Const access and `cbegin` remain
+read-only and never detach. Before exposing mutable iteration, all shared nodes
+are detached, preserving multipass iteration and unchanged snapshots. Preparation
+may invalidate earlier references and iterators even without inserting or erasing.
+Insertion prepares ownership before committing so reported failure never leaves
+a new key inserted; successful preparation may invalidate references even if the
+subsequent insertion fails. Mutable iterators convert to const iterators.
+
+Node storage variants and unique in-place structural mutation are still outstanding.
 Result representations and performance decisions remain provisional until the
 complete implementation is benchmarked. This is C++20-compatible work; no C++26
 language or library features are required.

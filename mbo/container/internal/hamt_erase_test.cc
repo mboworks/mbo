@@ -190,6 +190,13 @@ TEST_F(HamtEraseTest, EmptyRootIsASuccessfulMissingKeyWithoutAllocation) {
   EXPECT_THAT(missing, Optional(Field("erased", &HamtEraseResult<Node>::erased, Eq(false))));
 }
 
+TEST_F(HamtEraseTest, CompactPreservesAnEmptyRootWithoutAllocation) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  const auto compacted = hamt_erase_internal::Compact<Node, Entry>(source, nullptr);
+  EXPECT_THAT(compacted, Optional(Field("node", &Step::node, IsNull())));
+  EXPECT_THAT(compacted, Optional(Field("erased", &Step::erased, Eq(true))));
+}
+
 TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
   auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());

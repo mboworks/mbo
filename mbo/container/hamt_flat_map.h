@@ -14,6 +14,7 @@
 #include <variant>
 
 #include "mbo/container/hamt_options.h"
+#include "mbo/container/internal/hamt_key_of.h"
 #include "mbo/container/internal/hamt_owned_tree.h"
 #include "mbo/container/internal/hamt_tree.h"
 #include "mbo/memory/block_source.h"
@@ -34,9 +35,7 @@ class HamtFlatMap final {
  private:
   using Entry = std::pair<const Key, Mapped>;
 
-  struct KeyOf final {
-    const Key& operator()(const Entry& entry) const noexcept { return entry.first; }
-  };
+  using KeyOf = container_internal::HamtPairKey<Key, Mapped>;
 
   using Tree = container_internal::HamtTree<Options, Entry, Hash, KeyOf, Equal, Source>;
   using Owned = container_internal::HamtOwnedTree<Tree, Source>;
@@ -172,6 +171,27 @@ class HamtFlatMap final {
     return RequireValue(try_erase(key));
   }
 
+  template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
+    using Destination = HamtFlatMap<Key, Mapped, Hash, Equal, Options, OtherSource>;
+    auto cloned = owned_.template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
+    if (!cloned) {
+      return std::optional<Destination>{};
+    }
+    return std::optional<Destination>(Destination(std::move(*cloned)));
+  }
+
+  template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) && noexcept {
+    auto cloned = std::as_const(*this).template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
+    if (cloned) {
+      owned_.tree().clear();
+    }
+    return cloned;
+  }
+
   transient_type transient() const & noexcept { return transient_type(*this); }
 
   transient_type transient() && noexcept { return transient_type(std::move(*this)); }
@@ -181,6 +201,16 @@ class HamtFlatMap final {
   friend void swap(HamtFlatMap& first, HamtFlatMap& second) noexcept { first.swap(second); }
 
  private:
+  template<
+      typename OtherKey,
+      typename OtherMapped,
+      typename OtherHash,
+      typename OtherEqual,
+      HamtOptions OtherOptions,
+      mbo::memory::BlockSource OtherSource>
+  requires ValidHamtOptions<OtherOptions>
+  friend class HamtFlatMap;
+
   static Owned MakeOwned(Hash hash, Equal equal) noexcept {
     auto owned = Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal));
     if (!owned) {
@@ -349,6 +379,12 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   void clear() noexcept { map_.owned_.tree().clear(); }
+
+  template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
+  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) && noexcept {
+    return std::move(map_).template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
+  }
 
   [[nodiscard]] HamtFlatMap persistent() && noexcept { return std::move(map_); }
 

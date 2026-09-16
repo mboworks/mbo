@@ -31,6 +31,16 @@ Mutation invalidates the mutated container's iterators; unchanged snapshots reta
 their values and iterators. External synchronization is required.
 
 The owned domain adds one nothrow global allocation even for an inline block source.
+`try_clone_to<OtherSource>(source_constructor_args...)` returns an optional set of
+the destination-source specialization, owning independently copied nodes and its
+new source domain. It preserves hash/equality state. The const-lvalue overload
+preserves the original; the rvalue overload consumes only on success and leaves
+the original empty and reusable. Domain or node allocation failure preserves the
+original and returns an empty optional. External storage borrowed by a source still
+requires its own lifetime guarantee.
+The transient's rvalue clone overload returns a persistent destination set and
+also preserves the transient on failure.
+
 Caller-provided allocation-free domain storage is not implemented yet. Structural
 transient operations currently use the persistent path-copying primitives; unique
 in-place structural mutation, node storage variants, flat maps, benchmarks, and

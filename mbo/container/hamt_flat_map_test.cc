@@ -177,7 +177,8 @@ TEST_F(HamtFlatMapTest, MutableAccessDetachesSnapshotsAndSubscriptInsertsZeroIni
   EXPECT_THAT(edit.size(), Eq(2));
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Covers existing-key subscript
   // access.
-  EXPECT_THAT(edit.operator[](2), Eq(20));
+  int& existing_value = edit.operator[](2);
+  EXPECT_THAT(existing_value, Eq(20));
   EXPECT_THAT(edit.try_at(3), VariantWith<int*>(Eq(nullptr)));
   auto snapshot = std::move(edit).persistent();
   EXPECT_THAT(snapshot.at(1), Eq(99));

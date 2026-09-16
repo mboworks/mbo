@@ -190,6 +190,21 @@ TEST_F(HamtEraseTest, EmptyRootIsASuccessfulMissingKeyWithoutAllocation) {
   EXPECT_THAT(missing, Optional(Field("erased", &HamtEraseResult<Node>::erased, Eq(false))));
 }
 
+TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
+  auto first = Insert(nullptr, 1, 10);
+  ASSERT_THAT(first.root, NotNull());
+  constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
+  const auto missing = hamt_erase_internal::TryEraseAt<std::uint64_t, 5>(
+      source, first.root, std::uint64_t{2}, 20, kPastHashPath, HashOf{}, KeyOf{}, Equal{});
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  ASSERT_THAT(missing, Optional(Field("node", &Step::node, NotNull())));
+  EXPECT_THAT(missing, Optional(Field("erased", &Step::erased, Eq(false))));
+  EXPECT_THAT(missing->node, Eq(first.root));
+  EXPECT_THAT(first.root->use_count(), Eq(2));
+  Node::Release(source, missing->node);
+  Node::Release(source, first.root);
+}
+
 TEST_F(HamtEraseTest, AllocationFailurePreservesTheOriginalSnapshot) {
   const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());

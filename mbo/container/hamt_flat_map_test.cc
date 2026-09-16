@@ -85,6 +85,7 @@ TEST_F(HamtFlatMapTest, ExhaustedNodeStorageReportsInsertionFailureWithoutPublis
       edit.try_insert(BoundedMap::value_type(1, 10)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(*created, IsEmpty());
   EXPECT_THAT(edit, IsEmpty());
+  EXPECT_DEATH(static_cast<void>(created->insert(BoundedMap::value_type(1, 10))), "");
 }
 
 TEST_F(HamtFlatMapTest, SwapAndConstRangesPreserveTheVisibleKeyAndMappedValue) {
@@ -99,6 +100,7 @@ TEST_F(HamtFlatMapTest, SwapAndConstRangesPreserveTheVisibleKeyAndMappedValue) {
   EXPECT_THAT(empty.cbegin() == empty.begin(), Eq(true));
   EXPECT_THAT(empty.cend() == empty.end(), Eq(true));
   EXPECT_THAT(empty.at(1), Eq(10));
+  EXPECT_DEATH(static_cast<void>(empty.at(2)), "");
 }
 
 struct SetValue final {

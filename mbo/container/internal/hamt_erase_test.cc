@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 
@@ -211,9 +212,10 @@ TEST_F(HamtEraseTest, CompactReleasesEmptyBitmapNodesAndPreservesCollisionNodes)
   ASSERT_THAT(collision, NotNull());
   const auto preserved = hamt_erase_internal::Compact<Node, Entry>(source, collision);
   ASSERT_THAT(preserved, Optional(Field("node", &Step::node, NotNull())));
-  const Step& preserved_step = preserved.value();
-  EXPECT_THAT(preserved_step.node, Eq(collision));
-  Node::Release(source, preserved_step.node);
+  const Step* const preserved_step = preserved ? std::addressof(*preserved) : nullptr;
+  ASSERT_THAT(preserved_step, NotNull());
+  EXPECT_THAT(preserved_step->node, Eq(collision));
+  Node::Release(source, preserved_step->node);
 }
 
 TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
@@ -225,10 +227,11 @@ TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
   using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
   ASSERT_THAT(missing, Optional(Field("node", &Step::node, NotNull())));
   EXPECT_THAT(missing, Optional(Field("erased", &Step::erased, Eq(false))));
-  const Step& missing_step = missing.value();
-  EXPECT_THAT(missing_step.node, Eq(first.root));
+  const Step* const missing_step = missing ? std::addressof(*missing) : nullptr;
+  ASSERT_THAT(missing_step, NotNull());
+  EXPECT_THAT(missing_step->node, Eq(first.root));
   EXPECT_THAT(first.root->use_count(), Eq(2));
-  Node::Release(source, missing_step.node);
+  Node::Release(source, missing_step->node);
   Node::Release(source, first.root);
 }
 

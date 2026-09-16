@@ -71,7 +71,7 @@ class HamtOwnedTree final {
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
   requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
-    using ClonedTree = typename decltype(tree_.try_clone_to(std::declval<OtherSource&>()))::value_type;
+    using ClonedTree = decltype(tree_.try_clone_to(std::declval<OtherSource&>()))::value_type;
     using ClonedOwned = HamtOwnedTree<ClonedTree, OtherSource>;
     auto domain = HamtSourceDomain<OtherSource>::TryCreate(std::forward<SourceArgs>(source_args)...);
     if (!domain) {

@@ -97,8 +97,8 @@ class HamtNodeValue final {
       return std::nullopt;
     }
     HamtNodeValue result;
-    result.control_ =
-        std::construct_at(reinterpret_cast<Control*>(block->data), domain, *block, std::forward<Args>(args)...);
+    void* const storage = block->data;
+    result.control_ = std::construct_at(static_cast<Control*>(storage), domain, *block, std::forward<Args>(args)...);
     return result;
   }
 

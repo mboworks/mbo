@@ -51,8 +51,8 @@ class HamtFlatMap final {
   using key_type = Key;
   using value_type = Entry;
   using mapped_type = Mapped;
-  using size_type = typename Tree::size_type;
-  using iterator = typename Tree::iterator;
+  using size_type = Tree::size_type;
+  using iterator = Tree::iterator;
   using const_iterator = iterator;
   using mutation_result = std::variant<std::pair<HamtFlatMap, bool>, HamtError>;
 
@@ -211,7 +211,7 @@ template<
 requires ValidHamtOptions<Options>
 class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type final {
  public:
-  using iterator = typename HamtFlatMap::iterator;
+  using iterator = HamtFlatMap::iterator;
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;
   using update_result = std::variant<bool, HamtError>;

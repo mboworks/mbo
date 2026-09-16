@@ -211,8 +211,9 @@ TEST_F(HamtEraseTest, CompactReleasesEmptyBitmapNodesAndPreservesCollisionNodes)
   ASSERT_THAT(collision, NotNull());
   const auto preserved = hamt_erase_internal::Compact<Node, Entry>(source, collision);
   ASSERT_THAT(preserved, Optional(Field("node", &Step::node, NotNull())));
-  EXPECT_THAT(preserved->node, Eq(collision));
-  Node::Release(source, preserved->node);
+  const Step& preserved_step = preserved.value();
+  EXPECT_THAT(preserved_step.node, Eq(collision));
+  Node::Release(source, preserved_step.node);
 }
 
 TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
@@ -224,9 +225,10 @@ TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
   using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
   ASSERT_THAT(missing, Optional(Field("node", &Step::node, NotNull())));
   EXPECT_THAT(missing, Optional(Field("erased", &Step::erased, Eq(false))));
-  EXPECT_THAT(missing->node, Eq(first.root));
+  const Step& missing_step = missing.value();
+  EXPECT_THAT(missing_step.node, Eq(first.root));
   EXPECT_THAT(first.root->use_count(), Eq(2));
-  Node::Release(source, missing->node);
+  Node::Release(source, missing_step.node);
   Node::Release(source, first.root);
 }
 

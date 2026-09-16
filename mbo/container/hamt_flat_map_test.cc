@@ -42,7 +42,7 @@ struct BudgetSource final {
     return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
 
   std::size_t& budget;
 };
@@ -60,6 +60,8 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
   EXPECT_THAT(edit.insert(BudgetMap::value_type(2, 20)).second, Eq(true));
   const auto snapshot = std::move(edit).persistent();
   auto shared = snapshot.transient();
+  // BudgetSource observes this reference through type-erased tree storage.
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
   budget = 0;
   EXPECT_THAT(shared.try_erase(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(shared, SizeIs(2));
@@ -110,11 +112,11 @@ struct SetValue final {
 };
 
 struct ThrowingEditor final {
-  void operator()(int&) const noexcept(false) {}
+  void operator()(int& /*unused*/) const noexcept(false) {}
 };
 
 struct ReturningEditor final {
-  bool operator()(int&) const noexcept { return true; }
+  bool operator()(int& /*unused*/) const noexcept { return true; }
 };
 
 template<typename Editor>
@@ -138,7 +140,7 @@ TEST_F(HamtFlatMapTest, PersistentInsertAndDuplicatePreserveOriginalMappedValues
 }
 
 TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
-  Map empty;
+  const Map empty;
   auto [one, inserted] = empty.insert(Map::value_type(1, 10));
   EXPECT_THAT(inserted, Eq(true));
   auto edit = one.transient();
@@ -153,6 +155,7 @@ TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
   EXPECT_THAT(result->second, Eq(true));
   EXPECT_THAT(result->first.at(1), Eq(42));
   EXPECT_THAT(snapshot.at(1), Eq(99));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
   EXPECT_THAT(edit.empty(), Eq(true));
   EXPECT_THAT(edit.insert(Map::value_type(2, 20)).second, Eq(true));
   EXPECT_THAT(edit.erase(2), Eq(1));

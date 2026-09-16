@@ -48,8 +48,9 @@ TEST_F(HamtNodeValueTest, NonMovableValuesAreConstructedInPlaceAndDestroyedExact
     auto created = ImmobilePayload::TryCreate(domain, destructions);
     ASSERT_THAT(created.has_value(), Eq(true));
     ImmobilePayload first = std::move(created).value_or(ImmobilePayload{});
-    ImmobilePayload second = first;
-    ImmobilePayload moved = std::move(first);
+    const ImmobilePayload second = first;
+    const ImmobilePayload moved = std::move(first);
+    // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): the moved-from state is the contract.
     EXPECT_THAT(first.get(), Eq(nullptr));
     EXPECT_THAT(second.get(), Eq(moved.get()));
     EXPECT_THAT(destructions, Eq(0));
@@ -76,7 +77,7 @@ struct InvalidBlockSource final {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
   static constexpr std::size_t max_alignment() noexcept { return alignof(std::max_align_t); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     state->returned = {.data = state->storage.data(), .size = size, .alignment = alignment};
     switch (state->kind) {
       case InvalidBlock::kNull: state->returned.data = nullptr; break;
@@ -87,7 +88,7 @@ struct InvalidBlockSource final {
     return state->returned;
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     state->released = block;
     ++state->releases;
   }
@@ -120,10 +121,10 @@ TEST_F(HamtNodeValueTest, SharedPayloadKeepsItsSourceAndAddressAfterTheOriginalO
   {
     auto domain_result = Domain::TryCreate();
     ASSERT_THAT(domain_result.has_value(), Eq(true));
-    Domain domain = domain_result.value_or(Domain{});
+    const Domain domain = domain_result.value_or(Domain{});
     auto created = Payload::TryCreate(domain, 42);
     ASSERT_THAT(created.has_value(), Eq(true));
-    Payload original = created.value_or(Payload{});
+    const Payload original = created.value_or(Payload{});
     retained = original;
     address = original.get();
     EXPECT_THAT(original.is_unique(), Eq(false));
@@ -133,7 +134,8 @@ TEST_F(HamtNodeValueTest, SharedPayloadKeepsItsSourceAndAddressAfterTheOriginalO
   EXPECT_THAT(retained.get(), Eq(address));
   EXPECT_THAT(*retained.get(), Eq(42));
   EXPECT_THAT(retained.is_unique(), Eq(true));
-  Payload moved = std::move(retained);
+  const Payload moved = std::move(retained);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): the moved-from state is the contract.
   EXPECT_THAT(retained.get(), Eq(nullptr));
   EXPECT_THAT(moved.get(), Eq(address));
 }
@@ -145,7 +147,7 @@ TEST_F(HamtNodeValueTest, EmptyHandlesRemainEmptyAcrossCopyMoveAndSwap) {
   third = second;
   Payload* const first_alias = std::addressof(first);
   first = std::move(*first_alias);
-  swap(second, third);
+  second.swap(third);
   EXPECT_THAT(first.get(), Eq(nullptr));
   EXPECT_THAT(second.get(), Eq(nullptr));
   EXPECT_THAT(third.get(), Eq(nullptr));
@@ -163,7 +165,7 @@ TEST_F(HamtNodeValueTest, AssignmentsReleaseReplacedOwnershipAndPreserveSharedPa
   auto second_result = HeapPayload::TryCreate(domain, 99);
   ASSERT_THAT(first_result.has_value(), Eq(true));
   ASSERT_THAT(second_result.has_value(), Eq(true));
-  HeapPayload first = std::move(first_result).value_or(HeapPayload{});
+  const HeapPayload first = std::move(first_result).value_or(HeapPayload{});
   HeapPayload second = std::move(second_result).value_or(HeapPayload{});
   const int* const first_address = first.get();
   second = first;
@@ -171,6 +173,7 @@ TEST_F(HamtNodeValueTest, AssignmentsReleaseReplacedOwnershipAndPreserveSharedPa
   EXPECT_THAT(first.is_unique(), Eq(false));
   HeapPayload moved;
   moved = std::move(second);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): the moved-from state is the contract.
   EXPECT_THAT(second.get(), Eq(nullptr));
   EXPECT_THAT(moved.get(), Eq(first_address));
 }
@@ -192,14 +195,14 @@ TEST_F(HamtNodeValueTest, TheLastPayloadOwnerReturnsStorageForReuse) {
   {
     auto created = Payload::TryCreate(domain, 42);
     ASSERT_THAT(created.has_value(), Eq(true));
-    Payload retained = created.value_or(Payload{});
+    const Payload retained = created.value_or(Payload{});
     created.reset();
     EXPECT_THAT(Payload::TryCreate(domain, 99).has_value(), Eq(false));
     EXPECT_THAT(retained.is_unique(), Eq(true));
   }
   auto reused = Payload::TryCreate(domain, 99);
   ASSERT_THAT(reused.has_value(), Eq(true));
-  Payload value = std::move(reused).value_or(Payload{});
+  const Payload value = std::move(reused).value_or(Payload{});
   ASSERT_THAT(value.get(), NotNull());
   EXPECT_THAT(*value.get(), Eq(99));
 }

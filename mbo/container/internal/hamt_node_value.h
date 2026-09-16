@@ -45,11 +45,14 @@ class HamtNodeValue final {
   HamtNodeValue(const HamtNodeValue& other) noexcept : control_(other.control_) {
     if (control_ != nullptr) {
       auto count = control_->references.load(std::memory_order_relaxed);
-      do {
+      while (true) {
         if (count == std::numeric_limits<std::size_t>::max()) {
           std::terminate();
         }
-      } while (!control_->references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed));
+        if (control_->references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed)) {
+          break;
+        }
+      }
     }
   }
 
@@ -95,7 +98,7 @@ class HamtNodeValue final {
     }
     HamtNodeValue result;
     result.control_ =
-        std::construct_at(std::bit_cast<Control*>(block->data), domain, *block, std::forward<Args>(args)...);
+        std::construct_at(reinterpret_cast<Control*>(block->data), domain, *block, std::forward<Args>(args)...);
     return result;
   }
 

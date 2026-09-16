@@ -132,6 +132,18 @@ TEST_F(HamtInsertTest, ReportsAllocationFailureWithoutChangingTheOriginal) {
   Node::Release(source, first.root);
 }
 
+TEST_F(HamtInsertTest, RejectsInsertionPastTheCompleteHashPath) {
+  auto first = Insert(nullptr, 1, 10);
+  ASSERT_THAT(first.root, NotNull());
+  constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
+  const auto failed = hamt_insert_internal::TryInsertAt<std::uint64_t, 5>(
+      source, first.root, std::uint64_t{2}, 20, Entry{.hash = 2, .key = 20}, kPastHashPath, HashOf{}, KeyOf{}, Equal{});
+  EXPECT_THAT(failed, Eq(std::nullopt));
+  EXPECT_THAT(Find(first.root, 1, 10), NotNull());
+  EXPECT_THAT(Find(first.root, 2, 20), IsNull());
+  Node::Release(source, first.root);
+}
+
 TEST_F(HamtInsertTest, DifferentFullHashSplitsARootCollisionInsteadOfExtendingIt) {
   constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
   auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);

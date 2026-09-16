@@ -282,9 +282,11 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   requires std::is_nothrow_default_constructible_v<Mapped>
   {
     auto found = try_at(key);
-    const auto* const mapped = std::get_if<Mapped*>(&found);
-    if (mapped == nullptr || *mapped != nullptr) {
-      return found;
+    if (const auto* const error = std::get_if<HamtError>(&found); error != nullptr) {
+      return *error;
+    }
+    if (std::get<Mapped*>(found) != nullptr) {
+      return std::get<Mapped*>(found);
     }
     const auto inserted = map_.owned_.tree().try_insert(value_type(key, Mapped{}));
     if (inserted.error) {
@@ -356,10 +358,11 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
  private:
   static Mapped& ValueOrTerminate(access_result result) noexcept {
-    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
-      return **mapped;
+    Mapped* const mapped = std::get<Mapped*>(result);
+    if (mapped == nullptr) {
+      std::terminate();
     }
-    std::terminate();
+    return *mapped;
   }
 
   HamtFlatMap map_;

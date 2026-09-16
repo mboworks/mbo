@@ -163,17 +163,19 @@ TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
 }
 
 TEST_F(HamtFlatMapTest, MutableAccessDetachesSnapshotsAndSubscriptInsertsZeroInitializedValues) {
-  Map empty;
+  const Map empty;
   auto [one, inserted] = empty.insert(Map::value_type(1, 10));
   EXPECT_THAT(inserted, Eq(true));
   auto edit = one.transient();
   edit.at(1) = 99;
   EXPECT_THAT(one.at(1), Eq(10));
   EXPECT_THAT(std::as_const(edit).at(1), Eq(99));
-  EXPECT_THAT(edit.operator[](2), Eq(0));
-  edit.operator[](2) = 20;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Tests the public subscript API.
+  int& inserted_value = edit.operator[](2);
+  EXPECT_THAT(inserted_value, Eq(0));
+  inserted_value = 20;
   EXPECT_THAT(edit.size(), Eq(2));
-  EXPECT_THAT(edit.operator[](2), Eq(20));
+  EXPECT_THAT(edit.at(2), Eq(20));
   EXPECT_THAT(edit.try_at(3), VariantWith<int*>(Eq(nullptr)));
   auto snapshot = std::move(edit).persistent();
   EXPECT_THAT(snapshot.at(1), Eq(99));

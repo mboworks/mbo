@@ -139,6 +139,8 @@ class HamtTree final {
       return static_cast<Entry*>(nullptr);
     }
     const hash_type hash = std::invoke(hash_, key);
+    // The returned pointer intentionally grants the caller mutable mapped-value access.
+    // NOLINTNEXTLINE(misc-const-correctness): Mutability is this operation's contract.
     if (Entry* const unique = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target); unique != nullptr) {
       return unique;
     }

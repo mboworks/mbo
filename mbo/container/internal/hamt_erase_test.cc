@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -195,6 +196,23 @@ TEST_F(HamtEraseTest, CompactPreservesAnEmptyRootWithoutAllocation) {
   const auto compacted = hamt_erase_internal::Compact<Node, Entry>(source, nullptr);
   EXPECT_THAT(compacted, Optional(Field("node", &Step::node, IsNull())));
   EXPECT_THAT(compacted, Optional(Field("erased", &Step::erased, Eq(true))));
+}
+
+TEST_F(HamtEraseTest, CompactReleasesEmptyBitmapNodesAndPreservesCollisionNodes) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  auto* const empty = Node::TryCreate(source, {}, std::span<const Entry>{}, std::span<Node* const>{}).value_or(nullptr);
+  ASSERT_THAT(empty, NotNull());
+  const auto compacted_empty = hamt_erase_internal::Compact<Node, Entry>(source, empty);
+  EXPECT_THAT(compacted_empty, Optional(Field("node", &Step::node, IsNull())));
+  EXPECT_THAT(compacted_empty, Optional(Field("erased", &Step::erased, Eq(true))));
+
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  const auto preserved = hamt_erase_internal::Compact<Node, Entry>(source, collision);
+  ASSERT_THAT(preserved, Optional(Field("node", &Step::node, NotNull())));
+  EXPECT_THAT(preserved->node, Eq(collision));
+  Node::Release(source, preserved->node);
 }
 
 TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {

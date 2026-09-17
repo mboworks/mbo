@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-17 19:37:16</td>
+            <td class="headerValue">2026-09-17 21:40:11</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -141,7 +141,7 @@
 <span id="L61"><span class="lineNum">      61</span>                 :             : </span>
 <span id="L62"><span class="lineNum">      62</span>                 :             :   template&lt;typename... SourceArgs&gt;</span>
 <span id="L63"><span class="lineNum">      63</span>                 :             :   requires std::is_nothrow_constructible_v&lt;Source, SourceArgs...&gt;</span>
-<span id="L64"><span class="lineNum">      64</span>                 :             :   [[nodiscard]] static std::optional&lt;HamtNodeSet&gt; TryCreate(</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :   [[nodiscard]] static std::optional&lt;HamtNodeSet&gt; try_create(</span>
 <span id="L65"><span class="lineNum">      65</span>                 :             :       Hash hash = Hash{},</span>
 <span id="L66"><span class="lineNum">      66</span>                 :             :       Equal equal = Equal{},</span>
 <span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">           5 :       SourceArgs&amp;&amp;... source_args) noexcept {</span></span>
@@ -243,7 +243,7 @@
 <span id="L163"><span class="lineNum">     163</span>                 :             :   requires(std::is_nothrow_constructible_v&lt;OtherSource, SourceArgs...&gt; &amp;&amp; std::is_nothrow_copy_constructible_v&lt;Key&gt;)</span>
 <span id="L164"><span class="lineNum">     164</span>                 :<span class="tlaGNC">           3 :   [[nodiscard]] auto try_clone_to(SourceArgs&amp;&amp;... source_args) const &amp; noexcept {</span></span>
 <span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">           3 :     using Destination = HamtNodeSet&lt;Key, Hash, Equal, Options, OtherSource&gt;;</span></span>
-<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">           3 :     auto destination = Destination::TryCreate(hash_function(), key_eq(), std::forward&lt;SourceArgs&gt;(source_args)...);</span></span>
+<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">           3 :     auto destination = Destination::try_create(hash_function(), key_eq(), std::forward&lt;SourceArgs&gt;(source_args)...);</span></span>
 <span id="L167"><span class="lineNum">     167</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">           3 :     if (!destination) {</span></span>
 <span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaUNC">           0 :       return std::optional&lt;Destination&gt;{};</span></span>
 <span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaUNC">           0 :     }</span></span>

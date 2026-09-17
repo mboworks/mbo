@@ -46,7 +46,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-09-17 19:37:16</td>
+            <td class="headerValue">2026-09-17 21:40:11</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">96.5&nbsp;%</td>
@@ -150,7 +150,7 @@
 <span id="L70"><span class="lineNum">      70</span>                 :             : </span>
 <span id="L71"><span class="lineNum">      71</span>                 :             :   template&lt;typename... SourceArgs&gt;</span>
 <span id="L72"><span class="lineNum">      72</span>                 :             :   requires std::is_nothrow_constructible_v&lt;Source, SourceArgs...&gt;</span>
-<span id="L73"><span class="lineNum">      73</span>                 :             :   [[nodiscard]] static std::optional&lt;HamtFlatMap&gt; TryCreate(</span>
+<span id="L73"><span class="lineNum">      73</span>                 :             :   [[nodiscard]] static std::optional&lt;HamtFlatMap&gt; try_create(</span>
 <span id="L74"><span class="lineNum">      74</span>                 :             :       Hash hash = Hash{},</span>
 <span id="L75"><span class="lineNum">      75</span>                 :             :       Equal equal = Equal{},</span>
 <span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">           2 :       SourceArgs&amp;&amp;... source_args) noexcept {</span></span>

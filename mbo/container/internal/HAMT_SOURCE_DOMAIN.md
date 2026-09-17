@@ -24,6 +24,10 @@ the domain in the now-empty source container, making that container reusable wit
 another control-block allocation. Assignment and swap keep roots paired with their
 original allocation domains. The declaration order guarantees that nodes are
 destroyed before the source, including when the original container has disappeared.
+`domain()` exposes a const domain handle for node-payload allocation. Copying that
+handle retains the same source independently of the tree's lifetime; it does not
+transfer ownership of resources the source borrows. Node payloads must retain this
+paired domain rather than creating an unrelated source with a different lifetime.
 
 `try_clone_to<OtherSource>(source_constructor_args...)` copies into a fresh owned
 domain, preserving the core's hash/equality state. Destination-domain or node

@@ -110,6 +110,26 @@ TEST_F(HamtNodeSetTest, TopologyExhaustionReclaimsTheNewPayloadAndPreservesSnaps
   EXPECT_THAT(budget.acquired, Eq(budget.released));
 }
 
+TEST_F(HamtNodeSetTest, ErasureAllocationFailurePreservesPersistentAndTransientValues) {
+  using BudgetSet = HamtNodeSet<int, CollisionHash, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 8};
+  auto created = BudgetSet::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
+  ASSERT_THAT(created.has_value(), Eq(true));
+  auto edit = std::move(*created).transient();
+  EXPECT_THAT(edit.insert(42).second, Eq(true));
+  EXPECT_THAT(edit.insert(99).second, Eq(true));
+  const auto snapshot = std::move(edit).persistent();
+
+  budget.remaining = 0;
+  EXPECT_THAT(snapshot.try_erase(42), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot, UnorderedElementsAre(42, 99));
+
+  auto child = snapshot.transient();
+  EXPECT_THAT(child.try_erase(42), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(child, UnorderedElementsAre(42, 99));
+  EXPECT_THAT(snapshot, UnorderedElementsAre(42, 99));
+}
+
 TEST_F(HamtNodeSetTest, RvalueInsertionSupportsMoveOnlyKeysWithoutConsumingDuplicates) {
   using MoveSet = HamtNodeSet<MoveOnlyKey, MoveOnlyHash>;
   const MoveSet empty;
@@ -197,5 +217,6 @@ TEST_F(HamtNodeSetTest, PersistentAndTransientMutationKeepUnchangedKeyAddresses)
   EXPECT_THAT(two.contains(99), Eq(true));
   EXPECT_THAT(edit.contains(99), Eq(false));
 }
+
 }  // namespace
 }  // namespace mbo::container

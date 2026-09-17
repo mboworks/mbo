@@ -231,12 +231,8 @@ class HamtNodeMap final {
     if (auto error = tree.TryMakeUnique()) {
       return error;
     }
-    auto result = tree.TryMutableBegin();
-    auto* const begin = std::get_if<typename Tree::mutable_iterator>(&result);
-    if (begin == nullptr) {
-      return std::get<HamtError>(result);
-    }
-    for (auto position = *begin; position != typename Tree::mutable_iterator{}; ++position) {
+    auto begin = std::get<typename Tree::mutable_iterator>(tree.TryMutableBegin());
+    for (auto position = begin; position != typename Tree::mutable_iterator{}; ++position) {
       if (!position->try_get_mutable()) {
         return HamtError::kAllocationExhausted;
       }
@@ -304,19 +300,12 @@ class HamtNodeMap final {
   friend class HamtNodeMap;
 
   static Owned MakeOwned(Hash hash, Equal equal) noexcept {
-    auto owned = Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal));
-    if (!owned) {
-      std::terminate();
-    }
-    return std::move(*owned);
+    return std::move(Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal))).value();
   }
 
   template<typename Value>
   static Value RequireValue(std::variant<Value, HamtError> result) noexcept {
-    if (auto* const value = std::get_if<Value>(&result); value != nullptr) {
-      return std::move(*value);
-    }
-    std::terminate();
+    return std::get<Value>(std::move(result));
   }
 
   explicit HamtNodeMap(Owned owned) noexcept : owned_(std::move(owned)) {}
@@ -360,11 +349,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
     if (auto error = map_.TryPrepareMutable()) {
       return *error;
     }
-    auto result = map_.owned_.tree().TryMutableBegin();
-    if (auto* const position = std::get_if<typename Tree::mutable_iterator>(&result)) {
-      return iterator(*position);
-    }
-    return std::get<HamtError>(result);
+    return iterator(std::get<typename Tree::mutable_iterator>(map_.owned_.tree().TryMutableBegin()));
   }
 
   iterator begin() noexcept { return HamtNodeMap::RequireValue(try_begin()); }
@@ -400,11 +385,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
     if (auto error = map_.TryPrepareMutable()) {
       return *error;
     }
-    auto result = map_.owned_.tree().TryMutableFind(lookup);
-    if (auto* const position = std::get_if<typename Tree::mutable_iterator>(&result)) {
-      return iterator(*position);
-    }
-    return std::get<HamtError>(result);
+    return iterator(std::get<typename Tree::mutable_iterator>(map_.owned_.tree().TryMutableFind(lookup)));
   }
 
   template<typename LookupKey>
@@ -438,11 +419,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   template<typename LookupKey>
   requires requires(transient_type& map, const LookupKey& key) { map.try_at(key); }
   Mapped& at(const LookupKey& key) noexcept {
-    auto result = try_at(key);
-    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
-      return **mapped;
-    }
-    std::terminate();
+    return RequireMapped(try_at(key));
   }
 
   [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
@@ -463,11 +440,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   Mapped& operator[](const Key& key) noexcept
   requires std::is_nothrow_default_constructible_v<Mapped>
   {
-    auto result = try_get_or_insert(key);
-    if (auto* const mapped = std::get_if<Mapped*>(&result); mapped != nullptr && *mapped != nullptr) {
-      return **mapped;
-    }
-    std::terminate();
+    return RequireMapped(try_get_or_insert(key));
   }
 
   template<typename LookupKey, typename Editor>
@@ -546,6 +519,14 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   friend void swap(transient_type& first, transient_type& second) noexcept { first.swap(second); }
 
  private:
+  static Mapped& RequireMapped(access_result result) noexcept {
+    Mapped* const mapped = std::get<Mapped*>(result);
+    if (mapped == nullptr) {
+      std::terminate();
+    }
+    return *mapped;
+  }
+
   HamtNodeMap map_;
 };
 

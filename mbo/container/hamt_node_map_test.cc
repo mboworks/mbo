@@ -62,6 +62,10 @@ struct AllocationBudget final {
   std::size_t released = 0;
 };
 
+struct CollisionHash final {
+  std::size_t operator()(int) const noexcept { return 7; }
+};
+
 TEST_F(HamtNodeMapTest, MoveOnlyMappedValuesShareOwnershipWithoutConsumingDuplicates) {
   using Map = HamtNodeMap<int, std::unique_ptr<int>>;
   Map::value_type entry(42, std::make_unique<int>(99));
@@ -163,6 +167,55 @@ TEST_F(HamtNodeMapTest, IntermediateAllocationFailuresReleaseTemporaryOwnership)
   EXPECT_THAT(budget.acquired, Eq(budget.released));
 }
 
+TEST_F(HamtNodeMapTest, SharedMutationFailuresPreservePersistentAndTransientValues) {
+  using Map = HamtNodeMap<int, int, CollisionHash, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 8};
+  auto created = Map::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
+  ASSERT_THAT(created.has_value(), Eq(true));
+  auto edit = std::move(*created).transient();
+  EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
+  EXPECT_THAT(edit.insert({2, 20}).second, Eq(true));
+  const auto snapshot = std::move(edit).persistent();
+
+  budget.remaining = 0;
+  EXPECT_THAT(snapshot.try_erase(1), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(snapshot.at(2), Eq(20));
+
+  auto child = snapshot.transient();
+  EXPECT_THAT(child.try_find(1), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(child.try_at(1), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(child.try_get_or_insert(1), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(child.try_insert({3, 30}), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(child.try_erase(1), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(std::as_const(child).at(1), Eq(10));
+  EXPECT_THAT(std::as_const(child).at(2), Eq(20));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(snapshot.at(2), Eq(20));
+}
+
+TEST_F(HamtNodeMapTest, UniqueBoundedMutationReportsPayloadAndMaximumSizeFailures) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 2};
+  auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+  ASSERT_THAT(created.has_value(), Eq(true));
+  auto edit = std::move(*created).transient();
+  EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
+  EXPECT_THAT(edit.try_get_or_insert(1), VariantWith<int*>(NotNull()));
+  EXPECT_THAT(edit.try_get_or_insert(2), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(edit.try_insert({2, 20}), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+  EXPECT_THAT(std::as_const(edit).at(1), Eq(10));
+
+  using Limited = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{.maximum_size = 1}>;
+  auto limited = Limited{}.transient();
+  EXPECT_THAT(limited.insert({1, 10}).second, Eq(true));
+  auto duplicate = limited.try_insert({1, 20});
+  const auto* const unchanged = std::get_if<std::pair<Limited::transient_type::iterator, bool>>(&duplicate);
+  ASSERT_THAT(unchanged, NotNull());
+  EXPECT_THAT(unchanged->second, Eq(false));
+  EXPECT_THAT(limited.try_insert({2, 20}), VariantWith<HamtError>(HamtError::kMaxSizeExceeded));
+}
+
 TEST_F(HamtNodeMapTest, MutablePreparationFailurePreservesValuesAndMissingLookupDoesNotAllocate) {
   using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 2};
@@ -223,10 +276,6 @@ TEST_F(HamtNodeMapTest, PersistentMappedEditDetachesPayloadAndPreservesSnapshot)
   EXPECT_THAT(original.at(42), Eq(99));
   EXPECT_THAT(empty.empty(), Eq(true));
 }
-
-struct CollisionHash final {
-  std::size_t operator()(int) const noexcept { return 7; }
-};
 
 TEST_F(HamtNodeMapTest, CollisionEditsAndErasurePreserveSnapshotsAndSurvivingAddresses) {
   using Map = HamtNodeMap<int, int, CollisionHash>;

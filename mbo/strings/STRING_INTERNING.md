@@ -100,13 +100,14 @@ them.
 
 ### Identifiers
 
-Identifiers are dense ordinals and are monotonically assigned within the visible identifier space.
+Identifiers are dense and monotonically assigned within the visible identifier space.
 They are not hash values. The selected hash function may therefore produce every value in its
-range, including zero, without colliding with an invalid-ID representation.
+range, including zero, independently of the ID representation's invalid sentinel.
 
 IDs are zero-based. The first inserted string receives ID zero and every new ID is `size()` before
-insertion. Zero is a valid ID, including for an empty string when that is the first value inserted;
-failure is represented separately and never overloaded onto an ID value.
+insertion. Zero is a valid ID, including for an empty string when that is the first value inserted.
+The largest underlying representation value is reserved as `StringId::invalid_value`, making a
+default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.
 
 A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
 with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
@@ -129,13 +130,16 @@ coupling. They must not truncate the default hash merely because the default ID 
 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 
-The initial [`StringId`](string_id.h) helper provides all four unsigned representations,
-explicit underlying-value access, ordering, and constexpr checked ordinal conversion via
-`TryFromOrdinal`. Every underlying value remains valid; exhaustion returns an empty optional.
-The count type is separate: an 8-bit ID supports 256 entries, not merely 255. Hash width
-remains independent. Direct construction assumes an already representable underlying value;
-use checked conversion when assigning from a wider count. This helper does not establish
-membership in any particular interner or chain.
+The initial [`StringId`](string_id.h) helper constrains
+[`mbo::types::ConstStrongId`](../types/strong_id.h) to the four fixed-width unsigned
+representations. It provides explicit underlying-value access, ordering, constexpr checked ordinal
+conversion via `try_from_ordinal`, an `invalid_value` sentinel, and `is_valid()`, but deliberately
+does not expose arithmetic or mutation operations. The largest underlying value is
+reserved, so an 8-bit ID supports 255 entries with valid IDs `0..254`; exhaustion returns an empty
+optional. Hash width remains independent. Direct construction assumes an already representable
+underlying value; constructing `invalid_value` deliberately produces an invalid ID. Use checked
+conversion when assigning from a wider count. This helper does not establish membership in any
+particular interner or chain.
 `local_size()` is the number added directly to that interner.
 
 Looking up an invalid or non-visible identifier returns `std::optional<std::string_view>` in the

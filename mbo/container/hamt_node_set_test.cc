@@ -27,7 +27,7 @@ using Set = HamtNodeSet<int>;
 struct HamtNodeSetTest : ::testing::Test {};
 
 struct CollisionHash final {
-  constexpr std::uint64_t operator()(int) const noexcept { return 7; }
+  constexpr std::uint64_t operator()(int /*key*/) const noexcept { return 7; }
 };
 
 struct MoveOnlyKey final {
@@ -63,7 +63,7 @@ struct BudgetSource final {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     if (budget->remaining == 0) {
       return std::nullopt;
     }
@@ -75,7 +75,7 @@ struct BudgetSource final {
     return block;
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     ++budget->released;
     mbo::memory::NewDeleteBlockSource::Release(block);
   }
@@ -114,7 +114,10 @@ TEST_F(HamtNodeSetTest, ErasureAllocationFailurePreservesPersistentAndTransientV
   using BudgetSet = HamtNodeSet<int, CollisionHash, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 8};
   auto created = BudgetSet::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
-  ASSERT_THAT(created.has_value(), Eq(true));
+  if (!created) {
+    FAIL() << "allocation-domain creation failed";
+    return;
+  }
   auto edit = std::move(*created).transient();
   EXPECT_THAT(edit.insert(42).second, Eq(true));
   EXPECT_THAT(edit.insert(99).second, Eq(true));
@@ -136,17 +139,20 @@ TEST_F(HamtNodeSetTest, RvalueInsertionSupportsMoveOnlyKeysWithoutConsumingDupli
   MoveOnlyKey key(42);
   auto [one, inserted] = empty.insert(std::move(key));
   EXPECT_THAT(inserted, Eq(true));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies the key's specified moved-from state.
   EXPECT_THAT(key.value, Eq(-1));
   EXPECT_THAT(one.begin()->value, Eq(42));
   MoveOnlyKey duplicate(42);
   auto [same, changed] = one.insert(std::move(duplicate));
   EXPECT_THAT(changed, Eq(false));
+  // NOLINTNEXTLINE(bugprone-use-after-move): duplicate insertion must not consume the key.
   EXPECT_THAT(duplicate.value, Eq(42));
   EXPECT_THAT(same.size(), Eq(1));
   auto edit = same.transient();
   MoveOnlyKey next(99);
   auto [position, added] = edit.insert(std::move(next));
   EXPECT_THAT(added, Eq(true));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies the key's specified moved-from state.
   EXPECT_THAT(next.value, Eq(-1));
   ASSERT_THAT(position == edit.end(), Eq(false));
   EXPECT_THAT(position->value, Eq(99));
@@ -163,9 +169,11 @@ TEST_F(HamtNodeSetTest, CloningRebuildsPayloadsAndConsumesOnlyOnCompleteSuccess)
   EXPECT_THAT(std::addressof(*independent.find(42)) == std::addressof(*one.find(42)), Eq(false));
   auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
+  // NOLINTNEXTLINE(bugprone-use-after-move): failed rvalue cloning preserves the source by contract.
   EXPECT_THAT(one, UnorderedElementsAre(42));
   auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed.has_value(), Eq(true));
+  // NOLINTNEXTLINE(bugprone-use-after-move): successful rvalue cloning empties the source by contract.
   EXPECT_THAT(one.empty(), Eq(true));
 }
 

@@ -42,7 +42,7 @@ class HamtNodeSet final {
  public:
   using key_type = Key;
   using value_type = Key;
-  using size_type = typename Tree::size_type;
+  using size_type = Tree::size_type;
   using iterator = container_internal::HamtNodeIterator<typename Tree::iterator>;
   using const_iterator = iterator;
   using mutation_result = std::variant<std::pair<HamtNodeSet, bool>, HamtError>;
@@ -252,7 +252,7 @@ template<typename Key, typename Hash, typename Equal, HamtOptions Options, mbo::
 requires ValidHamtOptions<Options>
 class HamtNodeSet<Key, Hash, Equal, Options, Source>::transient_type final {
  public:
-  using iterator = typename HamtNodeSet::iterator;
+  using iterator = HamtNodeSet::iterator;
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;
 

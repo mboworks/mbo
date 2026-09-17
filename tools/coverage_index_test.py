@@ -4,7 +4,9 @@
 import json
 import sys
 import tempfile
+import subprocess
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -159,7 +161,7 @@ class CoverageIndexTest(unittest.TestCase):
         rendered = coverage_index.render_report(summary, "pr/42")
         self.assertIn('title="New module onboarding.">extensions / new</td>', rendered)
 
-    def test_site_shows_all_metrics_with_main_first_and_numeric_sorting(self):
+    def test_site_interleaves_prs_and_releases_by_main_history_with_main_first(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for report in ("main", "pr/9", "pr/42", "tag/0.9.0", "tag/0.10.0"):
@@ -177,6 +179,8 @@ class CoverageIndexTest(unittest.TestCase):
                     1,
                     "abc",
                 )
+                positions = {"main": 0, "pr/9": 3, "pr/42": 1, "tag/0.9.0": 2, "tag/0.10.0": 0}
+                metadata["history"] = {"position": positions[report], "commit": "abc"}
                 (target / "coverage-meta.json").write_text(json.dumps(metadata))
 
             rendered = coverage_index.render_site(root)
@@ -186,7 +190,7 @@ class CoverageIndexTest(unittest.TestCase):
             self.assertIn("release 0.10.0", rendered)
             self.assertIn("release 0.9.0", rendered)
             self.assertIn(
-                'href="https://github.com/mboworks/mbo/releases/tag/v0.10.0">release v0.10.0</a>',
+                'href="https://github.com/mboworks/mbo/releases/tag/0.10.0">release 0.10.0</a>',
                 rendered,
             )
             self.assertIn('href="https://github.com/mboworks/mbo/pull/42">PR #42</a>', rendered)
@@ -195,11 +199,89 @@ class CoverageIndexTest(unittest.TestCase):
             self.assertIn('href="https://github.com/mboworks/mbo/commit/abc"><code>abc</code></a>', rendered)
             self.assertIn('href="https://github.com/mboworks/mbo/actions/runs/1">run 1</a>', rendered)
             self.assertIn("font-variant-numeric: tabular-nums", rendered)
-            self.assertLess(rendered.index('href="main/"'), rendered.index('href="tag/0.10.0/"'))
-            self.assertLess(rendered.index('href="tag/0.10.0/"'), rendered.index('href="tag/0.9.0/"'))
-            self.assertLess(rendered.index('href="tag/0.9.0/"'), rendered.index('href="pr/42/"'))
-            self.assertLess(rendered.index('href="pr/42/"'), rendered.index('href="pr/9/"'))
+            order = ["main", "pr/9", "tag/0.9.0", "pr/42", "tag/0.10.0"]
+            offsets = [rendered.index(f'href="{target}/"') for target in order]
+            self.assertEqual(offsets, sorted(offsets))
             self.assertNotIn("<ul>", rendered)
+
+    def test_history_uses_merge_and_peeled_tag_commits_and_refreshes_old_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repository = root / "source"
+            repository.mkdir()
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repository), "-c", "user.name=Coverage Test",
+                     "-c", "user.email=coverage@example.invalid", "-c", "commit.gpgsign=false",
+                     "-c", "tag.gpgsign=false", "-c", "core.hooksPath=/dev/null", *args], text=True,
+                    stderr=subprocess.DEVNULL,
+                ).strip()
+            git("init")
+            git("commit", "--allow-empty", "-m", "older merge")
+            older = git("rev-parse", "HEAD")
+            git("tag", "0.9.0")
+            git("commit", "--allow-empty", "-m", "release commit")
+            release = git("rev-parse", "HEAD")
+            git("tag", "-a", "0.10.0", "-m", "release")
+            git("commit", "--allow-empty", "-m", "newer merge")
+            newer = git("rev-parse", "HEAD")
+            reports = root / "reports"
+            for target in ("main", "pr/900", "pr/1", "pr/2", "tag/0.9.0", "tag/0.10.0", "tag/9.9.9"):
+                folder = reports / target
+                folder.mkdir(parents=True)
+                metadata = coverage_index.report_metadata(
+                    _summary(95), target, "2026-08-22T10:00:00Z", "2026-08-22T10:00:00Z",
+                    "2026-08-22T10:01:00Z", 1, 1, "tested-pr-head",
+                )
+                metadata["history"] = {"position": 999, "commit": "stale"}
+                (folder / "coverage-meta.json").write_text(json.dumps(metadata))
+            pulls = [
+                {"number": 900, "merged_at": "2026-08-20T10:00:00Z", "merge_commit_sha": older},
+                {"number": 1, "merged_at": "2026-08-21T10:00:00Z", "merge_commit_sha": newer},
+                {"number": 2, "merged_at": None, "merge_commit_sha": older},
+            ]
+            pages = root / "pulls.json"
+            pages.write_text(json.dumps([pulls[:1], pulls[1:]]))
+            with mock.patch.object(sys, "argv", [
+                "coverage_index.py", "history", str(reports), str(repository), str(pages)
+            ]):
+                self.assertEqual(coverage_index.main(), 0)
+            expected = {"pr/900": (0, older), "tag/0.9.0": (0, older),
+                        "tag/0.10.0": (1, release), "pr/1": (2, newer)}
+            for target, (position, commit) in expected.items():
+                metadata = json.loads((reports / target / "coverage-meta.json").read_text())
+                self.assertEqual(metadata["history"], {"position": position, "commit": commit})
+                self.assertEqual(metadata["source"]["head_sha"], "tested-pr-head")
+            for target in ("main", "pr/2", "tag/9.9.9"):
+                metadata = json.loads((reports / target / "coverage-meta.json").read_text())
+                self.assertIsNone(metadata["history"])
+            rendered = coverage_index.render_site(reports)
+            order = ["main", "pr/1", "tag/0.10.0", "tag/0.9.0", "pr/900"]
+            offsets = [rendered.index(f'href="{target}/"') for target in order]
+            self.assertEqual(offsets, sorted(offsets))
+            self.assertLess(offsets[-1], rendered.index('href="pr/2/"'))
+            # A PR report can be published before the PR is merged. Refreshing must move it
+            # into the main chronology without replacing its coverage or workflow identity.
+            pulls[-1]["merged_at"] = "2026-08-22T10:00:00Z"
+            coverage_index.update_history(reports, repository, pulls)
+            refreshed = json.loads((reports / "pr/2/coverage-meta.json").read_text())
+            self.assertEqual(refreshed["history"]["position"], 0)
+
+    def test_unpositioned_reports_use_run_creation_not_completion_time(self):
+        reports = [
+            coverage_index.report_metadata(
+                _summary(95), target, created, created, completed, index, 1, "sha"
+            )
+            for index, (target, created, completed) in enumerate((
+                ("pr/9", "2026-08-20T10:00:00Z", "2026-08-25T10:00:00Z"),
+                ("pr/1", "2026-08-21T10:00:00Z", "2026-08-21T10:01:00Z"),
+                ("tag/1.0.0", "2026-08-19T10:00:00Z", "2026-08-25T10:00:00Z"),
+            ))
+        ]
+        self.assertEqual(
+            [value["target"] for value in sorted(reports, key=coverage_index._report_order, reverse=True)],
+            ["pr/1", "pr/9", "tag/1.0.0"],
+        )
 
     def test_empty_site_says_no_reports_are_available(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -127,6 +127,7 @@ jobs:
           fi
           mkdir -p public
           rsync --archive --exclude='.git' site/ public/
+          python3 source/tools/site_artwork.py source/docs/assets public
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

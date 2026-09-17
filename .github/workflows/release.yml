@@ -7,6 +7,7 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
+  actions: write
   contents: read
   # test.yml declares this for its coverage association fallback. The release
   # supplies an explicit tag target, but a reusable workflow cannot request a

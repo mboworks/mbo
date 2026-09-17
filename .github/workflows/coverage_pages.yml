@@ -68,6 +68,7 @@ jobs:
         with:
           path: source
           ref: main
+          fetch-depth: 0
       - uses: actions/checkout@v7
         if: steps.target.outputs.publish == 'true'
         with:
@@ -88,6 +89,7 @@ jobs:
           SOURCE_CREATED_AT: ${{ github.event.workflow_run.created_at }}
           SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
           SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
         run: |
@@ -144,6 +146,8 @@ jobs:
               --run-id 0 \
               --started-at "1970-01-01T00:00:00Z"
           done < <(find site/coverage -name coverage-summary.json -print0)
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=main&per_page=100" >merged-prs.json
+          python3 source/tools/coverage_index.py history site/coverage source merged-prs.json
           python3 source/tools/coverage_index.py site site/coverage site/coverage/index.html
           git -C site config user.name 'github-actions[bot]'
           git -C site config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -156,6 +160,7 @@ jobs:
           fi
           mkdir -p public
           rsync --archive --exclude='.git' site/ public/
+          python3 source/tools/site_artwork.py source/docs/assets public
       - uses: actions/upload-pages-artifact@v5
         if: steps.target.outputs.publish == 'true'
         with:

@@ -254,12 +254,11 @@ repos:
         entry: python .pre-commit/check_done_gate.py
         files: ^\.github/workflows/main\.yml$
         pass_filenames: false
-      - id: cache-cleanup-selection
-        name: cache cleanup selects expired matching caches
-        description: Verify main-branch cache cleanup keeps the newest cache for each exact prefix.
+      - id: infrastructure-tests
+        name: Test cache management and site artwork
         language: system
-        entry: python3 -m unittest tools/cache_cleanup_test.py
-        files: ^(\.github/workflows/cache_cleanup\.yml|tools/cache_cleanup(_test)?\.py)$
+        entry: python3 -m unittest tools/bazel_cache_test.py tools/cache_cleanup_test.py tools/cache_report_test.py tools/site_artwork_test.py
+        files: ^(\.github/(actions|workflows)/|tools/(bazel_cache|cache_cleanup|cache_report|site_artwork)(_test)?\.py$)
         pass_filenames: false
       - id: coverage-policy-tests
         name: coverage policy tests
@@ -303,6 +302,7 @@ repos:
           * To run `pre-commit` without this hook, run `SKIP="clang-tidy" pre-commit`.
         language: script
         entry: tools/clang_tidy.sh
+        require_serial: true
         types: [file]
         files: (\.(cc|cpp|cxx|h|hh|hpp|hxx|inc|ipp|bzl)$|\.h\.in$)
       - id: clang-tidy-scope-test

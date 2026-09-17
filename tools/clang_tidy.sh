@@ -129,7 +129,7 @@ done
 # every other check still applies to tests.
 readonly TEST_DISABLED_CHECKS='-readability-function-cognitive-complexity,-clang-analyzer-cplusplus.NewDeleteLeaks'
 
-PARALLELISM="${CLANG_TIDY_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
+PARALLELISM="${CLANG_TIDY_JOBS:-auto}"
 readonly PARALLELISM
 
 declare -a SOURCES=()
@@ -194,10 +194,12 @@ python3 tools/clang_tidy_compdb.py compile_commands.json "${CDB_DIR}/compile_com
 RUNNER_ARGS=(
   --clang-tidy "${CLANG_TIDY}"
   --compile-database "${CDB_DIR}"
-  --jobs "${PARALLELISM}"
   --output "${OUTPUT}"
   "--test-disabled-checks=${TEST_DISABLED_CHECKS}"
 )
+if [[ "${PARALLELISM}" != auto ]]; then
+  RUNNER_ARGS+=(--jobs "${PARALLELISM}")
+fi
 for FILE in ${SOURCES[@]+"${SOURCES[@]}"}; do
   RUNNER_ARGS+=(--source "${FILE}")
 done

@@ -39,12 +39,17 @@ class ProcessRegistry:
         self._processes: set[subprocess.Popen[str]] = set()
         self._stopping = False
 
-    def add(self, process: subprocess.Popen[str]) -> bool:
+    def start(self, command: Sequence[str]) -> Optional[subprocess.Popen[str]]:
+        # Starting and registration are atomic with respect to shutdown: queued
+        # tasks cannot launch a child after the stop signal has been observed.
         with self._lock:
             if self._stopping:
-                return False
+                return None
+            process = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            )
             self._processes.add(process)
-            return True
+            return process
 
     def remove(self, process: subprocess.Popen[str]) -> None:
         with self._lock:
@@ -82,14 +87,9 @@ def run_task(
         command.append(f"--checks={task.checks}")
     command.extend(["-p", compile_database, task.path])
     started = time.monotonic()
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    if not registry.add(process):
-        process.terminate()
+    process = registry.start(command)
+    if process is None:
+        return Result(task, 130, "", time.monotonic() - started)
     try:
         output, _ = process.communicate()
     finally:
@@ -156,10 +156,12 @@ def run_all(
                             failed += 1
                             if result.output:
                                 print(result.output, end="", file=stream, flush=True)
-                except KeyboardInterrupt:
+                except BaseException as error:
                     registry.terminate_all()
                     for future in futures:
                         future.cancel()
+                    if not isinstance(error, KeyboardInterrupt):
+                        raise
                     print("clang-tidy: interrupted; worker pool terminated", file=stream, flush=True)
                     return 130
     finally:
@@ -179,7 +181,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--clang-tidy", required=True)
     parser.add_argument("--compile-database", required=True)
-    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
+    parser.add_argument("--jobs", type=int, default=max(1, min(2, (os.cpu_count() or 1) - 1)))
     parser.add_argument("--output", required=True)
     parser.add_argument("--source", action="append", default=[])
     parser.add_argument("--test", action="append", default=[])

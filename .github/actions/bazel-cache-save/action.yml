@@ -1,0 +1,63 @@
+name: Save Bazel compiled outputs
+description: Bound and refresh main's compiled-output cache after build actions finish.
+inputs:
+  key:
+    description: Fresh key from the restore action.
+    required: true
+  max-bytes:
+    description: Maximum uncompressed disk-cache payload before upload.
+    default: "600000000"
+  output-user-root:
+    description: Optional Bazel startup output root used by the caller.
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Bound the cache before upload
+      if: github.ref == 'refs/heads/main'
+      id: bound
+      shell: bash
+      env:
+        BAZEL_OUTPUT_USER_ROOT: ${{ inputs.output-user-root }}
+        CACHE_MAX_BYTES: ${{ inputs.max-bytes }}
+        CACHE_KEY: ${{ inputs.key }}
+      run: |
+        startup=()
+        if [[ -n "${BAZEL_OUTPUT_USER_ROOT}" ]]; then
+          startup+=(--output_user_root="${BAZEL_OUTPUT_USER_ROOT}")
+        fi
+        bazel "${startup[@]}" shutdown
+        python3 tools/bazel_cache.py "${HOME}/.cache/bazel_disk-cache" --max-bytes="${CACHE_MAX_BYTES}" \
+          --key="${CACHE_KEY}" --report="${RUNNER_TEMP}/${CACHE_KEY}.json"
+    - uses: actions/cache/save@v6
+      if: github.ref == 'refs/heads/main'
+      with:
+        path: ~/.cache/bazel_disk-cache
+        key: ${{ inputs.key }}
+    - name: Retire replaced main cache generations
+      if: github.ref == 'refs/heads/main'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        REPLACEMENT_KEY: ${{ inputs.key }}
+      run: |
+        if ! cache_json=$(gh cache list --ref refs/heads/main --limit 10000 --json id,key,ref,sizeInBytes,createdAt); then
+          echo "::warning::Cache inventory unavailable; retaining previous generations"
+          exit 0
+        fi
+        printf '%s' "${cache_json}" | python3 tools/cache_report.py --record "${RUNNER_TEMP}/${REPLACEMENT_KEY}.json"
+        obsolete=$(printf '%s' "${cache_json}" | python3 tools/cache_cleanup.py --replacement-key "${REPLACEMENT_KEY}")
+        for cache_id in ${obsolete}; do
+          if ! gh cache delete "${cache_id}"; then
+            echo "::warning::Could not retire cache ${cache_id}; scheduled cleanup will retry"
+          fi
+        done
+    - name: Preserve cache measurements for the final report
+      if: always() && steps.bound.outcome == 'success' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v7
+      with:
+        name: cache-metrics-${{ inputs.key }}
+        path: ${{ runner.temp }}/${{ inputs.key }}.json
+        retention-days: 1
+        if-no-files-found: error

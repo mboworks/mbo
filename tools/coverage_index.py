@@ -11,6 +11,7 @@ import datetime
 import html
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import coverage_policy
@@ -230,11 +231,6 @@ def render_report(summary: dict, target: str) -> str:
     return _page(f"mbo coverage: {target}", body)
 
 
-def _version_key(value: str) -> tuple[int, ...]:
-    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", value)
-    return tuple(map(int, match.groups())) if match else (-1,)
-
-
 def report_metadata(
     summary: dict,
     target: str,
@@ -289,8 +285,8 @@ def _short_row(metadata: dict) -> str:
         release = target.removeprefix("tag/")
         label = f"release {release}"
         source = (
-            f'<a href="https://github.com/mboworks/mbo/releases/tag/v{html.escape(release)}">'
-            f"release v{html.escape(release)}</a>"
+            f'<a href="https://github.com/mboworks/mbo/releases/tag/{html.escape(release)}">'
+            f"release {html.escape(release)}</a>"
         )
     else:
         number = target.removeprefix("pr/")
@@ -319,35 +315,72 @@ def _short_row(metadata: dict) -> str:
     return "        <tr>" + "".join(f"<td>{value}</td>" for value in (*details, *values)) + "</tr>"
 
 
-def render_site(root: Path) -> str:
-    """Returns the overview for all retained reports below root."""
+def _metadata_paths(root: Path) -> list[Path]:
     sources = list((root / "main").glob("coverage-meta.json"))
     sources.extend((root / "tag").glob("*/coverage-meta.json"))
     sources.extend((root / "pr").glob("*/coverage-meta.json"))
+    return sources
+
+
+def update_history(root: Path, repository: Path, pull_requests: list[dict]) -> None:
+    """Attach each report to its merge/tag commit in main's first-parent history."""
+    commits = subprocess.check_output(
+        ["git", "-C", str(repository), "rev-list", "--first-parent", "--reverse", "HEAD"],
+        text=True,
+    ).splitlines()
+    positions = {sha: index for index, sha in enumerate(commits)}
+    merges = {
+        f"pr/{pull['number']}": pull["merge_commit_sha"]
+        for pull in pull_requests
+        if pull.get("merged_at")
+    }
+    for path in _metadata_paths(root):
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+        target = metadata["target"]
+        sha = merges.get(target)
+        if re.fullmatch(r"tag/v?\d+\.\d+\.\d+", target):
+            tag = target.removeprefix("tag/")
+            resolved = subprocess.run(
+                ["git", "-C", str(repository), "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            sha = resolved.stdout.strip() if resolved.returncode == 0 else None
+        metadata["history"] = (
+            {"commit": sha, "position": positions[sha]} if sha in positions else None
+        )
+        path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+
+def _report_order(metadata: dict) -> tuple:
+    target = metadata["target"]
+    history = metadata.get("history")
+    source = metadata["source"]
+    return (
+        target == "main",
+        history is not None,
+        history["position"] if history is not None else -1,
+        history is not None and target.startswith("tag/"),
+        source["created_at"] if history is None else "",
+        source["run_id"] if history is None else 0,
+        target,
+    )
+
+
+def render_site(root: Path) -> str:
+    """Returns the overview, main first then newest merge/tag commit first."""
     metadata = latest_metadata(
-        [json.loads(source.read_text(encoding="utf-8")) for source in sources]
+        [json.loads(source.read_text(encoding="utf-8")) for source in _metadata_paths(root)]
     )
-    reports = []
-    if "main" in metadata:
-        reports.append(metadata["main"])
-    reports.extend(
-        metadata[target]
-        for target in sorted(
-            (target for target in metadata if target.startswith("tag/")),
-            key=lambda target: _version_key(target.removeprefix("tag/")),
-            reverse=True,
-        )
-    )
-    reports.extend(
-        metadata[target]
-        for target in sorted(
-            (target for target in metadata if target.startswith("pr/")),
-            key=lambda target: int(target.removeprefix("pr/")),
-            reverse=True,
-        )
-    )
+    reports = sorted(metadata.values(), key=_report_order, reverse=True)
     rows = "\n".join(_short_row(metadata) for metadata in reports)
-    body = "    <h1>mbo coverage reports</h1>\n"
+    body = (
+        "    <h1>mbo coverage reports</h1>\n"
+        "    <p>Main first, then PRs and releases newest-first in main's commit history. "
+        "Releases use their tagged commit; PRs use their merge commit. "
+        "Reports without a commit on main follow, newest CI run first.</p>\n"
+    )
     if rows:
         body += """    <table class="reportsTable"><thead><tr><th>Report</th><th>Data</th><th>Source</th><th>Completed</th><th>Commit</th><th>Workflow</th><th>Lines</th><th>Branches</th><th>Functions</th></tr></thead>
       <tbody>
@@ -380,6 +413,10 @@ def main() -> int:
     metadata.add_argument("--head-sha", required=True)
     metadata.add_argument("--run-attempt", required=True, type=int)
     metadata.add_argument("--run-id", required=True, type=int)
+    history = subparsers.add_parser("history")
+    history.add_argument("root", type=Path)
+    history.add_argument("repository", type=Path)
+    history.add_argument("pull_requests", type=Path)
     newer = subparsers.add_parser("newer")
     newer.add_argument("candidate", type=Path)
     newer.add_argument("current", type=Path)
@@ -388,6 +425,9 @@ def main() -> int:
         args.output.write_text(render_report(json.loads(args.summary.read_text(encoding="utf-8")), args.target), encoding="utf-8")
     elif args.command == "site":
         args.output.write_text(render_site(args.root), encoding="utf-8")
+    elif args.command == "history":
+        pages = json.loads(args.pull_requests.read_text(encoding="utf-8"))
+        update_history(args.root, args.repository, [pull for page in pages for pull in page])
     elif args.command == "metadata":
         summary = json.loads(args.summary.read_text(encoding="utf-8"))
         value = report_metadata(

@@ -11,6 +11,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 
 from tools import clang_tidy_runner
 
@@ -77,13 +78,24 @@ class ClangTidyRunnerTest(unittest.TestCase):
 
     def test_registry_terminates_active_children(self):
         registry = clang_tidy_runner.ProcessRegistry()
-        process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
-        self.assertTrue(registry.add(process))
+        process = registry.start([sys.executable, "-c", "import time; time.sleep(30)"])
+        self.assertIsNotNone(process)
 
         registry.terminate_all()
 
+        process.communicate()
         self.assertIsNotNone(process.poll())
-        self.assertFalse(registry.add(process))
+        with mock.patch.object(subprocess, "Popen") as spawn:
+            self.assertIsNone(registry.start([sys.executable, "-c", "raise SystemExit(99)"]))
+        spawn.assert_not_called()
+
+    def test_default_workers_reserve_capacity_and_cap_at_two(self):
+        required = ["--clang-tidy", "clang-tidy", "--compile-database", ".",
+                    "--output", "out", "--test-disabled-checks", "none"]
+        for cpus, expected in [(None, 1), (1, 1), (2, 1), (4, 2), (128, 2)]:
+            with self.subTest(cpus=cpus), mock.patch.object(clang_tidy_runner.os, "cpu_count", return_value=cpus):
+                self.assertEqual(clang_tidy_runner.parse_args(required).jobs, expected)
+                self.assertEqual(clang_tidy_runner.parse_args(required + ["--jobs", "3"]).jobs, 3)
 
 
 if __name__ == "__main__":

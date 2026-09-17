@@ -8,6 +8,7 @@ on:
   pull_request: {}
 
 permissions:
+  actions: write
   contents: read
   # The reusable coverage job can associate branch commits with a PR.
   pull-requests: read
@@ -32,6 +33,8 @@ jobs:
           python-version: "3.13"
       - run: python3 -m unittest discover -s tools -p release_site_test.py
       - run: python3 -m unittest discover -s tools -p release_notes_test.py
+      - name: Test infrastructure policies
+        run: python3 -m unittest discover -s tools -p "*_test.py"
       - name: Verify configured documentation and generated links
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,6 +112,11 @@ jobs:
           # changed sources below.
           fetch-depth: 0
       - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: false
+          disk-cache: false
+          external-cache: false
+          repository-cache: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
@@ -157,15 +165,11 @@ jobs:
       # benefit. Every bazel call in this job picks the flag up via .bazelrc.user.
       - name: Route bazel to a disk cache
         run: echo "common --disk_cache=$HOME/.cache/bazel_disk-cache" > .bazelrc.user
-      - uses: actions/cache/restore@v6
+      - uses: ./.github/actions/bazel-cache-restore
         id: cache_restore
         with:
-          path: "~/.cache/bazel_disk-cache"
-          key: clang-tidy-${{github.ref}}-${{github.sha}}
-          restore-keys: |
-            clang-tidy-${{github.ref}}
-            clang-tidy-refs/heads/main
-            clang-tidy
+          namespace: clang-tidy
+          legacy-prefix: clang-tidy-refs/heads/main
 
       - name: Build generated sources and headers
         # Generated headers must exist on disk before the compile DB is
@@ -275,30 +279,13 @@ jobs:
           while IFS= read -r file; do
             FILES+=("${file}")
           done <.clang-tidy-inputs
-          tools/clang_tidy.sh "${FILES[@]}"
+          CLANG_TIDY_JOBS="$(getconf _NPROCESSORS_ONLN)" tools/clang_tidy.sh "${FILES[@]}"
 
-      - name: Check clang-tidy Bazel disk cache size
-        if: always()
-        id: cache_size
-        run: |
-          cache_path="${HOME}/.cache/bazel_disk-cache"
-          cache_size_kib=0
-          if [[ -d "${cache_path}" ]]; then
-            cache_size_kib="$(du -sk "${cache_path}" | awk '{print $1}')"
-          fi
-          echo "Bazel disk cache: ${cache_size_kib} KiB (limit: 512000 KiB)"
-          if (( cache_size_kib >= 500 * 1024 )); then
-            echo "::warning::Not saving Bazel disk cache at or above the 500 MiB limit."
-            echo "save=false" >>"${GITHUB_OUTPUT}"
-          else
-            echo "save=true" >>"${GITHUB_OUTPUT}"
-          fi
-
-      - uses: actions/cache/save@v6
-        if: always() && steps.cache_restore.outputs.cache-hit != 'true' && steps.cache_size.outputs.save == 'true'
+      - uses: ./.github/actions/bazel-cache-save
+        if: "!cancelled() && github.ref == 'refs/heads/main'"
+        timeout-minutes: 20
         with:
-          path: "~/.cache/bazel_disk-cache"
-          key: clang-tidy-${{github.ref}}-${{github.sha}}
+          key: ${{ steps.cache_restore.outputs.key }}
 
   test-gcc:
     needs: [trunk, pre-commit]
@@ -321,7 +308,7 @@ jobs:
       bazel_config: ${{ matrix.bazel_config }}
 
   coverage:
-    needs: [trunk, pre-commit]
+    # Coverage runs alongside lint; done still requires every job.
     secrets: inherit
     uses: ./.github/workflows/test.yml
     with:
@@ -430,6 +417,23 @@ jobs:
             exit 1
           fi
           echo "done covers all $(grep -c . <<<"${declared}") workflow jobs."
+      - uses: actions/download-artifact@v8
+        if: always() && github.ref == 'refs/heads/main'
+        with:
+          pattern: cache-metrics-*
+          path: cache-metrics
+          merge-multiple: true
+      - name: Report cache storage
+        if: always() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh cache list --limit 10000 --json key,ref,sizeInBytes >cache-inventory.json; then
+            python3 tools/cache_report.py --metrics cache-metrics --inventory cache-inventory.json >>"${GITHUB_STEP_SUMMARY}"
+          else
+            echo 'Cache inventory unavailable.' >>"${GITHUB_STEP_SUMMARY}"
+          fi
       - name: Fail if any dependency did not succeed
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1

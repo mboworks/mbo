@@ -1,0 +1,25 @@
+name: Restore Bazel compiled outputs
+description: Restore the latest compatible main cache and select a fresh save key.
+inputs:
+  namespace:
+    description: Build configuration, independent of runner OS and architecture.
+    required: true
+  legacy-prefix:
+    description: Optional pre-migration cache prefix used only until a new generation exists.
+    default: ""
+outputs:
+  key:
+    description: Unique key for this run's refreshed cache.
+    value: ${{ steps.restore.outputs.cache-primary-key }}
+runs:
+  using: composite
+  steps:
+    - id: restore
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.cache/bazel_disk-cache
+        key: bazel-actions-v2-${{ runner.os }}-${{ runner.arch }}-${{ inputs.namespace }}-${{ hashFiles('MODULE.bazel.lock', '.bazelversion') }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          bazel-actions-v2-${{ runner.os }}-${{ runner.arch }}-${{ inputs.namespace }}-${{ hashFiles('MODULE.bazel.lock', '.bazelversion') }}-
+          bazel-actions-v2-${{ runner.os }}-${{ runner.arch }}-${{ inputs.namespace }}-
+          ${{ inputs.legacy-prefix }}

@@ -16,6 +16,7 @@
 name: Reusable Test Runner
 
 permissions:
+  actions: write
   contents: read
   # The coverage target fallback associates a commit with its pull request.
   pull-requests: read
@@ -71,6 +72,11 @@ jobs:
         # leaves them as LFS pointers, so materialize just those (each is small).
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
       - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: false
+          disk-cache: false
+          external-cache: false
+          repository-cache: false
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
@@ -91,16 +97,11 @@ jobs:
       # extracted ~4 GB hermetic LLVM, which crowded the 10 GB repo limit for no
       # benefit (LLVM re-downloads quickly, and the symbolizer wrapper resolves via
       # runfiles so a fresh fetch location is fine). Ported from mboworks/xff #409+#411.
-      - name: Restore Bazel ${{inputs.bazel_config}} disk cache
-        uses: actions/cache/restore@v6
+      - uses: ./.github/actions/bazel-cache-restore
         id: cache_restore
         with:
-          path: "~/.cache/bazel_disk-cache"
-          key: ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}-${{github.sha}}
-          restore-keys: |
-            ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}
-            ${{env.CACHE_KEY_PREFIX}}-refs/heads/main
-            ${{env.CACHE_KEY_PREFIX}}
+          namespace: ${{ env.CACHE_KEY_PREFIX }}
+          legacy-prefix: ${{ env.CACHE_KEY_PREFIX }}-refs/heads/main
       - name: Verify Xcode & SDK
         if: runner.os == 'macOS'
         run: |
@@ -139,6 +140,7 @@ jobs:
           declare -a BAZEL_ARGS=()
           CACHE_ROOT=~/.cache
           BAZEL_INIT+=("--output_user_root=${CACHE_ROOT}/bazel")
+          echo "BAZEL_OUTPUT_USER_ROOT=${CACHE_ROOT}/bazel" >>"${GITHUB_ENV}"
           BAZEL_ARGS+=("--repository_cache=${CACHE_ROOT}/bazel_repo-cache")
           BAZEL_ARGS+=("--disk_cache=${CACHE_ROOT}/bazel_disk-cache")
           EXPECT=""
@@ -290,7 +292,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} //... \
+          bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} \
+            --profile="${RUNNER_TEMP}/coverage-preparation.json.gz" \
+            --experimental_profile_additional_tasks=repository_fetch \
+            --experimental_profile_additional_tasks=starlark_repository_fn \
+            --experimental_profile_additional_tasks=starlark_builtin_fn \
+            --experimental_profile_additional_tasks=fetch \
+            //... \
             --combined_report=lcov \
             --instrumentation_filter='^//mbo/.*' \
             --test_tag_filters=-lfs,-fuzz-test,-no-coverage
@@ -301,6 +309,11 @@ jobs:
           # supported exception policy and merge their observations into the
           # exception-free library's primary report.
           bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} \
+            --profile="${RUNNER_TEMP}/coverage-exceptions-preparation.json.gz" \
+            --experimental_profile_additional_tasks=repository_fetch \
+            --experimental_profile_additional_tasks=starlark_repository_fn \
+            --experimental_profile_additional_tasks=starlark_builtin_fn \
+            --experimental_profile_additional_tasks=fetch \
             --//mbo/config:require_throws=true \
             //mbo/container:limited_map_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
@@ -391,6 +404,15 @@ jobs:
             cat coverage-summary.md
           } >>"${GITHUB_STEP_SUMMARY}"
 
+      - name: Preserve coverage preparation profiles
+        uses: actions/upload-artifact@v7
+        if: always() && inputs.bazel_config == 'coverage'
+        with:
+          name: coverage-preparation-profile
+          path: ${{ runner.temp }}/coverage*-preparation.json.gz
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
         if: always() && inputs.bazel_config == 'coverage'
@@ -404,27 +426,9 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - name: Check Bazel ${{inputs.bazel_config}} disk cache size
-        if: ${{!startsWith(github.ref, 'refs/tags/')}}
-        id: cache_size
-        run: |
-          cache_path="${HOME}/.cache/bazel_disk-cache"
-          cache_size_kib=0
-          if [[ -d "${cache_path}" ]]; then
-            cache_size_kib="$(du -sk "${cache_path}" | awk '{print $1}')"
-          fi
-          echo "Bazel disk cache: ${cache_size_kib} KiB (limit: 512000 KiB)"
-          if (( cache_size_kib >= 500 * 1024 )); then
-            echo "::warning::Not saving Bazel disk cache at or above the 500 MiB limit."
-            echo "save=false" >>"${GITHUB_OUTPUT}"
-          else
-            echo "save=true" >>"${GITHUB_OUTPUT}"
-          fi
-
-      - name: Save Bazel ${{inputs.bazel_config}} disk cache
-        uses: actions/cache/save@v6
-        if: ${{!startsWith(github.ref, 'refs/tags/') && steps.cache_size.outputs.save == 'true'}}
-        id: cache_save
+      - uses: ./.github/actions/bazel-cache-save
+        if: "!cancelled() && github.ref == 'refs/heads/main'"
+        timeout-minutes: 20
         with:
-          path: "~/.cache/bazel_disk-cache"
-          key: ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}-${{github.sha}}
+          key: ${{ steps.cache_restore.outputs.key }}
+          output-user-root: ${{ env.BAZEL_OUTPUT_USER_ROOT }}

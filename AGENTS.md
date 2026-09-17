@@ -53,6 +53,13 @@ Every pull request description has two layers, in this order:
 Update the description whenever a commit is added so the detailed section describes the complete
 current change. Keep the human-readable section stable unless the outcome or motivation changes.
 
+## Infrastructure
+
+[Infrastructure guidance](docs/infrastructure.md) documents local lint limits, cache budgets,
+coverage ordering, preparation profiles, and deployment-only artwork. Keep it synchronized with
+workflow behavior. Never weaken warnings, sanitizer checks, coverage thresholds, or required gates
+just to make CI pass. Keep Bazel outputs, compile databases, local rc files, and caches untracked.
+
 ## Tests
 
 - Use a `struct` fixture and `TEST_F`; do not add bare `TEST` cases.

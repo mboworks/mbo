@@ -121,7 +121,7 @@ TEST_F(HamtNodeMapTest, SnapshotsKeepTheirSourceAliveAfterOriginalContainersDisa
   AllocationBudget budget{.remaining = 2};
   std::optional<Map> retained;
   {
-    auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
     if (!created) {
       FAIL() << "source domain creation failed";
       return;
@@ -143,7 +143,7 @@ TEST_F(HamtNodeMapTest, IntermediateAllocationFailuresReleaseTemporaryOwnership)
   using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 2};
   {
-    auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
     if (!created) {
       FAIL() << "source domain creation failed";
       return;
@@ -174,7 +174,7 @@ TEST_F(HamtNodeMapTest, IntermediateAllocationFailuresReleaseTemporaryOwnership)
 TEST_F(HamtNodeMapTest, SharedMutationFailuresPreservePersistentAndTransientValues) {
   using Map = HamtNodeMap<int, int, CollisionHash, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 8};
-  auto created = Map::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
+  auto created = Map::try_create(CollisionHash{}, std::equal_to<>{}, budget);
   ASSERT_THAT(created.has_value(), Eq(true));
   auto edit = std::move(*created).transient();  // NOLINT(bugprone-unchecked-optional-access)
   EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
@@ -201,7 +201,7 @@ TEST_F(HamtNodeMapTest, SharedMutationFailuresPreservePersistentAndTransientValu
 TEST_F(HamtNodeMapTest, UniqueBoundedMutationReportsPayloadAndMaximumSizeFailures) {
   using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 2};
-  auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+  auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
   ASSERT_THAT(created.has_value(), Eq(true));
   auto edit = std::move(*created).transient();  // NOLINT(bugprone-unchecked-optional-access)
   EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
@@ -224,7 +224,7 @@ TEST_F(HamtNodeMapTest, MutablePreparationFailurePreservesValuesAndMissingLookup
   using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 2};
   {
-    auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
     if (!created) {
       FAIL() << "source domain creation failed";
       return;

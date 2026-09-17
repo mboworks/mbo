@@ -70,7 +70,7 @@ class HamtFlatMap final {
 
   template<typename... SourceArgs>
   requires std::is_nothrow_constructible_v<Source, SourceArgs...>
-  [[nodiscard]] static std::optional<HamtFlatMap> TryCreate(
+  [[nodiscard]] static std::optional<HamtFlatMap> try_create(
       Hash hash = Hash{},
       Equal equal = Equal{},
       SourceArgs&&... source_args) noexcept {

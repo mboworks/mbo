@@ -68,7 +68,7 @@ class HamtNodeMap final {
 
   template<typename... SourceArgs>
   requires std::is_nothrow_constructible_v<Source, SourceArgs...>
-  [[nodiscard]] static std::optional<HamtNodeMap> TryCreate(
+  [[nodiscard]] static std::optional<HamtNodeMap> try_create(
       Hash hash = Hash{},
       Equal equal = Equal{},
       SourceArgs&&... source_args) noexcept {
@@ -175,7 +175,7 @@ class HamtNodeMap final {
   requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
     using Destination = HamtNodeMap<Key, Mapped, Hash, Equal, Options, OtherSource>;
-    auto cloned = Destination::TryCreate(hash_function(), key_eq(), std::forward<SourceArgs>(source_args)...);
+    auto cloned = Destination::try_create(hash_function(), key_eq(), std::forward<SourceArgs>(source_args)...);
     if (!cloned) {
       return std::optional<Destination>{};
     }

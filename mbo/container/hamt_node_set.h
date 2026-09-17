@@ -61,7 +61,7 @@ class HamtNodeSet final {
 
   template<typename... SourceArgs>
   requires std::is_nothrow_constructible_v<Source, SourceArgs...>
-  [[nodiscard]] static std::optional<HamtNodeSet> TryCreate(
+  [[nodiscard]] static std::optional<HamtNodeSet> try_create(
       Hash hash = Hash{},
       Equal equal = Equal{},
       SourceArgs&&... source_args) noexcept {
@@ -163,7 +163,7 @@ class HamtNodeSet final {
   requires(std::is_nothrow_constructible_v<OtherSource, SourceArgs...> && std::is_nothrow_copy_constructible_v<Key>)
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
     using Destination = HamtNodeSet<Key, Hash, Equal, Options, OtherSource>;
-    auto destination = Destination::TryCreate(hash_function(), key_eq(), std::forward<SourceArgs>(source_args)...);
+    auto destination = Destination::try_create(hash_function(), key_eq(), std::forward<SourceArgs>(source_args)...);
     if (!destination) {
       return std::optional<Destination>{};
     }

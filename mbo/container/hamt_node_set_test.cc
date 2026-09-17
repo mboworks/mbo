@@ -87,7 +87,7 @@ TEST_F(HamtNodeSetTest, TopologyExhaustionReclaimsTheNewPayloadAndPreservesSnaps
   using BudgetSet = HamtNodeSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 2};
   {
-    auto created = BudgetSet::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+    auto created = BudgetSet::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
     if (!created) {
       FAIL() << "allocation-domain creation failed";
       return;
@@ -113,7 +113,7 @@ TEST_F(HamtNodeSetTest, TopologyExhaustionReclaimsTheNewPayloadAndPreservesSnaps
 TEST_F(HamtNodeSetTest, ErasureAllocationFailurePreservesPersistentAndTransientValues) {
   using BudgetSet = HamtNodeSet<int, CollisionHash, std::equal_to<>, HamtOptions{}, BudgetSource>;
   AllocationBudget budget{.remaining = 8};
-  auto created = BudgetSet::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
+  auto created = BudgetSet::try_create(CollisionHash{}, std::equal_to<>{}, budget);
   if (!created) {
     FAIL() << "allocation-domain creation failed";
     return;

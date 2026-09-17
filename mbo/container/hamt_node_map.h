@@ -300,8 +300,8 @@ class HamtNodeMap final {
 
   static Owned MakeOwned(Hash hash, Equal equal) noexcept {
     // Default construction has the standard-container hard-failure contract for source-domain allocation.
-    return std::move(Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal)))
-        .value();  // NOLINT(bugprone-unchecked-optional-access)
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    return std::move(Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal))).value();
   }
 
   template<typename Value>

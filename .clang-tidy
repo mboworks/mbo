@@ -174,7 +174,7 @@ CheckOptions:
   - key:             modernize-use-nullptr.NullMacros
     value:           'NULL'
   - key:             performance-unnecessary-value-param.AllowedTypes
-    value:           'absl::Status;absl::StatusOr;std::string_view'
+    value:           'absl::Status;absl::StatusOr;mbo::types::ConstStrongId.*;mbo::types::ConstStrongOrdinal.*;mbo::types::StrongOrdinal.*;std::string_view'
   - key:             cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreNonDeducedTemplateTypes
     value:           '1'
   - key:             readability-implicit-bool-conversion.AllowIntegerConditions

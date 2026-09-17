@@ -25,5 +25,9 @@
       "total": 4461,
       "percent": 89.35
     }
+  },
+  "history": {
+    "commit": "dd92867b6581833744942762a6192b19acdf0efb",
+    "position": 580
   }
 }

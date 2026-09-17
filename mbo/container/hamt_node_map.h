@@ -48,7 +48,7 @@ class HamtNodeMap final {
   using key_type = Key;
   using value_type = Entry;
   using mapped_type = Mapped;
-  using size_type = typename Tree::size_type;
+  using size_type = Tree::size_type;
   using iterator = container_internal::HamtNodeIterator<typename Tree::iterator>;
   using const_iterator = iterator;
   using mutation_result = std::variant<std::pair<HamtNodeMap, bool>, HamtError>;
@@ -300,7 +300,11 @@ class HamtNodeMap final {
   friend class HamtNodeMap;
 
   static Owned MakeOwned(Hash hash, Equal equal) noexcept {
-    return std::move(Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal))).value();
+    auto owned = Owned::TryCreate(std::move(hash), KeyOf{}, std::move(equal));
+    if (!owned) {
+      std::terminate();
+    }
+    return std::move(*owned);
   }
 
   template<typename Value>
@@ -324,7 +328,7 @@ requires ValidHamtOptions<Options>
 class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type final {
  public:
   using iterator = container_internal::HamtNodeIterator<typename Tree::mutable_iterator, true>;
-  using const_iterator = typename HamtNodeMap::iterator;
+  using const_iterator = HamtNodeMap::iterator;
   using iterator_result = std::variant<iterator, HamtError>;
   using insertion_result = std::variant<std::pair<iterator, bool>, HamtError>;
   using erasure_result = std::variant<size_type, HamtError>;

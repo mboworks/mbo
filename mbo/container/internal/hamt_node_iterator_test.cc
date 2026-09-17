@@ -40,7 +40,7 @@ struct EditableHandle final {
   // NOLINTBEGIN(readability-identifier-naming): handle vocabulary.
   const int* get() const noexcept { return value; }
 
-  int* get_unique_mutable() noexcept { return value; }
+  int* get_unique_mutable() const noexcept { return value; }
 
   // NOLINTEND(readability-identifier-naming)
 };

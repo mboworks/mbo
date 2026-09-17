@@ -3,6 +3,7 @@
 
 #include "mbo/container/hamt_node_map.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -63,13 +64,14 @@ struct AllocationBudget final {
 };
 
 struct CollisionHash final {
-  std::size_t operator()(int) const noexcept { return 7; }
+  std::size_t operator()(int /*unused*/) const noexcept { return 7; }
 };
 
 TEST_F(HamtNodeMapTest, MoveOnlyMappedValuesShareOwnershipWithoutConsumingDuplicates) {
   using Map = HamtNodeMap<int, std::unique_ptr<int>>;
   Map::value_type entry(42, std::make_unique<int>(99));
   auto inserted = Map{}.insert(std::move(entry));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies that successful insertion consumes the mapped value.
   EXPECT_THAT(entry.second.get(), Eq(nullptr));
   EXPECT_THAT(*inserted.first.at(42), Eq(99));
   const Map snapshot = inserted.first;
@@ -77,7 +79,9 @@ TEST_F(HamtNodeMapTest, MoveOnlyMappedValuesShareOwnershipWithoutConsumingDuplic
   Map::value_type duplicate(42, std::make_unique<int>(100));
   auto unchanged = snapshot.insert(std::move(duplicate));
   EXPECT_THAT(unchanged.second, Eq(false));
+  // NOLINTNEXTLINE(bugprone-use-after-move): duplicate insertion must not consume the mapped value.
   ASSERT_THAT(duplicate.second.get(), NotNull());
+  // NOLINTNEXTLINE(bugprone-use-after-move): duplicate insertion must not consume the mapped value.
   EXPECT_THAT(*duplicate.second, Eq(100));
   EXPECT_THAT(unchanged.first.erase(42).first.empty(), Eq(true));
   EXPECT_THAT(*snapshot.at(42), Eq(99));
@@ -92,7 +96,7 @@ struct BudgetSource final {
   // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
   static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     if (budget->remaining == 0) {
       return std::nullopt;
     }
@@ -104,7 +108,7 @@ struct BudgetSource final {
     return block;
   }
 
-  void Release(mbo::memory::MemoryBlock block) noexcept {
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
     ++budget->released;
     mbo::memory::NewDeleteBlockSource::Release(block);
   }
@@ -172,7 +176,7 @@ TEST_F(HamtNodeMapTest, SharedMutationFailuresPreservePersistentAndTransientValu
   AllocationBudget budget{.remaining = 8};
   auto created = Map::TryCreate(CollisionHash{}, std::equal_to<>{}, budget);
   ASSERT_THAT(created.has_value(), Eq(true));
-  auto edit = std::move(*created).transient();
+  auto edit = std::move(*created).transient();  // NOLINT(bugprone-unchecked-optional-access)
   EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
   EXPECT_THAT(edit.insert({2, 20}).second, Eq(true));
   const auto snapshot = std::move(edit).persistent();
@@ -199,7 +203,7 @@ TEST_F(HamtNodeMapTest, UniqueBoundedMutationReportsPayloadAndMaximumSizeFailure
   AllocationBudget budget{.remaining = 2};
   auto created = Map::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
   ASSERT_THAT(created.has_value(), Eq(true));
-  auto edit = std::move(*created).transient();
+  auto edit = std::move(*created).transient();  // NOLINT(bugprone-unchecked-optional-access)
   EXPECT_THAT(edit.insert({1, 10}).second, Eq(true));
   EXPECT_THAT(edit.try_get_or_insert(1), VariantWith<int*>(NotNull()));
   EXPECT_THAT(edit.try_get_or_insert(2), VariantWith<HamtError>(HamtError::kAllocationExhausted));
@@ -257,7 +261,7 @@ TEST_F(HamtNodeMapTest, HeterogeneousLookupAndEditUseTheStoredKeyWithoutChanging
   EXPECT_THAT(inserted.first.count(short{7}), Eq(0));
   EXPECT_THAT(inserted.first.find(short{42})->second, Eq(99));
   auto edit = inserted.first.transient();
-  auto found = edit.find(short{42});
+  auto found = edit.find(std::int16_t{42});
   found->second = 100;
   EXPECT_THAT(std::as_const(edit).at(short{42}), Eq(100));
   EXPECT_THAT(inserted.first.at(short{42}), Eq(99));
@@ -265,9 +269,9 @@ TEST_F(HamtNodeMapTest, HeterogeneousLookupAndEditUseTheStoredKeyWithoutChanging
 
 TEST_F(HamtNodeMapTest, PersistentMappedEditDetachesPayloadAndPreservesSnapshot) {
   using Map = HamtNodeMap<int, int>;
-  Map empty;
+  const Map empty;
   auto inserted = empty.insert({42, 99});
-  Map original = std::move(inserted.first);
+  const Map original = std::move(inserted.first);
   auto result = original.try_update(42, [](int& value) noexcept { value = 100; });
   auto* const updated = std::get_if<std::pair<Map, bool>>(&result);
   ASSERT_THAT(updated, NotNull());
@@ -304,7 +308,7 @@ TEST_F(HamtNodeMapTest, SizeLimitAllowsDuplicatesAndEmptyStorageReportsExhaustio
   EXPECT_THAT(inserted.first.at(1), Eq(10));
   using Bounded =
       HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1>>;
-  Bounded empty;
+  const Bounded empty;
   EXPECT_THAT(empty.try_insert({1, 10}), VariantWith<HamtError>(HamtError::kAllocationExhausted));
   EXPECT_THAT(empty.empty(), Eq(true));
   auto clone = std::move(inserted.first).try_clone_to<mbo::memory::InlineBlockSource<1>>();
@@ -314,7 +318,7 @@ TEST_F(HamtNodeMapTest, SizeLimitAllowsDuplicatesAndEmptyStorageReportsExhaustio
 
 TEST_F(HamtNodeMapTest, TransientAccessAndIterationPreservePublishedSnapshots) {
   using Map = HamtNodeMap<int, int>;
-  Map empty;
+  const Map empty;
   auto inserted = empty.insert({42, 99});
   auto edit = inserted.first.transient();
   edit.at(42) = 100;
@@ -331,6 +335,7 @@ TEST_F(HamtNodeMapTest, TransientAccessAndIterationPreservePublishedSnapshots) {
   EXPECT_THAT(edit.at(7), Eq(10));
   auto snapshot = std::move(edit).persistent();
   EXPECT_THAT(snapshot.at(42), Eq(101));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
   EXPECT_THAT(edit.empty(), Eq(true));
 }
 
@@ -347,11 +352,14 @@ TEST_F(HamtNodeMapTest, IndependentCloneAllocatesIndependentPayloads) {
 TEST_F(HamtNodeMapTest, DefaultInsertionClearSwapAndConsumingCloneLeaveReusableContainers) {
   using Map = HamtNodeMap<int, int>;
   auto edit = Map{}.transient();
-  edit[42] = 99;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Tests the public subscript API.
+  edit.operator[](42) = 99;
   EXPECT_THAT(edit.at(42), Eq(99));
-  EXPECT_THAT(edit[7], Eq(0));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Tests default insertion.
+  EXPECT_THAT(edit.operator[](7), Eq(0));
   auto other = Map{}.transient();
-  other[1] = 10;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Tests the public subscript API.
+  other.operator[](1) = 10;
   edit.swap(other);
   EXPECT_THAT(edit.at(1), Eq(10));
   EXPECT_THAT(other.at(42), Eq(99));
@@ -360,8 +368,10 @@ TEST_F(HamtNodeMapTest, DefaultInsertionClearSwapAndConsumingCloneLeaveReusableC
   const auto copy = std::move(cloned).value_or(Map{});
   EXPECT_THAT(copy.at(42), Eq(99));
   EXPECT_THAT(copy.at(7), Eq(0));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
   EXPECT_THAT(other.empty(), Eq(true));
-  other[2] = 20;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Verifies moved-from reuse.
+  other.operator[](2) = 20;
   EXPECT_THAT(other.at(2), Eq(20));
   other.clear();
   EXPECT_THAT(other.empty(), Eq(true));

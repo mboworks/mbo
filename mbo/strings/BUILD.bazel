@@ -22,6 +22,7 @@ cc_library(
     name = "string_id_cc",
     hdrs = ["string_id.h"],
     visibility = ["//visibility:public"],
+    deps = ["//mbo/types:strong_id_cc"],
 )
 
 cc_test(

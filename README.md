@@ -173,6 +173,9 @@ The C++ library is organized in functional groups each residing in their own dir
     - function `ParseStringList`: Parses and splits strings respecting C++ and custom escapes as well as quotes (all configurable).
   - mbo/strings:split_cc, mbo/strings/split.h
     - struct `AtLast`: Allows `absl::StrSplit' to split on the last occurrence of a separator.
+  - mbo/strings:string_id_cc, mbo/strings/string_id.h
+    - alias template `StringId`: A compact dense string identifier with selectable 8-, 16-, 32-,
+      or 64-bit unsigned representation, an invalid default state, and no arithmetic operations.
   - mbo/strings:strip_cc, mbo/strings/strip.h
     - function `ConsumePrefix`: Removes a prefix from a `std::string` (like `absl::ConsumePrefix`).
     - function `ConsumeSuffix`: Removes a suffix from a `std::string` (like `absl::ConsumeSuffix`).

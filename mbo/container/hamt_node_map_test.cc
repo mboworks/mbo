@@ -349,6 +349,14 @@ TEST_F(HamtNodeMapTest, IndependentCloneAllocatesIndependentPayloads) {
   EXPECT_THAT(&copy.at(42) == &inserted.first.at(42), Eq(false));
 }
 
+TEST_F(HamtNodeMapTest, MissingRequiredAccessTerminatesForPersistentAndTransientMaps) {
+  using Map = HamtNodeMap<int, int>;
+  const Map empty;
+  EXPECT_DEATH(static_cast<void>(empty.at(42)), "");
+  auto edit = empty.transient();
+  EXPECT_DEATH(static_cast<void>(edit.at(42)), "");
+}
+
 TEST_F(HamtNodeMapTest, DefaultInsertionClearSwapAndConsumingCloneLeaveReusableContainers) {
   using Map = HamtNodeMap<int, int>;
   auto edit = Map{}.transient();

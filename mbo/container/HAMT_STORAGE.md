@@ -39,7 +39,11 @@ Entry copies and destruction must be non-throwing. Unexpected source exceptions 
 the allocation method's `noexcept` contract. Atomic reference counting protects reference updates,
 not mutation of entries, topology, publication, or source access. Callers must already hold a live
 reference before retaining; using a released node or releasing an unowned reference is invalid.
-The reference count is 32-bit; callers must not retain when the count is already its maximum.
+The reference count is 32-bit. Retaining at its maximum terminates without wrapping
+the count; this is a fatal ownership-capacity violation, not recoverable allocation
+failure. The checked increment also rejects zero rather than resurrecting ownership.
+That check does not make retaining a freed node valid: the caller must already hold
+a live reference, and accessing freed reference-count storage is undefined behavior.
 Higher-level persistent operations retain immutable nodes; direct mutable spans are internal
 construction machinery and must not modify nodes shared by snapshots.
 

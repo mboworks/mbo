@@ -121,6 +121,10 @@ class HamtNodeValue final {
 
   const Value* get() const noexcept { return control_ == nullptr ? nullptr : std::addressof(control_->value); }
 
+  // Nonallocating access for prepared mutable traversal. Shared and empty
+  // handles return nullptr; this does not perform copy-on-write.
+  Value* get_unique_mutable() noexcept { return is_unique() ? std::addressof(control_->value) : nullptr; }
+
   bool is_unique() const noexcept {
     return control_ != nullptr && control_->references.load(std::memory_order_acquire) == 1;
   }

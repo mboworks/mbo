@@ -4,7 +4,10 @@
 #include "mbo/container/internal/hamt_shared_node.h"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <optional>
 
 #include "gmock/gmock.h"
@@ -106,6 +109,20 @@ TEST_F(HamtSharedNodeTest, PromotionRejectsInvalidOccupancyAndPositionsBeforeAll
   Node::Release(source, collision);
   Node::Release(source, empty);
   EXPECT_THAT(source.released, Eq(source.acquired));
+}
+
+TEST_F(HamtSharedNodeTest, ReferenceRetainRejectsOverflowAndResurrectionWithoutChangingTheCount) {
+  std::atomic<std::uint32_t> references{1};
+  EXPECT_THAT(TryRetainHamtReference(references), Eq(true));
+  EXPECT_THAT(references.load(), Eq(2));
+  references.store(std::numeric_limits<std::uint32_t>::max() - 1);
+  EXPECT_THAT(TryRetainHamtReference(references), Eq(true));
+  EXPECT_THAT(references.load(), Eq(std::numeric_limits<std::uint32_t>::max()));
+  EXPECT_THAT(TryRetainHamtReference(references), Eq(false));
+  EXPECT_THAT(references.load(), Eq(std::numeric_limits<std::uint32_t>::max()));
+  references.store(0);
+  EXPECT_THAT(TryRetainHamtReference(references), Eq(false));
+  EXPECT_THAT(references.load(), Eq(0));
 }
 
 TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {

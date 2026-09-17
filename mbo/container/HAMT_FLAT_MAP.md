@@ -24,7 +24,7 @@ responsibility, just as for copies of ordinary standard containers.
 `at(key)` provides a const mapped reference and terminates for a missing key.
 Ordinary insertion/erasure terminate on bounded failure; `try_` operations report
 allocation exhaustion separately from maximum size. Neither throwing user callbacks
-nor throwing entry copy/move construction are supported. `TryCreate` separately
+nor throwing entry copy/move construction are supported. `try_create` separately
 reports allocation-domain creation failure with `std::nullopt`.
 
 Transient nonconst `at` detaches a shared path before returning a mutable mapped

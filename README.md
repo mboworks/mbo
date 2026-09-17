@@ -253,6 +253,14 @@ The C++ library is organized in functional groups each residing in their own dir
     - template-type `RefWrap<T>`: similar to `std::reference_wrapper` but supports operators `->` and `*`.
   - mbo/types:required_cc, mbo/types/required.h
     - template-type `Required<T>`: similar to `RefWrap` but stores the actual type (and unlike `std::optional` cannot be reset).
+  - mbo/types:strong_id_cc, mbo/types/strong_id.h
+    - class template `ConstStrongId`: An invalid-defaulted, unsigned nominal identifier with explicit
+      validity, comparison, Abseil and standard hashing, and no arithmetic operations.
+  - mbo/types:strong_ordinal_cc, mbo/types/strong_ordinal.h
+    - class template `ConstStrongOrdinal`: A zero-defaulted immutable nominal signed or unsigned
+      ordinal with checked non-mutating arithmetic.
+    - class template `StrongOrdinal`: The mutable ordinal counterpart with checked assignment,
+      compound arithmetic, and increment/decrement operations.
   - mbo/types:string_or_view_cc, mbo/types/string_or_view.h
     - class `mbo::StringOrView`: Read-only text that either owns a `std::string` or borrows a `std::string_view`, with the applicable string-view interface plus stream, formatting, comparison, and hashing integration.
   - mbo/types:stringify_cc, mbo/types/stringify.h

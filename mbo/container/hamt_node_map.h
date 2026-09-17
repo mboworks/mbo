@@ -14,6 +14,7 @@
 #include <variant>
 
 #include "mbo/container/hamt_options.h"
+#include "mbo/container/internal/hamt_contract.h"
 #include "mbo/container/internal/hamt_key_of.h"
 #include "mbo/container/internal/hamt_node_iterator.h"
 #include "mbo/container/internal/hamt_node_key_of.h"
@@ -112,9 +113,7 @@ class HamtNodeMap final {
   requires requires(const Tree& tree, const LookupKey& key) { tree.Find(key); }
   const Mapped& at(const LookupKey& key) const noexcept {
     const auto* const entry = owned_.tree().Find(key);
-    if (entry == nullptr) {
-      std::terminate();
-    }
+    container_internal::RequireHamtValue(entry);
     return entry->get()->second;
   }
 
@@ -523,9 +522,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
  private:
   static Mapped& RequireMapped(access_result result) noexcept {
     Mapped* const mapped = std::get<Mapped*>(result);
-    if (mapped == nullptr) {
-      std::terminate();
-    }
+    container_internal::RequireHamtValue(mapped);
     return *mapped;
   }
 

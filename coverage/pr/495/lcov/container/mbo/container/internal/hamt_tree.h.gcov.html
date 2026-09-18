@@ -1,0 +1,458 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - container/mbo/container/internal/hamt_tree.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+  <style>
+    .mboNavigation { padding: .35rem 0; text-align: center; }
+    .mboHeaderSummary { margin: 0 auto; width: 80%; }
+    .mboPolicy { border-collapse: collapse; margin: .75rem auto 1rem; width: auto; }
+    .mboPolicy th { padding: .2rem .75rem; text-align: left; }
+    .mboPolicy td { font-size: 100%; padding: .2rem .75rem; text-align: center; }
+  </style>
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="mboNavigation"><a href="../../../../../index.html">Report overview</a> &middot; <a href="../../../../../../../index.html">All coverage reports</a></td></tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table class="mboHeaderSummary" cellpadding=1 border=0>
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../../index.html" title="Click to go to top-level">top level</a> - <a href="../../../index.html" title="Click to go to directory container">container</a>/<a href="../../index.html" title="Click to go to directory mbo">mbo</a>/<a href="../index.html" title="Click to go to directory container">container</a>/<a href="index.html" title="Click to go to directory internal">internal</a> - hamt_tree.h<span style="font-size: 80%;"> (source / <a href="hamt_tree.h.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">175</td>
+            <td class="headerCovTableEntry">175</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-18 09:03:11</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntry">33</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">36</td>
+            <td class="headerCovTableEntry">36</td>
+          </tr>
+                  <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : </span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : #ifndef MBO_CONTAINER_INTERNAL_HAMT_TREE_H_</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : #define MBO_CONTAINER_INTERNAL_HAMT_TREE_H_</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : </span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : #include &lt;algorithm&gt;</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : #include &lt;concepts&gt;</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : #include &lt;functional&gt;</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : #include &lt;optional&gt;</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : #include &lt;type_traits&gt;</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : #include &lt;utility&gt;</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : #include &lt;variant&gt;</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #include &quot;mbo/container/hamt_options.h&quot;</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #include &quot;mbo/container/internal/hamt_clone.h&quot;</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : #include &quot;mbo/container/internal/hamt_erase.h&quot;</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &quot;mbo/container/internal/hamt_insert.h&quot;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &quot;mbo/container/internal/hamt_iterator.h&quot;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &quot;mbo/container/internal/hamt_lookup.h&quot;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : #include &quot;mbo/container/internal/hamt_replace.h&quot;</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : #include &quot;mbo/container/internal/hamt_root_owner.h&quot;</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : #include &quot;mbo/container/internal/hamt_update.h&quot;</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : #include &quot;mbo/memory/block_source.h&quot;</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : </span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : namespace mbo::container::container_internal {</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : </span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : struct HamtMutationResult final {</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             :   bool changed = false;</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             :   std::optional&lt;HamtError&gt; error;</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : };</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : </span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : // Shared map/set implementation over immutable stored entries. Mutations use</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : // path copying; copying this value retains its root, not its entries. The source</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // is borrowed and must outlive all snapshots. Public wrappers supply its domain.</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // NOLINTBEGIN(readability-identifier-naming): container vocabulary.</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : template&lt;</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             :     HamtOptions Options,</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             :     typename Entry,</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             :     typename Hash,</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             :     typename KeyOf,</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             :     typename Equal,</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             :     mbo::memory::BlockSource Source&gt;</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : requires ValidHamtOptions&lt;Options&gt;</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : class HamtTree final {</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             :  public:</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :   using value_type = Entry;</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             :   using size_type = std::size_t;</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             :   using key_type = std::remove_cvref_t&lt;std::invoke_result_t&lt;const KeyOf&amp;, const Entry&amp;&gt;&gt;;</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             :   using hash_type = std::invoke_result_t&lt;const Hash&amp;, const key_type&amp;&gt;;</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             :   using node_type = HamtSharedNode&lt;Options.fragment_bits, Entry&gt;;</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             :   using iterator = HamtIterator&lt;Options.fragment_bits, Entry&gt;;</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             :   using const_iterator = iterator;</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             :   using mutable_iterator = HamtIterator&lt;Options.fragment_bits, Entry, true&gt;;</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             : </span>
+<span id="L57"><span class="lineNum">      57</span>                 :             :   static_assert(std::unsigned_integral&lt;hash_type&gt;);</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             :   static_assert(std::is_nothrow_copy_constructible_v&lt;Entry&gt; &amp;&amp; std::is_nothrow_move_constructible_v&lt;Entry&gt;);</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             :   static_assert(std::is_nothrow_invocable_v&lt;const KeyOf&amp;, const Entry&amp;&gt;);</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             :   static_assert(std::is_nothrow_invocable_r_v&lt;hash_type, const Hash&amp;, const key_type&amp;&gt;);</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             :   static_assert(std::is_nothrow_invocable_r_v&lt;bool, const Equal&amp;, const key_type&amp;, const key_type&amp;&gt;);</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :   static_assert(std::is_nothrow_copy_constructible_v&lt;Hash&gt; &amp;&amp; std::is_nothrow_move_constructible_v&lt;Hash&gt;);</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             :   static_assert(std::is_nothrow_copy_constructible_v&lt;KeyOf&gt; &amp;&amp; std::is_nothrow_move_constructible_v&lt;KeyOf&gt;);</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :   static_assert(std::is_nothrow_copy_constructible_v&lt;Equal&gt; &amp;&amp; std::is_nothrow_move_constructible_v&lt;Equal&gt;);</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :   static_assert(</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             :       std::is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp; std::is_nothrow_swappable_v&lt;KeyOf&gt; &amp;&amp; std::is_nothrow_swappable_v&lt;Equal&gt;);</span>
+<span id="L67"><span class="lineNum">      67</span>                 :             :   static_assert(</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             :       std::is_nothrow_destructible_v&lt;Hash&gt; &amp;&amp; std::is_nothrow_destructible_v&lt;KeyOf&gt;</span>
+<span id="L69"><span class="lineNum">      69</span>                 :             :       &amp;&amp; std::is_nothrow_destructible_v&lt;Equal&gt;);</span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : </span>
+<span id="L71"><span class="lineNum">      71</span>                 :             :   HamtTree(Source&amp; source, Hash hash, KeyOf key_of, Equal equal) noexcept</span>
+<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">         111 :       : hash_(std::move(hash)), key_of_(std::move(key_of)), equal_(std::move(equal)), root_(source) {}</span></span>
+<span id="L73"><span class="lineNum">      73</span>                 :             : </span>
+<span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">          94 :   HamtTree(const HamtTree&amp;) noexcept = default;</span></span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : </span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">           1 :   HamtTree&amp; operator=(const HamtTree&amp; other) noexcept {</span></span>
+<span id="L77"><span class="lineNum">      77</span>                 :<span class="tlaGNC">           1 :     HamtTree copied(other);</span></span>
+<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">           1 :     swap(copied);</span></span>
+<span id="L79"><span class="lineNum">      79</span>                 :<span class="tlaGNC">           1 :     return *this;</span></span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">           1 :   }</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :             : </span>
+<span id="L82"><span class="lineNum">      82</span>                 :             :   HamtTree(HamtTree&amp;&amp; other) noexcept</span>
+<span id="L83"><span class="lineNum">      83</span>                 :<span class="tlaGNC">         439 :       : hash_(other.hash_),</span></span>
+<span id="L84"><span class="lineNum">      84</span>                 :<span class="tlaGNC">         439 :         key_of_(other.key_of_),</span></span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaGNC">         439 :         equal_(other.equal_),</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :<span class="tlaGNC">         439 :         root_(std::move(other.root_)),</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">         439 :         size_(std::exchange(other.size_, 0)) {}</span></span>
+<span id="L88"><span class="lineNum">      88</span>                 :             : </span>
+<span id="L89"><span class="lineNum">      89</span>                 :<span class="tlaGNC">           1 :   HamtTree&amp; operator=(HamtTree&amp;&amp; other) noexcept {</span></span>
+<span id="L90"><span class="lineNum">      90</span>                 :<span class="tlaGNC">           1 :     HamtTree moved(std::move(other));</span></span>
+<span id="L91"><span class="lineNum">      91</span>                 :<span class="tlaGNC">           1 :     swap(moved);</span></span>
+<span id="L92"><span class="lineNum">      92</span>                 :<span class="tlaGNC">           1 :     return *this;</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">           1 :   }</span></span>
+<span id="L94"><span class="lineNum">      94</span>                 :             : </span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">         644 :   ~HamtTree() = default;</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :             : </span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">         603 :   std::size_t size() const noexcept { return size_; }</span></span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : </span>
+<span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">          39 :   bool empty() const noexcept { return size_ == 0; }</span></span>
+<span id="L100"><span class="lineNum">     100</span>                 :             : </span>
+<span id="L101"><span class="lineNum">     101</span>                 :<span class="tlaGNC">         971 :   static constexpr std::size_t max_size() noexcept { return Options.maximum_size; }</span></span>
+<span id="L102"><span class="lineNum">     102</span>                 :             : </span>
+<span id="L103"><span class="lineNum">     103</span>                 :<span class="tlaGNC">          13 :   const Hash&amp; hash_function() const noexcept { return hash_; }</span></span>
+<span id="L104"><span class="lineNum">     104</span>                 :             : </span>
+<span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">           8 :   const Equal&amp; key_eq() const noexcept { return equal_; }</span></span>
+<span id="L106"><span class="lineNum">     106</span>                 :             : </span>
+<span id="L107"><span class="lineNum">     107</span>                 :<span class="tlaGNC">          62 :   iterator begin() const noexcept { return iterator(root_.get(), this); }</span></span>
+<span id="L108"><span class="lineNum">     108</span>                 :             : </span>
+<span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">          56 :   static iterator end() noexcept { return {}; }</span></span>
+<span id="L110"><span class="lineNum">     110</span>                 :             : </span>
+<span id="L111"><span class="lineNum">     111</span>                 :<span class="tlaGNC">        1091 :   [[nodiscard]] std::optional&lt;HamtError&gt; TryMakeUnique() noexcept {</span></span>
+<span id="L112"><span class="lineNum">     112</span>         [<span class="tlaGBC" title="branch 0 was taken 1073 times"> + </span><span class="tlaGBC" title="branch 1 was taken 18 times"> + </span>]:<span class="tlaGNC">        1091 :     if (AllUnique(root_.get())) {</span></span>
+<span id="L113"><span class="lineNum">     113</span>                 :<span class="tlaGNC">        1073 :       return std::nullopt;</span></span>
+<span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">        1073 :     }</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">          18 :     const auto cloned = TryCloneHamtTree(root_.source(), root_.get());</span></span>
+<span id="L116"><span class="lineNum">     116</span>         [<span class="tlaGBC" title="branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">          18 :     if (!cloned) {</span></span>
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">          11 :       return HamtError::kAllocationExhausted;</span></span>
+<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">          11 :     }</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaGNC">           7 :     root_.reset(*cloned);</span></span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">           7 :     return std::nullopt;</span></span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">          18 :   }</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :             : </span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">         539 :   [[nodiscard]] std::variant&lt;mutable_iterator, HamtError&gt; TryMutableBegin() noexcept {</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">         539 :     const auto error = TryMakeUnique();</span></span>
+<span id="L125"><span class="lineNum">     125</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 536 times"> + </span>]:<span class="tlaGNC">         539 :     if (error) {</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">           3 :       return *error;</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">           3 :     }</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">         536 :     return mutable_iterator(root_.get(), this);</span></span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaGNC">         539 :   }</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :             : </span>
+<span id="L131"><span class="lineNum">     131</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L132"><span class="lineNum">     132</span>                 :             :   requires(</span>
+<span id="L133"><span class="lineNum">     133</span>                 :             :       std::is_nothrow_invocable_r_v&lt;hash_type, const Hash&amp;, const Key&amp;&gt;</span>
+<span id="L134"><span class="lineNum">     134</span>                 :             :       &amp;&amp; std::is_nothrow_invocable_r_v&lt;bool, const Equal&amp;, const key_type&amp;, const Key&amp;&gt;)</span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">        2122 :   const Entry* Find(const Key&amp; key) const noexcept {</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">        2122 :     return FindHamtEntry(</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">        2122 :         root_.get(), std::invoke(hash_, key), key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);</span></span>
+<span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">        2122 :   }</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :             : </span>
+<span id="L140"><span class="lineNum">     140</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L141"><span class="lineNum">     141</span>                 :             :   requires requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">          43 :   iterator find(const Key&amp; key) const noexcept {</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">          43 :     const hash_type hash = std::invoke(hash_, key);</span></span>
+<span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">          43 :     const Entry* const found =</span></span>
+<span id="L145"><span class="lineNum">     145</span>                 :<span class="tlaGNC">          43 :         FindHamtEntry(root_.get(), hash, key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);</span></span>
+<span id="L146"><span class="lineNum">     146</span>                 :<span class="tlaGNC">          43 :     return iterator::At(root_.get(), hash, found, this);</span></span>
+<span id="L147"><span class="lineNum">     147</span>                 :<span class="tlaGNC">          43 :   }</span></span>
+<span id="L148"><span class="lineNum">     148</span>                 :             : </span>
+<span id="L149"><span class="lineNum">     149</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L150"><span class="lineNum">     150</span>                 :             :   requires requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">         287 :   [[nodiscard]] std::variant&lt;mutable_iterator, HamtError&gt; TryMutableFind(const Key&amp; key) noexcept {</span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">         287 :     const Entry* const original = Find(key);</span></span>
+<span id="L153"><span class="lineNum">     153</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 285 times"> + </span>]:<span class="tlaGNC">         287 :     if (original == nullptr) {</span></span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">           2 :       return mutable_iterator{};</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaGNC">         285 :     const hash_type hash = std::invoke(hash_, key);</span></span>
+<span id="L157"><span class="lineNum">     157</span>         [<span class="tlaGBC" title="branch 0 was taken 277 times"> + </span><span class="tlaGBC" title="branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">         285 :     if (AllUnique(root_.get())) {</span></span>
+<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">         277 :       Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, original);</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">         277 :       return mutable_iterator::At(root_.get(), hash, found, this);</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">         277 :     }</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :             :     // A lookup key may borrow a unique node released while detaching the tree.</span>
+<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">           8 :     const Entry lookup = *original;</span></span>
+<span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">           8 :     const auto error = TryMakeUnique();</span></span>
+<span id="L164"><span class="lineNum">     164</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           8 :     if (error) {</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">           4 :       return *error;</span></span>
+<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">           4 :     const Entry* const target = Find(std::invoke(key_of_, lookup));</span></span>
+<span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">           4 :     Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target);</span></span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">           4 :     return mutable_iterator::At(root_.get(), hash, found, this);</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           8 :   }</span></span>
+<span id="L171"><span class="lineNum">     171</span>                 :             : </span>
+<span id="L172"><span class="lineNum">     172</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L173"><span class="lineNum">     173</span>                 :             :   requires requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L174"><span class="lineNum">     174</span>                 :<span class="tlaGNC">         340 :   bool contains(const Key&amp; key) const noexcept {</span></span>
+<span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">         340 :     return Find(key) != nullptr;</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">         340 :   }</span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :             : </span>
+<span id="L178"><span class="lineNum">     178</span>                 :             :   // Detach a shared path before public wrappers expose its mapped value.</span>
+<span id="L179"><span class="lineNum">     179</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L180"><span class="lineNum">     180</span>                 :             :   requires requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L181"><span class="lineNum">     181</span>                 :<span class="tlaGNC">         291 :   [[nodiscard]] std::variant&lt;Entry*, HamtError&gt; TryGetMutable(const Key&amp; key) noexcept {</span></span>
+<span id="L182"><span class="lineNum">     182</span>                 :<span class="tlaGNC">         291 :     const Entry* target = Find(key);</span></span>
+<span id="L183"><span class="lineNum">     183</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 281 times"> + </span>]:<span class="tlaGNC">         291 :     if (target == nullptr) {</span></span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">          10 :       return static_cast&lt;Entry*&gt;(nullptr);</span></span>
+<span id="L185"><span class="lineNum">     185</span>                 :<span class="tlaGNC">          10 :     }</span></span>
+<span id="L186"><span class="lineNum">     186</span>                 :<span class="tlaGNC">         281 :     const hash_type hash = std::invoke(hash_, key);</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :             :     // The returned pointer intentionally grants the caller mutable mapped-value access.</span>
+<span id="L188"><span class="lineNum">     188</span>                 :             :     // NOLINTNEXTLINE(misc-const-correctness): Mutability is this operation's contract.</span>
+<span id="L189"><span class="lineNum">     189</span>         [<span class="tlaGBC" title="branch 0 was taken 224 times"> + </span><span class="tlaGBC" title="branch 1 was taken 57 times"> + </span>]:<span class="tlaGNC">         281 :     if (Entry* const unique = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target); unique != nullptr) {</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">         224 :       return unique;</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">         224 :     }</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">          57 :     const auto detached = try_update(key, [](Entry&amp;) noexcept {});</span></span>
+<span id="L193"><span class="lineNum">     193</span>         [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 54 times"> + </span>]:<span class="tlaGNC">          57 :     if (detached.error) {</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           3 :       return *detached.error;</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">           3 :     }</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">          54 :     target = Find(key);</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">          54 :     return hamt_update_internal::FindUniqueEntry(root_.get(), hash, target);</span></span>
+<span id="L198"><span class="lineNum">     198</span>                 :<span class="tlaGNC">          57 :   }</span></span>
+<span id="L199"><span class="lineNum">     199</span>                 :             : </span>
+<span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">         389 :   [[nodiscard]] HamtMutationResult try_insert(const Entry&amp; entry) noexcept {</span></span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">         389 :     const auto&amp; key = std::invoke(key_of_, entry);</span></span>
+<span id="L202"><span class="lineNum">     202</span> [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 384 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">         389 :     if (size_ == max_size() &amp;&amp; Find(key) == nullptr) {</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">           2 :       return {.error = HamtError::kMaxSizeExceeded};</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L205"><span class="lineNum">     205</span>                 :<span class="tlaGNC">         387 :     const auto inserted = TryInsertHamtEntry(</span></span>
+<span id="L206"><span class="lineNum">     206</span>                 :<span class="tlaGNC">         387 :         root_.source(), root_.get(), std::invoke(hash_, key), key, entry, EntryHash{.hash = hash_, .key_of = key_of_},</span></span>
+<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">         387 :         key_of_, equal_);</span></span>
+<span id="L208"><span class="lineNum">     208</span>         [<span class="tlaGBC" title="branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="branch 1 was taken 378 times"> + </span>]:<span class="tlaGNC">         387 :     if (!inserted) {</span></span>
+<span id="L209"><span class="lineNum">     209</span>                 :<span class="tlaGNC">           9 :       return {.error = HamtError::kAllocationExhausted};</span></span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">           9 :     }</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">         378 :     root_.reset(inserted-&gt;root);</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">         378 :     size_ += static_cast&lt;std::size_t&gt;(inserted-&gt;inserted);</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">         378 :     return {.changed = inserted-&gt;inserted};</span></span>
+<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">         387 :   }</span></span>
+<span id="L215"><span class="lineNum">     215</span>                 :             : </span>
+<span id="L216"><span class="lineNum">     216</span>                 :             :   template&lt;typename Key&gt;</span>
+<span id="L217"><span class="lineNum">     217</span>                 :             :   requires requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L218"><span class="lineNum">     218</span>                 :<span class="tlaGNC">         282 :   [[nodiscard]] HamtMutationResult try_erase(const Key&amp; key) noexcept {</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">         282 :     const auto erased = TryEraseHamtEntry(</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :<span class="tlaGNC">         282 :         root_.source(), root_.get(), std::invoke(hash_, key), key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_,</span></span>
+<span id="L221"><span class="lineNum">     221</span>                 :<span class="tlaGNC">         282 :         equal_);</span></span>
+<span id="L222"><span class="lineNum">     222</span>         [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 274 times"> + </span>]:<span class="tlaGNC">         282 :     if (!erased) {</span></span>
+<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">           8 :       return {.error = HamtError::kAllocationExhausted};</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">           8 :     }</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">         274 :     root_.reset(erased-&gt;root);</span></span>
+<span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">         274 :     size_ -= static_cast&lt;std::size_t&gt;(erased-&gt;erased);</span></span>
+<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">         274 :     return {.changed = erased-&gt;erased};</span></span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">         282 :   }</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :             : </span>
+<span id="L230"><span class="lineNum">     230</span>                 :             :   // Public map wrappers preserve the original immutable key in replacement.</span>
+<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">           3 :   [[nodiscard]] HamtMutationResult try_replace(const Entry&amp; replacement) noexcept {</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">           3 :     const auto&amp; key = std::invoke(key_of_, replacement);</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           3 :     const auto replaced = TryReplaceHamtEntry(</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">           3 :         root_.source(), root_.get(), std::invoke(hash_, key), key, replacement,</span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaGNC">           3 :         EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);</span></span>
+<span id="L236"><span class="lineNum">     236</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     if (!replaced) {</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">           1 :       return {.error = HamtError::kAllocationExhausted};</span></span>
+<span id="L238"><span class="lineNum">     238</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">           2 :     root_.reset(replaced-&gt;root);</span></span>
+<span id="L240"><span class="lineNum">     240</span>                 :<span class="tlaGNC">           2 :     return {.changed = replaced-&gt;replaced};</span></span>
+<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">           3 :   }</span></span>
+<span id="L242"><span class="lineNum">     242</span>                 :             : </span>
+<span id="L243"><span class="lineNum">     243</span>                 :             :   template&lt;typename Key, typename Editor&gt;</span>
+<span id="L244"><span class="lineNum">     244</span>                 :             :   requires(</span>
+<span id="L245"><span class="lineNum">     245</span>                 :             :       requires(const HamtTree&amp; tree, const Key&amp; key) { tree.Find(key); }</span>
+<span id="L246"><span class="lineNum">     246</span>                 :             :       &amp;&amp; std::is_nothrow_invocable_v&lt;const Editor&amp;, Entry&amp;&gt;</span>
+<span id="L247"><span class="lineNum">     247</span>                 :             :       &amp;&amp; std::same_as&lt;std::invoke_result_t&lt;const Editor&amp;, Entry&amp;&gt;, void&gt;)</span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">          70 :   [[nodiscard]] HamtMutationResult try_update(const Key&amp; key, const Editor&amp; editor) noexcept {</span></span>
+<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">          70 :     const auto updated = TryUpdateHamtEntry(</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">          70 :         root_.source(), root_.get(), std::invoke(hash_, key), key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_,</span></span>
+<span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">          70 :         equal_, editor);</span></span>
+<span id="L252"><span class="lineNum">     252</span>         [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 64 times"> + </span>]:<span class="tlaGNC">          70 :     if (!updated) {</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">           6 :       return {.error = HamtError::kAllocationExhausted};</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">           6 :     }</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">          64 :     root_.reset(updated-&gt;root);</span></span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          64 :     return {.changed = updated-&gt;replaced};</span></span>
+<span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          70 :   }</span></span>
+<span id="L258"><span class="lineNum">     258</span>                 :             : </span>
+<span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">          12 :   void clear() noexcept {</span></span>
+<span id="L260"><span class="lineNum">     260</span>                 :<span class="tlaGNC">          12 :     root_.reset();</span></span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">          12 :     size_ = 0;</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">          12 :   }</span></span>
+<span id="L263"><span class="lineNum">     263</span>                 :             : </span>
+<span id="L264"><span class="lineNum">     264</span>                 :<span class="tlaGNC">           9 :   void swap(HamtTree&amp; other) noexcept {</span></span>
+<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">           9 :     using std::swap;</span></span>
+<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">           9 :     swap(hash_, other.hash_);</span></span>
+<span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">           9 :     swap(key_of_, other.key_of_);</span></span>
+<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">           9 :     swap(equal_, other.equal_);</span></span>
+<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">           9 :     root_.swap(other.root_);</span></span>
+<span id="L270"><span class="lineNum">     270</span>                 :<span class="tlaGNC">           9 :     swap(size_, other.size_);</span></span>
+<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">           9 :   }</span></span>
+<span id="L272"><span class="lineNum">     272</span>                 :             : </span>
+<span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">           1 :   friend void swap(HamtTree&amp; lhs, HamtTree&amp; rhs) noexcept { lhs.swap(rhs); }</span></span>
+<span id="L274"><span class="lineNum">     274</span>                 :             : </span>
+<span id="L275"><span class="lineNum">     275</span>                 :             :   // Internal adoption: count must match the valid tree, inside the maximum.</span>
+<span id="L276"><span class="lineNum">     276</span>                 :             :   static HamtTree Adopt(</span>
+<span id="L277"><span class="lineNum">     277</span>                 :             :       Source&amp; source,</span>
+<span id="L278"><span class="lineNum">     278</span>                 :             :       node_type* owned,</span>
+<span id="L279"><span class="lineNum">     279</span>                 :             :       std::size_t count,</span>
+<span id="L280"><span class="lineNum">     280</span>                 :             :       Hash hash,</span>
+<span id="L281"><span class="lineNum">     281</span>                 :             :       KeyOf key_of,</span>
+<span id="L282"><span class="lineNum">     282</span>                 :<span class="tlaGNC">          10 :       Equal equal) noexcept {</span></span>
+<span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">          10 :     HamtTree tree(source, std::move(hash), std::move(key_of), std::move(equal));</span></span>
+<span id="L284"><span class="lineNum">     284</span>                 :<span class="tlaGNC">          10 :     tree.root_.reset(owned);</span></span>
+<span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">          10 :     tree.size_ = count;</span></span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">          10 :     return tree;</span></span>
+<span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">          10 :   }</span></span>
+<span id="L288"><span class="lineNum">     288</span>                 :             : </span>
+<span id="L289"><span class="lineNum">     289</span>                 :             :   template&lt;mbo::memory::BlockSource OtherSource&gt;</span>
+<span id="L290"><span class="lineNum">     290</span>                 :             :   [[nodiscard]] std::optional&lt;HamtTree&lt;Options, Entry, Hash, KeyOf, Equal, OtherSource&gt;&gt; try_clone_to(</span>
+<span id="L291"><span class="lineNum">     291</span>                 :<span class="tlaGNC">          15 :       OtherSource&amp; destination) const noexcept {</span></span>
+<span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaGNC">          15 :     const auto cloned = TryCloneHamtTree(destination, root_.get());</span></span>
+<span id="L293"><span class="lineNum">     293</span>         [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          15 :     if (!cloned) {</span></span>
+<span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaGNC">           5 :       return std::nullopt;</span></span>
+<span id="L295"><span class="lineNum">     295</span>                 :<span class="tlaGNC">           5 :     }</span></span>
+<span id="L296"><span class="lineNum">     296</span>                 :<span class="tlaGNC">          10 :     using OtherTree = HamtTree&lt;Options, Entry, Hash, KeyOf, Equal, OtherSource&gt;;</span></span>
+<span id="L297"><span class="lineNum">     297</span>                 :<span class="tlaGNC">          10 :     return OtherTree::Adopt(destination, *cloned, size_, hash_, key_of_, equal_);</span></span>
+<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">          15 :   }</span></span>
+<span id="L299"><span class="lineNum">     299</span>                 :             : </span>
+<span id="L300"><span class="lineNum">     300</span>                 :             :  private:</span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">        7168 :   static bool AllUnique(const node_type* node) noexcept {</span></span>
+<span id="L302"><span class="lineNum">     302</span>         [<span class="tlaGBC" title="branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="branch 1 was taken 7144 times"> + </span>]:<span class="tlaGNC">        7168 :     if (node == nullptr) {</span></span>
+<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">          24 :       return true;</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">          24 :     }</span></span>
+<span id="L305"><span class="lineNum">     305</span>         [<span class="tlaGBC" title="branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="branch 1 was taken 7118 times"> + </span>]:<span class="tlaGNC">        7144 :     if (!node-&gt;is_unique()) {</span></span>
+<span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">          26 :       return false;</span></span>
+<span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">          26 :     }</span></span>
+<span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">        7118 :     return std::ranges::all_of(node-&gt;children(), [](const node_type* child) noexcept { return AllUnique(child); });</span></span>
+<span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">        7144 :   }</span></span>
+<span id="L310"><span class="lineNum">     310</span>                 :             : </span>
+<span id="L311"><span class="lineNum">     311</span>                 :             :   struct EntryHash final {</span>
+<span id="L312"><span class="lineNum">     312</span>                 :             :     const Hash&amp; hash;</span>
+<span id="L313"><span class="lineNum">     313</span>                 :             :     const KeyOf&amp; key_of;</span>
+<span id="L314"><span class="lineNum">     314</span>                 :             : </span>
+<span id="L315"><span class="lineNum">     315</span>                 :<span class="tlaGNC">        2390 :     hash_type operator()(const Entry&amp; entry) const noexcept { return std::invoke(hash, std::invoke(key_of, entry)); }</span></span>
+<span id="L316"><span class="lineNum">     316</span>                 :             :   };</span>
+<span id="L317"><span class="lineNum">     317</span>                 :             : </span>
+<span id="L318"><span class="lineNum">     318</span>                 :             :   [[no_unique_address]] Hash hash_;</span>
+<span id="L319"><span class="lineNum">     319</span>                 :             :   [[no_unique_address]] KeyOf key_of_;</span>
+<span id="L320"><span class="lineNum">     320</span>                 :             :   [[no_unique_address]] Equal equal_;</span>
+<span id="L321"><span class="lineNum">     321</span>                 :             :   HamtRootOwner&lt;Options.fragment_bits, Entry, Source&gt; root_;</span>
+<span id="L322"><span class="lineNum">     322</span>                 :             :   std::size_t size_ = 0;</span>
+<span id="L323"><span class="lineNum">     323</span>                 :             : };</span>
+<span id="L324"><span class="lineNum">     324</span>                 :             : </span>
+<span id="L325"><span class="lineNum">     325</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L326"><span class="lineNum">     326</span>                 :             : </span>
+<span id="L327"><span class="lineNum">     327</span>                 :             : }  // namespace mbo::container::container_internal</span>
+<span id="L328"><span class="lineNum">     328</span>                 :             : </span>
+<span id="L329"><span class="lineNum">     329</span>                 :             : #endif  // MBO_CONTAINER_INTERNAL_HAMT_TREE_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table class="mboPolicy">
+            <thead>
+              <tr>
+                <th scope="col">Global coverage policy</th>
+                <th scope="col">Low</th>
+                <th scope="col">Medium</th>
+                <th scope="col">High</th>
+                <th scope="col">Enforced</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row">Lines</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Branches</th>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 90%</td>
+              <td class="headerValueLegH">&ge; 90%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Functions</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            </tbody>
+          </table>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

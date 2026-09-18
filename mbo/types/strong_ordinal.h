@@ -151,7 +151,9 @@ class MBO_CONFIG_TRIVIAL_ABI StrongOrdinal : public ConstStrongOrdinal<Tag, Repr
   constexpr StrongOrdinal(StrongOrdinal&&) noexcept = default;
 
   constexpr StrongOrdinal& operator=(const StrongOrdinal& other) noexcept {
-    this->set_value(other.value());
+    if (this != &other) {
+      this->set_value(other.value());
+    }
     return *this;
   }
 

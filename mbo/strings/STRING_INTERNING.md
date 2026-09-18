@@ -28,6 +28,15 @@ independently before selecting the interner's default composition.
 
 ## Core model
 
+The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
+private and returns only optional IDs. `try_insert` returns true for insertion, false
+for a duplicate, and an empty optional for size or allocation exhaustion. A duplicate
+preserves the existing ID; failed insertion commits no entry. Hash collisions use
+byte-and-length equality, not hash identity. Its keys borrow character storage, which
+must outlive the index. The HAMT options and block-source type are configurable;
+source-domain control allocation remains outside the block budget. Persistent path
+copying is the initial insertion implementation, not a performance-selected default.
+
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,
 including embedded NUL bytes, without adding a terminator. Empty strings need no

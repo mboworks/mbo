@@ -64,12 +64,30 @@ struct FailFirstIndex final {
     return entry && entry->first == key ? std::optional(entry->second) : std::nullopt;
   }
 
-  std::optional<bool> try_insert(std::string_view key, StringId<> id) noexcept {
+  std::optional<bool> try_insert(std::string_view key, StringId<> identifier) noexcept {
     if (!failed) {
       failed = true;
       return std::nullopt;
     }
-    entry.emplace(key, id);
+    entry.emplace(key, identifier);
+    return true;
+  }
+};
+
+struct RejectFirstIndex final {
+  std::optional<std::pair<std::string_view, StringId<>>> entry;
+  bool rejected = false;
+
+  std::optional<StringId<>> find(std::string_view key) const noexcept {
+    return entry && entry->first == key ? std::optional(entry->second) : std::nullopt;
+  }
+
+  std::optional<bool> try_insert(std::string_view key, StringId<> identifier) noexcept {
+    if (!rejected) {
+      rejected = true;
+      return false;
+    }
+    entry.emplace(key, identifier);
     return true;
   }
 };
@@ -88,17 +106,30 @@ TEST_F(StringInternerTest, FailedIndexInsertionRollsBackTheDenseEntryAndCanRetry
   EXPECT_THAT(interner.get(StringId<>(0)), Optional(std::string_view("retry")));
 }
 
-TEST_F(StringInternerTest, EightBitIdsAllowAll256ValuesAndDuplicatesAfterExhaustion) {
+TEST_F(StringInternerTest, RejectedIndexInsertionRollsBackTheDenseEntryAndCanRetryAtZero) {
+  using Interner = StringInterner<
+      std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, RejectFirstIndex>;
+  Interner interner;
+  EXPECT_THAT(interner.intern("rejected"), VariantWith<StringInternError>(StringInternError::kIndexExhausted));
+  EXPECT_THAT(interner.size(), Eq(0));
+  EXPECT_THAT(interner.find("rejected").has_value(), Eq(false));
+  using Inserted = std::pair<StringId<>, bool>;
+  EXPECT_THAT(interner.intern("retry"), VariantWith<Inserted>(std::pair(StringId<>(0), true)));
+  EXPECT_THAT(interner.get(StringId<>(0)), Optional(std::string_view("retry")));
+}
+
+TEST_F(StringInternerTest, EightBitIdsReserveInvalidValueAndFindDuplicatesAfterExhaustion) {
   StringInterner<std::uint8_t> interner;
-  for (unsigned value = 0; value < 256; ++value) {
+  for (unsigned value = 0; value < StringId<std::uint8_t>::invalid_value; ++value) {
     const auto text = std::to_string(value);
     EXPECT_THAT(interner.intern(text).index(), Eq(0));
   }
-  EXPECT_THAT(interner.size(), Eq(256));
-  EXPECT_THAT(interner.get(StringId<std::uint8_t>(255)), Optional(std::string_view("255")));
+  EXPECT_THAT(interner.size(), Eq(255));
+  EXPECT_THAT(interner.get(StringId<std::uint8_t>(254)), Optional(std::string_view("254")));
+  EXPECT_THAT(interner.get(StringId<std::uint8_t>{}), Eq(std::nullopt));
   EXPECT_THAT(interner.intern("exhausted"), VariantWith<StringInternError>(StringInternError::kIdExhausted));
   EXPECT_THAT(interner.intern("0").index(), Eq(0));
-  EXPECT_THAT(interner.size(), Eq(256));
+  EXPECT_THAT(interner.size(), Eq(255));
 }
 
 TEST_F(StringInternerTest, EmptyDeclaredParentRetainsIdentityWithoutExposingLaterValues) {
@@ -142,6 +173,7 @@ TEST_F(StringInternerTest, ChildCapturesPrefixAndIgnoresLaterParentInsertions) {
   EXPECT_THAT(child.intern("later").index(), Eq(0));
   EXPECT_THAT(root.find("later"), Optional(StringId<>(1)));
   EXPECT_THAT(child.find("later"), Optional(StringId<>(2)));
+  EXPECT_THAT(child.find("root"), Optional(StringId<>(0)));
   EXPECT_THAT(child.rfind("root"), Optional(StringId<>(0)));
   EXPECT_THAT(child.get(StringId<>(1)), Optional(std::string_view("child")));
   EXPECT_THAT(child.size(), Eq(3));

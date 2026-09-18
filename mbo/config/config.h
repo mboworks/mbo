@@ -33,4 +33,14 @@
 # define MBO_CONFIG_CONSTEXPR_23
 #endif  // __cplusplus >= 202302L
 
+#if defined(__clang__)
+# if __has_attribute(trivial_abi)
+#  define MBO_CONFIG_TRIVIAL_ABI [[clang::trivial_abi]]
+# else
+#  define MBO_CONFIG_TRIVIAL_ABI
+# endif
+#else
+# define MBO_CONFIG_TRIVIAL_ABI
+#endif
+
 #endif  // MBO_CONFIG_CONFIG_H_

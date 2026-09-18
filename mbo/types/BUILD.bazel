@@ -52,6 +52,49 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "strong_ordinal_cc",
+    hdrs = ["strong_ordinal.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
+        "//mbo/types/internal:strong_integral_cc",
+    ],
+)
+
+cc_test(
+    name = "strong_ordinal_test",
+    size = "small",
+    srcs = ["strong_ordinal_test.cc"],
+    deps = [
+        ":strong_ordinal_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "strong_id_cc",
+    hdrs = ["strong_id.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mbo/config:config_cc",
+        "//mbo/types/internal:strong_integral_cc",
+    ],
+)
+
+cc_test(
+    name = "strong_id_test",
+    size = "small",
+    srcs = ["strong_id_test.cc"],
+    deps = [
+        ":strong_id_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "variant_test",
     size = "small",

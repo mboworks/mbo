@@ -20,17 +20,20 @@ requires(
     std::same_as<typename Container::key_type, std::string_view> && std::same_as<typename Container::mapped_type, Id>)
 class ContainerStringIndex final {
  public:
+  // NOLINTBEGIN(readability-identifier-naming): string-index adapters use STL-compatible naming.
   std::optional<Id> find(std::string_view key) const noexcept {
     const auto position = entries_.find(key);
     return position == entries_.end() ? std::optional<Id>{} : std::optional<Id>(position->second);
   }
 
-  std::optional<bool> try_insert(std::string_view key, Id id) noexcept {
+  std::optional<bool> try_insert(std::string_view key, Id identifier) noexcept {
     if (entries_.find(key) != entries_.end()) {
       return false;
     }
-    return entries_.emplace(key, id).second;
+    return entries_.emplace(key, identifier).second;
   }
+
+  // NOLINTEND(readability-identifier-naming)
 
  private:
   Container entries_;

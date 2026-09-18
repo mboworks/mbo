@@ -44,27 +44,36 @@ static_assert(ConstOrdinal::try_from_ordinal(127).has_value());
 static_assert(!ConstOrdinal::try_from_ordinal(128).has_value());
 
 constexpr bool SupportsMutableOperations() {
-  MutableOrdinal id{7};
-  if (!id.try_set(8) || id.value() != 8) {
+  MutableOrdinal ordinal{7};
+  if (!ordinal.try_set(8) || ordinal.value() != 8) {
     return false;
   }
-  id.set(9);
-  if (id.value() != 9 || ++id != MutableOrdinal{10}) {
+  ordinal.set(9);
+  if (ordinal.value() != 9) {
     return false;
   }
-  if (id++ != MutableOrdinal{10} || id.value() != 11) {
+  if (++ordinal != MutableOrdinal{10}) {
     return false;
   }
-  if (--id != MutableOrdinal{10} || id-- != MutableOrdinal{10}) {
+  if (ordinal++ != MutableOrdinal{10}) {
     return false;
   }
-  id = 12;
-  id += 4;
-  if (id != MutableOrdinal{16} || id + 3 != MutableOrdinal{19}) {
+  if (ordinal.value() != 11) {
     return false;
   }
-  id -= 5;
-  return id == MutableOrdinal{11} && id - 4 == MutableOrdinal{7};
+  if (--ordinal != MutableOrdinal{10}) {
+    return false;
+  }
+  if (ordinal-- != MutableOrdinal{10}) {
+    return false;
+  }
+  ordinal = 12;
+  ordinal += 4;
+  if (ordinal != MutableOrdinal{16} || ordinal + 3 != MutableOrdinal{19}) {
+    return false;
+  }
+  ordinal -= 5;
+  return ordinal == MutableOrdinal{11} && ordinal - 4 == MutableOrdinal{7};
 }
 
 static_assert(SupportsMutableOperations());
@@ -86,11 +95,11 @@ TEST_F(StrongOrdinalTest, MutableOrdinalChangesOnlyWithinValidRange) {
   EXPECT_THAT(lowest.try_decrement(), Eq(false));
   EXPECT_THAT(lowest.value(), Eq(-128));
 
-  MutableOrdinal id{0};
-  EXPECT_THAT(id.try_increment(), Eq(true));
-  EXPECT_THAT(id.value(), Eq(1));
-  EXPECT_THAT(id.try_decrement(), Eq(true));
-  EXPECT_THAT(id.value(), Eq(0));
+  MutableOrdinal ordinal{0};
+  EXPECT_THAT(ordinal.try_increment(), Eq(true));
+  EXPECT_THAT(ordinal.value(), Eq(1));
+  EXPECT_THAT(ordinal.try_decrement(), Eq(true));
+  EXPECT_THAT(ordinal.value(), Eq(0));
 
   MutableOrdinal last{127};
   EXPECT_THAT(last.try_increment(), Eq(false));
@@ -98,46 +107,46 @@ TEST_F(StrongOrdinalTest, MutableOrdinalChangesOnlyWithinValidRange) {
 }
 
 TEST_F(StrongOrdinalTest, MutableOrdinalSupportsCheckedAssignmentAndOperators) {
-  MutableOrdinal id{7};
-  EXPECT_THAT(id.try_set(8), Eq(true));
-  EXPECT_THAT(id.value(), Eq(8));
-  EXPECT_THAT(id.try_set(-129), Eq(false));
-  EXPECT_THAT(id.try_set(128), Eq(false));
-  EXPECT_THAT(id.value(), Eq(8));
+  MutableOrdinal ordinal{7};
+  EXPECT_THAT(ordinal.try_set(8), Eq(true));
+  EXPECT_THAT(ordinal.value(), Eq(8));
+  EXPECT_THAT(ordinal.try_set(-129), Eq(false));
+  EXPECT_THAT(ordinal.try_set(128), Eq(false));
+  EXPECT_THAT(ordinal.value(), Eq(8));
 
-  id.set(9);
-  EXPECT_THAT(id.value(), Eq(9));
-  id = 10;
-  EXPECT_THAT(id.value(), Eq(10));
+  ordinal.set(9);
+  EXPECT_THAT(ordinal.value(), Eq(9));
+  ordinal = 10;
+  EXPECT_THAT(ordinal.value(), Eq(10));
 
-  EXPECT_THAT((++id).value(), Eq(11));
-  EXPECT_THAT((id++).value(), Eq(11));
-  EXPECT_THAT(id.value(), Eq(12));
-  EXPECT_THAT((--id).value(), Eq(11));
-  EXPECT_THAT((id--).value(), Eq(11));
-  EXPECT_THAT(id.value(), Eq(10));
+  EXPECT_THAT((++ordinal).value(), Eq(11));
+  EXPECT_THAT((ordinal++).value(), Eq(11));
+  EXPECT_THAT(ordinal.value(), Eq(12));
+  EXPECT_THAT((--ordinal).value(), Eq(11));
+  EXPECT_THAT((ordinal--).value(), Eq(11));
+  EXPECT_THAT(ordinal.value(), Eq(10));
 }
 
 TEST_F(StrongOrdinalTest, MutableOrdinalSupportsCheckedOrdinalArithmetic) {
-  MutableOrdinal id{10};
-  EXPECT_THAT(id.try_add_assign(5), Eq(true));
-  EXPECT_THAT(id.value(), Eq(15));
-  EXPECT_THAT(id.try_subtract_assign(3), Eq(true));
-  EXPECT_THAT(id.value(), Eq(12));
-  EXPECT_THAT(id.try_add_assign(-1), Eq(false));
-  EXPECT_THAT(id.try_subtract_assign(-1), Eq(false));
-  EXPECT_THAT(id.try_add_assign(128), Eq(false));
-  EXPECT_THAT(id.try_subtract_assign(141), Eq(false));
-  EXPECT_THAT(id.value(), Eq(12));
+  MutableOrdinal ordinal{10};
+  EXPECT_THAT(ordinal.try_add_assign(5), Eq(true));
+  EXPECT_THAT(ordinal.value(), Eq(15));
+  EXPECT_THAT(ordinal.try_subtract_assign(3), Eq(true));
+  EXPECT_THAT(ordinal.value(), Eq(12));
+  EXPECT_THAT(ordinal.try_add_assign(-1), Eq(false));
+  EXPECT_THAT(ordinal.try_subtract_assign(-1), Eq(false));
+  EXPECT_THAT(ordinal.try_add_assign(128), Eq(false));
+  EXPECT_THAT(ordinal.try_subtract_assign(141), Eq(false));
+  EXPECT_THAT(ordinal.value(), Eq(12));
 
-  id += 8;
-  EXPECT_THAT(id.value(), Eq(20));
-  EXPECT_THAT((id + 4).value(), Eq(24));
-  EXPECT_THAT(id.value(), Eq(20));
-  id -= 5;
-  EXPECT_THAT(id.value(), Eq(15));
-  EXPECT_THAT((id - 4).value(), Eq(11));
-  EXPECT_THAT(id.value(), Eq(15));
+  ordinal += 8;
+  EXPECT_THAT(ordinal.value(), Eq(20));
+  EXPECT_THAT((ordinal + 4).value(), Eq(24));
+  EXPECT_THAT(ordinal.value(), Eq(20));
+  ordinal -= 5;
+  EXPECT_THAT(ordinal.value(), Eq(15));
+  EXPECT_THAT((ordinal - 4).value(), Eq(11));
+  EXPECT_THAT(ordinal.value(), Eq(15));
 }
 
 TEST_F(StrongOrdinalTest, ConstOrdinalSupportsNonMutatingArithmetic) {

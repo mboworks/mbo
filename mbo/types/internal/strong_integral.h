@@ -17,6 +17,7 @@ concept StrongIntegralRepresentation = std::integral<T> && !std::same_as<T, bool
 
 // Shared nominal-integral storage. Validity and arithmetic belong to the public semantic wrappers,
 // not to this representation layer.
+// NOLINTBEGIN(readability-identifier-naming): Strong integrals expose STL value-wrapper vocabulary.
 template<typename Derived, typename Tag, StrongIntegralRepresentation Representation, Representation DefaultValue>
 class MBO_CONFIG_TRIVIAL_ABI StrongIntegralBase {
  public:
@@ -51,6 +52,8 @@ class MBO_CONFIG_TRIVIAL_ABI StrongIntegralBase {
  private:
   value_type value_ = default_value;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::types::types_internal
 

@@ -70,8 +70,9 @@ namespace std {
 
 template<typename Tag, mbo::types::StrongIdRepresentation Representation, Representation InvalidValue>
 struct hash<mbo::types::ConstStrongId<Tag, Representation, InvalidValue>> {
-  constexpr std::size_t operator()(mbo::types::ConstStrongId<Tag, Representation, InvalidValue> id) const noexcept {
-    return std::hash<Representation>{}(id.value());
+  constexpr std::size_t operator()(
+      mbo::types::ConstStrongId<Tag, Representation, InvalidValue> identifier) const noexcept {
+    return std::hash<Representation>{}(identifier.value());
   }
 };
 

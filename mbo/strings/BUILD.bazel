@@ -19,6 +19,30 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
+    name = "string_interner_cc",
+    hdrs = ["string_interner.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":arena_string_storage_cc",
+        ":hamt_string_index_cc",
+        ":string_id_cc",
+        "//mbo/container:segmented_sequence_cc",
+    ],
+)
+
+cc_test(
+    name = "string_interner_test",
+    size = "small",
+    srcs = ["string_interner_test.cc"],
+    deps = [
+        ":string_id_cc",
+        ":string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_string_index_cc",
     hdrs = ["hamt_string_index.h"],
     visibility = ["//visibility:public"],

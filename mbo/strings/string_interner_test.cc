@@ -21,13 +21,21 @@ static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
 
 // Implements ownership and rollback without promising memory accounting.
 struct UnmeasuredStorage final {
-  using checkpoint_type = ArenaStringStorage<>::checkpoint_type;
+  // These names intentionally implement StringInternerStorage's STL-style protocol.
+  using checkpoint_type = ArenaStringStorage<>::checkpoint_type;  // NOLINT(readability-identifier-naming)
 
-  std::optional<std::string_view> try_store(std::string_view text) noexcept { return storage.try_store(text); }
+  std::optional<std::string_view> try_store(  // NOLINT(readability-identifier-naming)
+      std::string_view text) noexcept {
+    return storage.try_store(text);
+  }
 
-  checkpoint_type checkpoint() const noexcept { return storage.checkpoint(); }
+  checkpoint_type checkpoint() const noexcept {  // NOLINT(readability-identifier-naming)
+    return storage.checkpoint();
+  }
 
-  void rewind(const checkpoint_type& checkpoint) noexcept { storage.rewind(checkpoint); }
+  void rewind(const checkpoint_type& checkpoint) noexcept {  // NOLINT(readability-identifier-naming)
+    storage.rewind(checkpoint);
+  }
 
   ArenaStringStorage<> storage;
 };
@@ -63,7 +71,7 @@ TEST_F(StringInternerTest, SizeDiagnosticsRespectCapturedPrefixesAndLocalMemoryO
   EXPECT_THAT(empty, Eq(1));
   EXPECT_THAT(child.local_character_bytes_used(), Optional(2));
   EXPECT_THAT(child.local_character_bytes_reserved().value_or(0) >= 2, Eq(true));
-  StringInterner<> unused;
+  const StringInterner<> unused;
   unused.visit_string_sizes([&](std::size_t) noexcept { ++count; });
   EXPECT_THAT(count, Eq(3));
   EXPECT_THAT(unused.local_character_bytes_used(), Optional(0));

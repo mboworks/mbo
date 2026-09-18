@@ -28,6 +28,16 @@ independently before selecting the interner's default composition.
 
 ## Core model
 
+[`ContainerStringIndex`](container_string_index.h) adapts standard/Abseil-style maps
+with string-view keys and ID mapped values. The default is `std::unordered_map`;
+tests also cover Abseil flat and node maps. Duplicate insertion preserves the old ID
+and avoids calling native `emplace`. Iterators remain internal; string-view keys borrow
+the interner's character store. Native container allocation and callable exceptions
+terminate through the `noexcept` boundary, rather than being caught or misreported as
+recoverable exhaustion. This adapter is therefore not an allocation-failure-recoverable
+backend; choose a compatible bounded index for that guarantee. Container types determine
+their own storage and stability guarantees, without forcing a shared implementation.
+
 The initial [`StringInterner`](string_interner.h) implementation composes configurable
 character storage, a dense entry sequence, and an index constrained by
 `StringInternerIndex`. It implements captured parent cutoffs, forward/reverse lookup,
@@ -36,10 +46,10 @@ with entry/byte rollback when indexing fails. Declared empty parents retain thei
 identity; a zero local starting ID does not imply a null parent. Index/storage member
 destruction order preserves borrowed character lifetimes.
 
-The implementation is still incomplete: diagnostics, standard/Abseil index adapters,
-extended bounded-failure tests, injected backend construction, and performance tuning
-remain outstanding. Forward lookup currently recurses through ancestors, while reverse
-lookup iterates. These are initial algorithms, not benchmark-selected strategies.
+The implementation is still incomplete: diagnostics, stateful backend construction,
+extended bounded-failure tests, and performance tuning remain outstanding. Forward
+lookup currently recurses through ancestors, while reverse lookup iterates. These are
+initial algorithms, not benchmark-selected strategies.
 
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false

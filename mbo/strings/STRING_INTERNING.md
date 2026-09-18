@@ -530,6 +530,13 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+`root()` follows the borrowed parent links and returns the topmost interner, including a declared
+parent whose captured prefix is empty. `parent_has_grown()` compares the direct parent's current
+visible size with the captured prefix boundary. It does not refresh that boundary, expose later
+strings, or report growth in more distant ancestors. Duplicate insertion does not count as growth.
+These accessors need no additional stored root pointer, revision counter, or parent-presence flag;
+all calls require the same external synchronization and ancestor lifetimes as other interner calls.
+
 Iterator dereference requires a non-singular iterator positioned before `end()`. Incrementing
 `end()` or decrementing `begin()` violates the iterator contract; decrementing a nonempty `end()`
 is valid. Debug builds diagnose these violations rather than confusing an invalid dereference with

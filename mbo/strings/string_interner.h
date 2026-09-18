@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <limits>
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -29,21 +28,18 @@ struct StringInternerOptions final {
 enum class StringInternError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
 
 template<typename Index, typename Id>
-concept StringInternerIndex = requires(Index& index, const Index& read, std::string_view key, Id id) {
+concept StringInternerIndex = requires(Index& index, const Index& read, std::string_view key, Id identifier) {
   { read.find(key) } noexcept -> std::same_as<std::optional<Id>>;
-  { index.try_insert(key, id) } noexcept -> std::same_as<std::optional<bool>>;
+  { index.try_insert(key, identifier) } noexcept -> std::same_as<std::optional<bool>>;
 };
 
 template<typename Storage>
-concept StringInternerStorage = requires(
-    Storage& storage,
-    const Storage& read,
-    std::string_view text,
-    const typename Storage::checkpoint_type& checkpoint) {
-  { storage.try_store(text) } noexcept -> std::same_as<std::optional<std::string_view>>;
-  { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
-  { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
-};
+concept StringInternerStorage =
+    requires(Storage& storage, const Storage& read, std::string_view text, const Storage::checkpoint_type& checkpoint) {
+      { storage.try_store(text) } noexcept -> std::same_as<std::optional<std::string_view>>;
+      { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
+      { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
+    };
 
 // Append-only owner. Parent pointers borrow; every ancestor must outlive children.
 // NOLINTBEGIN(readability-identifier-naming): StringInterner follows STL container vocabulary.
@@ -142,11 +138,11 @@ class StringInterner final {
 
   size_type first_local_id() const noexcept { return first_local_id_; }
 
-  std::optional<std::string_view> get(id_type id) const noexcept {
-    if (std::cmp_greater_equal(id.value(), size())) {
+  std::optional<std::string_view> get(id_type identifier) const noexcept {
+    if (std::cmp_greater_equal(identifier.value(), size())) {
       return std::nullopt;
     }
-    const auto position = static_cast<size_type>(id.value());
+    const auto position = static_cast<size_type>(identifier.value());
     const auto* owner = this;
     while (position < owner->first_local_id_) {
       owner = owner->parent_;
@@ -200,8 +196,8 @@ class StringInterner final {
     if (existing) {
       return std::pair<id_type, bool>(*existing, false);
     }
-    auto id = id_type::try_from_ordinal(size());
-    if (!id || size() == std::numeric_limits<size_type>::max()) {
+    auto identifier = id_type::try_from_ordinal(size());
+    if (!identifier) {
       return StringInternError::kIdExhausted;
     }
     const auto checkpoint = storage_.checkpoint();
@@ -213,13 +209,13 @@ class StringInterner final {
       storage_.rewind(checkpoint);
       return StringInternError::kEntryStorageExhausted;
     }
-    const auto inserted = index_.try_insert(*stored, *id);
+    const auto inserted = index_.try_insert(*stored, *identifier);
     if (!inserted || !*inserted) {
       entries_.pop_back();
       storage_.rewind(checkpoint);
       return StringInternError::kIndexExhausted;
     }
-    return std::pair<id_type, bool>(*id, true);
+    return std::pair<id_type, bool>(*identifier, true);
   }
 
   const StringInterner* parent_ = nullptr;

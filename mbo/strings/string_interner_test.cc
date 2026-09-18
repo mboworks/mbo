@@ -36,7 +36,7 @@ TEST_F(StringInternerTest, IteratorBoundariesSupportEmptyStringsAndDecrementingE
 
 #ifndef NDEBUG
 TEST_F(StringInternerTest, InvalidIteratorOperationsFailDebugContracts) {
-  StringInterner<> interner;
+  const StringInterner<> interner;
   const StringInterner<>::iterator singular;
   EXPECT_DEATH(static_cast<void>(*singular), "singular StringInterner iterator");
   EXPECT_DEATH(static_cast<void>(*interner.end()), "StringInterner end iterator");

@@ -50,6 +50,62 @@ inline constexpr ArenaOptions kRemainderOverflowOptions{
 
 struct ArenaTest : ::testing::Test {};
 
+static_assert(
+    noexcept(std::declval<Arena<>&>().rewind(std::declval<const Arena<>::Checkpoint&>()))
+    == !::mbo::config::kRequireThrows);
+
+TEST_F(ArenaTest, EmptyCheckpointRewindsNewBlocksWithoutReleasingTheirCapacity) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  const auto checkpoint = arena.checkpoint();
+  auto* const first = arena.TryAllocate(64, 1);
+  ASSERT_THAT(first, NotNull());
+  auto* const large = arena.TryAllocate(2'048, 1);
+  ASSERT_THAT(large, NotNull());
+  const auto reserved = arena.bytes_reserved();
+  const auto blocks = arena.block_count();
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(0));
+  EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
+  EXPECT_THAT(arena.block_count(), Eq(blocks));
+  EXPECT_THAT(arena.TryAllocate(64, 1), Eq(first));
+  EXPECT_THAT(arena.TryAllocate(2'048, 1), Eq(large));
+}
+
+TEST_F(ArenaTest, NestedCheckpointsRewindAcrossBlocksAndKeepEarlierAllocationsValid) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  auto* const first = arena.TryAllocate(64, 1);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto outer = arena.checkpoint();
+  const auto outer_used = arena.bytes_used();
+  auto* const middle = arena.TryAllocate(2'048, 1);
+  ASSERT_THAT(middle, NotNull());
+  const auto inner = arena.checkpoint();
+  const auto inner_used = arena.bytes_used();
+  ASSERT_THAT(arena.TryAllocate(128, 1), NotNull());
+  arena.rewind(inner);
+  EXPECT_THAT(arena.bytes_used(), Eq(inner_used));
+  arena.rewind(outer);
+  EXPECT_THAT(arena.bytes_used(), Eq(outer_used));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(2'048, 1), Eq(middle));
+}
+
+TEST_F(ArenaTest, CheckpointRewindsOnlyLaterBytesAndReusesTheirStorage) {
+  Arena<> arena;
+  auto* const first = arena.TryAllocate(8, 1);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto checkpoint = arena.checkpoint();
+  const auto used = arena.bytes_used();
+  auto* const later = arena.TryAllocate(16, 1);
+  ASSERT_THAT(later, NotNull());
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(used));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(16, 1), Eq(later));
+}
+
 // NOLINTBEGIN(readability-identifier-naming): test doubles model BlockSource spelling.
 struct RecordingSource final {
   static constexpr bool supports_recoverable_failure = true;

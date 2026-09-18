@@ -168,8 +168,9 @@ class StringInterner final {
   template<typename Visitor>
   requires(std::is_nothrow_invocable_r_v<void, Visitor&, size_type>)
   void visit_string_sizes(Visitor&& visitor) const noexcept {
+    auto&& callback = std::forward<Visitor>(visitor);
     for (const std::string_view text : *this) {
-      std::invoke(visitor, text.size());
+      std::invoke(callback, text.size());
     }
   }
 

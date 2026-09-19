@@ -76,6 +76,9 @@ def _policy(summary: dict, category: str) -> dict[str, coverage_policy.MetricPol
             summary["enforcement"][category][metric],
         )
         for metric in _METRICS
+        if metric in summary["minimums"][category]
+        and metric in summary["targets"][category]
+        and metric in summary["enforcement"][category]
     }
 
 
@@ -129,6 +132,9 @@ def _full_table(summary: dict) -> str:
             (html.escape(status), f'class="{_status_class(status)}"'),
         ]
         for metric in _METRICS:
+            if metric not in metrics or metric not in policy:
+                cells.extend(("n/a", 'class="na"') for _ in range(3))
+                continue
             value = metrics[metric]
             rating = coverage_policy.rating(value["percent"], policy[metric])
             metric_policy = policy[metric]
@@ -151,6 +157,9 @@ def _full_table(summary: dict) -> str:
         )
         row += '<td class="policyGap"></td>'
         for metric in _METRICS:
+            if metric not in policy or metric not in overall:
+                row += '<td class="na">n/a</td>'
+                continue
             value = policy[metric]
             if category == "overall":
                 label = _compact_policy(value)

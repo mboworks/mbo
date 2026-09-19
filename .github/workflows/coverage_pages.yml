@@ -122,6 +122,8 @@ jobs:
             git -C site mv "coverage/pr${number}" "coverage/pr/${number}"
           done
           current="site/coverage/${target}/coverage-meta.json"
+          # Preserve both reports, even when an older incoming run cannot replace the latest URL.
+          python3 source/tools/coverage_index.py archive site/coverage --incoming report/coverage-html
           if [[ -f "${current}" ]] && ! python3 source/tools/coverage_index.py newer \
             report/coverage-html/coverage-meta.json "${current}"; then
             echo "Ignoring older ${target} report from run ${SOURCE_RUN_ID}"
@@ -146,8 +148,9 @@ jobs:
               --run-id 0 \
               --started-at "1970-01-01T00:00:00Z"
           done < <(find site/coverage -name coverage-summary.json -print0)
-          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=main&per_page=100" >merged-prs.json
-          python3 source/tools/coverage_index.py history site/coverage source merged-prs.json
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=all&per_page=100" >merged-prs.json
+          python3 source/tools/coverage_index.py history site/coverage source merged-prs.json --fetch-aggregation-heads
+          python3 source/tools/coverage_index.py archive site/coverage
           python3 source/tools/coverage_index.py site site/coverage site/coverage/index.html
           git -C site config user.name 'github-actions[bot]'
           git -C site config user.email '41898282+github-actions[bot]@users.noreply.github.com'

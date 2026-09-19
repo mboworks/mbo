@@ -52,6 +52,21 @@ and whether the boundary reallocates. Each case reports source allocations/bytes
 allocations, deallocations, allocated bytes, and deallocated bytes for the timed event. This is an
 isolated growth-event mean, not a tail percentile.
 
+`PushPopCycle` uses one shared core for the three uniform SegmentedSequence configurations and
+`std::vector`, `std::deque`, and `std::list`. An untimed dry cycle checks every element in reverse
+order. Containers offering `reserve` are reserved once; the others keep their native allocation
+and reclamation behavior. Each timed batch appends 16,384 elements and reads and pops them all,
+for 32,768 append/pop operations. Normalize with `operations_per_iteration`, not the append-only
+batch size. This measures repeated full empty/refill cycles, including each container's native
+reuse costs, rather than isolated pop latency. Post-cycle capacity and reservation are reported
+where public diagnostics exist; absent deque/list memory counters do not mean zero allocation.
+The target registers 47 cases after adding these six cycle cases to the preceding 41.
+
+Read-only traversal benchmarks expose the populated container to the compiler before timing and
+use the same memory-clobber barrier at each batch boundary for every container. This prevents
+repeated reads from being hoisted out of the timed loop while retaining normal optimization within
+each batch.
+
 Every measured `SegmentedSequence` reports current element capacity, segment count, and
 source-reported reserved bytes. Counter publication occurs outside timed loops, or while timing is
 paused for the isolated growth event. Growth and lifecycle cases add event allocation/deallocation

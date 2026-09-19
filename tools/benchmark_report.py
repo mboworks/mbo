@@ -72,21 +72,27 @@ def render_svg(report, *, title, names):
         raise ValueError("selected benchmark is absent from report")
     rows = [available[name] for name in names]
     maximum = max(row["maximum_cpu_ns"] for row in rows)
-    height = 156 + 48 * len(rows)
+    labels = [[row["name"][start:start + 80] for start in range(0, len(row["name"]), 80)] for row in rows]
+    row_heights = [max(48, 16 * len(lines) + 16) for lines in labels]
+    height = 156 + sum(row_heights)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{height}" role="img">',
              f'<title>{escape(title)}</title>',
              '<rect width="100%" height="100%" fill="white"/>',
              f'<text x="16" y="28" font-family="sans-serif" font-size="18">{escape(title)}</text>',
              '<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>']
-    for index, row in enumerate(rows):
-        y = 76 + index * 48
+    y = 76
+    for row, lines, row_height in zip(rows, labels, row_heights):
         left = 580 + (row["minimum_cpu_ns"] / maximum) * 480
         right = 580 + (row["maximum_cpu_ns"] / maximum) * 480
+        parts.append(f'<g><title>{escape(row["name"])}</title>')
+        for line_index, line in enumerate(lines):
+            parts.append(f'<text x="16" y="{y + 16 + line_index * 16}" font-family="monospace" font-size="11">{escape(line)}</text>')
         parts.extend([
-            f'<text x="16" y="{y + 16}" font-family="monospace" font-size="11">{escape(row["name"])}</text>',
             f'<rect x="580" y="{y}" width="{(row["median_cpu_ns"] / maximum) * 480:.3f}" height="24" fill="#2563eb"/>',
             f'<path d="M {left:.3f} {y + 12} H {right:.3f} M {left:.3f} {y + 6} V {y + 18} M {right:.3f} {y + 6} V {y + 18}" stroke="#111827" fill="none"/>',
-            f'<text x="1080" y="{y + 16}" font-family="sans-serif" font-size="12">{row["median_cpu_ns"]:.3g} ns; n={row["samples"]}</text>'])
+            f'<text x="1080" y="{y + 16}" font-family="sans-serif" font-size="12">{row["median_cpu_ns"]:.3g} ns; n={row["samples"]}</text>',
+            '</g>'])
+        y += row_height
     measurement = report["measurement"]
     label = " / ".join(str(value) for value in
                        (measurement["host"]["cpu_model"], measurement["toolchain"]["compiler"],

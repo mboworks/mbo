@@ -1,0 +1,650 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - container/mbo/container/internal/hamt_shared_node.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+  <style>
+    .mboNavigation { padding: .35rem 0; text-align: center; }
+    .mboHeaderSummary { margin: 0 auto; width: 80%; }
+    .mboPolicy { border-collapse: collapse; margin: .75rem auto 1rem; width: auto; }
+    .mboPolicy th { padding: .2rem .75rem; text-align: left; }
+    .mboPolicy td { font-size: 100%; padding: .2rem .75rem; text-align: center; }
+  </style>
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="mboNavigation"><a href="../../../../../index.html">Report overview</a> &middot; <a href="../../../../../../../index.html">All coverage reports</a></td></tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table class="mboHeaderSummary" cellpadding=1 border=0>
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../../index.html" title="Click to go to top-level">top level</a> - <a href="../../../index.html" title="Click to go to directory container">container</a>/<a href="../../index.html" title="Click to go to directory mbo">mbo</a>/<a href="../index.html" title="Click to go to directory container">container</a>/<a href="index.html" title="Click to go to directory internal">internal</a> - hamt_shared_node.h<span style="font-size: 80%;"> (source / <a href="hamt_shared_node.h.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">97.9&nbsp;%</td>
+            <td class="headerCovTableEntry">287</td>
+            <td class="headerCovTableEntry">281</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-19 14:03:21</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">35</td>
+            <td class="headerCovTableEntry">35</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">97.3&nbsp;%</td>
+            <td class="headerCovTableEntry">148</td>
+            <td class="headerCovTableEntry">144</td>
+          </tr>
+                  <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : </span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : #ifndef MBO_CONTAINER_INTERNAL_HAMT_SHARED_NODE_H_</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : #define MBO_CONTAINER_INTERNAL_HAMT_SHARED_NODE_H_</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : </span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : #include &lt;atomic&gt;</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : #include &lt;bit&gt;</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : #include &lt;exception&gt;</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : #include &lt;limits&gt;</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : #include &lt;memory&gt;</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : #include &lt;optional&gt;</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : #include &lt;span&gt;</span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #include &lt;type_traits&gt;</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : </span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : #include &quot;mbo/container/internal/hamt_node_index.h&quot;</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &quot;mbo/container/internal/hamt_packed_node_layout.h&quot;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &quot;mbo/memory/block_source.h&quot;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : </span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : namespace mbo::container::container_internal {</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : </span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : // A retain requires an existing live owner. Reject both resurrection and</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : // overflow without changing the count; relaxed ordering only tracks ownership.</span>
+<span id="L26"><span class="lineNum">      26</span>                 :<span class="tlaGNC">        9909 : inline bool TryRetainHamtReference(std::atomic&lt;std::uint32_t&gt;&amp; references) noexcept {</span></span>
+<span id="L27"><span class="lineNum">      27</span>                 :<span class="tlaGNC">        9909 :   auto count = references.load(std::memory_order_relaxed);</span></span>
+<span id="L28"><span class="lineNum">      28</span> [<span class="tlaGBC" title="branch 0 was taken 9908 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 9907 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">        9909 :   while (count != 0 &amp;&amp; count != std::numeric_limits&lt;std::uint32_t&gt;::max()) {</span></span>
+<span id="L29"><span class="lineNum">      29</span>         [<span class="tlaGBC" title="branch 0 was taken 9907 times"> + </span><span class="tlaUNC" title="branch 1 was not taken"> - </span>]:<span class="tlaGNC">        9907 :     if (references.compare_exchange_weak(count, count + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {</span></span>
+<span id="L30"><span class="lineNum">      30</span>                 :<span class="tlaGNC">        9907 :       return true;</span></span>
+<span id="L31"><span class="lineNum">      31</span>                 :<span class="tlaGNC">        9907 :     }</span></span>
+<span id="L32"><span class="lineNum">      32</span>                 :<span class="tlaGNC">        9907 :   }</span></span>
+<span id="L33"><span class="lineNum">      33</span>                 :<span class="tlaGNC">           2 :   return false;</span></span>
+<span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC">        9909 : }</span></span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : </span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // Intrusive ownership of one packed node allocation. Every Release must use the</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // same block source that created the node and its descendants. Child references</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // are retained on creation and released with the last parent reference. Atomic</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : // reference counting does not make entry or child mutation thread-safe; callers</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : // must externally synchronize access and retain a live reference before use.</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // Entry copying and destruction must be nothrow. Allocation failure is reported as nullopt;</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : // exceptions escaping a block source terminate through this noexcept interface.</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // NOLINTBEGIN(readability-identifier-naming) -- Container vocabulary follows STL spelling.</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : template&lt;std::size_t FragmentBits, typename Entry&gt;</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : class HamtSharedNode final {</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             :   static_assert(std::is_nothrow_destructible_v&lt;Entry&gt;, &quot;Shared HAMT entries require non-throwing destruction&quot;);</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : </span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :  public:</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             :   using node_type = HamtSharedNode;</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             :   using index_type = HamtNodeIndex&lt;FragmentBits&gt;;</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : </span>
+<span id="L52"><span class="lineNum">      52</span>                 :             :   explicit HamtSharedNode(index_type index, std::size_t collision_count = 0) noexcept</span>
+<span id="L53"><span class="lineNum">      53</span>                 :<span class="tlaGNC">        2327 :       : index_(index), collision_count_(collision_count) {}</span></span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : </span>
+<span id="L55"><span class="lineNum">      55</span>                 :             :   HamtSharedNode(const HamtSharedNode&amp;) = delete;</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             :   HamtSharedNode&amp; operator=(const HamtSharedNode&amp;) = delete;</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             :   HamtSharedNode(HamtSharedNode&amp;&amp;) = delete;</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             :   HamtSharedNode&amp; operator=(HamtSharedNode&amp;&amp;) = delete;</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             :   ~HamtSharedNode() = default;</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : </span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">       41125 :   std::span&lt;Entry&gt; entries() noexcept { return {EntryPtr(), EntryCount()}; }</span></span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : </span>
+<span id="L63"><span class="lineNum">      63</span>                 :<span class="tlaGNC">       27309 :   std::span&lt;const Entry&gt; entries() const noexcept { return {EntryPtr(), EntryCount()}; }</span></span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : </span>
+<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">       11065 :   std::span&lt;node_type*&gt; children() noexcept { return {ChildPtr(), index_.NodeSize()}; }</span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : </span>
+<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">       14274 :   std::span&lt;node_type* const&gt; children() const noexcept { return {ChildPtr(), index_.NodeSize()}; }</span></span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : </span>
+<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">       85555 :   const index_type&amp; index() const noexcept { return index_; }</span></span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : </span>
+<span id="L71"><span class="lineNum">      71</span>                 :<span class="tlaGNC">      154841 :   bool is_collision() const noexcept { return collision_count_ != 0; }</span></span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : </span>
+<span id="L73"><span class="lineNum">      73</span>                 :             :   // Bytes reported by the creating block source, including its spare capacity.</span>
+<span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">          61 :   std::size_t allocation_bytes() const noexcept { return block_.size; }</span></span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : </span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">         119 :   std::uint32_t use_count() const noexcept { return references_.load(std::memory_order_relaxed); }</span></span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : </span>
+<span id="L78"><span class="lineNum">      78</span>                 :             :   // Permission to mutate additionally observes work preceding previous releases.</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             :   // A live owner and exclusion of concurrent retain/mutation are still required.</span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">        8520 :   bool is_unique() const noexcept { return references_.load(std::memory_order_acquire) == 1; }</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :             : </span>
+<span id="L82"><span class="lineNum">      82</span>                 :<span class="tlaGNC">       10128 :   static void Retain(node_type* node) noexcept {</span></span>
+<span id="L83"><span class="lineNum">      83</span>         [<span class="tlaGBC" title="branch 0 was taken 9905 times"> + </span><span class="tlaGBC" title="branch 1 was taken 223 times"> + </span>]:<span class="tlaGNC">       10128 :     if (node != nullptr) {</span></span>
+<span id="L84"><span class="lineNum">      84</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 9905 times"> + </span>]:<span class="tlaGNC">        9905 :       if (!TryRetainHamtReference(node-&gt;references_)) {</span></span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaUNC">           0 :         std::terminate();</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :<span class="tlaUNC">           0 :       }</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">        9905 :     }</span></span>
+<span id="L88"><span class="lineNum">      88</span>                 :<span class="tlaGNC">       10128 :   }</span></span>
+<span id="L89"><span class="lineNum">      89</span>                 :             : </span>
+<span id="L90"><span class="lineNum">      90</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L91"><span class="lineNum">      91</span>                 :             :   static std::optional&lt;node_type*&gt; TryCreate(</span>
+<span id="L92"><span class="lineNum">      92</span>                 :             :       Source&amp; source,</span>
+<span id="L93"><span class="lineNum">      93</span>                 :             :       index_type index,</span>
+<span id="L94"><span class="lineNum">      94</span>                 :             :       std::span&lt;const Entry&gt; entries,</span>
+<span id="L95"><span class="lineNum">      95</span>                 :             :       std::span&lt;node_type* const&gt; children) noexcept</span>
+<span id="L96"><span class="lineNum">      96</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">         801 :   {</span></span>
+<span id="L98"><span class="lineNum">      98</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 800 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 799 times"> + </span>]:<span class="tlaGNC">         801 :     if (entries.size() != index.DataSize() || children.size() != index.NodeSize()) {</span></span>
+<span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">           2 :       return std::nullopt;</span></span>
+<span id="L100"><span class="lineNum">     100</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L101"><span class="lineNum">     101</span>                 :<span class="tlaGNC">         799 :     return TryAllocate(source, index, entries, children, 0);</span></span>
+<span id="L102"><span class="lineNum">     102</span>                 :<span class="tlaGNC">         801 :   }</span></span>
+<span id="L103"><span class="lineNum">     103</span>                 :             : </span>
+<span id="L104"><span class="lineNum">     104</span>                 :             :   // All entries must have the same full hash, established by the caller. Empty</span>
+<span id="L105"><span class="lineNum">     105</span>                 :             :   // collision nodes are rejected; a collision node has no indexed children.</span>
+<span id="L106"><span class="lineNum">     106</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L107"><span class="lineNum">     107</span>                 :             :   static std::optional&lt;node_type*&gt; TryCreateCollision(Source&amp; source, std::span&lt;const Entry&gt; entries) noexcept</span>
+<span id="L108"><span class="lineNum">     108</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">         107 :   {</span></span>
+<span id="L110"><span class="lineNum">     110</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 106 times"> + </span>]:<span class="tlaGNC">         107 :     if (entries.empty()) {</span></span>
+<span id="L111"><span class="lineNum">     111</span>                 :<span class="tlaGNC">           1 :       return std::nullopt;</span></span>
+<span id="L112"><span class="lineNum">     112</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L113"><span class="lineNum">     113</span>                 :<span class="tlaGNC">         106 :     return TryAllocate(source, {}, entries, {}, entries.size());</span></span>
+<span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">         107 :   }</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :             : </span>
+<span id="L116"><span class="lineNum">     116</span>                 :             :   // index describes the resulting occupancy; position is the dense entry rank</span>
+<span id="L117"><span class="lineNum">     117</span>                 :             :   // of the newly occupied slot. The caller preserves all existing data/child</span>
+<span id="L118"><span class="lineNum">     118</span>                 :             :   // slots and inserts exactly one data slot. The original remains untouched;</span>
+<span id="L119"><span class="lineNum">     119</span>                 :             :   // entry may alias one of its entries. This layer does not deduplicate keys.</span>
+<span id="L120"><span class="lineNum">     120</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L121"><span class="lineNum">     121</span>                 :             :   static std::optional&lt;node_type*&gt; TryInsertEntry(</span>
+<span id="L122"><span class="lineNum">     122</span>                 :             :       Source&amp; source,</span>
+<span id="L123"><span class="lineNum">     123</span>                 :             :       const node_type&amp; original,</span>
+<span id="L124"><span class="lineNum">     124</span>                 :             :       index_type index,</span>
+<span id="L125"><span class="lineNum">     125</span>                 :             :       std::size_t position,</span>
+<span id="L126"><span class="lineNum">     126</span>                 :             :       const Entry&amp; entry) noexcept</span>
+<span id="L127"><span class="lineNum">     127</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">         612 :   {</span></span>
+<span id="L129"><span class="lineNum">     129</span> [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1221 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 611 times"> + </span>]:<span class="tlaGNC">         612 :     if (original.is_collision() || index.DataSize() != original.entries().size() + 1</span></span>
+<span id="L130"><span class="lineNum">     130</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 610 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 609 times"> + </span>]:<span class="tlaGNC">         611 :         || index.NodeSize() != original.children().size() || position &gt;= index.DataSize()) {</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">           3 :       return std::nullopt;</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">           3 :     }</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">         609 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L134"><span class="lineNum">     134</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 596 times"> + </span>]:<span class="tlaGNC">         609 :     if (!result) {</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">          13 :       return std::nullopt;</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">          13 :     }</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">         596 :     const node_type* const node = *result;</span></span>
+<span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">         596 :     CopyInsertedEntries(*node, original.entries(), position, entry);</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">         596 :     CopyChildren(*node, original.children());</span></span>
+<span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">         596 :     return result;</span></span>
+<span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">         609 :   }</span></span>
+<span id="L142"><span class="lineNum">     142</span>                 :             : </span>
+<span id="L143"><span class="lineNum">     143</span>                 :             :   // index describes the resulting occupancy; position is the dense child rank</span>
+<span id="L144"><span class="lineNum">     144</span>                 :             :   // of the new node slot. The new node owns an additional reference to child.</span>
+<span id="L145"><span class="lineNum">     145</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L146"><span class="lineNum">     146</span>                 :             :   static std::optional&lt;node_type*&gt; TryInsertChild(</span>
+<span id="L147"><span class="lineNum">     147</span>                 :             :       Source&amp; source,</span>
+<span id="L148"><span class="lineNum">     148</span>                 :             :       const node_type&amp; original,</span>
+<span id="L149"><span class="lineNum">     149</span>                 :             :       index_type index,</span>
+<span id="L150"><span class="lineNum">     150</span>                 :             :       std::size_t position,</span>
+<span id="L151"><span class="lineNum">     151</span>                 :             :       node_type* child) noexcept</span>
+<span id="L152"><span class="lineNum">     152</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">           8 :   {</span></span>
+<span id="L154"><span class="lineNum">     154</span> [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 10 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 6 times"> + </span>]:<span class="tlaGNC">           8 :     if (child == nullptr || original.is_collision() || index.DataSize() != original.entries().size()</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 5 times"> + </span>]
+<span id="L155"><span class="lineNum">     155</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 4 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 3 times"> + </span>]:<span class="tlaGNC">           5 :         || index.NodeSize() != original.children().size() + 1 || position &gt;= index.NodeSize()) {</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaGNC">           5 :       return std::nullopt;</span></span>
+<span id="L157"><span class="lineNum">     157</span>                 :<span class="tlaGNC">           5 :     }</span></span>
+<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">           3 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L159"><span class="lineNum">     159</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">           3 :     if (!result) {</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           1 :       return std::nullopt;</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">           2 :     const node_type* const node = *result;</span></span>
+<span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">           2 :     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node-&gt;EntryPtr());</span></span>
+<span id="L164"><span class="lineNum">     164</span>                 :<span class="tlaGNC">           2 :     const auto children = original.children();</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">           2 :     std::uninitialized_copy_n(children.begin(), position, node-&gt;ChildPtr());</span></span>
+<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">           2 :     std::construct_at(node-&gt;ChildPtr() + position, child);</span></span>
+<span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">           2 :     std::uninitialized_copy(</span></span>
+<span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">           2 :         children.begin() + static_cast&lt;std::ptrdiff_t&gt;(position), children.end(), node-&gt;ChildPtr() + position + 1);</span></span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">           2 :     RetainChildren(node-&gt;children());</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           2 :     return result;</span></span>
+<span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">           3 :   }</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :             : </span>
+<span id="L173"><span class="lineNum">     173</span>                 :             :   // Path-copy a child slot without changing either the original node or its</span>
+<span id="L174"><span class="lineNum">     174</span>                 :             :   // ownership. Replacing a child with itself still creates a separately owned</span>
+<span id="L175"><span class="lineNum">     175</span>                 :             :   // node and retains the shared child exactly once for that new owner.</span>
+<span id="L176"><span class="lineNum">     176</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L177"><span class="lineNum">     177</span>                 :             :   static std::optional&lt;node_type*&gt; TryReplaceChild(</span>
+<span id="L178"><span class="lineNum">     178</span>                 :             :       Source&amp; source,</span>
+<span id="L179"><span class="lineNum">     179</span>                 :             :       const node_type&amp; original,</span>
+<span id="L180"><span class="lineNum">     180</span>                 :             :       std::size_t position,</span>
+<span id="L181"><span class="lineNum">     181</span>                 :             :       node_type* replacement) noexcept</span>
+<span id="L182"><span class="lineNum">     182</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">         363 :   {</span></span>
+<span id="L184"><span class="lineNum">     184</span> [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 722 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 361 times"> + </span>]:<span class="tlaGNC">         363 :     if (replacement == nullptr || original.is_collision() || position &gt;= original.children().size()) {</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 360 times"> + </span>]
+<span id="L185"><span class="lineNum">     185</span>                 :<span class="tlaGNC">           3 :       return std::nullopt;</span></span>
+<span id="L186"><span class="lineNum">     186</span>                 :<span class="tlaGNC">           3 :     }</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :<span class="tlaGNC">         360 :     const auto result =</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">         360 :         TryAllocateUninitialized(source, original.index_, original.entries().size(), original.children().size(), 0);</span></span>
+<span id="L189"><span class="lineNum">     189</span>         [<span class="tlaGBC" title="branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="branch 1 was taken 346 times"> + </span>]:<span class="tlaGNC">         360 :     if (!result) {</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">          14 :       return std::nullopt;</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">          14 :     }</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">         346 :     const node_type* const node = *result;</span></span>
+<span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaGNC">         346 :     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node-&gt;EntryPtr());</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">         346 :     const auto children = original.children();</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">         346 :     std::uninitialized_copy_n(children.begin(), position, node-&gt;ChildPtr());</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">         346 :     std::construct_at(node-&gt;ChildPtr() + position, replacement);</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">         346 :     std::uninitialized_copy(</span></span>
+<span id="L198"><span class="lineNum">     198</span>                 :<span class="tlaGNC">         346 :         children.begin() + static_cast&lt;std::ptrdiff_t&gt;(position + 1), children.end(), node-&gt;ChildPtr() + position + 1);</span></span>
+<span id="L199"><span class="lineNum">     199</span>                 :<span class="tlaGNC">         346 :     RetainChildren(node-&gt;children());</span></span>
+<span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">         346 :     return result;</span></span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">         360 :   }</span></span>
+<span id="L202"><span class="lineNum">     202</span>                 :             : </span>
+<span id="L203"><span class="lineNum">     203</span>                 :             :   // index describes occupancy after removal. Path copying preserves the</span>
+<span id="L204"><span class="lineNum">     204</span>                 :             :   // original entries and retains all children for the new owner.</span>
+<span id="L205"><span class="lineNum">     205</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L206"><span class="lineNum">     206</span>                 :             :   static std::optional&lt;node_type*&gt; TryPromoteEntryToChild(</span>
+<span id="L207"><span class="lineNum">     207</span>                 :             :       Source&amp; source,</span>
+<span id="L208"><span class="lineNum">     208</span>                 :             :       const node_type&amp; original,</span>
+<span id="L209"><span class="lineNum">     209</span>                 :             :       index_type index,</span>
+<span id="L210"><span class="lineNum">     210</span>                 :             :       std::size_t entry_position,</span>
+<span id="L211"><span class="lineNum">     211</span>                 :             :       std::size_t child_position,</span>
+<span id="L212"><span class="lineNum">     212</span>                 :             :       node_type* child) noexcept</span>
+<span id="L213"><span class="lineNum">     213</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">         185 :   {</span></span>
+<span id="L215"><span class="lineNum">     215</span> [<span class="tlaGBC" title="branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="branch 1 was taken 362 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 183 times"> + </span>]:<span class="tlaGNC">         185 :     if (child == nullptr || original.is_collision() || original.entries().empty()</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 182 times"> + </span>]
+<span id="L216"><span class="lineNum">     216</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 181 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 180 times"> + </span>]:<span class="tlaGNC">         182 :         || index.DataSize() + 1 != original.entries().size() || index.NodeSize() != original.children().size() + 1</span></span>
+<span id="L217"><span class="lineNum">     217</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 179 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 178 times"> + </span>]:<span class="tlaGNC">         185 :         || entry_position &gt;= original.entries().size() || child_position &gt;= index.NodeSize()) {</span></span>
+<span id="L218"><span class="lineNum">     218</span>                 :<span class="tlaGNC">           7 :       return std::nullopt;</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           7 :     }</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :<span class="tlaGNC">         178 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L221"><span class="lineNum">     221</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 176 times"> + </span>]:<span class="tlaGNC">         178 :     if (!result) {</span></span>
+<span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaGNC">           2 :       return std::nullopt;</span></span>
+<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">         176 :     const node_type* const node = *result;</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">         176 :     CopyErasedEntries(*node, original.entries(), entry_position);</span></span>
+<span id="L226"><span class="lineNum">     226</span>                 :<span class="tlaGNC">         176 :     const auto children = original.children();</span></span>
+<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">         176 :     std::uninitialized_copy_n(children.begin(), child_position, node-&gt;ChildPtr());</span></span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">         176 :     std::construct_at(node-&gt;ChildPtr() + child_position, child);</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">         176 :     std::uninitialized_copy(</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">         176 :         children.begin() + static_cast&lt;std::ptrdiff_t&gt;(child_position), children.end(),</span></span>
+<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">         176 :         node-&gt;ChildPtr() + child_position + 1);</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">         176 :     RetainChildren(node-&gt;children());</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">         176 :     return result;</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">         178 :   }</span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :             : </span>
+<span id="L236"><span class="lineNum">     236</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L237"><span class="lineNum">     237</span>                 :             :   static std::optional&lt;node_type*&gt; TryDemoteChildToEntry(</span>
+<span id="L238"><span class="lineNum">     238</span>                 :             :       Source&amp; source,</span>
+<span id="L239"><span class="lineNum">     239</span>                 :             :       const node_type&amp; original,</span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :       index_type index,</span>
+<span id="L241"><span class="lineNum">     241</span>                 :             :       std::size_t child_position,</span>
+<span id="L242"><span class="lineNum">     242</span>                 :             :       std::size_t entry_position,</span>
+<span id="L243"><span class="lineNum">     243</span>                 :             :       const Entry&amp; entry) noexcept</span>
+<span id="L244"><span class="lineNum">     244</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">          55 :   {</span></span>
+<span id="L246"><span class="lineNum">     246</span> [<span class="tlaGBC" title="branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="branch 1 was taken 103 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 53 times"> + </span>]:<span class="tlaGNC">          55 :     if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size() + 1</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 52 times"> + </span>]
+<span id="L247"><span class="lineNum">     247</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 51 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 50 times"> + </span>]:<span class="tlaGNC">          52 :         || index.NodeSize() + 1 != original.children().size() || child_position &gt;= original.children().size()</span></span>
+<span id="L248"><span class="lineNum">     248</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 49 times"> + </span>]:<span class="tlaGNC">          55 :         || entry_position &gt;= index.DataSize()) {</span></span>
+<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">           6 :       return std::nullopt;</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">           6 :     }</span></span>
+<span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">          49 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L252"><span class="lineNum">     252</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 49 times"> + </span>]:<span class="tlaGNC">          49 :     if (!result) {</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaUNC">           0 :       return std::nullopt;</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaUNC">           0 :     }</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">          49 :     const node_type* const node = *result;</span></span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          49 :     CopyInsertedEntries(*node, original.entries(), entry_position, entry);</span></span>
+<span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          49 :     const auto children = original.children();</span></span>
+<span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">          49 :     std::uninitialized_copy_n(children.begin(), child_position, node-&gt;ChildPtr());</span></span>
+<span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">          49 :     std::uninitialized_copy(</span></span>
+<span id="L260"><span class="lineNum">     260</span>                 :<span class="tlaGNC">          49 :         children.begin() + static_cast&lt;std::ptrdiff_t&gt;(child_position + 1), children.end(),</span></span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">          49 :         node-&gt;ChildPtr() + child_position);</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">          49 :     RetainChildren(node-&gt;children());</span></span>
+<span id="L263"><span class="lineNum">     263</span>                 :<span class="tlaGNC">          49 :     return result;</span></span>
+<span id="L264"><span class="lineNum">     264</span>                 :<span class="tlaGNC">          49 :   }</span></span>
+<span id="L265"><span class="lineNum">     265</span>                 :             : </span>
+<span id="L266"><span class="lineNum">     266</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L267"><span class="lineNum">     267</span>                 :             :   static std::optional&lt;node_type*&gt; TryEraseEntry(</span>
+<span id="L268"><span class="lineNum">     268</span>                 :             :       Source&amp; source,</span>
+<span id="L269"><span class="lineNum">     269</span>                 :             :       const node_type&amp; original,</span>
+<span id="L270"><span class="lineNum">     270</span>                 :             :       index_type index,</span>
+<span id="L271"><span class="lineNum">     271</span>                 :             :       std::size_t position) noexcept</span>
+<span id="L272"><span class="lineNum">     272</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">         229 :   {</span></span>
+<span id="L274"><span class="lineNum">     274</span> [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 452 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 227 times"> + </span>]:<span class="tlaGNC">         229 :     if (original.is_collision() || original.entries().empty() || index.DataSize() + 1 != original.entries().size()</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 226 times"> + </span>]
+<span id="L275"><span class="lineNum">     275</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 225 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 224 times"> + </span>]:<span class="tlaGNC">         226 :         || index.NodeSize() != original.children().size() || position &gt;= original.entries().size()) {</span></span>
+<span id="L276"><span class="lineNum">     276</span>                 :<span class="tlaGNC">           5 :       return std::nullopt;</span></span>
+<span id="L277"><span class="lineNum">     277</span>                 :<span class="tlaGNC">           5 :     }</span></span>
+<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">         224 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L279"><span class="lineNum">     279</span>         [<span class="tlaGBC" title="branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="branch 1 was taken 222 times"> + </span>]:<span class="tlaGNC">         224 :     if (!result) {</span></span>
+<span id="L280"><span class="lineNum">     280</span>                 :<span class="tlaGNC">           2 :       return std::nullopt;</span></span>
+<span id="L281"><span class="lineNum">     281</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L282"><span class="lineNum">     282</span>                 :<span class="tlaGNC">         222 :     const node_type* const node = *result;</span></span>
+<span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">         222 :     CopyErasedEntries(*node, original.entries(), position);</span></span>
+<span id="L284"><span class="lineNum">     284</span>                 :<span class="tlaGNC">         222 :     CopyChildren(*node, original.children());</span></span>
+<span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">         222 :     return result;</span></span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">         224 :   }</span></span>
+<span id="L287"><span class="lineNum">     287</span>                 :             : </span>
+<span id="L288"><span class="lineNum">     288</span>                 :             :   // The copied node owns only the remaining children. The removed child stays</span>
+<span id="L289"><span class="lineNum">     289</span>                 :             :   // owned by the original node until that original owner's last release.</span>
+<span id="L290"><span class="lineNum">     290</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L291"><span class="lineNum">     291</span>                 :             :   static std::optional&lt;node_type*&gt; TryEraseChild(</span>
+<span id="L292"><span class="lineNum">     292</span>                 :             :       Source&amp; source,</span>
+<span id="L293"><span class="lineNum">     293</span>                 :             :       const node_type&amp; original,</span>
+<span id="L294"><span class="lineNum">     294</span>                 :             :       index_type index,</span>
+<span id="L295"><span class="lineNum">     295</span>                 :             :       std::size_t position) noexcept</span>
+<span id="L296"><span class="lineNum">     296</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L297"><span class="lineNum">     297</span>                 :<span class="tlaGNC">          11 :   {</span></span>
+<span id="L298"><span class="lineNum">     298</span> [<span class="tlaGBC" title="branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="branch 1 was taken 16 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 9 times"> + </span>]:<span class="tlaGNC">          11 :     if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size()</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 8 times"> + </span>]
+<span id="L299"><span class="lineNum">     299</span> [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 7 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 6 times"> + </span>]:<span class="tlaGNC">           8 :         || index.NodeSize() + 1 != original.children().size() || position &gt;= original.children().size()) {</span></span>
+<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">           5 :       return std::nullopt;</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">           5 :     }</span></span>
+<span id="L302"><span class="lineNum">     302</span>                 :<span class="tlaGNC">           6 :     const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);</span></span>
+<span id="L303"><span class="lineNum">     303</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">           6 :     if (!result) {</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">           1 :       return std::nullopt;</span></span>
+<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">           5 :     const node_type* const node = *result;</span></span>
+<span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">           5 :     std::uninitialized_copy(original.entries().begin(), original.entries().end(), node-&gt;EntryPtr());</span></span>
+<span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">           5 :     const auto children = original.children();</span></span>
+<span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">           5 :     std::uninitialized_copy_n(children.begin(), position, node-&gt;ChildPtr());</span></span>
+<span id="L310"><span class="lineNum">     310</span>                 :<span class="tlaGNC">           5 :     std::uninitialized_copy(</span></span>
+<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">           5 :         children.begin() + static_cast&lt;std::ptrdiff_t&gt;(position + 1), children.end(), node-&gt;ChildPtr() + position);</span></span>
+<span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">           5 :     RetainChildren(node-&gt;children());</span></span>
+<span id="L313"><span class="lineNum">     313</span>                 :<span class="tlaGNC">           5 :     return result;</span></span>
+<span id="L314"><span class="lineNum">     314</span>                 :<span class="tlaGNC">           6 :   }</span></span>
+<span id="L315"><span class="lineNum">     315</span>                 :             : </span>
+<span id="L316"><span class="lineNum">     316</span>                 :             :   // The caller establishes that entry has the collision node's full hash.</span>
+<span id="L317"><span class="lineNum">     317</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L318"><span class="lineNum">     318</span>                 :             :   static std::optional&lt;node_type*&gt; TryInsertCollisionEntry(</span>
+<span id="L319"><span class="lineNum">     319</span>                 :             :       Source&amp; source,</span>
+<span id="L320"><span class="lineNum">     320</span>                 :             :       const node_type&amp; original,</span>
+<span id="L321"><span class="lineNum">     321</span>                 :             :       std::size_t position,</span>
+<span id="L322"><span class="lineNum">     322</span>                 :             :       const Entry&amp; entry) noexcept</span>
+<span id="L323"><span class="lineNum">     323</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L324"><span class="lineNum">     324</span>                 :<span class="tlaGNC">          14 :   {</span></span>
+<span id="L325"><span class="lineNum">     325</span> [<span class="tlaGBC" title="branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="branch 1 was taken 25 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 12 times"> + </span>]:<span class="tlaGNC">          14 :     if (!original.is_collision() || position &gt; original.entries().size()) {</span></span>
+<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">           2 :       return std::nullopt;</span></span>
+<span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L328"><span class="lineNum">     328</span>                 :<span class="tlaGNC">          12 :     const std::size_t count = original.entries().size() + 1;</span></span>
+<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">          12 :     const auto result = TryAllocateUninitialized(source, {}, count, 0, count);</span></span>
+<span id="L330"><span class="lineNum">     330</span>         [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">          12 :     if (result) {</span></span>
+<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          10 :       CopyInsertedEntries(**result, original.entries(), position, entry);</span></span>
+<span id="L332"><span class="lineNum">     332</span>                 :<span class="tlaGNC">          10 :     }</span></span>
+<span id="L333"><span class="lineNum">     333</span>                 :<span class="tlaGNC">          12 :     return result;</span></span>
+<span id="L334"><span class="lineNum">     334</span>                 :<span class="tlaGNC">          14 :   }</span></span>
+<span id="L335"><span class="lineNum">     335</span>                 :             : </span>
+<span id="L336"><span class="lineNum">     336</span>                 :             :   // Removing the final entry is a tree-level removal, not an empty collision</span>
+<span id="L337"><span class="lineNum">     337</span>                 :             :   // allocation. The caller handles that case by removing the parent slot.</span>
+<span id="L338"><span class="lineNum">     338</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L339"><span class="lineNum">     339</span>                 :             :   static std::optional&lt;node_type*&gt; TryEraseCollisionEntry(</span>
+<span id="L340"><span class="lineNum">     340</span>                 :             :       Source&amp; source,</span>
+<span id="L341"><span class="lineNum">     341</span>                 :             :       const node_type&amp; original,</span>
+<span id="L342"><span class="lineNum">     342</span>                 :             :       std::size_t position) noexcept</span>
+<span id="L343"><span class="lineNum">     343</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L344"><span class="lineNum">     344</span>                 :<span class="tlaGNC">          20 :   {</span></span>
+<span id="L345"><span class="lineNum">     345</span> [<span class="tlaGBC" title="branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="branch 1 was taken 35 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 17 times"> + </span>]:<span class="tlaGNC">          20 :     if (!original.is_collision() || original.entries().size() &lt;= 1 || position &gt;= original.entries().size()) {</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 1 time"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 16 times"> + </span>]
+<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">           4 :       return std::nullopt;</span></span>
+<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">          16 :     const std::size_t count = original.entries().size() - 1;</span></span>
+<span id="L349"><span class="lineNum">     349</span>                 :<span class="tlaGNC">          16 :     const auto result = TryAllocateUninitialized(source, {}, count, 0, count);</span></span>
+<span id="L350"><span class="lineNum">     350</span>         [<span class="tlaGBC" title="branch 0 was taken 13 times"> + </span><span class="tlaGBC" title="branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          16 :     if (result) {</span></span>
+<span id="L351"><span class="lineNum">     351</span>                 :<span class="tlaGNC">          13 :       CopyErasedEntries(**result, original.entries(), position);</span></span>
+<span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">          13 :     }</span></span>
+<span id="L353"><span class="lineNum">     353</span>                 :<span class="tlaGNC">          16 :     return result;</span></span>
+<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">          20 :   }</span></span>
+<span id="L355"><span class="lineNum">     355</span>                 :             : </span>
+<span id="L356"><span class="lineNum">     356</span>                 :             :   // The caller preserves the entry's routing hash and the container's key</span>
+<span id="L357"><span class="lineNum">     357</span>                 :             :   // uniqueness. This primitive copies storage; it does not reindex a new key.</span>
+<span id="L358"><span class="lineNum">     358</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L359"><span class="lineNum">     359</span>                 :             :   static std::optional&lt;node_type*&gt; TryReplaceEntry(</span>
+<span id="L360"><span class="lineNum">     360</span>                 :             :       Source&amp; source,</span>
+<span id="L361"><span class="lineNum">     361</span>                 :             :       const node_type&amp; original,</span>
+<span id="L362"><span class="lineNum">     362</span>                 :             :       std::size_t position,</span>
+<span id="L363"><span class="lineNum">     363</span>                 :             :       const Entry&amp; replacement) noexcept</span>
+<span id="L364"><span class="lineNum">     364</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L365"><span class="lineNum">     365</span>                 :<span class="tlaGNC">          80 :   {</span></span>
+<span id="L366"><span class="lineNum">     366</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 79 times"> + </span>]:<span class="tlaGNC">          80 :     if (position &gt;= original.entries().size()) {</span></span>
+<span id="L367"><span class="lineNum">     367</span>                 :<span class="tlaGNC">           1 :       return std::nullopt;</span></span>
+<span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">           1 :     }</span></span>
+<span id="L369"><span class="lineNum">     369</span>                 :<span class="tlaGNC">          79 :     const auto result = TryAllocateUninitialized(</span></span>
+<span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">          79 :         source, original.index_, original.entries().size(), original.children().size(), original.collision_count_);</span></span>
+<span id="L371"><span class="lineNum">     371</span>         [<span class="tlaGBC" title="branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="branch 1 was taken 67 times"> + </span>]:<span class="tlaGNC">          79 :     if (!result) {</span></span>
+<span id="L372"><span class="lineNum">     372</span>                 :<span class="tlaGNC">          12 :       return std::nullopt;</span></span>
+<span id="L373"><span class="lineNum">     373</span>                 :<span class="tlaGNC">          12 :     }</span></span>
+<span id="L374"><span class="lineNum">     374</span>                 :<span class="tlaGNC">          67 :     const node_type* const node = *result;</span></span>
+<span id="L375"><span class="lineNum">     375</span>                 :<span class="tlaGNC">          67 :     const auto entries = original.entries();</span></span>
+<span id="L376"><span class="lineNum">     376</span>                 :<span class="tlaGNC">          67 :     std::uninitialized_copy_n(entries.begin(), position, node-&gt;EntryPtr());</span></span>
+<span id="L377"><span class="lineNum">     377</span>                 :<span class="tlaGNC">          67 :     std::construct_at(node-&gt;EntryPtr() + position, replacement);</span></span>
+<span id="L378"><span class="lineNum">     378</span>                 :<span class="tlaGNC">          67 :     std::uninitialized_copy(</span></span>
+<span id="L379"><span class="lineNum">     379</span>                 :<span class="tlaGNC">          67 :         entries.begin() + static_cast&lt;std::ptrdiff_t&gt;(position + 1), entries.end(), node-&gt;EntryPtr() + position + 1);</span></span>
+<span id="L380"><span class="lineNum">     380</span>                 :<span class="tlaGNC">          67 :     CopyChildren(*node, original.children());</span></span>
+<span id="L381"><span class="lineNum">     381</span>                 :<span class="tlaGNC">          67 :     return result;</span></span>
+<span id="L382"><span class="lineNum">     382</span>                 :<span class="tlaGNC">          79 :   }</span></span>
+<span id="L383"><span class="lineNum">     383</span>                 :             : </span>
+<span id="L384"><span class="lineNum">     384</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L385"><span class="lineNum">     385</span>                 :<span class="tlaGNC">       12242 :   static void Release(Source&amp; source, node_type* node) noexcept {</span></span>
+<span id="L386"><span class="lineNum">     386</span> [<span class="tlaGBC" title="branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="branch 1 was taken 12232 times"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 9905 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 2327 times"> + </span>]:<span class="tlaGNC">       12242 :     if (node == nullptr || node-&gt;references_.fetch_sub(1, std::memory_order_acq_rel) != 1) {</span></span>
+<span id="L387"><span class="lineNum">     387</span>                 :<span class="tlaGNC">        9915 :       return;</span></span>
+<span id="L388"><span class="lineNum">     388</span>                 :<span class="tlaGNC">        9915 :     }</span></span>
+<span id="L389"><span class="lineNum">     389</span>                 :<span class="tlaGNC">        2327 :     const std::size_t entry_count = node-&gt;EntryCount();</span></span>
+<span id="L390"><span class="lineNum">     390</span>                 :<span class="tlaGNC">        2327 :     const index_type index = node-&gt;index_;</span></span>
+<span id="L391"><span class="lineNum">     391</span>                 :<span class="tlaGNC">        2327 :     const auto block = node-&gt;block_;</span></span>
+<span id="L392"><span class="lineNum">     392</span>         [<span class="tlaGBC" title="branch 0 was taken 9284 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2327 times"> + </span>]:<span class="tlaGNC">        9738 :     for (node_type* child : node-&gt;children()) {</span></span>
+<span id="L393"><span class="lineNum">     393</span>                 :<span class="tlaGNC">        9284 :       Release(source, child);</span></span>
+<span id="L394"><span class="lineNum">     394</span>                 :<span class="tlaGNC">        9284 :     }</span></span>
+<span id="L395"><span class="lineNum">     395</span>                 :<span class="tlaGNC">        2327 :     std::destroy_n(node-&gt;EntryPtr(), entry_count);</span></span>
+<span id="L396"><span class="lineNum">     396</span>                 :<span class="tlaGNC">        2327 :     std::destroy_n(node-&gt;ChildPtr(), index.NodeSize());</span></span>
+<span id="L397"><span class="lineNum">     397</span>                 :<span class="tlaGNC">        2327 :     std::destroy_at(node);</span></span>
+<span id="L398"><span class="lineNum">     398</span>                 :<span class="tlaGNC">        2327 :     source.Release(block);</span></span>
+<span id="L399"><span class="lineNum">     399</span>                 :<span class="tlaGNC">        2327 :   }</span></span>
+<span id="L400"><span class="lineNum">     400</span>                 :             : </span>
+<span id="L401"><span class="lineNum">     401</span>                 :             :  private:</span>
+<span id="L402"><span class="lineNum">     402</span>                 :             :   using Layout = HamtPackedNodeLayout&lt;node_type, Entry, node_type*&gt;;</span>
+<span id="L403"><span class="lineNum">     403</span>                 :             : </span>
+<span id="L404"><span class="lineNum">     404</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L405"><span class="lineNum">     405</span>                 :             :   static std::optional&lt;node_type*&gt; TryAllocate(</span>
+<span id="L406"><span class="lineNum">     406</span>                 :             :       Source&amp; source,</span>
+<span id="L407"><span class="lineNum">     407</span>                 :             :       index_type index,</span>
+<span id="L408"><span class="lineNum">     408</span>                 :             :       std::span&lt;const Entry&gt; entries,</span>
+<span id="L409"><span class="lineNum">     409</span>                 :             :       std::span&lt;node_type* const&gt; children,</span>
+<span id="L410"><span class="lineNum">     410</span>                 :             :       std::size_t collision_count) noexcept</span>
+<span id="L411"><span class="lineNum">     411</span>                 :             :   requires std::is_nothrow_copy_constructible_v&lt;Entry&gt;</span>
+<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">         905 :   {</span></span>
+<span id="L413"><span class="lineNum">     413</span>         [<span class="tlaGBC" title="branch 0 was taken 196 times"> + </span><span class="tlaGBC" title="branch 1 was taken 904 times"> + </span>]:<span class="tlaGNC">         905 :     for (const node_type* child : children) {</span></span>
+<span id="L414"><span class="lineNum">     414</span>         [<span class="tlaGBC" title="branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="branch 1 was taken 195 times"> + </span>]:<span class="tlaGNC">         196 :       if (child == nullptr) {</span></span>
+<span id="L415"><span class="lineNum">     415</span>                 :<span class="tlaGNC">           1 :         return std::nullopt;</span></span>
+<span id="L416"><span class="lineNum">     416</span>                 :<span class="tlaGNC">           1 :       }</span></span>
+<span id="L417"><span class="lineNum">     417</span>                 :<span class="tlaGNC">         196 :     }</span></span>
+<span id="L418"><span class="lineNum">     418</span>                 :<span class="tlaGNC">         904 :     const auto result = TryAllocateUninitialized(source, index, entries.size(), children.size(), collision_count);</span></span>
+<span id="L419"><span class="lineNum">     419</span>         [<span class="tlaGBC" title="branch 0 was taken 841 times"> + </span><span class="tlaGBC" title="branch 1 was taken 63 times"> + </span>]:<span class="tlaGNC">         904 :     if (result) {</span></span>
+<span id="L420"><span class="lineNum">     420</span>                 :<span class="tlaGNC">         841 :       std::uninitialized_copy(entries.begin(), entries.end(), (*result)-&gt;EntryPtr());</span></span>
+<span id="L421"><span class="lineNum">     421</span>                 :<span class="tlaGNC">         841 :       CopyChildren(**result, children);</span></span>
+<span id="L422"><span class="lineNum">     422</span>                 :<span class="tlaGNC">         841 :     }</span></span>
+<span id="L423"><span class="lineNum">     423</span>                 :<span class="tlaGNC">         904 :     return result;</span></span>
+<span id="L424"><span class="lineNum">     424</span>                 :<span class="tlaGNC">         905 :   }</span></span>
+<span id="L425"><span class="lineNum">     425</span>                 :             : </span>
+<span id="L426"><span class="lineNum">     426</span>                 :             :   template&lt;mbo::memory::BlockSource Source&gt;</span>
+<span id="L427"><span class="lineNum">     427</span>                 :             :   static std::optional&lt;node_type*&gt; TryAllocateUninitialized(</span>
+<span id="L428"><span class="lineNum">     428</span>                 :             :       Source&amp; source,</span>
+<span id="L429"><span class="lineNum">     429</span>                 :             :       index_type index,</span>
+<span id="L430"><span class="lineNum">     430</span>                 :             :       std::size_t entry_count,</span>
+<span id="L431"><span class="lineNum">     431</span>                 :             :       std::size_t child_count,</span>
+<span id="L432"><span class="lineNum">     432</span>                 :<span class="tlaGNC">        2440 :       std::size_t collision_count) noexcept {</span></span>
+<span id="L433"><span class="lineNum">     433</span>                 :<span class="tlaGNC">        2440 :     const auto layout = Layout::TryMake(entry_count, child_count);</span></span>
+<span id="L434"><span class="lineNum">     434</span>         [<span class="tlaUNC" title="branch 0 was not taken"> - </span><span class="tlaGBC" title="branch 1 was taken 2440 times"> + </span>]:<span class="tlaGNC">        2440 :     if (!layout) {</span></span>
+<span id="L435"><span class="lineNum">     435</span>                 :<span class="tlaUNC">           0 :       return std::nullopt;</span></span>
+<span id="L436"><span class="lineNum">     436</span>                 :<span class="tlaUNC">           0 :     }</span></span>
+<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">        2440 :     const auto block = source.TryAcquire(layout-&gt;size, layout-&gt;alignment);</span></span>
+<span id="L438"><span class="lineNum">     438</span>         [<span class="tlaGBC" title="branch 0 was taken 109 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2331 times"> + </span>]:<span class="tlaGNC">        2440 :     if (!block) {</span></span>
+<span id="L439"><span class="lineNum">     439</span>                 :<span class="tlaGNC">         109 :       return std::nullopt;</span></span>
+<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">         109 :     }</span></span>
+<span id="L441"><span class="lineNum">     441</span>         [<span class="tlaGBC" title="branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2327 times"> + </span>]:<span class="tlaGNC">        2331 :     if (!Usable(*block, *layout)) {</span></span>
+<span id="L442"><span class="lineNum">     442</span>                 :<span class="tlaGNC">           4 :       source.Release(*block);</span></span>
+<span id="L443"><span class="lineNum">     443</span>                 :<span class="tlaGNC">           4 :       return std::nullopt;</span></span>
+<span id="L444"><span class="lineNum">     444</span>                 :<span class="tlaGNC">           4 :     }</span></span>
+<span id="L445"><span class="lineNum">     445</span>                 :<span class="tlaGNC">        2327 :     auto* const node = std::construct_at(</span></span>
+<span id="L446"><span class="lineNum">     446</span>                 :<span class="tlaGNC">        2327 :         reinterpret_cast&lt;node_type*&gt;(block-&gt;data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)</span></span>
+<span id="L447"><span class="lineNum">     447</span>                 :<span class="tlaGNC">        2327 :         index, collision_count);</span></span>
+<span id="L448"><span class="lineNum">     448</span>                 :<span class="tlaGNC">        2327 :     node-&gt;block_ = *block;</span></span>
+<span id="L449"><span class="lineNum">     449</span>                 :<span class="tlaGNC">        2327 :     return node;</span></span>
+<span id="L450"><span class="lineNum">     450</span>                 :<span class="tlaGNC">        2331 :   }</span></span>
+<span id="L451"><span class="lineNum">     451</span>                 :             : </span>
+<span id="L452"><span class="lineNum">     452</span>                 :<span class="tlaGNC">        1726 :   static void CopyChildren(const node_type&amp; node, std::span&lt;node_type* const&gt; children) noexcept {</span></span>
+<span id="L453"><span class="lineNum">     453</span>                 :<span class="tlaGNC">        1726 :     std::uninitialized_copy(children.begin(), children.end(), node.ChildPtr());</span></span>
+<span id="L454"><span class="lineNum">     454</span>                 :<span class="tlaGNC">        1726 :     RetainChildren(children);</span></span>
+<span id="L455"><span class="lineNum">     455</span>                 :<span class="tlaGNC">        1726 :   }</span></span>
+<span id="L456"><span class="lineNum">     456</span>                 :             : </span>
+<span id="L457"><span class="lineNum">     457</span>                 :             :   static void CopyInsertedEntries(</span>
+<span id="L458"><span class="lineNum">     458</span>                 :             :       const node_type&amp; node,</span>
+<span id="L459"><span class="lineNum">     459</span>                 :             :       std::span&lt;const Entry&gt; entries,</span>
+<span id="L460"><span class="lineNum">     460</span>                 :             :       std::size_t position,</span>
+<span id="L461"><span class="lineNum">     461</span>                 :<span class="tlaGNC">         655 :       const Entry&amp; entry) noexcept {</span></span>
+<span id="L462"><span class="lineNum">     462</span>                 :<span class="tlaGNC">         655 :     std::uninitialized_copy_n(entries.begin(), position, node.EntryPtr());</span></span>
+<span id="L463"><span class="lineNum">     463</span>                 :<span class="tlaGNC">         655 :     std::construct_at(node.EntryPtr() + position, entry);</span></span>
+<span id="L464"><span class="lineNum">     464</span>                 :<span class="tlaGNC">         655 :     std::uninitialized_copy(</span></span>
+<span id="L465"><span class="lineNum">     465</span>                 :<span class="tlaGNC">         655 :         entries.begin() + static_cast&lt;std::ptrdiff_t&gt;(position), entries.end(), node.EntryPtr() + position + 1);</span></span>
+<span id="L466"><span class="lineNum">     466</span>                 :<span class="tlaGNC">         655 :   }</span></span>
+<span id="L467"><span class="lineNum">     467</span>                 :             : </span>
+<span id="L468"><span class="lineNum">     468</span>                 :<span class="tlaGNC">         411 :   static void CopyErasedEntries(const node_type&amp; node, std::span&lt;const Entry&gt; entries, std::size_t position) noexcept {</span></span>
+<span id="L469"><span class="lineNum">     469</span>                 :<span class="tlaGNC">         411 :     std::uninitialized_copy_n(entries.begin(), position, node.EntryPtr());</span></span>
+<span id="L470"><span class="lineNum">     470</span>                 :<span class="tlaGNC">         411 :     std::uninitialized_copy(</span></span>
+<span id="L471"><span class="lineNum">     471</span>                 :<span class="tlaGNC">         411 :         entries.begin() + static_cast&lt;std::ptrdiff_t&gt;(position + 1), entries.end(), node.EntryPtr() + position);</span></span>
+<span id="L472"><span class="lineNum">     472</span>                 :<span class="tlaGNC">         411 :   }</span></span>
+<span id="L473"><span class="lineNum">     473</span>                 :             : </span>
+<span id="L474"><span class="lineNum">     474</span>                 :<span class="tlaGNC">        2304 :   static void RetainChildren(std::span&lt;node_type* const&gt; children) noexcept {</span></span>
+<span id="L475"><span class="lineNum">     475</span>         [<span class="tlaGBC" title="branch 0 was taken 9284 times"> + </span><span class="tlaGBC" title="branch 1 was taken 2304 times"> + </span>]:<span class="tlaGNC">        9715 :     for (node_type* child : children) {</span></span>
+<span id="L476"><span class="lineNum">     476</span>                 :<span class="tlaGNC">        9284 :       Retain(child);</span></span>
+<span id="L477"><span class="lineNum">     477</span>                 :<span class="tlaGNC">        9284 :     }</span></span>
+<span id="L478"><span class="lineNum">     478</span>                 :<span class="tlaGNC">        2304 :   }</span></span>
+<span id="L479"><span class="lineNum">     479</span>                 :             : </span>
+<span id="L480"><span class="lineNum">     480</span>                 :<span class="tlaGNC">        2331 :   static bool Usable(const mbo::memory::MemoryBlock&amp; block, const Layout&amp; layout) noexcept {</span></span>
+<span id="L481"><span class="lineNum">     481</span> [<span class="tlaGBC" title="branch 0 was taken 2330 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>][<span class="tlaGBC" title="branch &quot;2&quot; was taken 2329 times"> + </span><span class="tlaGBC" title="branch &quot;3&quot; was taken 1 time"> + </span>]:<span class="tlaGNC">        2331 :     return block.data != nullptr &amp;&amp; block.size &gt;= layout.size &amp;&amp; block.alignment &gt;= layout.alignment</span></span>
+<span class="lineNum">        </span>         [<span class="tlaGBC" title="branch &quot;4&quot; was taken 2328 times"> + </span><span class="tlaGBC" title="branch &quot;5&quot; was taken 1 time"> + </span>]
+<span id="L482"><span class="lineNum">     482</span>         [<span class="tlaGBC" title="branch 0 was taken 2327 times"> + </span><span class="tlaGBC" title="branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">        2328 :            &amp;&amp; std::bit_cast&lt;std::uintptr_t&gt;(block.data) % layout.alignment == 0;</span></span>
+<span id="L483"><span class="lineNum">     483</span>                 :<span class="tlaGNC">        2331 :   }</span></span>
+<span id="L484"><span class="lineNum">     484</span>                 :             : </span>
+<span id="L485"><span class="lineNum">     485</span>                 :<span class="tlaGNC">      106015 :   Entry* EntryPtr() const noexcept {</span></span>
+<span id="L486"><span class="lineNum">     486</span>                 :<span class="tlaGNC">      106015 :     constexpr std::size_t kDataOffset =</span></span>
+<span id="L487"><span class="lineNum">     487</span>                 :<span class="tlaGNC">      106015 :         sizeof(node_type) + ((alignof(Entry) - (sizeof(node_type) % alignof(Entry))) % alignof(Entry));</span></span>
+<span id="L488"><span class="lineNum">     488</span>                 :<span class="tlaGNC">      106015 :     auto* const bytes = reinterpret_cast&lt;std::byte*&gt;(const_cast&lt;node_type*&gt;(this));  // NOLINT</span></span>
+<span id="L489"><span class="lineNum">     489</span>                 :<span class="tlaGNC">      106015 :     return reinterpret_cast&lt;Entry*&gt;(bytes + kDataOffset);                            // NOLINT</span></span>
+<span id="L490"><span class="lineNum">     490</span>                 :<span class="tlaGNC">      106015 :   }</span></span>
+<span id="L491"><span class="lineNum">     491</span>                 :             : </span>
+<span id="L492"><span class="lineNum">     492</span>                 :<span class="tlaGNC">       31072 :   node_type** ChildPtr() const noexcept {</span></span>
+<span id="L493"><span class="lineNum">     493</span>                 :             :     // TryCreate validates all size arithmetic before constructing this immutable index.</span>
+<span id="L494"><span class="lineNum">     494</span>                 :             :     // The node header and therefore EntryPtr() are already pointer-aligned; only the entry-array size needs padding.</span>
+<span id="L495"><span class="lineNum">     495</span>                 :<span class="tlaGNC">       31072 :     const std::size_t data_size = EntryCount() * sizeof(Entry);</span></span>
+<span id="L496"><span class="lineNum">     496</span>                 :<span class="tlaGNC">       31072 :     auto* const data_end = reinterpret_cast&lt;std::byte*&gt;(EntryPtr()) + data_size;  // NOLINT</span></span>
+<span id="L497"><span class="lineNum">     497</span>                 :<span class="tlaGNC">       31072 :     const std::size_t padding = (alignof(node_type*) - (data_size % alignof(node_type*))) % alignof(node_type*);</span></span>
+<span id="L498"><span class="lineNum">     498</span>                 :<span class="tlaGNC">       31072 :     return reinterpret_cast&lt;node_type**&gt;(data_end + padding);  // NOLINT</span></span>
+<span id="L499"><span class="lineNum">     499</span>                 :<span class="tlaGNC">       31072 :   }</span></span>
+<span id="L500"><span class="lineNum">     500</span>                 :             : </span>
+<span id="L501"><span class="lineNum">     501</span>         [<span class="tlaGBC" title="branch 0 was taken 1217 times"> + </span><span class="tlaGBC" title="branch 1 was taken 100616 times"> + </span>]:<span class="tlaGNC">      101833 :   std::size_t EntryCount() const noexcept { return is_collision() ? collision_count_ : index_.DataSize(); }</span></span>
+<span id="L502"><span class="lineNum">     502</span>                 :             : </span>
+<span id="L503"><span class="lineNum">     503</span>                 :             :   std::atomic&lt;std::uint32_t&gt; references_{1};</span>
+<span id="L504"><span class="lineNum">     504</span>                 :             :   index_type index_;</span>
+<span id="L505"><span class="lineNum">     505</span>                 :             :   mbo::memory::MemoryBlock block_;</span>
+<span id="L506"><span class="lineNum">     506</span>                 :             :   std::size_t collision_count_ = 0;</span>
+<span id="L507"><span class="lineNum">     507</span>                 :             : };</span>
+<span id="L508"><span class="lineNum">     508</span>                 :             : </span>
+<span id="L509"><span class="lineNum">     509</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L510"><span class="lineNum">     510</span>                 :             : </span>
+<span id="L511"><span class="lineNum">     511</span>                 :             : }  // namespace mbo::container::container_internal</span>
+<span id="L512"><span class="lineNum">     512</span>                 :             : </span>
+<span id="L513"><span class="lineNum">     513</span>                 :             : #endif  // MBO_CONTAINER_INTERNAL_HAMT_SHARED_NODE_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table class="mboPolicy">
+            <thead>
+              <tr>
+                <th scope="col">Global coverage policy</th>
+                <th scope="col">Low</th>
+                <th scope="col">Medium</th>
+                <th scope="col">High</th>
+                <th scope="col">Enforced</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row">Lines</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Branches</th>
+              <td class="headerValueLegL">&lt; 80%</td>
+              <td class="headerValueLegM">&ge; 80% and &lt; 90%</td>
+              <td class="headerValueLegH">&ge; 90%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            <tr>
+              <th scope="row">Functions</th>
+              <td class="headerValueLegL">&lt; 90%</td>
+              <td class="headerValueLegM">&ge; 90% and &lt; 95%</td>
+              <td class="headerValueLegH">&ge; 95%</td>
+              <td class="headerValueLegH">High</td>
+            </tr>
+            </tbody>
+          </table>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

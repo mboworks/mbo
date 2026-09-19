@@ -73,13 +73,17 @@ TEST_F(HamtNodeMapTest, FourBitFragmentsPreserveSnapshotsAcrossAllEdits) {
 
 TEST_F(HamtNodeMapTest, CallerOwnedControlStorageIsRetainedByPublishedMapSnapshots) {
   mbo::memory::InlineBlockSource<4'096> storage;
-  auto created = CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
-  ASSERT_THAT(created.has_value(), Eq(true));
-  auto inserted = created.value().insert({1, 99}).first;
-  created.reset();
-  EXPECT_THAT(inserted.at(1), Eq(99));
-  EXPECT_THAT(CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
-  inserted = CopyableMap{};
+  {
+    auto created = CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
+    if (!created) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
+    auto inserted = std::move(*created).insert({1, 99}).first;
+    created.reset();
+    EXPECT_THAT(inserted.at(1), Eq(99));
+    EXPECT_THAT(CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+  }
   EXPECT_THAT(CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(true));
   mbo::memory::InlineBlockSource<1> exhausted;
   EXPECT_THAT(CopyableMap::try_create_in(exhausted, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));

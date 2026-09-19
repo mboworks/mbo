@@ -98,6 +98,8 @@ class HamtNodeMap final {
 
   bool empty() const noexcept { return owned_.tree().empty(); }
 
+  auto structural_diagnostics() const noexcept { return owned_.tree().structural_diagnostics(); }
+
   static constexpr size_type max_size() noexcept { return Tree::max_size(); }
 
   iterator begin() const noexcept { return iterator(owned_.tree().begin()); }
@@ -360,6 +362,8 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   size_type size() const noexcept { return map_.size(); }
 
   bool empty() const noexcept { return map_.empty(); }
+
+  auto structural_diagnostics() const noexcept { return map_.structural_diagnostics(); }
 
   static constexpr size_type max_size() noexcept { return HamtNodeMap::max_size(); }
 

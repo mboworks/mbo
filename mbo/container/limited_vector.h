@@ -20,9 +20,11 @@
 #include <compare>   // IWYU pragma: keep
 #include <concepts>  // IWYU pragma: keep
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
 #include <memory>
 #include <new>  // IWYU pragma: keep
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -331,6 +333,17 @@ class LimitedVector final {
     size_ -= deleted;
     return const_cast<iterator>(first);
     // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+  }
+
+  // Capacity exhaustion is a normal result, not a failed contract. No arguments
+  // are consumed at capacity. Restrict construction to nothrow element types.
+  template<typename... Args>
+  requires std::is_nothrow_constructible_v<std::remove_const_t<T>, Args...>
+  constexpr std::optional<std::reference_wrapper<T>> try_emplace_back(Args&&... args) noexcept {
+    if (size_ == Capacity) {
+      return std::nullopt;
+    }
+    return std::ref(emplace_back(std::forward<Args>(args)...));
   }
 
   template<typename... Args>

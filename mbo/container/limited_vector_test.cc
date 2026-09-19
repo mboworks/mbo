@@ -45,6 +45,7 @@ using ::testing::IsEmpty;
 using ::testing::Le;
 using ::testing::Lt;
 using ::testing::Not;
+using ::testing::Pointee;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedVector<int, 3>>);
@@ -62,6 +63,34 @@ TEST_F(LimitedVectorTest, MakeNoArg) {
   EXPECT_THAT(kTest, CapacityIs(0));
   EXPECT_THAT(kTest, ElementsAre());
 }
+
+TEST_F(LimitedVectorTest, TryEmplaceBackReportsCapacityAndReusesPoppedStorage) {
+  LimitedVector<int, 1> values;
+  EXPECT_THAT(values.try_emplace_back(42).has_value(), Eq(true));
+  EXPECT_THAT(values.try_emplace_back(99).has_value(), Eq(false));
+  EXPECT_THAT(values, ElementsAre(42));
+  values.pop_back();
+  EXPECT_THAT(values.try_emplace_back(99).has_value(), Eq(true));
+  EXPECT_THAT(values, ElementsAre(99));
+  LimitedVector<int, 0> empty;
+  EXPECT_THAT(empty.try_emplace_back(42).has_value(), Eq(false));
+}
+
+TEST_F(LimitedVectorTest, TryEmplaceBackDoesNotConsumeMoveOnlyArgumentsAtCapacity) {
+  LimitedVector<std::unique_ptr<int>, 1> values;
+  auto first = std::make_unique<int>(42);
+  EXPECT_THAT(values.try_emplace_back(std::move(first)).has_value(), Eq(true));
+  EXPECT_THAT(first.get(), Eq(nullptr));
+  auto second = std::make_unique<int>(99);
+  EXPECT_THAT(values.try_emplace_back(std::move(second)).has_value(), Eq(false));
+  EXPECT_THAT(second, Pointee(Eq(99)));
+  EXPECT_THAT(values.size(), Eq(1));
+}
+
+static_assert([] {
+  LimitedVector<int, 1> values;
+  return values.try_emplace_back(42).has_value() && !values.try_emplace_back(99).has_value() && values.front() == 42;
+}());
 
 TEST_F(LimitedVectorTest, MakeOneArg) {
   constexpr auto kTest = MakeLimitedVector(42);

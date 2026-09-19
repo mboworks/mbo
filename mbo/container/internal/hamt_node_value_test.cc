@@ -27,10 +27,12 @@ struct HamtNodeValueTest : ::testing::Test {};
 
 TEST_F(HamtNodeValueTest, NonallocatingMutableAccessRejectsSharedAndEmptyHandles) {
   Payload empty;
+  EXPECT_THAT(empty.allocation_bytes(), Eq(0));
   EXPECT_THAT(empty.get_unique_mutable(), Eq(nullptr));
   const auto domain = Domain::TryCreate().value_or(Domain{});
   auto current = Payload::TryCreate(domain, 42).value_or(Payload{});
   ASSERT_THAT(current.get(), NotNull());
+  EXPECT_THAT(current.allocation_bytes() >= sizeof(int), Eq(true));
   const auto* const address = current.get();
   auto* const editable = current.get_unique_mutable();
   ASSERT_THAT(editable, NotNull());

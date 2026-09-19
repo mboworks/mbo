@@ -18,16 +18,22 @@ struct HamtStringIndexTest : ::testing::Test {};
 
 TEST_F(HamtStringIndexTest, CallerOwnedControlStorageRetainsIndexUntilLastSnapshot) {
   mbo::memory::InlineBlockSource<4'096> storage;
-  auto index = HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{});
-  ASSERT_THAT(index.has_value(), Eq(true));
-  EXPECT_THAT(index.value().try_insert("a", StringId<>(0)), Optional(true));
-  auto snapshot = index;
-  index.reset();
-  EXPECT_THAT(snapshot.value().find("a"), Optional(StringId<>(0)));
-  EXPECT_THAT(
-      HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
-      Eq(false));
-  snapshot.reset();
+  {
+    auto created = HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{});
+    if (!created) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
+    auto index = std::move(*created);
+    created.reset();
+    EXPECT_THAT(index.try_insert("a", StringId<>(0)), Optional(true));
+    const auto snapshot = index;
+    index = HamtStringIndex<>();
+    EXPECT_THAT(snapshot.find("a"), Optional(StringId<>(0)));
+    EXPECT_THAT(
+        HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
+        Eq(false));
+  }
   EXPECT_THAT(
       HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
       Eq(true));

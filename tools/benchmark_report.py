@@ -103,6 +103,20 @@ def render_svg(report, *, title, names):
     return "\n".join([*parts, "</svg>"]) + "\n"
 
 
+def select_benchmarks(report, names):
+    """Return a report containing exactly the explicitly selected comparisons."""
+    if not names:
+        return report
+    if len(names) > 20 or len(set(names)) != len(names):
+        raise ValueError("select between one and twenty distinct benchmark names")
+    available = {row["name"]: row for row in report["benchmarks"]}
+    if any(name not in available for name in names):
+        raise ValueError("selected benchmark is absent from report")
+    selected = copy.deepcopy(report)
+    selected["benchmarks"] = [copy.deepcopy(available[name]) for name in names]
+    return selected
+
+
 def main(argv=None):
     """Generate a derived report without overwriting the retained input artifact."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -127,7 +141,9 @@ def main(argv=None):
             parser.error(f"output directory does not exist: {output.parent}")
     try:
         data = json.loads(args.artifact.read_text())
-        report = summarize(data, operations_per_iteration=args.operations_per_iteration)
+        report = select_benchmarks(
+            summarize(data, operations_per_iteration=args.operations_per_iteration), args.name
+        )
         svg = render_svg(report, title=args.title, names=args.name) if args.svg else None
     except (ValueError, OSError) as error:
         parser.error(str(error))

@@ -28,6 +28,7 @@
 #include "mbo/strings/hamt_node_string_index.h"
 #include "mbo/strings/hamt_string_index.h"
 #include "mbo/strings/string_interner.h"
+#include "mbo/strings/string_interner_map.h"
 
 namespace mbo::strings {
 namespace {
@@ -95,6 +96,9 @@ using Interner = StringInterner<
     typename BenchmarkStorage<Index>::entries_type,
     typename BenchmarkStorage<Index>::index_type>;
 
+template<typename Index>
+using InternerMap = StringInternerMap<std::uint64_t, Interner<Index>>;
+
 template<typename Representation>
 using WidthIndex = HamtStringIndex<StringId<Representation>, Hash>;
 
@@ -138,6 +142,95 @@ bool Populate(benchmark::State& state, Interner<Index>& interner, std::span<cons
     return false;
   }
   return true;
+}
+
+template<typename Index>
+bool PopulateMap(benchmark::State& state, InternerMap<Index>& interner, std::span<const std::string> inputs) {
+  const auto initial_size = interner.size();
+  for (std::size_t ordinal = 0; ordinal < inputs.size(); ++ordinal) {
+    const auto inserted = interner.try_emplace(inputs[ordinal], static_cast<std::uint64_t>(initial_size + ordinal));
+    using Insertion = std::pair<typename InternerMap<Index>::id_type, bool>;
+    const auto* const result = std::get_if<Insertion>(&inserted);
+    if (result == nullptr || !result->second || result->first.value() != initial_size + ordinal) {
+      state.SkipWithError("map setup exhausted storage or did not assign the expected dense ID");
+      return false;
+    }
+  }
+  return true;
+}
+
+template<typename Index, int HashBits>
+void BmMapUniqueLifecycle(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto length = static_cast<std::size_t>(state.range(1));
+  const auto inputs = MakeInputs(count, length, state.range(2) != 0, "map/");
+  for (auto iteration : state) {
+    (void)iteration;
+    InternerMap<Index> interner;
+    if (!PopulateMap<Index>(state, interner, inputs)) {
+      return;
+    }
+    benchmark::DoNotOptimize(interner.size());
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
+  state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(count * length));
+}
+
+template<typename Index, int HashBits>
+void BmMapFindMapped(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto inputs = MakeInputs(count, static_cast<std::size_t>(state.range(1)), state.range(2) != 0, "map/");
+  InternerMap<Index> interner;
+  if (!PopulateMap<Index>(state, interner, inputs)) {
+    return;
+  }
+  for (std::size_t ordinal = 0; ordinal < inputs.size(); ++ordinal) {
+    const auto id = interner.find(inputs[ordinal]);
+    if (!id || interner.mapped(*id) == nullptr || *interner.mapped(*id) != ordinal) {
+      state.SkipWithError("map lookup preflight disagrees with the inserted mapped value");
+      return;
+    }
+  }
+  for (auto iteration : state) {
+    (void)iteration;
+    for (const auto& text : inputs) {
+      const auto id = interner.find(text);
+      const auto* const mapped = id ? interner.mapped(*id) : nullptr;
+      benchmark::DoNotOptimize(mapped == nullptr ? std::uint64_t{} : *mapped);
+    }
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
+}
+
+template<typename Index, int HashBits>
+void BmMapIterate(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto inputs = MakeInputs(count, static_cast<std::size_t>(state.range(1)), state.range(2) != 0, "map/");
+  InternerMap<Index> interner;
+  if (!PopulateMap<Index>(state, interner, inputs)) {
+    return;
+  }
+  std::uint64_t expected = 0;
+  for (std::size_t ordinal = 0; ordinal < count; ++ordinal) {
+    expected += ordinal + inputs[ordinal].size();
+  }
+  for (auto iteration : state) {
+    (void)iteration;
+    std::uint64_t sum = 0;
+    for (const auto entry : interner) {
+      sum += entry.mapped + entry.key.size();
+    }
+    benchmark::DoNotOptimize(sum);
+    benchmark::ClobberMemory();
+    if (sum != expected) {
+      state.SkipWithError("map iteration disagrees with dense key/value order");
+      return;
+    }
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
 }
 
 template<typename Index, int HashBits>
@@ -732,6 +825,25 @@ void RegisterIndex(std::string_view name) {
   add("RfindLateParent", BmLateParentLookup<Index, true, HashBits>, true);
 }
 
+template<typename Index, int HashBits = 64>
+void RegisterMapIndex(std::string_view name) {
+  const auto add = [&](std::string_view operation, auto function) {
+    const auto label = absl::StrCat("StringInternerMap/", name, "/", operation);
+    auto* registered = benchmark::RegisterBenchmark(label.c_str(), function);
+    for (const auto count : std::to_array<std::int64_t>({64, 1'024})) {
+      for (const auto length : std::to_array<std::int64_t>({16, 64, 512})) {
+        for (const auto nul_mode : std::to_array<std::int64_t>({0, 1})) {
+          registered->Args({count, length, nul_mode});
+        }
+      }
+    }
+    registered->ArgNames({"strings", "bytes", "embedded_nul"});
+  };
+  add("UniqueLifecycle", BmMapUniqueLifecycle<Index, HashBits>);
+  add("FindMapped", BmMapFindMapped<Index, HashBits>);
+  add("Iterate", BmMapIterate<Index, HashBits>);
+}
+
 [[maybe_unused]] const bool kRegistered = [] {
   // Google Benchmark copies names supplied through its C-string API.
   auto* exhausted = benchmark::RegisterBenchmark(
@@ -796,6 +908,11 @@ void RegisterIndex(std::string_view name) {
   RegisterIndex<StandardIndex>("StdUnordered");
   RegisterIndex<AbseilFlatIndex>("AbseilFlat");
   RegisterIndex<AbseilNodeIndex>("AbseilNode");
+  RegisterMapIndex<FlatIndex<5>>("HamtFlat5");
+  RegisterMapIndex<NodeIndex<5>>("HamtNode5");
+  RegisterMapIndex<StandardIndex>("StdUnordered");
+  RegisterMapIndex<AbseilFlatIndex>("AbseilFlat");
+  RegisterMapIndex<AbseilNodeIndex>("AbseilNode");
   RegisterIndex<WidthIndex<std::uint8_t>>("HamtFlat5Id8");
   RegisterIndex<WidthIndex<std::uint16_t>>("HamtFlat5Id16");
   RegisterIndex<WidthIndex<std::uint64_t>>("HamtFlat5Id64");

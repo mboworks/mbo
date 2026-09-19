@@ -162,6 +162,7 @@ class BenchmarkReportTest(unittest.TestCase):
             args = [str(source), "--summary", str(summary), "--svg", str(svg), "--name", "Example"]
             self.assertEqual(subject.main(args), 0)
             self.assertEqual(source.read_text(), original)
+            self.assertEqual([row["name"] for row in json.loads(summary.read_text())["benchmarks"]], ["Example"])
             self.assertIn("Source artifact", svg.read_text())
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 subject.main(args)

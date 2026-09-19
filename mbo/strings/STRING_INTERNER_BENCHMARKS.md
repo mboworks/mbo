@@ -1,10 +1,11 @@
 # StringInterner benchmark harness
 
 `//mbo/strings:string_interner_benchmark` is a manual, test-only Google Benchmark binary.
-This is the initial harness, not the final benchmark report. Run final comparisons only after
-the complete implementation stack has passed local and own-context CI validation, following
-[`INTERNING_IMPLEMENTATION.md`](INTERNING_IMPLEMENTATION.md). Compilation alone does not select
-a winning configuration.
+The retained initial-host report, raw artifacts, charts, and provisional configuration matrix are
+in [`measurements/STRING_INTERNER.md`](measurements/STRING_INTERNER.md). Additional comparisons
+remain necessary before cross-machine or universal conclusions. Follow
+[`INTERNING_IMPLEMENTATION.md`](INTERNING_IMPLEMENTATION.md); compilation alone does not select a
+winning configuration.
 
 The initial matrix includes:
 
@@ -16,6 +17,15 @@ The initial matrix includes:
 - ordinary bytes and an embedded NUL in the final byte, without truncating string views;
 - unique insertion lifecycle, duplicate insertion, and forward/reverse parent, local, and missing
   lookups through chains of depth 1, 2, 8, and 32.
+
+The representative map matrix compares flat and node HAMT, standard unordered-map, and Abseil flat
+and node indexes with a `uint64_t` mapped value. `StringInternerMap/UniqueLifecycle` includes mapped
+object construction and destruction in addition to string interning. `FindMapped` performs the
+content lookup followed by dense-ID mapped-value resolution. `Iterate` reads both the key view and
+mapped value in dense-ID order. These cases distinguish the map composition cost from the set-only
+core without charging set users for unused mapped storage. Cascading map semantics and stable
+mapped addresses remain correctness requirements covered by tests; the initial performance matrix
+isolates local mapped storage so index and mapped-sequence costs can be compared directly.
 
 Every index/width profile also has explicit empty-string lifecycle, parent duplicate, forward
 lookup, and reverse lookup cases. Setup verifies that ID zero is a valid result and the empty
@@ -114,7 +124,7 @@ context. The shared artifact runner must add complete machine, build, Git, timin
 provenance; this context alone is not sufficient for a publishable dataset.
 
 For a registration-only check, build the target and invoke the binary with
-`--benchmark_list_tests=true`. This enumerates 24,396 cases without running their timed loops.
+`--benchmark_list_tests=true`. This enumerates 24,576 cases without running their timed loops.
 The manual target is explicitly registered for the CI-owned clang-tidy compilation database.
 
 Storage profiles hold the flat HAMT at five fragment bits and change one storage setting at a

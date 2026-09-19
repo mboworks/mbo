@@ -64,6 +64,25 @@ must include small PODs, the pointer-plus-size record needed by StringInterner, 
 and non-trivial movable objects. Latency is never evaluated without the corresponding allocation,
 metadata, unused-tail, and retained-memory cost.
 
+### Production comparison charts
+
+These charts are regenerated from the retained production artifact with the shared report tool.
+Bars show median CPU nanoseconds per element and whiskers show the observed nine-sample minimum and
+maximum; they are not confidence intervals. The accompanying summaries retain the exact normalized
+values and artifact digest.
+
+![Fresh append comparison](charts/macos-arm64-apple-m5-pro_clang-22_append.svg)
+
+Fresh append includes construction and allocation. It compares all four production segment
+schedules with `std::vector` and `std::deque`; consult the capacity and reserved-byte counters in
+the raw artifact before treating latency as the only selection criterion.
+
+![Iteration comparison](charts/macos-arm64-apple-m5-pro_clang-22_iteration.svg)
+
+The iteration chart compares segment schedules through the same public iterator path. Standard
+container traversal was added in the later lifecycle matrix and is summarized elsewhere in this
+report; this chart does not invent cross-artifact comparisons.
+
 ## Mapping proof benchmark
 
 `//mbo/container:segmented_sequence_layout_benchmark` isolates dense logical lookup for the listed

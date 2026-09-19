@@ -215,7 +215,7 @@ void BmBranchUpdate(benchmark::State& state) {
   {
     auto child = EditableFrom(parent);
     for (std::size_t pos = 0; pos < edits; ++pos) {
-      child[static_cast<std::uint64_t>(pos)] += 1;
+      child.at(static_cast<std::uint64_t>(pos)) += 1;
     }
     for (std::size_t pos = 0; pos < count; ++pos) {
       const auto key = static_cast<std::uint64_t>(pos);
@@ -232,7 +232,7 @@ void BmBranchUpdate(benchmark::State& state) {
   for (auto _ : state) {
     auto child = EditableFrom(parent);
     for (std::size_t pos = 0; pos < edits; ++pos) {
-      auto& mapped = child[static_cast<std::uint64_t>(pos)];
+      auto& mapped = child.at(static_cast<std::uint64_t>(pos));
       mapped += 1;
       benchmark::DoNotOptimize(mapped);
     }
@@ -246,18 +246,15 @@ void BmBranchUpdate(benchmark::State& state) {
 template<typename Map>
 void Register(const char* name) {
   const std::string prefix = std::string("HamtMap/") + name;
-  benchmark::RegisterBenchmark((prefix + "/FindHit").c_str(), &BmLookup<Map, false>)->Arg(64)->Arg(1'024)->Arg(16'384);
-  benchmark::RegisterBenchmark((prefix + "/FindMiss").c_str(), &BmLookup<Map, true>)->Arg(64)->Arg(1'024)->Arg(16'384);
-  benchmark::RegisterBenchmark((prefix + "/Traverse").c_str(), &BmTraversal<Map>)->Arg(64)->Arg(1'024)->Arg(16'384);
-  benchmark::RegisterBenchmark((prefix + "/FillEraseFresh").c_str(), &BmFillEraseFresh<Map>)
+  benchmark::RegisterBenchmark(prefix + "/FindHit", &BmLookup<Map, false>)->Arg(64)->Arg(1'024)->Arg(16'384);
+  benchmark::RegisterBenchmark(prefix + "/FindMiss", &BmLookup<Map, true>)->Arg(64)->Arg(1'024)->Arg(16'384);
+  benchmark::RegisterBenchmark(prefix + "/Traverse", &BmTraversal<Map>)->Arg(64)->Arg(1'024)->Arg(16'384);
+  benchmark::RegisterBenchmark(prefix + "/FillEraseFresh", &BmFillEraseFresh<Map>)->Arg(64)->Arg(1'024)->Arg(16'384);
+  benchmark::RegisterBenchmark(prefix + "/BranchUpdateOne", &BmBranchUpdate<false, Map>)
       ->Arg(64)
       ->Arg(1'024)
       ->Arg(16'384);
-  benchmark::RegisterBenchmark((prefix + "/BranchUpdateOne").c_str(), &BmBranchUpdate<false, Map>)
-      ->Arg(64)
-      ->Arg(1'024)
-      ->Arg(16'384);
-  benchmark::RegisterBenchmark((prefix + "/BranchUpdateAll").c_str(), &BmBranchUpdate<true, Map>)
+  benchmark::RegisterBenchmark(prefix + "/BranchUpdateAll", &BmBranchUpdate<true, Map>)
       ->Arg(64)
       ->Arg(1'024)
       ->Arg(16'384);

@@ -196,7 +196,7 @@ void HamtNodeMapTest::CheckDeepMutationFailure() {
       std::uint64_t, int, FullWidthIdentityHash, std::equal_to<>, HamtOptions{.fragment_bits = Bits}, BudgetSource>;
   constexpr auto kHighBit = std::uint64_t{1} << 63;
   constexpr auto kNewKey = std::uint64_t{1} << 62;
-  constexpr auto kMaxAllocations = 2 * ((std::numeric_limits<std::uint64_t>::digits + Bits - 1) / Bits) + 4;
+  constexpr auto kMaxAllocations = (2 * ((std::numeric_limits<std::uint64_t>::digits + Bits - 1) / Bits)) + 4;
   AllocationBudget budget{.remaining = 4 * kMaxAllocations};
   {
     auto created = Map::try_create(FullWidthIdentityHash{}, std::equal_to<>{}, budget);
@@ -481,6 +481,7 @@ TEST_F(HamtNodeMapTest, SwappingPreparedAndSharedTransientsPreservesPayloadIsola
     EXPECT_THAT(std::as_const(shared).at(42), Eq(100));
     auto moved = std::move(shared);
     auto published = std::move(moved).persistent();
+    // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
     EXPECT_THAT(moved, IsEmpty());
     EXPECT_THAT(published.at(42), Eq(100));
     auto child = published.transient();
@@ -543,6 +544,7 @@ TEST_F(HamtNodeMapTest, MoveAssignmentDoesNotReuseTheReplacedMapsPayloadProof) {
     ASSERT_THAT(std::get_if<Map::transient_type::iterator>(&prepared), NotNull());
     auto shared = snapshot.transient();
     target = std::move(shared);
+    // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
     EXPECT_THAT(shared, IsEmpty());
     budget.remaining = 0;
     EXPECT_THAT(target.try_find(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
@@ -596,8 +598,8 @@ TEST_F(HamtNodeMapTest, ConstTransientTraversalAndLookupDoNotDetachSharedPayload
     budget.remaining = 0;
     const auto acquired = budget.acquired;
     int sum = 0;
-    for (auto position = edit.cbegin(); position != edit.cend(); ++position) {
-      sum += position->second;
+    for (const auto& entry : read) {
+      sum += entry.second;
     }
     EXPECT_THAT(sum, Eq(107));
     EXPECT_THAT(read, UnorderedElementsAre(Pair(42, 99), Pair(7, 8)));
@@ -632,7 +634,7 @@ TEST_F(HamtNodeMapTest, ConstTransientLookupAndTraversalSupportMoveOnlyMappedVal
   const auto snapshot = std::move(inserted.first);
   auto edit = snapshot.transient();
   const auto& read = std::as_const(edit);
-  const auto found = read.find(short{42});
+  const auto found = read.find(std::int16_t{42});
   ASSERT_THAT(found, Ne(read.cend()));
   ASSERT_THAT(found->second, NotNull());
   EXPECT_THAT(*found->second, Eq(99));

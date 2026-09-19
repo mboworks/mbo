@@ -99,6 +99,9 @@ class HamtTree final {
         size_(other.size_),
         all_nodes_unique_(false) {
     // Retaining the root invalidates both trees' prior uniqueness proof.
+    // This is a logically const cache invalidation, and copying is externally
+    // synchronized with mutation like every other operation on one snapshot.
+    // NOLINTNEXTLINE(bugprone-copy-constructor-mutates-argument,cert-oop58-cpp)
     other.all_nodes_unique_ = false;
   }
 

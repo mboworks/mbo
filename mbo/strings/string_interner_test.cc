@@ -214,6 +214,29 @@ TEST_F(StringInternerTest, BoundedIndexExhaustionRollsBackBytesAndPreservesParen
   EXPECT_THAT(original, Eq("local"));
 }
 
+struct ConstantStringHash final {
+  std::uint64_t operator()(std::string_view) const noexcept { return 7; }
+};
+
+TEST_F(StringInternerTest, CollisionBoundExhaustionRollsBackUnpublishedStrings) {
+  using Index = HamtStringIndex<
+      StringId<>, ConstantStringHash, std::equal_to<>, mbo::container::HamtOptions{.maximum_collision_size = 1}>;
+  using Interner =
+      StringInterner<std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, Index>;
+  Interner interner;
+  EXPECT_THAT(interner.try_intern_id("first"), Optional(StringId<>(0)));
+  const auto first = interner.get(StringId<>(0)).value_or(std::string_view{});
+  const auto* const first_data = first.data();
+  EXPECT_THAT(interner.intern("second"), VariantWith<StringInternError>(StringInternError::kIndexExhausted));
+  EXPECT_THAT(interner.size(), Eq(1));
+  EXPECT_THAT(interner.local_size(), Eq(1));
+  EXPECT_THAT(interner.local_character_bytes_used(), Optional(std::size_t{5}));
+  EXPECT_THAT(interner.find("second").has_value(), Eq(false));
+  EXPECT_THAT(interner.try_intern_id("first"), Optional(StringId<>(0)));
+  EXPECT_THAT(interner.get(StringId<>(0)).value_or(std::string_view{}).data(), Eq(first_data));
+  EXPECT_THAT(first, Eq("first"));
+}
+
 TEST_F(StringInternerTest, LocalIndexDiagnosticsDoNotIncludeParentOrPostCutoffEntries) {
   StringInterner<> root;
   EXPECT_THAT(root.intern("shared").index(), Eq(0));
@@ -250,6 +273,30 @@ TEST_F(StringInternerTest, EntryStorageDiagnosticsSeparateLiveDescriptorsFromRes
   EXPECT_THAT(child.size(), Eq(2));
 }
 
+TEST_F(StringInternerTest, StorageDiagnosticsCombineEveryLocalStorageLayer) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("root").index(), Eq(0));
+  StringInterner<> child(&root);
+  EXPECT_THAT(child.intern("local").index(), Eq(0));
+
+  const auto measured = child.local_storage_diagnostics();
+  EXPECT_THAT(measured.string_count, Eq(1));
+  EXPECT_THAT(measured.character_bytes_used, Optional(std::size_t{5}));
+  EXPECT_THAT(measured.character_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.live_descriptor_bytes, Eq(sizeof(std::string_view)));
+  EXPECT_THAT(measured.descriptor_segment_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.descriptor_lookup_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.descriptor_segment_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.index_nodes.has_value(), Eq(true));
+  EXPECT_THAT(measured.index_entries, Optional(std::size_t{1}));
+  EXPECT_THAT(measured.index_collision_nodes, Optional(std::size_t{0}));
+  EXPECT_THAT(measured.index_collision_entries, Optional(std::size_t{0}));
+  EXPECT_THAT(measured.index_largest_collision, Optional(std::size_t{0}));
+  EXPECT_THAT(measured.index_maximum_depth, Optional(std::size_t{0}));
+  EXPECT_THAT(measured.index_node_bytes.has_value(), Eq(true));
+  EXPECT_THAT(measured.index_entry_bytes, Optional(std::size_t{0}));
+}
+
 struct UnmeasuredEntries final {
   using value_type = std::string_view;
 
@@ -280,6 +327,10 @@ TEST_F(StringInternerTest, UnsupportedEntryMemoryStatisticsRemainUnknown) {
   EXPECT_THAT(measured.segment_bytes_reserved.has_value(), Eq(false));
   EXPECT_THAT(measured.lookup_directory_bytes_reserved.has_value(), Eq(false));
   EXPECT_THAT(measured.segment_directory_bytes_reserved.has_value(), Eq(false));
+  const auto combined = interner.local_storage_diagnostics();
+  EXPECT_THAT(combined.descriptor_segment_bytes_reserved.has_value(), Eq(false));
+  EXPECT_THAT(combined.descriptor_lookup_directory_bytes_reserved.has_value(), Eq(false));
+  EXPECT_THAT(combined.descriptor_segment_directory_bytes_reserved.has_value(), Eq(false));
 }
 
 TEST_F(StringInternerTest, TracedSearchesReportDirectionDependentQueriesAndRespectCutoffs) {
@@ -361,6 +412,16 @@ TEST_F(StringInternerTest, DeepChainsFilterEveryAncestorsLaterInsertionsInBothDi
   for (auto& owner : std::views::reverse(chain)) {
     owner.reset();
   }
+}
+
+TEST_F(StringInternerTest, FiniteParentDepthRejectsAnUnboundedCascade) {
+  using Bounded = StringInterner<
+      std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>,
+      HamtStringIndex<StringId<>>, StringInternerOptions{.maximum_parent_depth = 1}>;
+  static_assert(Bounded::max_parent_depth() == 1);
+  Bounded root;
+  Bounded child(&root);
+  EXPECT_DEATH(static_cast<void>(Bounded(&child)), "parent chain exceeds maximum_parent_depth=1");
 }
 
 TEST_F(StringInternerTest, RootIdentityAndParentGrowthDoNotChangeCapturedVisibility) {

@@ -115,7 +115,7 @@ TEST_F(HamtFlatMapTest, ArenaBackedNodesReportStableExhaustionWithoutLosingEntri
   mbo::memory::InlineBlockSource<1'024> control_storage;
   auto created = ArenaMap::try_create_in(control_storage, std::hash<int>{}, std::equal_to<>{}, arena);
   ASSERT_THAT(created.has_value(), Eq(true));
-  auto edit = std::move(*created).transient();
+  auto edit = std::move(*created).transient();  // NOLINT(bugprone-unchecked-optional-access)
 
   int key = 0;
   while (true) {

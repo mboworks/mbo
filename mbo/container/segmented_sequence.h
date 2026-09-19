@@ -4,6 +4,7 @@
 #ifndef MBO_CONTAINER_SEGMENTED_SEQUENCE_H_
 #define MBO_CONTAINER_SEGMENTED_SEQUENCE_H_
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <compare>
@@ -70,16 +71,11 @@ class SegmentedSequence final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
   static constexpr std::size_t kDirectoryPageSize = 64;
-  static constexpr bool kUsePageDirectory = Options.repeat_last && [] {
-    std::size_t pos = 0;
-    while (pos < Options.listed_capacities) {
-      if (Options.segment_capacities[pos] % kDirectoryPageSize != 0) {
-        return false;
-      }
-      ++pos;
-    }
-    return true;
-  }();
+  static constexpr bool kUsePageDirectory =
+      Options.repeat_last
+      && std::ranges::all_of(
+          std::span{Options.segment_capacities}.first(Options.listed_capacities),
+          [](std::size_t capacity) { return capacity % kDirectoryPageSize == 0; });
 
   struct Segment final {
     mbo::memory::MemoryBlock block;

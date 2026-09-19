@@ -31,18 +31,38 @@ struct StringInternerOptions final {
 enum class StringInternError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
 
 template<typename Index, typename Id>
-concept StringInternerIndex = requires(Index& index, const Index& read, std::string_view key, Id identifier) {
-  { read.find(key) } noexcept -> std::same_as<std::optional<Id>>;
-  { index.try_insert(key, identifier) } noexcept -> std::same_as<std::optional<bool>>;
-};
+concept StringInternerIndex = std::is_nothrow_destructible_v<Index>
+                              && requires(Index& index, const Index& read, std::string_view key, Id identifier) {
+                                   { read.find(key) } noexcept -> std::same_as<std::optional<Id>>;
+                                   { index.try_insert(key, identifier) } noexcept -> std::same_as<std::optional<bool>>;
+                                 };
 
 template<typename Storage>
-concept StringInternerStorage =
-    requires(Storage& storage, const Storage& read, std::string_view text, const Storage::checkpoint_type& checkpoint) {
-      { storage.try_store(text) } noexcept -> std::same_as<std::optional<std::string_view>>;
-      { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
-      { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
-    };
+concept StringInternerStorage = std::is_nothrow_destructible_v<Storage>
+                                && requires(
+                                    Storage& storage,
+                                    const Storage& read,
+                                    std::string_view text,
+                                    const Storage::checkpoint_type& checkpoint) {
+                                     {
+                                       storage.try_store(text)
+                                     } noexcept -> std::same_as<std::optional<std::string_view>>;
+                                     { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
+                                     { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
+                                   };
+
+// Syntax cannot prove stable views or rollback: successful append adds exactly
+// one descriptor; failed append changes nothing; pop removes only the last one.
+template<typename Entries>
+concept StringInternerEntries =
+    std::is_nothrow_destructible_v<Entries>
+    && requires(Entries& entries, const Entries& read, std::string_view value, std::size_t ordinal) {
+         requires std::same_as<typename Entries::value_type, std::string_view>;
+         { read.size() } noexcept -> std::same_as<std::size_t>;
+         { read.at(ordinal) } -> std::convertible_to<std::string_view>;
+         { static_cast<bool>(entries.try_emplace_back(value)) } -> std::same_as<bool>;
+         { entries.pop_back() } -> std::same_as<void>;
+       };
 
 // Append-only owner. Parent pointers borrow; every ancestor must outlive children.
 // NOLINTBEGIN(readability-identifier-naming): StringInterner follows STL container vocabulary.
@@ -52,7 +72,9 @@ template<
     typename Entries = mbo::container::SegmentedSequence<std::string_view>,
     typename Index = HamtStringIndex<StringId<Representation>>,
     StringInternerOptions Options = {}>
-requires(StringInternerIndex<Index, StringId<Representation>> && StringInternerStorage<Storage>)
+requires(
+    StringInternerIndex<Index, StringId<Representation>> && StringInternerStorage<Storage>
+    && StringInternerEntries<Entries>)
 class StringInterner final {
  public:
   using id_type = StringId<Representation>;
@@ -63,6 +85,14 @@ class StringInterner final {
     std::optional<id_type> id;
     size_type index_queries = 0;
     std::optional<size_type> parent_depth;
+  };
+
+  struct EntryStorageDiagnostics final {
+    size_type descriptors = 0;
+    size_type live_descriptor_bytes = 0;
+    std::optional<size_type> segment_bytes_reserved;
+    std::optional<size_type> lookup_directory_bytes_reserved;
+    std::optional<size_type> segment_directory_bytes_reserved;
   };
 
   class iterator final {
@@ -198,6 +228,35 @@ class StringInterner final {
     return index_.structural_diagnostics();
   }
 
+  template<typename Visitor>
+  requires requires(const Index& index, Visitor& visitor) {
+    { index.visit_node_diagnostics(visitor) } noexcept;
+  }
+  void visit_local_index_nodes(Visitor&& visitor) const noexcept {
+    index_.visit_node_diagnostics(std::forward<Visitor>(visitor));
+  }
+
+  EntryStorageDiagnostics local_entry_storage_diagnostics() const noexcept {
+    EntryStorageDiagnostics result{
+        .descriptors = local_size(), .live_descriptor_bytes = local_size() * sizeof(std::string_view)};
+    if constexpr (requires(const Entries& entries) {
+                    { entries.bytes_reserved() } noexcept -> std::same_as<size_type>;
+                  }) {
+      result.segment_bytes_reserved = entries_.bytes_reserved();
+    }
+    if constexpr (requires(const Entries& entries) {
+                    { entries.directory_bytes_reserved() } noexcept -> std::same_as<size_type>;
+                  }) {
+      result.lookup_directory_bytes_reserved = entries_.directory_bytes_reserved();
+    }
+    if constexpr (requires(const Entries& entries) {
+                    { entries.segment_directory_bytes_reserved() } noexcept -> std::same_as<size_type>;
+                  }) {
+      result.segment_directory_bytes_reserved = entries_.segment_directory_bytes_reserved();
+    }
+    return result;
+  }
+
   // Cold-path diagnostics: no counters or allocations on insertion and lookup.
   // Visits exactly the visible prefix, in ID order, including empty strings.
   template<typename Visitor>
@@ -307,6 +366,18 @@ class StringInterner final {
     } else {
       return intern_child_first(key);
     }
+  }
+
+  // Convenience adapters deliberately discard the detailed exhaustion reason.
+  [[nodiscard]] std::optional<std::pair<id_type, bool>> try_intern(std::string_view key) noexcept {
+    const auto result = intern(key);
+    const auto* const inserted = std::get_if<std::pair<id_type, bool>>(&result);
+    return inserted == nullptr ? std::nullopt : std::optional(*inserted);
+  }
+
+  [[nodiscard]] std::optional<id_type> try_intern_id(std::string_view key) noexcept {
+    const auto result = try_intern(key);
+    return result ? std::optional(result->first) : std::nullopt;
   }
 
  private:

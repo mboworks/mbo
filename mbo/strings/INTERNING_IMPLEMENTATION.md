@@ -50,11 +50,20 @@ shared benchmark artifact tooling
                                     |
                                     v
                         repository-wide CI collection
+                                    |
+                                    v
+                        comparative benchmarks and charts
+                                    |
+                                    v
+                        provisional configuration decisions
 ```
 
-`StringInterner` depends on `Arena` and `SegmentedSequence`. It depends on HAMT only if HAMT wins the
-index benchmarks. HAMT remains a general container deliverable even if another index wins for the
-interner.
+The initial `StringInterner` composition uses `Arena` and `SegmentedSequence` with a HAMT index.
+Its backend concepts also support other compatible implementations, including standard and Abseil
+index adapters and inline descriptor storage. These compositions do not establish a performance
+winner; complete local and own-context CI validation before comparative measurements select defaults
+or recommendations. HAMT remains a general container deliverable regardless of the interner index
+choice.
 
 ## Pull-request dependency sequence
 

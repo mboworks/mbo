@@ -57,6 +57,12 @@ class HamtStringIndex final {
   // Describes this index snapshot, not character storage or allocator totals.
   auto structural_diagnostics() const noexcept { return map_.structural_diagnostics(); }
 
+  template<typename Visitor>
+  requires requires(const Map& map, Visitor& visitor) { map.visit_node_diagnostics(visitor); }
+  void visit_node_diagnostics(Visitor&& visitor) const noexcept {
+    map_.visit_node_diagnostics(std::forward<Visitor>(visitor));
+  }
+
   template<mbo::memory::BlockSource ControlSource, typename... SourceArgs>
   requires std::is_nothrow_constructible_v<Source, SourceArgs...>
   [[nodiscard]] static std::optional<HamtStringIndex> try_create_in(

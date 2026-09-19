@@ -82,7 +82,10 @@ cc_test(
     deps = [
         ":string_id_cc",
         ":string_interner_cc",
+        "//mbo/container:limited_vector_cc",
         "//mbo/hash:hash_cc",
+        "//mbo/memory:arena_cc",
+        "//mbo/memory:block_source_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

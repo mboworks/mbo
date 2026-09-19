@@ -66,6 +66,11 @@ parameter, `DirectoryAllocator`, rebound internally to `Segment*`. Consequently,
 growth is one source allocation except when the directory also crosses a reserve threshold. The
 three options make that behavior explicit:
 
+The element block source does not govern this directory. A fixed segment source alone is not a
+no-heap guarantee: directory allocation failure is recoverable with exceptions enabled, while
+standard allocator exhaustion terminates without them. An interner that requires strictly inline
+descriptors can use `LimitedVector<string_view, N>` instead of segment and directory allocations.
+
 - `segment_reservation == 0` keeps empty construction allocation-free.
 - The default reservation of one requests one pointer slot during construction, so default
   construction is potentially throwing.

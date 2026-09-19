@@ -1,0 +1,557 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - hash/mbo/hash/hash_xxh3.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">hash</a>/<a href="../index.html">mbo</a>/<a href="index.html">hash</a> - hash_xxh3.h<span style="font-size: 80%;"> (source / <a href="hash_xxh3.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">256</td>
+            <td class="headerCovTableEntry">256</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 20:28:24</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">25</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">70</td>
+            <td class="headerCovTableEntry">70</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_HASH_HASH_XXH3_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_HASH_HASH_XXH3_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : // IWYU pragma: private, include &quot;mbo/hash/hash.h&quot;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : </span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &lt;array&gt;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : #include &lt;string_view&gt;</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : </span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : #include &quot;mbo/hash/hash_internal_util.h&quot;</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : #include &quot;mbo/hash/hash_xxh64.h&quot;</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : </span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : // Upstream attribution: xxHash - Copyright (C) 2019-present Yann Collet,</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : // BSD 2-Clause License (https://github.com/Cyan4973/xxHash). This file is a</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : // constexpr transcription of the</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : // algorithm; the full upstream license text is reproduced in the</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : // repository-root NOTICE file.</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : </span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : // XXH3 (64- and 128-bit): a constexpr-safe scalar implementation of the modern xxHash</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // generation (https://xxhash.com, spec BSD-2-Clause; transcribed from the</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // reference implementation v0.8.2). Produces the canonical `XXH3_64bits[_withSeed]`</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // and `XXH3_128bits[_withSeed]` values on every platform (little-endian defined),</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : // verified against reference vectors. Scalar only -- the reference's SIMD</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : // kernels produce the same values but are not constexpr-compatible.</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : namespace mbo::hash::xxh3 {</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : </span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // The 192-byte secret is kept as a plain char array so `hash_internal::Load64`</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : // reads it constexpr-safely and memcpy-foldably; hence the c-array/decay waivers.</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : // NOLINTBEGIN(*-magic-numbers,*-pointer-arithmetic,*-avoid-c-arrays,*-array-to-pointer-decay,*-constant-array-index,*-easily-swappable-parameters,*-avoid-unchecked-container-access)</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : </span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : namespace xxh3_internal {</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : </span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : // The default 192-byte secret (XXH3_kSecret), byte-for-byte.</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : inline constexpr char kSecret[] =</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             :     &quot;\xb8\xfe\x6c\x39\x23\xa4\x4b\xbe\x7c\x01\x81\x2c\xf7\x21\xad\x1c&quot;</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             :     &quot;\xde\xd4\x6d\xe9\x83\x90\x97\xdb\x72\x40\xa4\xa4\xb7\xb3\x67\x1f&quot;</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             :     &quot;\xcb\x79\xe6\x4e\xcc\xc0\xe5\x78\x82\x5a\xd0\x7d\xcc\xff\x72\x21&quot;</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             :     &quot;\xb8\x08\x46\x74\xf7\x43\x24\x8e\xe0\x35\x90\xe6\x81\x3a\x26\x4c&quot;</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             :     &quot;\x3c\x28\x52\xbb\x91\xc3\x00\xcb\x88\xd0\x65\x8b\x1b\x53\x2e\xa3&quot;</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             :     &quot;\x71\x64\x48\x97\xa2\x0d\xf9\x4e\x38\x19\xef\x46\xa9\xde\xac\xd8&quot;</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             :     &quot;\xa8\xfa\x76\x3f\xe3\x9c\x34\x3f\xf9\xdc\xbb\xc7\xc7\x0b\x4f\x1d&quot;</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             :     &quot;\x8a\x51\xe0\x4b\xcd\xb4\x59\x31\xc8\x9f\x7e\xc9\xd9\x78\x73\x64&quot;</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             :     &quot;\xea\xc5\xac\x83\x34\xd3\xeb\xc3\xc5\x81\xa0\xff\xfa\x13\x63\xeb&quot;</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             :     &quot;\x17\x0d\xdd\x51\xb7\xf0\xda\x49\xd3\x16\x55\x26\x29\xd4\x68\x9e&quot;</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             :     &quot;\x2b\x16\xbe\x58\x7d\x47\xa1\xfc\x8f\xf8\xb8\xd1\x7a\xd0\x31\xce&quot;</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :     &quot;\x45\xcb\x3a\x8f\x95\x16\x04\x28\xaf\xd7\xfb\xca\xbb\x4b\x40\x7e&quot;;</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : inline constexpr std::size_t kSecretSize = 192;</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             : inline constexpr std::size_t kStripeLen = 64;</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : inline constexpr std::size_t kAccNb = 8;</span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : inline constexpr std::size_t kStripesPerBlock = (kSecretSize - kStripeLen) / 8;  // 16</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : inline constexpr std::size_t kBlockLen = kStripeLen * kStripesPerBlock;          // 1024</span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : inline constexpr std::size_t kMidSizeMax = 240;</span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : </span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : inline constexpr uint64_t kPrimeMx1 = 0x165667919E3779F9ULL;</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : inline constexpr uint64_t kPrimeMx2 = 0x9FB21C651E98DF25ULL;</span>
+<span id="L73"><span class="lineNum">      73</span>                 :             : // NOLINTBEGIN(readability-identifier-naming): canonical XXH_PRIME32_* names.</span>
+<span id="L74"><span class="lineNum">      74</span>                 :             : inline constexpr uint64_t kPrime32_1 = 0x9E3779B1ULL;</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : inline constexpr uint64_t kPrime32_2 = 0x85EBCA77ULL;</span>
+<span id="L76"><span class="lineNum">      76</span>                 :             : inline constexpr uint64_t kPrime32_3 = 0xC2B2AE3DULL;</span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : </span>
+<span id="L78"><span class="lineNum">      78</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             : </span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC tlaBgGNC">       96330 : constexpr uint32_t Swap32(uint32_t value) noexcept {</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :<span class="tlaGNC">       96330 :   return ((value &lt;&lt; 24U) &amp; 0xFF000000U) | ((value &lt;&lt; 8U) &amp; 0x00FF0000U) | ((value &gt;&gt; 8U) &amp; 0x0000FF00U)</span></span>
+<span id="L82"><span class="lineNum">      82</span>                 :<span class="tlaGNC">       96330 :          | ((value &gt;&gt; 24U) &amp; 0x000000FFU);</span></span>
+<span id="L83"><span class="lineNum">      83</span>                 :             : }</span>
+<span id="L84"><span class="lineNum">      84</span>                 :             : </span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaGNC">       32151 : constexpr uint64_t Swap64(uint64_t value) noexcept {</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :<span class="tlaGNC">       32151 :   return (static_cast&lt;uint64_t&gt;(Swap32(static_cast&lt;uint32_t&gt;(value))) &lt;&lt; 32U)</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">       32151 :          | static_cast&lt;uint64_t&gt;(Swap32(static_cast&lt;uint32_t&gt;(value &gt;&gt; 32U)));</span></span>
+<span id="L88"><span class="lineNum">      88</span>                 :             : }</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             : </span>
+<span id="L90"><span class="lineNum">      90</span>                 :             : // The classic XXH64 finalizer (XXH64_avalanche).</span>
+<span id="L91"><span class="lineNum">      91</span>                 :<span class="tlaGNC">          34 : constexpr uint64_t Xxh64Avalanche(uint64_t hash) noexcept {</span></span>
+<span id="L92"><span class="lineNum">      92</span>                 :<span class="tlaGNC">          34 :   hash ^= hash &gt;&gt; 33U;</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">          34 :   hash *= xxh64::kPrime2;</span></span>
+<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">          34 :   hash ^= hash &gt;&gt; 29U;</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">          34 :   hash *= xxh64::kPrime3;</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaGNC">          34 :   hash ^= hash &gt;&gt; 32U;</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">          34 :   return hash;</span></span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : }</span>
+<span id="L99"><span class="lineNum">      99</span>                 :             : </span>
+<span id="L100"><span class="lineNum">     100</span>                 :             : // XXH3_avalanche: fast mixer for inputs with already-good entropy.</span>
+<span id="L101"><span class="lineNum">     101</span>                 :<span class="tlaGNC">     2097117 : constexpr uint64_t Avalanche(uint64_t hash) noexcept {</span></span>
+<span id="L102"><span class="lineNum">     102</span>                 :<span class="tlaGNC">     2097117 :   hash ^= hash &gt;&gt; 37U;</span></span>
+<span id="L103"><span class="lineNum">     103</span>                 :<span class="tlaGNC">     2097117 :   hash *= kPrimeMx1;</span></span>
+<span id="L104"><span class="lineNum">     104</span>                 :<span class="tlaGNC">     2097117 :   hash ^= hash &gt;&gt; 32U;</span></span>
+<span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">     2097117 :   return hash;</span></span>
+<span id="L106"><span class="lineNum">     106</span>                 :             : }</span>
+<span id="L107"><span class="lineNum">     107</span>                 :             : </span>
+<span id="L108"><span class="lineNum">     108</span>                 :             : // XXH3_rrmxmx: stronger finalizer for the 4..8 byte class.</span>
+<span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">       32016 : constexpr uint64_t Rrmxmx(uint64_t hash, uint64_t len) noexcept {</span></span>
+<span id="L110"><span class="lineNum">     110</span>                 :<span class="tlaGNC">       32016 :   hash ^= std::rotl(hash, 49) ^ std::rotl(hash, 24);</span></span>
+<span id="L111"><span class="lineNum">     111</span>                 :<span class="tlaGNC">       32016 :   hash *= kPrimeMx2;</span></span>
+<span id="L112"><span class="lineNum">     112</span>                 :<span class="tlaGNC">       32016 :   hash ^= (hash &gt;&gt; 35U) + len;</span></span>
+<span id="L113"><span class="lineNum">     113</span>                 :<span class="tlaGNC">       32016 :   hash *= kPrimeMx2;</span></span>
+<span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">       32016 :   return hash ^ (hash &gt;&gt; 28U);</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :             : }</span>
+<span id="L116"><span class="lineNum">     116</span>                 :             : </span>
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">       64177 : constexpr uint64_t Len0To16(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L118"><span class="lineNum">     118</span>         [<span class="tlaGBC" title="Branch 0 was taken 32147 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32030 times"> + </span>]:<span class="tlaGNC">       64177 :   if (len &gt; 8) {  // 9..16</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaGNC">       64294 :     const uint64_t bitflip1 = (hash_internal::Load64(kSecret + 24) ^ hash_internal::Load64(kSecret + 32)) + seed;</span></span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">       96441 :     const uint64_t bitflip2 = (hash_internal::Load64(kSecret + 40) ^ hash_internal::Load64(kSecret + 48)) - seed;</span></span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">       32147 :     const uint64_t input_lo = hash_internal::Load64(input) ^ bitflip1;</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">       32147 :     const uint64_t input_hi = hash_internal::Load64(input + len - 8) ^ bitflip2;</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">       32147 :     const uint64_t acc = len + Swap64(input_lo) + input_hi + hash_internal::Mul128Fold64(input_lo, input_hi);</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">       32147 :     return Avalanche(acc);</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :             :   }</span>
+<span id="L126"><span class="lineNum">     126</span>         [<span class="tlaGBC" title="Branch 0 was taken 32016 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">       32030 :   if (len &gt;= 4) {  // 4..8</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">       32016 :     seed ^= static_cast&lt;uint64_t&gt;(Swap32(static_cast&lt;uint32_t&gt;(seed))) &lt;&lt; 32U;</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">       32016 :     const uint64_t input1 = hash_internal::Load32(input);</span></span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaGNC">       32016 :     const uint64_t input2 = hash_internal::Load32(input + len - 4);</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :<span class="tlaGNC">       64032 :     const uint64_t bitflip = (hash_internal::Load64(kSecret + 8) ^ hash_internal::Load64(kSecret + 16)) - seed;</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">       32016 :     const uint64_t input64 = input2 + (input1 &lt;&lt; 32U);</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">       32016 :     return Rrmxmx(input64 ^ bitflip, len);</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :             :   }</span>
+<span id="L134"><span class="lineNum">     134</span>         [<span class="tlaGBC" title="Branch 0 was taken 11 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          14 :   if (len &gt; 0) {  // 1..3</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">          11 :     const auto chr1 = static_cast&lt;uint8_t&gt;(input[0]);</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">          11 :     const auto chr2 = static_cast&lt;uint8_t&gt;(input[len &gt;&gt; 1U]);</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">          11 :     const auto chr3 = static_cast&lt;uint8_t&gt;(input[len - 1]);</span></span>
+<span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">          11 :     const uint32_t combined = (static_cast&lt;uint32_t&gt;(chr1) &lt;&lt; 16U) | (static_cast&lt;uint32_t&gt;(chr2) &lt;&lt; 24U)</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">          11 :                               | static_cast&lt;uint32_t&gt;(chr3) | (static_cast&lt;uint32_t&gt;(len) &lt;&lt; 8U);</span></span>
+<span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">          11 :     const uint64_t bitflip = (static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret))</span></span>
+<span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">          11 :                               ^ static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret + 4)))</span></span>
+<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">          11 :                              + seed;</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">          11 :     return Xxh64Avalanche(static_cast&lt;uint64_t&gt;(combined) ^ bitflip);</span></span>
+<span id="L144"><span class="lineNum">     144</span>                 :             :   }</span>
+<span id="L145"><span class="lineNum">     145</span>                 :<span class="tlaGNC">           9 :   return Xxh64Avalanche(seed ^ hash_internal::Load64(kSecret + 56) ^ hash_internal::Load64(kSecret + 64));</span></span>
+<span id="L146"><span class="lineNum">     146</span>                 :             : }</span>
+<span id="L147"><span class="lineNum">     147</span>                 :             : </span>
+<span id="L148"><span class="lineNum">     148</span>                 :<span class="tlaGNC">     4260271 : constexpr uint64_t Mix16B(const char* input, const char* secret, uint64_t seed) noexcept {</span></span>
+<span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">    12780813 :   return hash_internal::Mul128Fold64(</span></span>
+<span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaGNC">     8520542 :       hash_internal::Load64(input) ^ (hash_internal::Load64(secret) + seed),</span></span>
+<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">    17041084 :       hash_internal::Load64(input + 8) ^ (hash_internal::Load64(secret + 8) - seed));</span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :             : }</span>
+<span id="L153"><span class="lineNum">     153</span>                 :             : </span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">     2032650 : constexpr uint64_t Len17To128(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">     2032650 :   uint64_t acc = len * xxh64::kPrime1;</span></span>
+<span id="L156"><span class="lineNum">     156</span>         [<span class="tlaGBC" title="Branch 0 was taken 32629 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2000021 times"> + </span>]:<span class="tlaGNC">     2032650 :   if (len &gt; 32) {</span></span>
+<span id="L157"><span class="lineNum">     157</span>         [<span class="tlaGBC" title="Branch 0 was taken 32069 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 560 times"> + </span>]:<span class="tlaGNC">       32629 :     if (len &gt; 64) {</span></span>
+<span id="L158"><span class="lineNum">     158</span>         [<span class="tlaGBC" title="Branch 0 was taken 32036 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 33 times"> + </span>]:<span class="tlaGNC">       32069 :       if (len &gt; 96) {</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">       32036 :         acc += Mix16B(input + 48, kSecret + 96, seed);</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">       32036 :         acc += Mix16B(input + len - 64, kSecret + 112, seed);</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :             :       }</span>
+<span id="L162"><span class="lineNum">     162</span>                 :<span class="tlaGNC">       32069 :       acc += Mix16B(input + 32, kSecret + 64, seed);</span></span>
+<span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">       32069 :       acc += Mix16B(input + len - 48, kSecret + 80, seed);</span></span>
+<span id="L164"><span class="lineNum">     164</span>                 :             :     }</span>
+<span id="L165"><span class="lineNum">     165</span>                 :<span class="tlaGNC">       32629 :     acc += Mix16B(input + 16, kSecret + 32, seed);</span></span>
+<span id="L166"><span class="lineNum">     166</span>                 :<span class="tlaGNC">       32629 :     acc += Mix16B(input + len - 32, kSecret + 48, seed);</span></span>
+<span id="L167"><span class="lineNum">     167</span>                 :             :   }</span>
+<span id="L168"><span class="lineNum">     168</span>                 :<span class="tlaGNC">     2032650 :   acc += Mix16B(input, kSecret, seed);</span></span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">     2032650 :   acc += Mix16B(input + len - 16, kSecret + 16, seed);</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">     2032650 :   return Avalanche(acc);</span></span>
+<span id="L171"><span class="lineNum">     171</span>                 :             : }</span>
+<span id="L172"><span class="lineNum">     172</span>                 :             : </span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">         116 : constexpr uint64_t Len129To240(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L174"><span class="lineNum">     174</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kStartOffset = 3;  // XXH3_MIDSIZE_STARTOFFSET</span></span>
+<span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kLastOffset = 17;  // XXH3_MIDSIZE_LASTOFFSET</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">         116 :   constexpr std::size_t kSecretSizeMin = 136;</span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :             : </span>
+<span id="L178"><span class="lineNum">     178</span>                 :<span class="tlaGNC">         116 :   uint64_t acc = len * xxh64::kPrime1;</span></span>
+<span id="L179"><span class="lineNum">     179</span>                 :<span class="tlaGNC">         116 :   const std::size_t rounds = len / 16;</span></span>
+<span id="L180"><span class="lineNum">     180</span>         [<span class="tlaGBC" title="Branch 0 was taken 928 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 116 times"> + </span>]:<span class="tlaGNC">        1044 :   for (std::size_t i = 0; i &lt; 8; ++i) {</span></span>
+<span id="L181"><span class="lineNum">     181</span>                 :<span class="tlaGNC">         928 :     acc += Mix16B(input + (16 * i), kSecret + (16 * i), seed);</span></span>
+<span id="L182"><span class="lineNum">     182</span>                 :             :   }</span>
+<span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">         116 :   uint64_t acc_end = Mix16B(input + len - 16, kSecret + kSecretSizeMin - kLastOffset, seed);</span></span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">         116 :   acc = Avalanche(acc);</span></span>
+<span id="L185"><span class="lineNum">     185</span>         [<span class="tlaGBC" title="Branch 0 was taken 357 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 116 times"> + </span>]:<span class="tlaGNC">         473 :   for (std::size_t i = 8; i &lt; rounds; ++i) {</span></span>
+<span id="L186"><span class="lineNum">     186</span>                 :<span class="tlaGNC">         357 :     acc_end += Mix16B(input + (16 * i), kSecret + (16 * (i - 8)) + kStartOffset, seed);</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :             :   }</span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">         116 :   return Avalanche(acc + acc_end);</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :             : }</span>
+<span id="L190"><span class="lineNum">     190</span>                 :             : </span>
+<span id="L191"><span class="lineNum">     191</span>                 :             : // One 64-byte stripe accumulated against `secret` (XXH3_accumulate_512, scalar).</span>
+<span id="L192"><span class="lineNum">     192</span>                 :<span class="tlaGNC">      160400 : constexpr void Accumulate512(std::array&lt;uint64_t, kAccNb&gt;&amp; acc, const char* input, const char* secret) noexcept {</span></span>
+<span id="L193"><span class="lineNum">     193</span>         [<span class="tlaGBC" title="Branch 0 was taken 1283200 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 160400 times"> + </span>]:<span class="tlaGNC">     1443600 :   for (std::size_t lane = 0; lane &lt; kAccNb; ++lane) {</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">     1283200 :     const uint64_t data_val = hash_internal::Load64(input + (lane * 8));</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">     1283200 :     const uint64_t data_key = data_val ^ hash_internal::Load64(secret + (lane * 8));</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">     1283200 :     acc[lane ^ 1U] += data_val;</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">     1283200 :     acc[lane] += (data_key &amp; 0xFFFFFFFFULL) * (data_key &gt;&gt; 32U);</span></span>
+<span id="L198"><span class="lineNum">     198</span>                 :             :   }</span>
+<span id="L199"><span class="lineNum">     199</span>                 :<span class="tlaGNC">      160400 : }</span></span>
+<span id="L200"><span class="lineNum">     200</span>                 :             : </span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">          12 : constexpr void ScrambleAcc(std::array&lt;uint64_t, kAccNb&gt;&amp; acc, const char* secret) noexcept {</span></span>
+<span id="L202"><span class="lineNum">     202</span>         [<span class="tlaGBC" title="Branch 0 was taken 96 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 12 times"> + </span>]:<span class="tlaGNC">         108 :   for (std::size_t lane = 0; lane &lt; kAccNb; ++lane) {</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">          96 :     const uint64_t key64 = hash_internal::Load64(secret + (lane * 8));</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">          96 :     uint64_t acc64 = acc[lane];</span></span>
+<span id="L205"><span class="lineNum">     205</span>                 :<span class="tlaGNC">          96 :     acc64 ^= acc64 &gt;&gt; 47U;</span></span>
+<span id="L206"><span class="lineNum">     206</span>                 :<span class="tlaGNC">          96 :     acc64 ^= key64;</span></span>
+<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          96 :     acc64 *= kPrime32_1;</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">          96 :     acc[lane] = acc64;</span></span>
+<span id="L209"><span class="lineNum">     209</span>                 :             :   }</span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">          12 : }</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :             : </span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">       32040 : constexpr uint64_t MergeAccs(const std::array&lt;uint64_t, kAccNb&gt;&amp; acc, const char* secret, uint64_t start) noexcept {</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">       32040 :   uint64_t result = start;</span></span>
+<span id="L214"><span class="lineNum">     214</span>         [<span class="tlaGBC" title="Branch 0 was taken 128160 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32040 times"> + </span>]:<span class="tlaGNC">      160200 :   for (std::size_t i = 0; i &lt; 4; ++i) {</span></span>
+<span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">      128160 :     result += hash_internal::Mul128Fold64(</span></span>
+<span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">      256320 :         acc[2 * i] ^ hash_internal::Load64(secret + (16 * i)),</span></span>
+<span id="L217"><span class="lineNum">     217</span>                 :<span class="tlaGNC">      256320 :         acc[(2 * i) + 1] ^ hash_internal::Load64(secret + (16 * i) + 8));</span></span>
+<span id="L218"><span class="lineNum">     218</span>                 :             :   }</span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">       32040 :   return Avalanche(result);</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :             : }</span>
+<span id="L221"><span class="lineNum">     221</span>                 :             : </span>
+<span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaGNC">       32024 : constexpr uint64_t HashLong(const char* input, std::size_t len, const char* secret) noexcept {</span></span>
+<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">       32024 :   std::array&lt;uint64_t, kAccNb&gt; acc = {</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :             :       kPrime32_3,     xxh64::kPrime1, xxh64::kPrime2, xxh64::kPrime3,</span>
+<span id="L225"><span class="lineNum">     225</span>                 :             :       xxh64::kPrime4, kPrime32_2,     xxh64::kPrime5, kPrime32_1,</span>
+<span id="L226"><span class="lineNum">     226</span>                 :             :   };</span>
+<span id="L227"><span class="lineNum">     227</span>                 :             : </span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">       32024 :   const std::size_t nb_blocks = (len - 1) / kBlockLen;</span></span>
+<span id="L229"><span class="lineNum">     229</span>         [<span class="tlaGBC" title="Branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">       32030 :   for (std::size_t block = 0; block &lt; nb_blocks; ++block) {</span></span>
+<span id="L230"><span class="lineNum">     230</span>         [<span class="tlaGBC" title="Branch 0 was taken 96 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">         102 :     for (std::size_t stripe = 0; stripe &lt; kStripesPerBlock; ++stripe) {</span></span>
+<span id="L231"><span class="lineNum">     231</span>                 :<span class="tlaGNC">          96 :       Accumulate512(acc, input + (block * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :             :     }</span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">           6 :     ScrambleAcc(acc, secret + kSecretSize - kStripeLen);</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :             :   }</span>
+<span id="L235"><span class="lineNum">     235</span>                 :             : </span>
+<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">       32024 :   const std::size_t stripes = ((len - 1) - (kBlockLen * nb_blocks)) / kStripeLen;</span></span>
+<span id="L237"><span class="lineNum">     237</span>         [<span class="tlaGBC" title="Branch 0 was taken 128112 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">      160136 :   for (std::size_t stripe = 0; stripe &lt; stripes; ++stripe) {</span></span>
+<span id="L238"><span class="lineNum">     238</span>                 :<span class="tlaGNC">      128112 :     Accumulate512(acc, input + (nb_blocks * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
+<span id="L239"><span class="lineNum">     239</span>                 :             :   }</span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :   // Last stripe (overlaps; secret offset -7 so it differs from the loop's).</span>
+<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">       32024 :   Accumulate512(acc, input + len - kStripeLen, secret + kSecretSize - kStripeLen - 7);</span></span>
+<span id="L242"><span class="lineNum">     242</span>                 :             : </span>
+<span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">       32024 :   return MergeAccs(acc, secret + 11, len * xxh64::kPrime1);</span></span>
+<span id="L244"><span class="lineNum">     244</span>                 :             : }</span>
+<span id="L245"><span class="lineNum">     245</span>                 :             : </span>
+<span id="L246"><span class="lineNum">     246</span>                 :             : // XXH3_initCustomSecret: the seeded secret for the long-input path.</span>
+<span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">       32024 : constexpr std::array&lt;char, kSecretSize&gt; InitCustomSecret(uint64_t seed) noexcept {</span></span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">       32024 :   std::array&lt;char, kSecretSize&gt; secret = {};</span></span>
+<span id="L249"><span class="lineNum">     249</span>         [<span class="tlaGBC" title="Branch 0 was taken 384288 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">      416312 :   for (std::size_t i = 0; i &lt; kSecretSize / 16; ++i) {</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">      384288 :     const uint64_t low = hash_internal::Load64(kSecret + (16 * i)) + seed;</span></span>
+<span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">      384288 :     const uint64_t high = hash_internal::Load64(kSecret + (16 * i) + 8) - seed;</span></span>
+<span id="L252"><span class="lineNum">     252</span>         [<span class="tlaGBC" title="Branch 0 was taken 3074304 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 384288 times"> + </span>]:<span class="tlaGNC">     3458592 :     for (std::size_t byte = 0; byte &lt; 8; ++byte) {</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">     3074304 :       secret[(16 * i) + byte] = static_cast&lt;char&gt;((low &gt;&gt; (8 * byte)) &amp; 0xFFU);</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">     3074304 :       secret[(16 * i) + 8 + byte] = static_cast&lt;char&gt;((high &gt;&gt; (8 * byte)) &amp; 0xFFU);</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :             :     }</span>
+<span id="L256"><span class="lineNum">     256</span>                 :             :   }</span>
+<span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">       32024 :   return secret;</span></span>
+<span id="L258"><span class="lineNum">     258</span>                 :             : }</span>
+<span id="L259"><span class="lineNum">     259</span>                 :             : </span>
+<span id="L260"><span class="lineNum">     260</span>                 :<span class="tlaGNC">           4 : constexpr uint64_t Mult32To64(uint64_t lhs, uint64_t rhs) noexcept {</span></span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">           4 :   return (lhs &amp; 0xFFFFFFFFULL) * (rhs &amp; 0xFFFFFFFFULL);</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :             : }</span>
+<span id="L263"><span class="lineNum">     263</span>                 :             : </span>
+<span id="L264"><span class="lineNum">     264</span>                 :             : // NOLINTNEXTLINE(readability-identifier-naming): mirrors the reference function name.</span>
+<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">          18 : constexpr Hash128 Len0To16_128(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L266"><span class="lineNum">     266</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          18 :   if (len &gt; 8) {  // 9..16</span></span>
+<span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">           8 :     const uint64_t bitflip_lo = (hash_internal::Load64(kSecret + 32) ^ hash_internal::Load64(kSecret + 40)) - seed;</span></span>
+<span id="L268"><span class="lineNum">     268</span>                 :<span class="tlaGNC">          12 :     const uint64_t bitflip_hi = (hash_internal::Load64(kSecret + 48) ^ hash_internal::Load64(kSecret + 56)) + seed;</span></span>
+<span id="L269"><span class="lineNum">     269</span>                 :<span class="tlaGNC">           4 :     const uint64_t input_lo = hash_internal::Load64(input);</span></span>
+<span id="L270"><span class="lineNum">     270</span>                 :<span class="tlaGNC">           4 :     uint64_t input_hi = hash_internal::Load64(input + len - 8);</span></span>
+<span id="L271"><span class="lineNum">     271</span>                 :<span class="tlaGNC">           4 :     Hash128 m128 = hash_internal::Mult128(input_lo ^ input_hi ^ bitflip_lo, xxh64::kPrime1);</span></span>
+<span id="L272"><span class="lineNum">     272</span>                 :<span class="tlaGNC">           4 :     m128.h1 += static_cast&lt;uint64_t&gt;(len - 1) &lt;&lt; 54U;</span></span>
+<span id="L273"><span class="lineNum">     273</span>                 :<span class="tlaGNC">           4 :     input_hi ^= bitflip_hi;</span></span>
+<span id="L274"><span class="lineNum">     274</span>                 :<span class="tlaGNC">           4 :     m128.h2 += input_hi + Mult32To64(static_cast&lt;uint32_t&gt;(input_hi), kPrime32_2 - 1);</span></span>
+<span id="L275"><span class="lineNum">     275</span>                 :<span class="tlaGNC">           4 :     m128.h1 ^= Swap64(m128.h2);</span></span>
+<span id="L276"><span class="lineNum">     276</span>                 :<span class="tlaGNC">           4 :     Hash128 h128 = hash_internal::Mult128(m128.h1, xxh64::kPrime2);</span></span>
+<span id="L277"><span class="lineNum">     277</span>                 :<span class="tlaGNC">           4 :     h128.h2 += m128.h2 * xxh64::kPrime2;</span></span>
+<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">           4 :     h128.h1 = Avalanche(h128.h1);</span></span>
+<span id="L279"><span class="lineNum">     279</span>                 :<span class="tlaGNC">           4 :     h128.h2 = Avalanche(h128.h2);</span></span>
+<span id="L280"><span class="lineNum">     280</span>                 :<span class="tlaGNC">           4 :     return h128;</span></span>
+<span id="L281"><span class="lineNum">     281</span>                 :             :   }</span>
+<span id="L282"><span class="lineNum">     282</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          14 :   if (len &gt;= 4) {  // 4..8</span></span>
+<span id="L283"><span class="lineNum">     283</span>                 :<span class="tlaGNC">           4 :     seed ^= static_cast&lt;uint64_t&gt;(Swap32(static_cast&lt;uint32_t&gt;(seed))) &lt;&lt; 32U;</span></span>
+<span id="L284"><span class="lineNum">     284</span>                 :<span class="tlaGNC">           4 :     const uint64_t input_lo = hash_internal::Load32(input);</span></span>
+<span id="L285"><span class="lineNum">     285</span>                 :<span class="tlaGNC">           4 :     const uint64_t input_hi = hash_internal::Load32(input + len - 4);</span></span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">           4 :     const uint64_t input64 = input_lo + (input_hi &lt;&lt; 32U);</span></span>
+<span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">           8 :     const uint64_t bitflip = (hash_internal::Load64(kSecret + 16) ^ hash_internal::Load64(kSecret + 24)) + seed;</span></span>
+<span id="L288"><span class="lineNum">     288</span>                 :<span class="tlaGNC">           4 :     Hash128 m128 = hash_internal::Mult128(input64 ^ bitflip, xxh64::kPrime1 + (len &lt;&lt; 2U));</span></span>
+<span id="L289"><span class="lineNum">     289</span>                 :<span class="tlaGNC">           4 :     m128.h2 += m128.h1 &lt;&lt; 1U;</span></span>
+<span id="L290"><span class="lineNum">     290</span>                 :<span class="tlaGNC">           4 :     m128.h1 ^= m128.h2 &gt;&gt; 3U;</span></span>
+<span id="L291"><span class="lineNum">     291</span>                 :<span class="tlaGNC">           4 :     m128.h1 ^= m128.h1 &gt;&gt; 35U;</span></span>
+<span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaGNC">           4 :     m128.h1 *= kPrimeMx2;</span></span>
+<span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaGNC">           4 :     m128.h1 ^= m128.h1 &gt;&gt; 28U;</span></span>
+<span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaGNC">           4 :     m128.h2 = Avalanche(m128.h2);</span></span>
+<span id="L295"><span class="lineNum">     295</span>                 :<span class="tlaGNC">           4 :     return m128;</span></span>
+<span id="L296"><span class="lineNum">     296</span>                 :             :   }</span>
+<span id="L297"><span class="lineNum">     297</span>         [<span class="tlaGBC" title="Branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">          10 :   if (len &gt; 0) {  // 1..3</span></span>
+<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">           8 :     const auto chr1 = static_cast&lt;uint8_t&gt;(input[0]);</span></span>
+<span id="L299"><span class="lineNum">     299</span>                 :<span class="tlaGNC">           8 :     const auto chr2 = static_cast&lt;uint8_t&gt;(input[len &gt;&gt; 1U]);</span></span>
+<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">           8 :     const auto chr3 = static_cast&lt;uint8_t&gt;(input[len - 1]);</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">           8 :     const uint32_t combined_lo = (static_cast&lt;uint32_t&gt;(chr1) &lt;&lt; 16U) | (static_cast&lt;uint32_t&gt;(chr2) &lt;&lt; 24U)</span></span>
+<span id="L302"><span class="lineNum">     302</span>                 :<span class="tlaGNC">           8 :                                  | static_cast&lt;uint32_t&gt;(chr3) | (static_cast&lt;uint32_t&gt;(len) &lt;&lt; 8U);</span></span>
+<span id="L303"><span class="lineNum">     303</span>                 :<span class="tlaGNC">           8 :     const uint32_t combined_hi = std::rotl(Swap32(combined_lo), 13);</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">           8 :     const uint64_t bitflip_lo = (static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret))</span></span>
+<span id="L305"><span class="lineNum">     305</span>                 :<span class="tlaGNC">           8 :                                  ^ static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret + 4)))</span></span>
+<span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">           8 :                                 + seed;</span></span>
+<span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">           8 :     const uint64_t bitflip_hi = (static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret + 8))</span></span>
+<span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">           8 :                                  ^ static_cast&lt;uint64_t&gt;(hash_internal::Load32(kSecret + 12)))</span></span>
+<span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">           8 :                                 - seed;</span></span>
+<span id="L310"><span class="lineNum">     310</span>                 :             :     return {</span>
+<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">           8 :         .h1 = Xxh64Avalanche(static_cast&lt;uint64_t&gt;(combined_lo) ^ bitflip_lo),</span></span>
+<span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">           8 :         .h2 = Xxh64Avalanche(static_cast&lt;uint64_t&gt;(combined_hi) ^ bitflip_hi),</span></span>
+<span id="L313"><span class="lineNum">     313</span>                 :<span class="tlaGNC">           8 :     };</span></span>
+<span id="L314"><span class="lineNum">     314</span>                 :             :   }</span>
+<span id="L315"><span class="lineNum">     315</span>                 :             :   return {</span>
+<span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">           6 :       .h1 = Xxh64Avalanche(seed ^ hash_internal::Load64(kSecret + 64) ^ hash_internal::Load64(kSecret + 72)),</span></span>
+<span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">           4 :       .h2 = Xxh64Avalanche(seed ^ hash_internal::Load64(kSecret + 80) ^ hash_internal::Load64(kSecret + 88)),</span></span>
+<span id="L318"><span class="lineNum">     318</span>                 :<span class="tlaGNC">           4 :   };</span></span>
+<span id="L319"><span class="lineNum">     319</span>                 :             : }</span>
+<span id="L320"><span class="lineNum">     320</span>                 :             : </span>
+<span id="L321"><span class="lineNum">     321</span>                 :<span class="tlaGNC">          51 : constexpr Hash128 Mix32B(</span></span>
+<span id="L322"><span class="lineNum">     322</span>                 :             :     Hash128 acc,</span>
+<span id="L323"><span class="lineNum">     323</span>                 :             :     const char* input1,</span>
+<span id="L324"><span class="lineNum">     324</span>                 :             :     const char* input2,</span>
+<span id="L325"><span class="lineNum">     325</span>                 :             :     const char* secret,</span>
+<span id="L326"><span class="lineNum">     326</span>                 :             :     uint64_t seed) noexcept {</span>
+<span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaGNC">          51 :   acc.h1 += Mix16B(input1, secret, seed);</span></span>
+<span id="L328"><span class="lineNum">     328</span>                 :<span class="tlaGNC">          51 :   acc.h1 ^= hash_internal::Load64(input2) + hash_internal::Load64(input2 + 8);</span></span>
+<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">          51 :   acc.h2 += Mix16B(input2, secret + 16, seed);</span></span>
+<span id="L330"><span class="lineNum">     330</span>                 :<span class="tlaGNC">          51 :   acc.h2 ^= hash_internal::Load64(input1) + hash_internal::Load64(input1 + 8);</span></span>
+<span id="L331"><span class="lineNum">     331</span>                 :<span class="tlaGNC">          51 :   return acc;</span></span>
+<span id="L332"><span class="lineNum">     332</span>                 :             : }</span>
+<span id="L333"><span class="lineNum">     333</span>                 :             : </span>
+<span id="L334"><span class="lineNum">     334</span>                 :<span class="tlaGNC">          14 : constexpr Hash128 Finalize128(Hash128 acc, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L335"><span class="lineNum">     335</span>                 :             :   Hash128 h128 = {</span>
+<span id="L336"><span class="lineNum">     336</span>                 :<span class="tlaGNC">          14 :       .h1 = acc.h1 + acc.h2,</span></span>
+<span id="L337"><span class="lineNum">     337</span>                 :<span class="tlaGNC">          14 :       .h2 = (acc.h1 * xxh64::kPrime1) + (acc.h2 * xxh64::kPrime4) + ((len - seed) * xxh64::kPrime2),</span></span>
+<span id="L338"><span class="lineNum">     338</span>                 :<span class="tlaGNC">          14 :   };</span></span>
+<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaGNC">          14 :   h128.h1 = Avalanche(h128.h1);</span></span>
+<span id="L340"><span class="lineNum">     340</span>                 :<span class="tlaGNC">          14 :   h128.h2 = 0ULL - Avalanche(h128.h2);</span></span>
+<span id="L341"><span class="lineNum">     341</span>                 :<span class="tlaGNC">          14 :   return h128;</span></span>
+<span id="L342"><span class="lineNum">     342</span>                 :             : }</span>
+<span id="L343"><span class="lineNum">     343</span>                 :             : </span>
+<span id="L344"><span class="lineNum">     344</span>                 :             : // NOLINTNEXTLINE(readability-identifier-naming): mirrors the reference function name.</span>
+<span id="L345"><span class="lineNum">     345</span>                 :<span class="tlaGNC">          10 : constexpr Hash128 Len17To128_128(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">          10 :   Hash128 acc = {.h1 = len * xxh64::kPrime1, .h2 = 0};</span></span>
+<span id="L347"><span class="lineNum">     347</span>         [<span class="tlaGBC" title="Branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          10 :   if (len &gt; 32) {</span></span>
+<span id="L348"><span class="lineNum">     348</span>         [<span class="tlaGBC" title="Branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           6 :     if (len &gt; 64) {</span></span>
+<span id="L349"><span class="lineNum">     349</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           5 :       if (len &gt; 96) {</span></span>
+<span id="L350"><span class="lineNum">     350</span>                 :<span class="tlaGNC">           4 :         acc = Mix32B(acc, input + 48, input + len - 64, kSecret + 96, seed);</span></span>
+<span id="L351"><span class="lineNum">     351</span>                 :             :       }</span>
+<span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">           5 :       acc = Mix32B(acc, input + 32, input + len - 48, kSecret + 64, seed);</span></span>
+<span id="L353"><span class="lineNum">     353</span>                 :             :     }</span>
+<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">           6 :     acc = Mix32B(acc, input + 16, input + len - 32, kSecret + 32, seed);</span></span>
+<span id="L355"><span class="lineNum">     355</span>                 :             :   }</span>
+<span id="L356"><span class="lineNum">     356</span>                 :<span class="tlaGNC">          10 :   acc = Mix32B(acc, input, input + len - 16, kSecret, seed);</span></span>
+<span id="L357"><span class="lineNum">     357</span>                 :<span class="tlaGNC">          10 :   return Finalize128(acc, len, seed);</span></span>
+<span id="L358"><span class="lineNum">     358</span>                 :             : }</span>
+<span id="L359"><span class="lineNum">     359</span>                 :             : </span>
+<span id="L360"><span class="lineNum">     360</span>                 :             : // NOLINTNEXTLINE(readability-identifier-naming): mirrors the reference function name.</span>
+<span id="L361"><span class="lineNum">     361</span>                 :<span class="tlaGNC">           4 : constexpr Hash128 Len129To240_128(const char* input, std::size_t len, uint64_t seed) noexcept {</span></span>
+<span id="L362"><span class="lineNum">     362</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kStartOffset = 3;  // XXH3_MIDSIZE_STARTOFFSET</span></span>
+<span id="L363"><span class="lineNum">     363</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kLastOffset = 17;  // XXH3_MIDSIZE_LASTOFFSET</span></span>
+<span id="L364"><span class="lineNum">     364</span>                 :<span class="tlaGNC">           4 :   constexpr std::size_t kSecretSizeMin = 136;</span></span>
+<span id="L365"><span class="lineNum">     365</span>                 :             : </span>
+<span id="L366"><span class="lineNum">     366</span>                 :<span class="tlaGNC">           4 :   Hash128 acc = {.h1 = len * xxh64::kPrime1, .h2 = 0};</span></span>
+<span id="L367"><span class="lineNum">     367</span>         [<span class="tlaGBC" title="Branch 0 was taken 16 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          20 :   for (std::size_t i = 32; i &lt; 160; i += 32) {</span></span>
+<span id="L368"><span class="lineNum">     368</span>                 :<span class="tlaGNC">          16 :     acc = Mix32B(acc, input + i - 32, input + i - 16, kSecret + i - 32, seed);</span></span>
+<span id="L369"><span class="lineNum">     369</span>                 :             :   }</span>
+<span id="L370"><span class="lineNum">     370</span>                 :<span class="tlaGNC">           4 :   acc.h1 = Avalanche(acc.h1);</span></span>
+<span id="L371"><span class="lineNum">     371</span>                 :<span class="tlaGNC">           4 :   acc.h2 = Avalanche(acc.h2);</span></span>
+<span id="L372"><span class="lineNum">     372</span>         [<span class="tlaGBC" title="Branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">          10 :   for (std::size_t i = 160; i &lt;= len; i += 32) {</span></span>
+<span id="L373"><span class="lineNum">     373</span>                 :<span class="tlaGNC">           6 :     acc = Mix32B(acc, input + i - 32, input + i - 16, kSecret + kStartOffset + i - 160, seed);</span></span>
+<span id="L374"><span class="lineNum">     374</span>                 :             :   }</span>
+<span id="L375"><span class="lineNum">     375</span>                 :<span class="tlaGNC">           4 :   acc = Mix32B(acc, input + len - 16, input + len - 32, kSecret + kSecretSizeMin - kLastOffset - 16, 0ULL - seed);</span></span>
+<span id="L376"><span class="lineNum">     376</span>                 :<span class="tlaGNC">           4 :   return Finalize128(acc, len, seed);</span></span>
+<span id="L377"><span class="lineNum">     377</span>                 :             : }</span>
+<span id="L378"><span class="lineNum">     378</span>                 :             : </span>
+<span id="L379"><span class="lineNum">     379</span>                 :<span class="tlaGNC">           8 : constexpr Hash128 HashLong128(const char* input, std::size_t len, const char* secret) noexcept {</span></span>
+<span id="L380"><span class="lineNum">     380</span>                 :<span class="tlaGNC">           8 :   std::array&lt;uint64_t, kAccNb&gt; acc = {</span></span>
+<span id="L381"><span class="lineNum">     381</span>                 :             :       kPrime32_3,     xxh64::kPrime1, xxh64::kPrime2, xxh64::kPrime3,</span>
+<span id="L382"><span class="lineNum">     382</span>                 :             :       xxh64::kPrime4, kPrime32_2,     xxh64::kPrime5, kPrime32_1,</span>
+<span id="L383"><span class="lineNum">     383</span>                 :             :   };</span>
+<span id="L384"><span class="lineNum">     384</span>                 :             : </span>
+<span id="L385"><span class="lineNum">     385</span>                 :<span class="tlaGNC">           8 :   const std::size_t nb_blocks = (len - 1) / kBlockLen;</span></span>
+<span id="L386"><span class="lineNum">     386</span>         [<span class="tlaGBC" title="Branch 0 was taken 6 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          14 :   for (std::size_t block = 0; block &lt; nb_blocks; ++block) {</span></span>
+<span id="L387"><span class="lineNum">     387</span>         [<span class="tlaGBC" title="Branch 0 was taken 96 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">         102 :     for (std::size_t stripe = 0; stripe &lt; kStripesPerBlock; ++stripe) {</span></span>
+<span id="L388"><span class="lineNum">     388</span>                 :<span class="tlaGNC">          96 :       Accumulate512(acc, input + (block * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
+<span id="L389"><span class="lineNum">     389</span>                 :             :     }</span>
+<span id="L390"><span class="lineNum">     390</span>                 :<span class="tlaGNC">           6 :     ScrambleAcc(acc, secret + kSecretSize - kStripeLen);</span></span>
+<span id="L391"><span class="lineNum">     391</span>                 :             :   }</span>
+<span id="L392"><span class="lineNum">     392</span>                 :<span class="tlaGNC">           8 :   const std::size_t stripes = ((len - 1) - (kBlockLen * nb_blocks)) / kStripeLen;</span></span>
+<span id="L393"><span class="lineNum">     393</span>         [<span class="tlaGBC" title="Branch 0 was taken 64 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          72 :   for (std::size_t stripe = 0; stripe &lt; stripes; ++stripe) {</span></span>
+<span id="L394"><span class="lineNum">     394</span>                 :<span class="tlaGNC">          64 :     Accumulate512(acc, input + (nb_blocks * kBlockLen) + (stripe * kStripeLen), secret + (stripe * 8));</span></span>
+<span id="L395"><span class="lineNum">     395</span>                 :             :   }</span>
+<span id="L396"><span class="lineNum">     396</span>                 :<span class="tlaGNC">           8 :   Accumulate512(acc, input + len - kStripeLen, secret + kSecretSize - kStripeLen - 7);</span></span>
+<span id="L397"><span class="lineNum">     397</span>                 :             : </span>
+<span id="L398"><span class="lineNum">     398</span>                 :             :   return {</span>
+<span id="L399"><span class="lineNum">     399</span>                 :<span class="tlaGNC">           8 :       .h1 = MergeAccs(acc, secret + 11, len * xxh64::kPrime1),</span></span>
+<span id="L400"><span class="lineNum">     400</span>                 :<span class="tlaGNC">           8 :       .h2 = MergeAccs(acc, secret + kSecretSize - 64 - 11, ~(len * xxh64::kPrime2)),</span></span>
+<span id="L401"><span class="lineNum">     401</span>                 :<span class="tlaGNC">           8 :   };</span></span>
+<span id="L402"><span class="lineNum">     402</span>                 :             : }</span>
+<span id="L403"><span class="lineNum">     403</span>                 :             : </span>
+<span id="L404"><span class="lineNum">     404</span>                 :             : }  // namespace xxh3_internal</span>
+<span id="L405"><span class="lineNum">     405</span>                 :             : </span>
+<span id="L406"><span class="lineNum">     406</span>                 :             : // Canonical XXH3 64-bit hash (`XXH3_64bits` for seed 0, `XXH3_64bits_withSeed`</span>
+<span id="L407"><span class="lineNum">     407</span>                 :             : // otherwise; default seed 0 as in the reference implementation).</span>
+<span id="L408"><span class="lineNum">     408</span>                 :<span class="tlaGNC">     2128967 : constexpr uint64_t GetHash64(std::string_view str, uint64_t seed = 0) noexcept {</span></span>
+<span id="L409"><span class="lineNum">     409</span>                 :<span class="tlaGNC">     2128967 :   const char* ptr = str.data();</span></span>
+<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">     2128967 :   const std::size_t len = str.size();</span></span>
+<span id="L411"><span class="lineNum">     411</span>         [<span class="tlaGBC" title="Branch 0 was taken 64177 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2064790 times"> + </span>]:<span class="tlaGNC">     2128967 :   if (len &lt;= 16) {</span></span>
+<span id="L412"><span class="lineNum">     412</span>                 :<span class="tlaGNC">       64177 :     return xxh3_internal::Len0To16(ptr, len, seed);</span></span>
+<span id="L413"><span class="lineNum">     413</span>                 :             :   }</span>
+<span id="L414"><span class="lineNum">     414</span>         [<span class="tlaGBC" title="Branch 0 was taken 2032650 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32140 times"> + </span>]:<span class="tlaGNC">     2064790 :   if (len &lt;= 128) {</span></span>
+<span id="L415"><span class="lineNum">     415</span>                 :<span class="tlaGNC">     2032650 :     return xxh3_internal::Len17To128(ptr, len, seed);</span></span>
+<span id="L416"><span class="lineNum">     416</span>                 :             :   }</span>
+<span id="L417"><span class="lineNum">     417</span>         [<span class="tlaGBC" title="Branch 0 was taken 116 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32024 times"> + </span>]:<span class="tlaGNC">       32140 :   if (len &lt;= xxh3_internal::kMidSizeMax) {</span></span>
+<span id="L418"><span class="lineNum">     418</span>                 :<span class="tlaGNC">         116 :     return xxh3_internal::Len129To240(ptr, len, seed);</span></span>
+<span id="L419"><span class="lineNum">     419</span>                 :             :   }</span>
+<span id="L420"><span class="lineNum">     420</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32020 times"> + </span>]:<span class="tlaGNC">       32024 :   if (seed == 0) {</span></span>
+<span id="L421"><span class="lineNum">     421</span>                 :<span class="tlaGNC">           4 :     return xxh3_internal::HashLong(ptr, len, xxh3_internal::kSecret);</span></span>
+<span id="L422"><span class="lineNum">     422</span>                 :             :   }</span>
+<span id="L423"><span class="lineNum">     423</span>                 :<span class="tlaGNC">       32020 :   const std::array&lt;char, xxh3_internal::kSecretSize&gt; secret = xxh3_internal::InitCustomSecret(seed);</span></span>
+<span id="L424"><span class="lineNum">     424</span>                 :<span class="tlaGNC">       32020 :   return xxh3_internal::HashLong(ptr, len, secret.data());</span></span>
+<span id="L425"><span class="lineNum">     425</span>                 :             : }</span>
+<span id="L426"><span class="lineNum">     426</span>                 :             : </span>
+<span id="L427"><span class="lineNum">     427</span>                 :             : // Canonical XXH3 128-bit hash (`XXH3_128bits` / `XXH3_128bits_withSeed`;</span>
+<span id="L428"><span class="lineNum">     428</span>                 :             : // default seed 0). `h1` is the canonical low 64 bits, `h2` the high 64 bits.</span>
+<span id="L429"><span class="lineNum">     429</span>                 :             : // For inputs &gt; 240 bytes `h1` equals `GetHash64` by construction.</span>
+<span id="L430"><span class="lineNum">     430</span>                 :<span class="tlaGNC">          40 : constexpr Hash128 GetHash128(std::string_view str, uint64_t seed = 0) noexcept {</span></span>
+<span id="L431"><span class="lineNum">     431</span>                 :<span class="tlaGNC">          40 :   const char* ptr = str.data();</span></span>
+<span id="L432"><span class="lineNum">     432</span>                 :<span class="tlaGNC">          40 :   const std::size_t len = str.size();</span></span>
+<span id="L433"><span class="lineNum">     433</span>         [<span class="tlaGBC" title="Branch 0 was taken 18 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">          40 :   if (len &lt;= 16) {</span></span>
+<span id="L434"><span class="lineNum">     434</span>                 :<span class="tlaGNC">          18 :     return xxh3_internal::Len0To16_128(ptr, len, seed);</span></span>
+<span id="L435"><span class="lineNum">     435</span>                 :             :   }</span>
+<span id="L436"><span class="lineNum">     436</span>         [<span class="tlaGBC" title="Branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 12 times"> + </span>]:<span class="tlaGNC">          22 :   if (len &lt;= 128) {</span></span>
+<span id="L437"><span class="lineNum">     437</span>                 :<span class="tlaGNC">          10 :     return xxh3_internal::Len17To128_128(ptr, len, seed);</span></span>
+<span id="L438"><span class="lineNum">     438</span>                 :             :   }</span>
+<span id="L439"><span class="lineNum">     439</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          12 :   if (len &lt;= xxh3_internal::kMidSizeMax) {</span></span>
+<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">           4 :     return xxh3_internal::Len129To240_128(ptr, len, seed);</span></span>
+<span id="L441"><span class="lineNum">     441</span>                 :             :   }</span>
+<span id="L442"><span class="lineNum">     442</span>         [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           8 :   if (seed == 0) {</span></span>
+<span id="L443"><span class="lineNum">     443</span>                 :<span class="tlaGNC">           4 :     return xxh3_internal::HashLong128(ptr, len, xxh3_internal::kSecret);</span></span>
+<span id="L444"><span class="lineNum">     444</span>                 :             :   }</span>
+<span id="L445"><span class="lineNum">     445</span>                 :<span class="tlaGNC">           4 :   const std::array&lt;char, xxh3_internal::kSecretSize&gt; secret = xxh3_internal::InitCustomSecret(seed);</span></span>
+<span id="L446"><span class="lineNum">     446</span>                 :<span class="tlaGNC">           4 :   return xxh3_internal::HashLong128(ptr, len, secret.data());</span></span>
+<span id="L447"><span class="lineNum">     447</span>                 :             : }</span>
+<span id="L448"><span class="lineNum">     448</span>                 :             : </span>
+<span id="L449"><span class="lineNum">     449</span>                 :             : // The algorithm struct (see `mbo::hash::IsHashAlgorithm` in hash.h). Note that</span>
+<span id="L450"><span class="lineNum">     450</span>                 :             : // the canonical XXH3 default seed is 0, not `kDefaultSeed`.</span>
+<span id="L451"><span class="lineNum">     451</span>                 :             : struct Algorithm {</span>
+<span id="L452"><span class="lineNum">     452</span>                 :<span class="tlaGNC">     2128933 :   static constexpr uint64_t GetHash64(std::string_view data, uint64_t seed = 0) noexcept {</span></span>
+<span id="L453"><span class="lineNum">     453</span>                 :<span class="tlaGNC">     2128933 :     return ::mbo::hash::xxh3::GetHash64(data, seed);</span></span>
+<span id="L454"><span class="lineNum">     454</span>                 :             :   }</span>
+<span id="L455"><span class="lineNum">     455</span>                 :             : </span>
+<span id="L456"><span class="lineNum">     456</span>                 :<span class="tlaGNC">           6 :   static constexpr Hash128 GetHash128(std::string_view data, uint64_t seed = 0) noexcept {</span></span>
+<span id="L457"><span class="lineNum">     457</span>                 :<span class="tlaGNC">           6 :     return ::mbo::hash::xxh3::GetHash128(data, seed);</span></span>
+<span id="L458"><span class="lineNum">     458</span>                 :             :   }</span>
+<span id="L459"><span class="lineNum">     459</span>                 :             : };</span>
+<span id="L460"><span class="lineNum">     460</span>                 :             : </span>
+<span id="L461"><span class="lineNum">     461</span>                 :             : // NOLINTEND(*-magic-numbers,*-pointer-arithmetic,*-avoid-c-arrays,*-array-to-pointer-decay,*-constant-array-index,*-easily-swappable-parameters,*-avoid-unchecked-container-access)</span>
+<span id="L462"><span class="lineNum">     462</span>                 :             : </span>
+<span id="L463"><span class="lineNum">     463</span>                 :             : }  // namespace mbo::hash::xxh3</span>
+<span id="L464"><span class="lineNum">     464</span>                 :             : </span>
+<span id="L465"><span class="lineNum">     465</span>                 :             : #endif  // MBO_HASH_HASH_XXH3_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

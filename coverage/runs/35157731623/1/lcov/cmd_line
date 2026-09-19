@@ -1,0 +1,1 @@
+genhtml coverage-html.lcov --branch-coverage --config-file coverage.lcovrc --demangle-cpp --function-coverage --hierarchical --ignore-errors corrupt,inconsistent,inconsistent,negative,unsupported,unsupported --output-directory coverage-html/lcov --prefix /home/runner/work/mbo/mbo/coverage-source-tree --show-details --title 'mbo production coverage'

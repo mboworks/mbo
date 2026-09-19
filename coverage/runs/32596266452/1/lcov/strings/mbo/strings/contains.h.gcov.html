@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - strings/mbo/strings/contains.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">strings</a>/<a href="../index.html">mbo</a>/<a href="index.html">strings</a> - contains.h<span style="font-size: 80%;"> (source / <a href="contains.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 20:28:24</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_STRINGS_CONTAINS_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_STRINGS_CONTAINS_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &lt;string_view&gt;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : </span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : namespace mbo::strings {</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : </span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : // `constexpr` counterparts to `absl::StrContains`.</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : //</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : // `absl::StrContains` is not usable in a constant expression, so constexpr code -</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : // `mbo::types::tstring`, compile-time tables - cannot call it and has to spell out</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : // `haystack.find(needle) != npos`. That form reads worse and is what</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : // `abseil-string-find-str-contains` flags, with a fix that would not compile here.</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : // These have the same meaning and are constexpr, so the check is satisfied without</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : // giving up compile-time evaluation.</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : //</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : // This is a SHIM. C++23 adds `std::string_view::contains` (P1679), which is</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : // constexpr and does exactly this, so these forward to it when the standard</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : // library provides it - matching how `mbo/config/config.h` and</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : // `mbo/types/optional_data_or_ref.h` already gate on `__cplusplus &gt;= 202302L`</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // rather than requiring C++23. The project baseline is C++20 (`--config=cpp23`</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // is an opt-in), and raising it is a breaking change for every consumer of the</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // bazel module, so it stays a separate decision. When the baseline does move,</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : // delete this header and call `.contains()` directly.</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : //</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // This header deliberately has no dependencies beyond &lt;string_view&gt;, so that</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : // `mbo/types` can use it without creating a cycle (`mbo/strings` depends on</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // `mbo/types:traits_cc`).</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : //</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : // Semantics match `absl::StrContains` exactly, including the edge cases:</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : //   * An EMPTY needle is contained in everything - `Contains(str, &quot;&quot;)` is true for</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : //     any `str`, including an empty one, because `find` returns 0 rather than npos.</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : //   * An empty haystack contains only an empty needle.</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : //   * The `char` overload looks for that character, so `Contains(str, '\0')` asks</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : //     whether `str` holds an embedded NUL - it does not mean &quot;empty needle&quot;.</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : </span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC tlaBgGNC">          10 : [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {</span></span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : #if defined(__cpp_lib_string_contains) &amp;&amp; __cpp_lib_string_contains &gt;= 202'011L</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             :   return haystack.contains(needle);</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : #else</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             :   // NOLINTNEXTLINE(abseil-string-find-str-contains): this IS the constexpr replacement for it.</span>
+<span id="L57"><span class="lineNum">      57</span>                 :<span class="tlaGNC">          10 :   return haystack.find(needle) != std::string_view::npos;</span></span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : #endif</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             : }</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : </span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">           6 : [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {</span></span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : #if defined(__cpp_lib_string_contains) &amp;&amp; __cpp_lib_string_contains &gt;= 202'011L</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             :   return haystack.contains(needle);</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : #else</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :   // NOLINTNEXTLINE(abseil-string-find-str-contains): this IS the constexpr replacement for it.</span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">           6 :   return haystack.find(needle) != std::string_view::npos;</span></span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : #endif</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : }</span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : </span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : }  // namespace mbo::strings</span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : </span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : #endif  // MBO_STRINGS_CONTAINS_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

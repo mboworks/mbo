@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - types/mbo/types/typed_view.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">types</a>/<a href="../index.html">mbo</a>/<a href="index.html">types</a> - typed_view.h<span style="font-size: 80%;"> (source / <a href="typed_view.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 20:28:24</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">21</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_TYPES_TYPED_VIEW_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_TYPES_TYPED_VIEW_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &lt;iterator&gt;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &lt;ranges&gt;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &lt;utility&gt;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : </span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : // NOLINTBEGIN(readability-identifier-naming)</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : </span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : namespace mbo::types {</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : </span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : // Wrapper for STL views that provides type definitions, most importantly `value_type`.</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : // That allows such views to be used with GoogleTest container matchers.</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : template&lt;typename View&gt;</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : // `public` is load-bearing: `class` inherits privately by default, which makes every</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : // member `view_interface` exists to supply - empty(), size(), operator[], front() -</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : // inaccessible, and breaks its CRTP downcast outright. Deriving from it at all is</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : // pointless without this.</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : class TypedView : public std::ranges::view_interface&lt;TypedView&lt;View&gt;&gt; {</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             :  private:</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             :   using iterator_type = decltype(std::declval&lt;View&amp;&gt;().begin());</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : </span>
+<span id="L38"><span class="lineNum">      38</span>                 :             :  public:</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             :   using value_type = std::iter_value_t&lt;iterator_type&gt;;</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             :   using reference = std::iter_reference_t&lt;iterator_type&gt;;</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             :   using difference_type = std::iter_difference_t&lt;iterator_type&gt;;</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : </span>
+<span id="L43"><span class="lineNum">      43</span>                 :             :   TypedView() = delete;</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : </span>
+<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC tlaBgGNC">          11 :   explicit TypedView(View&amp;&amp; view) : view_(std::move(view)) {}</span></span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : </span>
+<span id="L47"><span class="lineNum">      47</span>                 :             :   // NOTE: only const-iterable views can be wrapped. `filter_view` and</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :   // `drop_while_view` have no const `begin()` - finding the first element mutates</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             :   // their cache - so `TypedView(std::views::filter(...))` does not compile. Adding</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             :   // non-const overloads is not enough, because const consumers still need the const</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             :   // pair; the const ones would have to be constrained on the underlying view.</span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">          11 :   auto begin() const { return view_.begin(); }</span></span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : </span>
+<span id="L54"><span class="lineNum">      54</span>                 :<span class="tlaGNC">          36 :   auto end() const { return view_.end(); }</span></span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : </span>
+<span id="L56"><span class="lineNum">      56</span>                 :             :  private:</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             :   View view_;</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : };</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             : </span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : }  // namespace mbo::types</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             : </span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : // NOLINTEND(readability-identifier-naming)</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : #endif  // MBO_TYPES_TYPED_VIEW_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

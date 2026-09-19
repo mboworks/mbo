@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "target": "pr/360",
+  "source": {
+    "created_at": "2026-08-23T09:42:17Z",
+    "started_at": "2026-08-23T09:42:17Z",
+    "completed_at": "2026-08-23T10:15:43Z",
+    "run_id": 32631735603,
+    "run_attempt": 1,
+    "head_sha": "eb65665e119c7cc2d337651ed543f71dff8979ce"
+  },
+  "coverage": {
+    "lines": {
+      "covered": 6261,
+      "total": 6598,
+      "percent": 94.89
+    },
+    "functions": {
+      "covered": 10938,
+      "total": 11671,
+      "percent": 93.72
+    },
+    "branches": {
+      "covered": 9551,
+      "total": 13115,
+      "percent": 72.83
+    }
+  },
+  "history": {
+    "commit": "18114b16fb7a2c6ff1c75b36aeb4b860db887883",
+    "position": 557
+  }
+}

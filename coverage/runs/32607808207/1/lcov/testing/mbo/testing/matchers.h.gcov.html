@@ -1,0 +1,557 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - testing/mbo/testing/matchers.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">testing</a>/<a href="../index.html">mbo</a>/<a href="index.html">testing</a> - matchers.h<span style="font-size: 80%;"> (source / <a href="matchers.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">133</td>
+            <td class="headerCovTableEntry">133</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-23 00:31:30</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryLo">68.2&nbsp;%</td>
+            <td class="headerCovTableEntry">510</td>
+            <td class="headerCovTableEntry">348</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">97.1&nbsp;%</td>
+            <td class="headerCovTableEntry">34</td>
+            <td class="headerCovTableEntry">33</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_TESTING_MATCHERS_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_TESTING_MATCHERS_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : #include &lt;concepts&gt;  // IWYU pragma: keep</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &lt;initializer_list&gt;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &lt;type_traits&gt;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : #include &lt;utility&gt;</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : #include &lt;vector&gt;</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : </span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : #include &quot;absl/strings/str_split.h&quot;</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : #include &quot;gmock/gmock-matchers.h&quot;</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : #include &quot;gmock/gmock.h&quot;</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : #include &quot;gtest/gtest.h&quot;</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : #include &quot;mbo/strings/indent.h&quot;</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : #include &quot;mbo/types/traits.h&quot;  // IWYU pragma: keep</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : </span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : namespace mbo::testing {</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : </span>
+<span id="L34"><span class="lineNum">      34</span>                 :<span class="tlaGNC tlaBgGNC">          25 : inline auto IsNullopt() {</span></span>
+<span id="L35"><span class="lineNum">      35</span>                 :<span class="tlaGNC">          25 :   return ::testing::Eq(std::nullopt);</span></span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : }</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : </span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : namespace testing_internal {</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : </span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : // Element-equality used inside `IsElementOf`. Defers to raw `operator==` when the two sides are</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // directly comparable; otherwise falls back to a component-wise comparison for `std::pair`. The</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : // pair fallback exists because C++20 made `std::pair::operator==` same-types-only at the standard</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // level (libc++ accepts heterogeneous comparison via implicit pair conversion, libstdc++ does</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : // not), and we want `EXPECT_THAT(std::make_pair(&quot;a&quot;, &quot;b&quot;), IsElementOf(list&lt;pair&lt;string,</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : // string&gt;&gt;))` to compile on both.</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : template&lt;typename L, typename R&gt;</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : concept HasEqualityWith = requires(const L&amp; lhs, const R&amp; rhs) {</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             :   { lhs == rhs } -&gt; std::convertible_to&lt;bool&gt;;</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : };</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : </span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : template&lt;typename T&gt;</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             : struct IsStdPair : std::false_type {};</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : </span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : template&lt;typename A, typename B&gt;</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : struct IsStdPair&lt;std::pair&lt;A, B&gt;&gt; : std::true_type {};</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             : </span>
+<span id="L57"><span class="lineNum">      57</span>                 :             : template&lt;typename L, typename R&gt;</span>
+<span id="L58"><span class="lineNum">      58</span>                 :<span class="tlaGNC">          95 : constexpr bool ElementEqual(const L&amp; lhs, const R&amp; rhs) {</span></span>
+<span id="L59"><span class="lineNum">      59</span>                 :             :   if constexpr (HasEqualityWith&lt;L, R&gt;) {</span>
+<span id="L60"><span class="lineNum">      60</span>                 :<span class="tlaGNC">          95 :     return lhs == rhs;</span></span>
+<span id="L61"><span class="lineNum">      61</span>                 :             :   } else if constexpr (IsStdPair&lt;std::remove_cvref_t&lt;L&gt;&gt;::value &amp;&amp; IsStdPair&lt;std::remove_cvref_t&lt;R&gt;&gt;::value) {</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :     return ElementEqual(lhs.first, rhs.first) &amp;&amp; ElementEqual(lhs.second, rhs.second);</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             :   } else {</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :     static_assert(HasEqualityWith&lt;L, R&gt;, &quot;IsElementOf: element types are not equality-comparable&quot;);</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :     return false;</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             :   }</span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : }</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : </span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : // Implementation of the polymorphic `IsElementOf` matcher. Each call to `EXPECT_THAT(value, ...)`</span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : // instantiates an Impl&lt;Value&gt; via the conversion operator; the comparison inside `MatchAndExplain`</span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : // uses `ElementEqual` (raw `operator==`, with a pair-decomposition fallback) so the subject does</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : // not need to share `value_type` with the container.</span>
+<span id="L73"><span class="lineNum">      73</span>                 :             : //</span>
+<span id="L74"><span class="lineNum">      74</span>                 :             : // `positive_lead` / `negative_lead` are the descriptive prefixes used in failure messages, e.g.</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : // &quot;is element of {1, 2}&quot; / &quot;is not element of {1, 2}&quot;. `IsKeyOf` and `IsValueOf` substitute &quot;is a</span>
+<span id="L76"><span class="lineNum">      76</span>                 :             : // key of&quot; / &quot;is a value of&quot; so the message reflects the projection that was applied.</span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : template&lt;typename Container&gt;</span>
+<span id="L78"><span class="lineNum">      78</span>                 :             : class IsElementOfMatcher {</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             :  public:</span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">          53 :   IsElementOfMatcher(Container container, std::string_view positive_lead, std::string_view negative_lead)</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :<span class="tlaGNC">          53 :       : container_(std::move(container)), positive_lead_(positive_lead), negative_lead_(negative_lead) {}</span></span>
+<span id="L82"><span class="lineNum">      82</span>                 :             : </span>
+<span id="L83"><span class="lineNum">      83</span>                 :             :   template&lt;typename Value&gt;</span>
+<span id="L84"><span class="lineNum">      84</span>                 :<span class="tlaGNC">          53 :   operator ::testing::Matcher&lt;Value&gt;() const {  // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)</span></span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaGNC">          53 :     return ::testing::Matcher&lt;Value&gt;(new Impl&lt;const Value&amp;&gt;(container_, positive_lead_, negative_lead_));</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :             :   }</span>
+<span id="L87"><span class="lineNum">      87</span>                 :             : </span>
+<span id="L88"><span class="lineNum">      88</span>                 :             :   template&lt;typename Value&gt;</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             :   class Impl : public ::testing::MatcherInterface&lt;Value&gt; {</span>
+<span id="L90"><span class="lineNum">      90</span>                 :             :    public:</span>
+<span id="L91"><span class="lineNum">      91</span>                 :<span class="tlaGNC">          53 :     Impl(Container container, std::string_view positive_lead, std::string_view negative_lead)</span></span>
+<span id="L92"><span class="lineNum">      92</span>                 :<span class="tlaGNC">          53 :         : container_(std::move(container)), positive_lead_(positive_lead), negative_lead_(negative_lead) {}</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :             : </span>
+<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">           6 :     void DescribeTo(::std::ostream* os) const override { DescribeContents(*os, positive_lead_); }</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :             : </span>
+<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaGNC">           6 :     void DescribeNegationTo(::std::ostream* os) const override { DescribeContents(*os, negative_lead_); }</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :             : </span>
+<span id="L98"><span class="lineNum">      98</span>                 :<span class="tlaGNC">          56 :     bool MatchAndExplain(Value value, ::testing::MatchResultListener* listener) const override {</span></span>
+<span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">          56 :       std::size_t index = 0;</span></span>
+<span id="L100"><span class="lineNum">     100</span>         [<span class="tlaGBC" title="Branch 0 was taken 95 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 27 times"> + </span>]:<span class="tlaGNC">         122 :       for (const auto&amp; element : container_) {</span></span>
+<span id="L101"><span class="lineNum">     101</span>         [<span class="tlaGBC" title="Branch 0 was taken 29 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 66 times"> + </span>]:<span class="tlaGNC">          95 :         if (ElementEqual(value, element)) {</span></span>
+<span id="L102"><span class="lineNum">     102</span>         [<span class="tlaGBC" title="Branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 26 times"> + </span>]:<span class="tlaGNC">          29 :           if (listener-&gt;IsInterested()) {</span></span>
+<span id="L103"><span class="lineNum">     103</span>                 :<span class="tlaGNC">           3 :             *listener &lt;&lt; &quot;which equals element #&quot; &lt;&lt; index &lt;&lt; &quot; (&quot; &lt;&lt; ::testing::PrintToString(element) &lt;&lt; &quot;)&quot;;</span></span>
+<span id="L104"><span class="lineNum">     104</span>                 :             :           }</span>
+<span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">          29 :           return true;</span></span>
+<span id="L106"><span class="lineNum">     106</span>                 :             :         }</span>
+<span id="L107"><span class="lineNum">     107</span>                 :<span class="tlaGNC">          66 :         ++index;</span></span>
+<span id="L108"><span class="lineNum">     108</span>                 :             :       }</span>
+<span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">          27 :       return false;</span></span>
+<span id="L110"><span class="lineNum">     110</span>                 :             :     }</span>
+<span id="L111"><span class="lineNum">     111</span>                 :             : </span>
+<span id="L112"><span class="lineNum">     112</span>                 :             :    private:</span>
+<span id="L113"><span class="lineNum">     113</span>                 :<span class="tlaGNC">          12 :     void DescribeContents(::std::ostream&amp; os, std::string_view lead) const {</span></span>
+<span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">          12 :       os &lt;&lt; lead &lt;&lt; &quot; {&quot;;</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">          12 :       bool first = true;</span></span>
+<span id="L116"><span class="lineNum">     116</span>         [<span class="tlaGBC" title="Branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 12 times"> + </span>]:<span class="tlaGNC">          26 :       for (const auto&amp; element : container_) {</span></span>
+<span id="L117"><span class="lineNum">     117</span>         [<span class="tlaGBC" title="Branch 0 was taken 8 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">          14 :         if (!first) {</span></span>
+<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">           8 :           os &lt;&lt; &quot;, &quot;;</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :             :         }</span>
+<span id="L120"><span class="lineNum">     120</span>                 :<span class="tlaGNC">          14 :         first = false;</span></span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">          14 :         os &lt;&lt; ::testing::PrintToString(element);</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :             :       }</span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          12 :       os &lt;&lt; &quot;}&quot;;</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          12 :     }</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :             : </span>
+<span id="L126"><span class="lineNum">     126</span>                 :             :     const Container container_;</span>
+<span id="L127"><span class="lineNum">     127</span>                 :             :     const std::string_view positive_lead_;</span>
+<span id="L128"><span class="lineNum">     128</span>                 :             :     const std::string_view negative_lead_;</span>
+<span id="L129"><span class="lineNum">     129</span>                 :             :   };</span>
+<span id="L130"><span class="lineNum">     130</span>                 :             : </span>
+<span id="L131"><span class="lineNum">     131</span>                 :             :  private:</span>
+<span id="L132"><span class="lineNum">     132</span>                 :             :   const Container container_;</span>
+<span id="L133"><span class="lineNum">     133</span>                 :             :   const std::string_view positive_lead_;</span>
+<span id="L134"><span class="lineNum">     134</span>                 :             :   const std::string_view negative_lead_;</span>
+<span id="L135"><span class="lineNum">     135</span>                 :             : };</span>
+<span id="L136"><span class="lineNum">     136</span>                 :             : </span>
+<span id="L137"><span class="lineNum">     137</span>                 :             : }  // namespace testing_internal</span>
+<span id="L138"><span class="lineNum">     138</span>                 :             : </span>
+<span id="L139"><span class="lineNum">     139</span>                 :             : // Matcher that asserts the value-under-test equals at least one element of `container`.</span>
+<span id="L140"><span class="lineNum">     140</span>                 :             : //</span>
+<span id="L141"><span class="lineNum">     141</span>                 :             : // This is the element-on-the-left orientation of `::testing::Contains`: the value is the subject</span>
+<span id="L142"><span class="lineNum">     142</span>                 :             : // and the container is the search space. Comparison uses raw `operator==` (not `Eq` parameterized</span>
+<span id="L143"><span class="lineNum">     143</span>                 :             : // on the container's `value_type`), so the subject does not need to be converted to the element</span>
+<span id="L144"><span class="lineNum">     144</span>                 :             : // type by the caller. A string-literal subject can be tested against a `std::vector&lt;std::string&gt;`,</span>
+<span id="L145"><span class="lineNum">     145</span>                 :             : // a `std::string_view` subject against a `std::map&lt;std::string, ...&gt;` key set, etc.</span>
+<span id="L146"><span class="lineNum">     146</span>                 :             : //</span>
+<span id="L147"><span class="lineNum">     147</span>                 :             : //   std::vector&lt;std::string&gt; allowed = {&quot;a&quot;, &quot;b&quot;};</span>
+<span id="L148"><span class="lineNum">     148</span>                 :             : //   EXPECT_THAT(&quot;a&quot;, IsElementOf(allowed));                    // const char[]</span>
+<span id="L149"><span class="lineNum">     149</span>                 :             : //   EXPECT_THAT(std::string_view{&quot;a&quot;}, IsElementOf(allowed));  // string_view</span>
+<span id="L150"><span class="lineNum">     150</span>                 :             : //   EXPECT_THAT(2, IsElementOf({1, 2, 3}));                    // initializer list</span>
+<span id="L151"><span class="lineNum">     151</span>                 :             : //</span>
+<span id="L152"><span class="lineNum">     152</span>                 :             : // The container is taken by value so temporaries and initializer lists are safe.</span>
+<span id="L153"><span class="lineNum">     153</span>                 :             : template&lt;typename Container&gt;</span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">          18 : inline testing_internal::IsElementOfMatcher&lt;Container&gt; IsElementOf(Container container) {</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">          18 :   return testing_internal::IsElementOfMatcher&lt;Container&gt;(std::move(container), &quot;is element of&quot;, &quot;is not element of&quot;);</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :             : }</span>
+<span id="L157"><span class="lineNum">     157</span>                 :             : </span>
+<span id="L158"><span class="lineNum">     158</span>                 :             : template&lt;typename T&gt;</span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">           2 : inline testing_internal::IsElementOfMatcher&lt;std::vector&lt;T&gt;&gt; IsElementOf(std::initializer_list&lt;T&gt; values) {</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           2 :   return testing_internal::IsElementOfMatcher&lt;std::vector&lt;T&gt;&gt;(</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">           4 :       std::vector&lt;T&gt;(values), &quot;is element of&quot;, &quot;is not element of&quot;);</span></span>
+<span id="L162"><span class="lineNum">     162</span>                 :             : }</span>
+<span id="L163"><span class="lineNum">     163</span>                 :             : </span>
+<span id="L164"><span class="lineNum">     164</span>                 :             : namespace testing_internal {</span>
+<span id="L165"><span class="lineNum">     165</span>                 :             : </span>
+<span id="L166"><span class="lineNum">     166</span>                 :             : // Returns the keys of an associative container as a `std::vector&lt;key_type&gt;` in iteration order.</span>
+<span id="L167"><span class="lineNum">     167</span>                 :             : // Internal: used to feed `IsKeyOf` (and other element-oriented matchers composed via</span>
+<span id="L168"><span class="lineNum">     168</span>                 :             : // `IsElementOf`). Not exposed at namespace scope because the natural calling convention puts</span>
+<span id="L169"><span class="lineNum">     169</span>                 :             : // the projection on the right of `EXPECT_THAT`, inside another matcher.</span>
+<span id="L170"><span class="lineNum">     170</span>                 :             : template&lt;typename Map&gt;</span>
+<span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">          19 : inline std::vector&lt;typename Map::key_type&gt; AllKeys(const Map&amp; map) {</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">          19 :   std::vector&lt;typename Map::key_type&gt; keys;</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">          19 :   keys.reserve(map.size());</span></span>
+<span id="L174"><span class="lineNum">     174</span>         [<span class="tlaGBC" title="Branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 19 times"> + </span>]:<span class="tlaGNC">          54 :   for (const auto&amp; kv : map) {</span></span>
+<span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">          35 :     keys.push_back(kv.first);</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :             :   }</span>
+<span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaGNC">          19 :   return keys;</span></span>
+<span id="L178"><span class="lineNum">     178</span>                 :             : }</span>
+<span id="L179"><span class="lineNum">     179</span>                 :             : </span>
+<span id="L180"><span class="lineNum">     180</span>                 :             : // Returns the mapped values of an associative container as a `std::vector&lt;mapped_type&gt;` in</span>
+<span id="L181"><span class="lineNum">     181</span>                 :             : // iteration order. Internal: see `AllKeys` above.</span>
+<span id="L182"><span class="lineNum">     182</span>                 :             : template&lt;typename Map&gt;</span>
+<span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">          14 : inline std::vector&lt;typename Map::mapped_type&gt; AllValues(const Map&amp; map) {</span></span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">          14 :   std::vector&lt;typename Map::mapped_type&gt; values;</span></span>
+<span id="L185"><span class="lineNum">     185</span>                 :<span class="tlaGNC">          14 :   values.reserve(map.size());</span></span>
+<span id="L186"><span class="lineNum">     186</span>         [<span class="tlaGBC" title="Branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          40 :   for (const auto&amp; kv : map) {</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :<span class="tlaGNC">          26 :     values.push_back(kv.second);</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :             :   }</span>
+<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaGNC">          14 :   return values;</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :             : }</span>
+<span id="L191"><span class="lineNum">     191</span>                 :             : </span>
+<span id="L192"><span class="lineNum">     192</span>                 :             : }  // namespace testing_internal</span>
+<span id="L193"><span class="lineNum">     193</span>                 :             : </span>
+<span id="L194"><span class="lineNum">     194</span>                 :             : // Matcher that asserts the value-under-test equals at least one key of `map`.</span>
+<span id="L195"><span class="lineNum">     195</span>                 :             : //</span>
+<span id="L196"><span class="lineNum">     196</span>                 :             : //   std::map&lt;int, std::string&gt; map = {{1, &quot;a&quot;}, {2, &quot;b&quot;}};</span>
+<span id="L197"><span class="lineNum">     197</span>                 :             : //   EXPECT_THAT(key, IsKeyOf(map));</span>
+<span id="L198"><span class="lineNum">     198</span>                 :             : template&lt;typename Map&gt;</span>
+<span id="L199"><span class="lineNum">     199</span>                 :<span class="tlaGNC">          19 : inline auto IsKeyOf(const Map&amp; map) {</span></span>
+<span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">          19 :   auto keys = testing_internal::AllKeys(map);</span></span>
+<span id="L201"><span class="lineNum">     201</span>                 :             :   using KeysContainer = decltype(keys);</span>
+<span id="L202"><span class="lineNum">     202</span>                 :<span class="tlaGNC">          19 :   return testing_internal::IsElementOfMatcher&lt;KeysContainer&gt;(std::move(keys), &quot;is a key of&quot;, &quot;is not a key of&quot;);</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">          19 : }</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :             : </span>
+<span id="L205"><span class="lineNum">     205</span>                 :             : // Matcher that asserts the value-under-test equals at least one mapped value of `map`.</span>
+<span id="L206"><span class="lineNum">     206</span>                 :             : //</span>
+<span id="L207"><span class="lineNum">     207</span>                 :             : //   std::map&lt;int, std::string&gt; map = {{1, &quot;a&quot;}, {2, &quot;b&quot;}};</span>
+<span id="L208"><span class="lineNum">     208</span>                 :             : //   EXPECT_THAT(value, IsValueOf(map));</span>
+<span id="L209"><span class="lineNum">     209</span>                 :             : template&lt;typename Map&gt;</span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">          14 : inline auto IsValueOf(const Map&amp; map) {</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :<span class="tlaGNC">          14 :   auto values = testing_internal::AllValues(map);</span></span>
+<span id="L212"><span class="lineNum">     212</span>                 :             :   using ValuesContainer = decltype(values);</span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">          14 :   return testing_internal::IsElementOfMatcher&lt;ValuesContainer&gt;(std::move(values), &quot;is a value of&quot;, &quot;is not a value of&quot;);</span></span>
+<span id="L214"><span class="lineNum">     214</span>                 :<span class="tlaGNC">          14 : }</span></span>
+<span id="L215"><span class="lineNum">     215</span>                 :             : </span>
+<span id="L216"><span class="lineNum">     216</span>                 :             : namespace testing_internal {</span>
+<span id="L217"><span class="lineNum">     217</span>                 :             : </span>
+<span id="L218"><span class="lineNum">     218</span>                 :             : // Implements the polymorphic `CapacityIs` matcher, which</span>
+<span id="L219"><span class="lineNum">     219</span>                 :             : // can be used as a Matcher&lt;T&gt; as long as T is either a container that defines</span>
+<span id="L220"><span class="lineNum">     220</span>                 :             : // capacity() (e.g. std::vector or std::string), or a C-style string.</span>
+<span id="L221"><span class="lineNum">     221</span>                 :             : template&lt;typename CapacityMatcher&gt;</span>
+<span id="L222"><span class="lineNum">     222</span>                 :             : class CapacityIsMatcher {</span>
+<span id="L223"><span class="lineNum">     223</span>                 :             :  public:</span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">          76 :   explicit CapacityIsMatcher(const CapacityMatcher&amp; capacity_matcher) : capacity_matcher_(capacity_matcher) {}</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :             : </span>
+<span id="L226"><span class="lineNum">     226</span>                 :             :   template&lt;typename Container&gt;</span>
+<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">          76 :   operator ::testing::Matcher&lt;Container&gt;() const {  // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)</span></span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">          76 :     return ::testing::Matcher&lt;Container&gt;(new Impl&lt;const Container&amp;&gt;(capacity_matcher_));</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :             :   }</span>
+<span id="L230"><span class="lineNum">     230</span>                 :             : </span>
+<span id="L231"><span class="lineNum">     231</span>                 :             :   template&lt;typename Container&gt;</span>
+<span id="L232"><span class="lineNum">     232</span>                 :             :   class Impl : public ::testing::MatcherInterface&lt;Container&gt; {</span>
+<span id="L233"><span class="lineNum">     233</span>                 :             :    public:</span>
+<span id="L234"><span class="lineNum">     234</span>                 :             :     using CapacityType = decltype(std::declval&lt;Container&gt;().capacity());</span>
+<span id="L235"><span class="lineNum">     235</span>                 :             : </span>
+<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          76 :     explicit Impl(const CapacityMatcher&amp; capacity_matcher)</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          76 :         : capacity_matcher_(::testing::MatcherCast&lt;CapacityType&gt;(capacity_matcher)) {}</span></span>
+<span id="L238"><span class="lineNum">     238</span>                 :             : </span>
+<span id="L239"><span class="lineNum">     239</span>                 :             :     // The description behavior is covered by CapacityIsDescriptions. GCC emits</span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :     // another identical function for every matched container type, so counting</span>
+<span id="L241"><span class="lineNum">     241</span>                 :             :     // those specializations would measure type usage rather than source behavior.</span>
+<span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">           2 :     void DescribeTo(::std::ostream* os) const override {  // LCOV_EXCL_FUNC_LINE</span></span>
+<span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;has a capacity that &quot;;</span></span>
+<span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">           2 :       capacity_matcher_.DescribeTo(os);</span></span>
+<span id="L245"><span class="lineNum">     245</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L246"><span class="lineNum">     246</span>                 :             : </span>
+<span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">           2 :     void DescribeNegationTo(::std::ostream* os) const override {  // LCOV_EXCL_FUNC_LINE</span></span>
+<span id="L248"><span class="lineNum">     248</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;has a capacity that &quot;;</span></span>
+<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">           2 :       capacity_matcher_.DescribeNegationTo(os);</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L251"><span class="lineNum">     251</span>                 :             : </span>
+<span id="L252"><span class="lineNum">     252</span>                 :<span class="tlaGNC">          76 :     bool MatchAndExplain(Container container, ::testing::MatchResultListener* listener) const override {</span></span>
+<span id="L253"><span class="lineNum">     253</span>                 :<span class="tlaGNC">          76 :       const CapacityType capacity = container.capacity();</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">          76 :       ::testing::StringMatchResultListener capacity_listener;</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">          76 :       const bool result = capacity_matcher_.MatchAndExplain(capacity, &amp;capacity_listener);</span></span>
+<span id="L256"><span class="lineNum">     256</span>         [<span class="tlaGBC" title="Branch 0 was taken 75 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          76 :       *listener &lt;&lt; &quot;whose capacity &quot; &lt;&lt; capacity &lt;&lt; (result ? &quot; matches&quot; : &quot; doesn't match&quot;);</span></span>
+<span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          76 :       ::testing::internal::PrintIfNotEmpty(capacity_listener.str(), listener-&gt;stream());</span></span>
+<span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">         152 :       return result;</span></span>
+<span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">          76 :     }</span></span>
+<span id="L260"><span class="lineNum">     260</span>                 :             : </span>
+<span id="L261"><span class="lineNum">     261</span>                 :             :    private:</span>
+<span id="L262"><span class="lineNum">     262</span>                 :             :     const ::testing::Matcher&lt;CapacityType&gt; capacity_matcher_;</span>
+<span id="L263"><span class="lineNum">     263</span>                 :             :   };</span>
+<span id="L264"><span class="lineNum">     264</span>                 :             : </span>
+<span id="L265"><span class="lineNum">     265</span>                 :             :  private:</span>
+<span id="L266"><span class="lineNum">     266</span>                 :             :   const CapacityMatcher capacity_matcher_;</span>
+<span id="L267"><span class="lineNum">     267</span>                 :             : };</span>
+<span id="L268"><span class="lineNum">     268</span>                 :             : </span>
+<span id="L269"><span class="lineNum">     269</span>                 :             : }  // namespace testing_internal</span>
+<span id="L270"><span class="lineNum">     270</span>                 :             : </span>
+<span id="L271"><span class="lineNum">     271</span>                 :             : // Returns a matcher that matches the container capacity. The container must support both capacity() and size_type which</span>
+<span id="L272"><span class="lineNum">     272</span>                 :             : // all STL-like containers provide. Note that the parameter 'capacity' can be a value of type size_type as well as</span>
+<span id="L273"><span class="lineNum">     273</span>                 :             : // matcher. For instance:</span>
+<span id="L274"><span class="lineNum">     274</span>                 :             : //   EXPECT_THAT(container, CapacityIs(2));     // Checks container has a capacity for 2 elements.</span>
+<span id="L275"><span class="lineNum">     275</span>                 :             : //   EXPECT_THAT(container, CapacityIs(Le(2));  // Checks container has a capacity for at most 2.</span>
+<span id="L276"><span class="lineNum">     276</span>                 :             : template&lt;typename SizeMatcher&gt;</span>
+<span id="L277"><span class="lineNum">     277</span>                 :<span class="tlaGNC">          76 : inline testing_internal::CapacityIsMatcher&lt;SizeMatcher&gt; CapacityIs(const SizeMatcher&amp; size_matcher) {</span></span>
+<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">          76 :   return testing_internal::CapacityIsMatcher&lt;SizeMatcher&gt;(size_matcher);</span></span>
+<span id="L279"><span class="lineNum">     279</span>                 :             : }</span>
+<span id="L280"><span class="lineNum">     280</span>                 :             : </span>
+<span id="L281"><span class="lineNum">     281</span>                 :             : namespace testing_internal {</span>
+<span id="L282"><span class="lineNum">     282</span>                 :             : </span>
+<span id="L283"><span class="lineNum">     283</span>                 :             : template&lt;typename Transformer, typename ContainerMatcher&gt;</span>
+<span id="L284"><span class="lineNum">     284</span>                 :             : class WhenTransformedByMatcher {</span>
+<span id="L285"><span class="lineNum">     285</span>                 :             :  public:</span>
+<span id="L286"><span class="lineNum">     286</span>                 :<span class="tlaGNC">          18 :   WhenTransformedByMatcher(const Transformer&amp; transformer, const ContainerMatcher&amp; container_matcher)</span></span>
+<span id="L287"><span class="lineNum">     287</span>                 :<span class="tlaGNC">          18 :       : transformer_(transformer), container_matcher_(container_matcher) {}</span></span>
+<span id="L288"><span class="lineNum">     288</span>                 :             : </span>
+<span id="L289"><span class="lineNum">     289</span>                 :             :   template&lt;typename Container&gt;</span>
+<span id="L290"><span class="lineNum">     290</span>                 :             :   requires(</span>
+<span id="L291"><span class="lineNum">     291</span>                 :             :       std::is_invocable_v&lt;Transformer, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;</span>
+<span id="L292"><span class="lineNum">     292</span>                 :             :       &amp;&amp; !std::same_as&lt;void, std::invoke_result_t&lt;Transformer, typename std::remove_cvref_t&lt;Container&gt;::value_type&gt;&gt;)</span>
+<span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaGNC">          18 :   operator ::testing::Matcher&lt;Container&gt;() const {  // NOLINT(*-explicit-*)</span></span>
+<span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaGNC">          18 :     return ::testing::Matcher&lt;Container&gt;(new Impl&lt;const Container&amp;&gt;(transformer_, container_matcher_));</span></span>
+<span id="L295"><span class="lineNum">     295</span>                 :             :   }</span>
+<span id="L296"><span class="lineNum">     296</span>                 :             : </span>
+<span id="L297"><span class="lineNum">     297</span>                 :             :  private:</span>
+<span id="L298"><span class="lineNum">     298</span>                 :             :   template&lt;typename Container&gt;</span>
+<span id="L299"><span class="lineNum">     299</span>                 :             :   class Impl : public ::testing::MatcherInterface&lt;Container&gt; {</span>
+<span id="L300"><span class="lineNum">     300</span>                 :             :    public:</span>
+<span id="L301"><span class="lineNum">     301</span>                 :             :     using ContainerType = std::remove_cvref_t&lt;Container&gt;;</span>
+<span id="L302"><span class="lineNum">     302</span>                 :             :     using TransformedType = std::invoke_result_t&lt;Transformer, typename ContainerType::value_type&gt;;</span>
+<span id="L303"><span class="lineNum">     303</span>                 :             :     using TransformedContainerType = std::vector&lt;TransformedType&gt;;</span>
+<span id="L304"><span class="lineNum">     304</span>                 :             :     using MatcherType = ::testing::Matcher&lt;TransformedContainerType&gt;;</span>
+<span id="L305"><span class="lineNum">     305</span>                 :             : </span>
+<span id="L306"><span class="lineNum">     306</span>                 :<span class="tlaGNC">          18 :     explicit Impl(const Transformer&amp; transformer, const ContainerMatcher&amp; container_matcher)</span></span>
+<span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">          18 :         : transformer_(transformer),</span></span>
+<span id="L308"><span class="lineNum">     308</span>                 :<span class="tlaGNC">          18 :           container_matcher_(::testing::MatcherCast&lt;TransformedContainerType&gt;(container_matcher)) {}</span></span>
+<span id="L309"><span class="lineNum">     309</span>                 :             : </span>
+<span id="L310"><span class="lineNum">     310</span>                 :<span class="tlaGNC">           2 :     void DescribeTo(::std::ostream* os) const override {</span></span>
+<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;when transformed &quot;;</span></span>
+<span id="L312"><span class="lineNum">     312</span>                 :<span class="tlaGNC">           2 :       container_matcher_.DescribeTo(os);</span></span>
+<span id="L313"><span class="lineNum">     313</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L314"><span class="lineNum">     314</span>                 :             : </span>
+<span id="L315"><span class="lineNum">     315</span>                 :<span class="tlaGNC">           2 :     void DescribeNegationTo(::std::ostream* os) const override {</span></span>
+<span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">           2 :       *os &lt;&lt; &quot;when transformed &quot;;</span></span>
+<span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">           2 :       container_matcher_.DescribeNegationTo(os);</span></span>
+<span id="L318"><span class="lineNum">     318</span>                 :<span class="tlaGNC">           2 :     }</span></span>
+<span id="L319"><span class="lineNum">     319</span>                 :             : </span>
+<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">          22 :     bool MatchAndExplain(const Container&amp; container, ::testing::MatchResultListener* listener) const override {</span></span>
+<span id="L321"><span class="lineNum">     321</span>                 :<span class="tlaGNC">          22 :       TransformedContainerType transformed;</span></span>
+<span id="L322"><span class="lineNum">     322</span>                 :<span class="tlaGNC">          22 :       transformed.reserve(container.size());</span></span>
+<span id="L323"><span class="lineNum">     323</span>         [<span class="tlaGBC" title="Branch 0 was taken 47 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 22 times"> + </span>]:<span class="tlaGNC">          69 :       for (const auto&amp; v : container) {</span></span>
+<span id="L324"><span class="lineNum">     324</span>                 :<span class="tlaGNC">          47 :         transformed.emplace_back(transformer_(v));</span></span>
+<span id="L325"><span class="lineNum">     325</span>                 :             :       }</span>
+<span id="L326"><span class="lineNum">     326</span>                 :<span class="tlaGNC">          22 :       ::testing::StringMatchResultListener container_listener;</span></span>
+<span id="L327"><span class="lineNum">     327</span>                 :<span class="tlaGNC">          22 :       const bool result = container_matcher_.MatchAndExplain(transformed, &amp;container_listener);</span></span>
+<span id="L328"><span class="lineNum">     328</span>                 :<span class="tlaGNC">          22 :       *listener &lt;&lt; &quot;which (when transformed&quot;;</span></span>
+<span id="L329"><span class="lineNum">     329</span>                 :<span class="tlaGNC">          22 :       constexpr std::size_t kShowMaxElements = 0;</span></span>
+<span id="L330"><span class="lineNum">     330</span>                 :             :       if constexpr (kShowMaxElements &gt; 0) {</span>
+<span id="L331"><span class="lineNum">     331</span>                 :             :         *listener &lt;&lt; &quot; is {&quot;;</span>
+<span id="L332"><span class="lineNum">     332</span>                 :             :         std::size_t index = 0;</span>
+<span id="L333"><span class="lineNum">     333</span>                 :             :         for (const auto&amp; v : transformed) {</span>
+<span id="L334"><span class="lineNum">     334</span>                 :             :           if (index++ &gt; 0) {</span>
+<span id="L335"><span class="lineNum">     335</span>                 :             :             *listener &lt;&lt; &quot;, &quot;;</span>
+<span id="L336"><span class="lineNum">     336</span>                 :             :           }</span>
+<span id="L337"><span class="lineNum">     337</span>                 :             :           *listener &lt;&lt; ::testing::PrintToString(v);</span>
+<span id="L338"><span class="lineNum">     338</span>                 :             :           if (index &gt;= kShowMaxElements) {</span>
+<span id="L339"><span class="lineNum">     339</span>                 :             :             *listener &lt;&lt; &quot;, ...&quot;;</span>
+<span id="L340"><span class="lineNum">     340</span>                 :             :             break;</span>
+<span id="L341"><span class="lineNum">     341</span>                 :             :           }</span>
+<span id="L342"><span class="lineNum">     342</span>                 :             :         }</span>
+<span id="L343"><span class="lineNum">     343</span>                 :             :         *listener &lt;&lt; &quot;}&quot;;</span>
+<span id="L344"><span class="lineNum">     344</span>                 :             :       }</span>
+<span id="L345"><span class="lineNum">     345</span>         [<span class="tlaGBC" title="Branch 0 was taken 17 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 5 times"> + </span>]:<span class="tlaGNC">          22 :       *listener &lt;&lt; &quot;) &quot; &lt;&lt; (result ? &quot;matches&quot; : &quot;doesn't match&quot;);</span></span>
+<span id="L346"><span class="lineNum">     346</span>                 :<span class="tlaGNC">          22 :       ::testing::internal::PrintIfNotEmpty(container_listener.str(), listener-&gt;stream());</span></span>
+<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">          44 :       return result;</span></span>
+<span id="L348"><span class="lineNum">     348</span>                 :<span class="tlaGNC">          22 :     }</span></span>
+<span id="L349"><span class="lineNum">     349</span>                 :             : </span>
+<span id="L350"><span class="lineNum">     350</span>                 :             :    private:</span>
+<span id="L351"><span class="lineNum">     351</span>                 :             :     const Transformer&amp; transformer_;</span>
+<span id="L352"><span class="lineNum">     352</span>                 :             :     const MatcherType container_matcher_;</span>
+<span id="L353"><span class="lineNum">     353</span>                 :             :   };</span>
+<span id="L354"><span class="lineNum">     354</span>                 :             : </span>
+<span id="L355"><span class="lineNum">     355</span>                 :             :   const Transformer&amp; transformer_;</span>
+<span id="L356"><span class="lineNum">     356</span>                 :             :   const ContainerMatcher&amp; container_matcher_;</span>
+<span id="L357"><span class="lineNum">     357</span>                 :             : };</span>
+<span id="L358"><span class="lineNum">     358</span>                 :             : </span>
+<span id="L359"><span class="lineNum">     359</span>                 :             : }  // namespace testing_internal</span>
+<span id="L360"><span class="lineNum">     360</span>                 :             : </span>
+<span id="L361"><span class="lineNum">     361</span>                 :             : // Matcher that allows to compare containers after transforming them. This sometimes allows for much</span>
+<span id="L362"><span class="lineNum">     362</span>                 :             : // more concise comparisons where a golden expectation is already available that only differs in a</span>
+<span id="L363"><span class="lineNum">     363</span>                 :             : // simple transformation. The matcher transformation must convert the elements of the container arg</span>
+<span id="L364"><span class="lineNum">     364</span>                 :             : // from their `value_type` to the matchers value type.</span>
+<span id="L365"><span class="lineNum">     365</span>                 :             : //</span>
+<span id="L366"><span class="lineNum">     366</span>                 :             : // That means that a `std::vector` of `int` can be compared to a `std::set` of `std::string`, if the</span>
+<span id="L367"><span class="lineNum">     367</span>                 :             : // transformer takes `int` as an argument and returns `std::string` as its result.</span>
+<span id="L368"><span class="lineNum">     368</span>                 :             : //</span>
+<span id="L369"><span class="lineNum">     369</span>                 :             : // Example:</span>
+<span id="L370"><span class="lineNum">     370</span>                 :             : // ```</span>
+<span id="L371"><span class="lineNum">     371</span>                 :             : // std::vector&lt;int&gt; numbers{1, 2, 3};</span>
+<span id="L372"><span class="lineNum">     372</span>                 :             : // std::set&lt;std::string&gt; strs{&quot;1&quot;, &quot;2&quot;, &quot;3&quot;};</span>
+<span id="L373"><span class="lineNum">     373</span>                 :             : // EXPECT_THAT(numbers, WhenTransformedBy([](int v) { return absl::StrCat(v); }, ElementsAre(strs)));</span>
+<span id="L374"><span class="lineNum">     374</span>                 :             : // ```</span>
+<span id="L375"><span class="lineNum">     375</span>                 :             : //</span>
+<span id="L376"><span class="lineNum">     376</span>                 :             : // More practical: Instead of using `Key` for every value in `ElementsAre` when checking a mapped</span>
+<span id="L377"><span class="lineNum">     377</span>                 :             : // container's keys, you can transform the input to just return the keys and then compare:</span>
+<span id="L378"><span class="lineNum">     378</span>                 :             : // ```</span>
+<span id="L379"><span class="lineNum">     379</span>                 :             : //  const std::map&lt;int, int&gt; map{{1, 2}, {3, 4}};</span>
+<span id="L380"><span class="lineNum">     380</span>                 :             : //  EXPECT_THAT(</span>
+<span id="L381"><span class="lineNum">     381</span>                 :             : //      map,</span>
+<span id="L382"><span class="lineNum">     382</span>                 :             : //      WhenTransformedBy([](const std::pair&lt;int, int&gt;&amp; v) { return v.first; }), ElementsAre(1, 3));</span>
+<span id="L383"><span class="lineNum">     383</span>                 :             : // ```</span>
+<span id="L384"><span class="lineNum">     384</span>                 :             : //</span>
+<span id="L385"><span class="lineNum">     385</span>                 :             : // The internal comparison will always be performed on a `std::vector` whose elements are the result</span>
+<span id="L386"><span class="lineNum">     386</span>                 :             : // type of the `transformer`. This means that the resultign elements are exactly in the order of the</span>
+<span id="L387"><span class="lineNum">     387</span>                 :             : // default iteration of the argument. The matcher adapter `WhenSorted` or unordered versions of the</span>
+<span id="L388"><span class="lineNum">     388</span>                 :             : // standard container matchers work as expected.</span>
+<span id="L389"><span class="lineNum">     389</span>                 :             : template&lt;typename Transformer, typename ContainerMatcher&gt;</span>
+<span id="L390"><span class="lineNum">     390</span>                 :<span class="tlaGNC">          18 : inline auto WhenTransformedBy(const Transformer&amp; transformer, const ContainerMatcher&amp; container_matcher) {</span></span>
+<span id="L391"><span class="lineNum">     391</span>                 :<span class="tlaGNC">          18 :   return testing_internal::WhenTransformedByMatcher(transformer, container_matcher);</span></span>
+<span id="L392"><span class="lineNum">     392</span>                 :             : }</span>
+<span id="L393"><span class="lineNum">     393</span>                 :             : </span>
+<span id="L394"><span class="lineNum">     394</span>                 :             : namespace testing_internal {</span>
+<span id="L395"><span class="lineNum">     395</span>                 :             : </span>
+<span id="L396"><span class="lineNum">     396</span>                 :             : class EqualsTextMatcher : public ::testing::MatcherInterface&lt;std::string_view&gt; {</span>
+<span id="L397"><span class="lineNum">     397</span>                 :             :  public:</span>
+<span id="L398"><span class="lineNum">     398</span>                 :<span class="tlaGNC">         114 :   explicit EqualsTextMatcher(std::string_view text) : text_(text) {}</span></span>
+<span id="L399"><span class="lineNum">     399</span>                 :             : </span>
+<span id="L400"><span class="lineNum">     400</span>                 :<span class="tlaGNC">           1 :   void DescribeTo(::std::ostream* os) const override { *os &lt;&lt; &quot;matches text&quot;; }</span></span>
+<span id="L401"><span class="lineNum">     401</span>                 :             : </span>
+<span id="L402"><span class="lineNum">     402</span>                 :<span class="tlaGNC">           1 :   void DescribeNegationTo(::std::ostream* os) const override { *os &lt;&lt; &quot;does not match text&quot;; }</span></span>
+<span id="L403"><span class="lineNum">     403</span>                 :             : </span>
+<span id="L404"><span class="lineNum">     404</span>                 :<span class="tlaGNC">          36 :   bool MatchAndExplain(std::string_view other, ::testing::MatchResultListener* listener) const override {</span></span>
+<span id="L405"><span class="lineNum">     405</span>   [<span class="tlaGBC" title="Branch 0 was taken 35 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 2 was taken 31 times"> + </span><span class="tlaGBC" title="Branch 3 was taken 4 times"> + </span> :<span class="tlaGNC">          36 :     if (!options_.drop_indent &amp;&amp; text_ == other) {</span></span>
+<span class="lineNum">        </span>          <span class="tlaGBC" title="Branch 4 was taken 31 times"> + </span><span class="tlaGBC" title="Branch 5 was taken 5 times"> + </span>]
+<span id="L406"><span class="lineNum">     406</span>                 :<span class="tlaGNC">          31 :       return true;</span></span>
+<span id="L407"><span class="lineNum">     407</span>                 :             :     }</span>
+<span id="L408"><span class="lineNum">     408</span>                 :<span class="tlaGNC">          15 :     const auto wants_lines = [&amp;]() -&gt; std::vector&lt;std::string&gt; {</span></span>
+<span id="L409"><span class="lineNum">     409</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span>]:<span class="tlaGNC">           5 :       if (options_.drop_indent) {</span></span>
+<span id="L410"><span class="lineNum">     410</span>                 :<span class="tlaGNC">           1 :         *listener &lt;&lt; &quot;[&quot; &lt;&lt; mbo::strings::DropIndent(text_) &lt;&lt; &quot;]\n&quot;;</span></span>
+<span id="L411"><span class="lineNum">     411</span>                 :<span class="tlaGNC">           1 :         return absl::StrSplit(mbo::strings::DropIndent(text_), '\n');</span></span>
+<span id="L412"><span class="lineNum">     412</span>                 :             :       }</span>
+<span id="L413"><span class="lineNum">     413</span>                 :<span class="tlaGNC">           4 :       return absl::StrSplit(text_, '\n');</span></span>
+<span id="L414"><span class="lineNum">     414</span>                 :<span class="tlaGNC">           5 :     }();</span></span>
+<span id="L415"><span class="lineNum">     415</span>                 :<span class="tlaGNC">           5 :     const std::vector&lt;std::string&gt; other_lines = absl::StrSplit(other, '\n');</span></span>
+<span id="L416"><span class="lineNum">     416</span>   [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 2 was taken 1 time"> + </span><span class="tlaUNC" title="Branch 3 was not taken"> - </span> :<span class="tlaGNC">           5 :     if (options_.drop_indent &amp;&amp; wants_lines == other_lines) {</span></span>
+<span class="lineNum">        </span>          <span class="tlaGBC" title="Branch 4 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 5 was taken 4 times"> + </span>]
+<span id="L417"><span class="lineNum">     417</span>                 :<span class="tlaGNC">           1 :       return true;</span></span>
+<span id="L418"><span class="lineNum">     418</span>                 :             :     }</span>
+<span id="L419"><span class="lineNum">     419</span>                 :<span class="tlaGNC">           4 :     *listener &lt;&lt; &quot;Text differene:\n&quot; &lt;&lt; ::testing::internal::edit_distance::CreateUnifiedDiff(wants_lines, other_lines);</span></span>
+<span id="L420"><span class="lineNum">     420</span>                 :<span class="tlaGNC">           4 :     return false;</span></span>
+<span id="L421"><span class="lineNum">     421</span>                 :<span class="tlaGNC">           5 :   }</span></span>
+<span id="L422"><span class="lineNum">     422</span>                 :             : </span>
+<span id="L423"><span class="lineNum">     423</span>                 :<span class="tlaGNC">           1 :   void SetDropIndent(bool drop_indent = true) { options_.drop_indent = drop_indent; }</span></span>
+<span id="L424"><span class="lineNum">     424</span>                 :             : </span>
+<span id="L425"><span class="lineNum">     425</span>                 :             :  private:</span>
+<span id="L426"><span class="lineNum">     426</span>                 :             :   struct Options {</span>
+<span id="L427"><span class="lineNum">     427</span>                 :             :     bool drop_indent = false;</span>
+<span id="L428"><span class="lineNum">     428</span>                 :             :   };</span>
+<span id="L429"><span class="lineNum">     429</span>                 :             : </span>
+<span id="L430"><span class="lineNum">     430</span>                 :             :   const std::string text_;</span>
+<span id="L431"><span class="lineNum">     431</span>                 :             :   Options options_;</span>
+<span id="L432"><span class="lineNum">     432</span>                 :             : };</span>
+<span id="L433"><span class="lineNum">     433</span>                 :             : </span>
+<span id="L434"><span class="lineNum">     434</span>                 :             : }  // namespace testing_internal</span>
+<span id="L435"><span class="lineNum">     435</span>                 :             : </span>
+<span id="L436"><span class="lineNum">     436</span>                 :             : using PolymorphicEqualsTextMatcher = ::testing::PolymorphicMatcher&lt;testing_internal::EqualsTextMatcher&gt;;</span>
+<span id="L437"><span class="lineNum">     437</span>                 :             : </span>
+<span id="L438"><span class="lineNum">     438</span>                 :             : // Matcher that compares text line by line using unified diff.</span>
+<span id="L439"><span class="lineNum">     439</span>                 :             : // Can be wrapped with `WithDropIndent`.</span>
+<span id="L440"><span class="lineNum">     440</span>                 :<span class="tlaGNC">          38 : inline PolymorphicEqualsTextMatcher EqualsText(std::string_view text) {</span></span>
+<span id="L441"><span class="lineNum">     441</span>                 :<span class="tlaGNC">          38 :   return ::testing::MakePolymorphicMatcher(testing_internal::EqualsTextMatcher(text));</span></span>
+<span id="L442"><span class="lineNum">     442</span>                 :             : }</span>
+<span id="L443"><span class="lineNum">     443</span>                 :             : </span>
+<span id="L444"><span class="lineNum">     444</span>                 :             : // Matcher that compares text line by line using unified diff.</span>
+<span id="L445"><span class="lineNum">     445</span>                 :             : // Can be wrapped with `WithDropIndent`.</span>
+<span id="L446"><span class="lineNum">     446</span>                 :             : template&lt;std::size_t N&gt;</span>
+<span id="L447"><span class="lineNum">     447</span>                 :             : inline PolymorphicEqualsTextMatcher EqualsText(const char text[N]) {  // NOLINT(*-avoid-c-arrays)</span>
+<span id="L448"><span class="lineNum">     448</span>                 :             :   return ::testing::MakePolymorphicMatcher(testing_internal::EqualsTextMatcher(text));</span>
+<span id="L449"><span class="lineNum">     449</span>                 :             : }</span>
+<span id="L450"><span class="lineNum">     450</span>                 :             : </span>
+<span id="L451"><span class="lineNum">     451</span>                 :             : // Modifies `EqualsText` so that the provided `text` has its indents stripped, see `mbo::strings::DropIndent`.</span>
+<span id="L452"><span class="lineNum">     452</span>                 :             : // The value argument is kepts as is. If its indent should be dropped than that must be done manually, e.g.:</span>
+<span id="L453"><span class="lineNum">     453</span>                 :             : // ```c++</span>
+<span id="L454"><span class="lineNum">     454</span>                 :             : // EXPECT_THAT(DropIndent(text), WithDropIndent(EqualsText(golden)));</span>
+<span id="L455"><span class="lineNum">     455</span>                 :             : // ```</span>
+<span id="L456"><span class="lineNum">     456</span>                 :<span class="tlaGNC">           1 : inline PolymorphicEqualsTextMatcher WithDropIndent(PolymorphicEqualsTextMatcher&amp;&amp; matcher) {</span></span>
+<span id="L457"><span class="lineNum">     457</span>                 :<span class="tlaGNC">           1 :   matcher.mutable_impl().SetDropIndent();</span></span>
+<span id="L458"><span class="lineNum">     458</span>                 :<span class="tlaGNC">           1 :   return std::move(matcher);</span></span>
+<span id="L459"><span class="lineNum">     459</span>                 :             : }</span>
+<span id="L460"><span class="lineNum">     460</span>                 :             : </span>
+<span id="L461"><span class="lineNum">     461</span>                 :             : }  // namespace mbo::testing</span>
+<span id="L462"><span class="lineNum">     462</span>                 :             : </span>
+<span id="L463"><span class="lineNum">     463</span>                 :             : #endif  // MBO_TESTING_MATCHERS_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

@@ -1,0 +1,360 @@
+{
+  "schema": 1,
+  "measurements": {
+    "overall": {
+      "lines": {
+        "covered": 6250,
+        "total": 6586,
+        "percent": 94.9
+      },
+      "functions": {
+        "covered": 10888,
+        "total": 11617,
+        "percent": 93.72
+      },
+      "branches": {
+        "covered": 9550,
+        "total": 13113,
+        "percent": 72.83
+      }
+    },
+    "container": {
+      "lines": {
+        "covered": 705,
+        "total": 734,
+        "percent": 96.05
+      },
+      "functions": {
+        "covered": 6834,
+        "total": 7227,
+        "percent": 94.56
+      },
+      "branches": {
+        "covered": 6539,
+        "total": 9482,
+        "percent": 68.96
+      }
+    },
+    "diff": {
+      "lines": {
+        "covered": 825,
+        "total": 855,
+        "percent": 96.49
+      },
+      "functions": {
+        "covered": 115,
+        "total": 116,
+        "percent": 99.14
+      },
+      "branches": {
+        "covered": 481,
+        "total": 537,
+        "percent": 89.57
+      }
+    },
+    "digest": {
+      "lines": {
+        "covered": 864,
+        "total": 874,
+        "percent": 98.86
+      },
+      "functions": {
+        "covered": 229,
+        "total": 240,
+        "percent": 95.42
+      },
+      "branches": {
+        "covered": 332,
+        "total": 348,
+        "percent": 95.4
+      }
+    },
+    "file": {
+      "lines": {
+        "covered": 649,
+        "total": 734,
+        "percent": 88.42
+      },
+      "functions": {
+        "covered": 126,
+        "total": 130,
+        "percent": 96.92
+      },
+      "branches": {
+        "covered": 418,
+        "total": 566,
+        "percent": 73.85
+      }
+    },
+    "hash": {
+      "lines": {
+        "covered": 1007,
+        "total": 1022,
+        "percent": 98.53
+      },
+      "functions": {
+        "covered": 232,
+        "total": 233,
+        "percent": 99.57
+      },
+      "branches": {
+        "covered": 706,
+        "total": 736,
+        "percent": 95.92
+      }
+    },
+    "json": {
+      "lines": {
+        "covered": 278,
+        "total": 289,
+        "percent": 96.19
+      },
+      "functions": {
+        "covered": 241,
+        "total": 260,
+        "percent": 92.69
+      },
+      "branches": {
+        "covered": 120,
+        "total": 188,
+        "percent": 63.83
+      }
+    },
+    "log": {
+      "lines": {
+        "covered": 133,
+        "total": 149,
+        "percent": 89.26
+      },
+      "functions": {
+        "covered": 30,
+        "total": 30,
+        "percent": 100.0
+      },
+      "branches": {
+        "covered": 63,
+        "total": 83,
+        "percent": 75.9
+      }
+    },
+    "mope": {
+      "lines": {
+        "covered": 291,
+        "total": 323,
+        "percent": 90.09
+      },
+      "functions": {
+        "covered": 26,
+        "total": 28,
+        "percent": 92.86
+      },
+      "branches": {
+        "covered": 231,
+        "total": 304,
+        "percent": 75.99
+      }
+    },
+    "status": {
+      "lines": {
+        "covered": 57,
+        "total": 57,
+        "percent": 100.0
+      },
+      "functions": {
+        "covered": 38,
+        "total": 41,
+        "percent": 92.68
+      },
+      "branches": {
+        "covered": 12,
+        "total": 16,
+        "percent": 75.0
+      }
+    },
+    "strings": {
+      "lines": {
+        "covered": 259,
+        "total": 278,
+        "percent": 93.17
+      },
+      "functions": {
+        "covered": 42,
+        "total": 42,
+        "percent": 100.0
+      },
+      "branches": {
+        "covered": 201,
+        "total": 235,
+        "percent": 85.53
+      }
+    },
+    "testing": {
+      "lines": {
+        "covered": 342,
+        "total": 377,
+        "percent": 90.72
+      },
+      "functions": {
+        "covered": 610,
+        "total": 701,
+        "percent": 87.02
+      },
+      "branches": {
+        "covered": 114,
+        "total": 158,
+        "percent": 72.15
+      }
+    },
+    "types": {
+      "lines": {
+        "covered": 840,
+        "total": 894,
+        "percent": 93.96
+      },
+      "functions": {
+        "covered": 2365,
+        "total": 2569,
+        "percent": 92.06
+      },
+      "branches": {
+        "covered": 333,
+        "total": 460,
+        "percent": 72.39
+      }
+    }
+  },
+  "minimums": {
+    "overall": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "container": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "diff": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "digest": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "file": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "hash": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "json": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "log": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "mope": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "status": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "strings": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "testing": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "types": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    }
+  },
+  "targets": {
+    "overall": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "container": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "diff": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "digest": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "file": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "hash": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "json": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "log": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "mope": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "status": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "strings": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "testing": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    },
+    "types": {
+      "lines": 88,
+      "functions": 80,
+      "branches": 60
+    }
+  }
+}

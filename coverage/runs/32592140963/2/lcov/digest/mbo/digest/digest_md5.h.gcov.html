@@ -1,0 +1,308 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - digest/mbo/digest/digest_md5.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">digest</a>/<a href="../index.html">mbo</a>/<a href="index.html">digest</a> - digest_md5.h<span style="font-size: 80%;"> (source / <a href="digest_md5.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">82</td>
+            <td class="headerCovTableEntry">82</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 19:09:25</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">9</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">30</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_DIGEST_DIGEST_MD5_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_DIGEST_DIGEST_MD5_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : // IWYU pragma: private, include &quot;mbo/digest/digest.h&quot;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : </span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &lt;array&gt;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : #include &lt;bit&gt;</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : #include &lt;string_view&gt;</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : </span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : #include &quot;mbo/hash/hash_internal_util.h&quot;</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : </span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : // MD5 (RFC 1321), transcribed from the specification; constexpr-safe with one</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : // code path for compile time and run time. Little-endian throughout (unlike</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : // the SHA family).</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : //</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : // SECURITY WARNING: MD5 is COLLISION-BROKEN against adversaries - two</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : // colliding files cost seconds on a laptop (chosen-prefix collisions are</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : // practical). Provided for legacy interoperability (it remains the most</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // common file checksum in the wild) and for detecting *accidental*</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // corruption only - never use it where untrusted parties influence content.</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // Use SHA-256 for adversarial integrity.</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : namespace mbo::digest {</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : </span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // NOLINTBEGIN(*-magic-numbers,*-pointer-arithmetic,*-constant-array-index,*-avoid-unchecked-container-access)</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : </span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : namespace md5_internal {</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : </span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : inline constexpr std::size_t kBlockSize = 64;</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : </span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : // Per-round addends: floor(2^32 * abs(sin(i + 1))) (RFC 1321, section 3.4);</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : // generated programmatically.</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : inline constexpr std::array&lt;uint32_t, 64&gt; kRoundK = {</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             :     0xD76AA478, 0xE8C7B756, 0x242070DB, 0xC1BDCEEE, 0xF57C0FAF, 0x4787C62A, 0xA8304613, 0xFD469501,</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             :     0x698098D8, 0x8B44F7AF, 0xFFFF5BB1, 0x895CD7BE, 0x6B901122, 0xFD987193, 0xA679438E, 0x49B40821,</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             :     0xF61E2562, 0xC040B340, 0x265E5A51, 0xE9B6C7AA, 0xD62F105D, 0x02441453, 0xD8A1E681, 0xE7D3FBC8,</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             :     0x21E1CDE6, 0xC33707D6, 0xF4D50D87, 0x455A14ED, 0xA9E3E905, 0xFCEFA3F8, 0x676F02D9, 0x8D2A4C8A,</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             :     0xFFFA3942, 0x8771F681, 0x6D9D6122, 0xFDE5380C, 0xA4BEEA44, 0x4BDECFA9, 0xF6BB4B60, 0xBEBFBC70,</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             :     0x289B7EC6, 0xEAA127FA, 0xD4EF3085, 0x04881D05, 0xD9D4D039, 0xE6DB99E5, 0x1FA27CF8, 0xC4AC5665,</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             :     0xF4292244, 0x432AFF97, 0xAB9423A7, 0xFC93A039, 0x655B59C3, 0x8F0CCC92, 0xFFEFF47D, 0x85845DD1,</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             :     0x6FA87E4F, 0xFE2CE6E0, 0xA3014314, 0x4E0811A1, 0xF7537E82, 0xBD3AF235, 0x2AD7D2BB, 0xEB86D391,</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : };</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             : </span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : // Per-round left-rotation amounts (RFC 1321, section 3.4).</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             : inline constexpr std::array&lt;uint32_t, 64&gt; kShifts = {</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,  //</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             :     5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,  //</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :     4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,  //</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : };</span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : </span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : // Initial state (RFC 1321, section 3.3).</span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : inline constexpr std::array&lt;uint32_t, 4&gt; kInit = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476};</span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : </span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : // Compression function: absorbs one 64-byte block (RFC 1321, section 3.4).</span>
+<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC tlaBgGNC">       15781 : constexpr void Compress(std::array&lt;uint32_t, 4&gt;&amp; hash, const char* block) noexcept {</span></span>
+<span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC">       15781 :   std::array&lt;uint32_t, 16&gt; words = {};</span></span>
+<span id="L74"><span class="lineNum">      74</span>         [<span class="tlaGBC" title="Branch 0 was taken 252496 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15781 times"> + </span>]:<span class="tlaGNC">      268277 :   for (std::size_t i = 0; i &lt; 16; ++i) {</span></span>
+<span id="L75"><span class="lineNum">      75</span>                 :<span class="tlaGNC">      504992 :     words[i] = ::mbo::hash::hash_internal::Load32(block + (4 * i));  // little-endian</span></span>
+<span id="L76"><span class="lineNum">      76</span>                 :             :   }</span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : </span>
+<span id="L78"><span class="lineNum">      78</span>                 :<span class="tlaGNC">       15781 :   uint32_t va = hash[0];</span></span>
+<span id="L79"><span class="lineNum">      79</span>                 :<span class="tlaGNC">       15781 :   uint32_t vb = hash[1];</span></span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">       15781 :   uint32_t vc = hash[2];</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :<span class="tlaGNC">       15781 :   uint32_t vd = hash[3];</span></span>
+<span id="L82"><span class="lineNum">      82</span>         [<span class="tlaGBC" title="Branch 0 was taken 1009984 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15781 times"> + </span>]:<span class="tlaGNC">     1025765 :   for (std::size_t i = 0; i &lt; 64; ++i) {</span></span>
+<span id="L83"><span class="lineNum">      83</span>                 :<span class="tlaGNC">     1009984 :     uint32_t func = 0;</span></span>
+<span id="L84"><span class="lineNum">      84</span>                 :<span class="tlaGNC">     1009984 :     std::size_t word_index = 0;</span></span>
+<span id="L85"><span class="lineNum">      85</span>         [<span class="tlaGBC" title="Branch 0 was taken 252496 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 757488 times"> + </span>]:<span class="tlaGNC">     1009984 :     if (i &lt; 16) {</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :<span class="tlaGNC">      252496 :       func = (vb &amp; vc) | (~vb &amp; vd);</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">      252496 :       word_index = i;</span></span>
+<span id="L88"><span class="lineNum">      88</span>         [<span class="tlaGBC" title="Branch 0 was taken 252496 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 504992 times"> + </span>]:<span class="tlaGNC">      757488 :     } else if (i &lt; 32) {</span></span>
+<span id="L89"><span class="lineNum">      89</span>                 :<span class="tlaGNC">      252496 :       func = (vd &amp; vb) | (~vd &amp; vc);</span></span>
+<span id="L90"><span class="lineNum">      90</span>                 :<span class="tlaGNC">      252496 :       word_index = ((5 * i) + 1) % 16;</span></span>
+<span id="L91"><span class="lineNum">      91</span>         [<span class="tlaGBC" title="Branch 0 was taken 252496 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 252496 times"> + </span>]:<span class="tlaGNC">      504992 :     } else if (i &lt; 48) {</span></span>
+<span id="L92"><span class="lineNum">      92</span>                 :<span class="tlaGNC">      252496 :       func = vb ^ vc ^ vd;</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">      252496 :       word_index = ((3 * i) + 5) % 16;</span></span>
+<span id="L94"><span class="lineNum">      94</span>                 :             :     } else {</span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">      252496 :       func = vc ^ (vb | ~vd);</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaGNC">      252496 :       word_index = (7 * i) % 16;</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :             :     }</span>
+<span id="L98"><span class="lineNum">      98</span>                 :<span class="tlaGNC">     1009984 :     const uint32_t temp = vd;</span></span>
+<span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">     1009984 :     vd = vc;</span></span>
+<span id="L100"><span class="lineNum">     100</span>                 :<span class="tlaGNC">     1009984 :     vc = vb;</span></span>
+<span id="L101"><span class="lineNum">     101</span>                 :<span class="tlaGNC">     1009984 :     vb += std::rotl(va + func + kRoundK[i] + words[word_index], static_cast&lt;int&gt;(kShifts[i]));</span></span>
+<span id="L102"><span class="lineNum">     102</span>                 :<span class="tlaGNC">     1009984 :     va = temp;</span></span>
+<span id="L103"><span class="lineNum">     103</span>                 :             :   }</span>
+<span id="L104"><span class="lineNum">     104</span>                 :<span class="tlaGNC">       15781 :   hash[0] += va;</span></span>
+<span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">       15781 :   hash[1] += vb;</span></span>
+<span id="L106"><span class="lineNum">     106</span>                 :<span class="tlaGNC">       15781 :   hash[2] += vc;</span></span>
+<span id="L107"><span class="lineNum">     107</span>                 :<span class="tlaGNC">       15781 :   hash[3] += vd;</span></span>
+<span id="L108"><span class="lineNum">     108</span>                 :<span class="tlaGNC">       15781 : }</span></span>
+<span id="L109"><span class="lineNum">     109</span>                 :             : </span>
+<span id="L110"><span class="lineNum">     110</span>                 :             : // Streaming state; the buffer's fill level is `total_len % kBlockSize`.</span>
+<span id="L111"><span class="lineNum">     111</span>                 :             : struct State {</span>
+<span id="L112"><span class="lineNum">     112</span>                 :             :   std::array&lt;uint32_t, 4&gt; hash = {};</span>
+<span id="L113"><span class="lineNum">     113</span>                 :             :   std::array&lt;char, kBlockSize&gt; buffer = {};</span>
+<span id="L114"><span class="lineNum">     114</span>                 :             :   uint64_t total_len = 0;  // Bytes absorbed, including the buffered tail.</span>
+<span id="L115"><span class="lineNum">     115</span>                 :             : };</span>
+<span id="L116"><span class="lineNum">     116</span>                 :             : </span>
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">          42 : constexpr State Init() noexcept {</span></span>
+<span id="L118"><span class="lineNum">     118</span>                 :<span class="tlaGNC">          42 :   return {.hash = kInit, .buffer = {}, .total_len = 0};</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :             : }</span>
+<span id="L120"><span class="lineNum">     120</span>                 :             : </span>
+<span id="L121"><span class="lineNum">     121</span>                 :<span class="tlaGNC">         874 : constexpr void Update(State&amp; state, std::string_view data) noexcept {</span></span>
+<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">         874 :   const std::size_t fill = state.total_len % kBlockSize;</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">         874 :   state.total_len += data.size();</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">         874 :   const char* ptr = data.data();</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">         874 :   std::size_t remaining = data.size();</span></span>
+<span id="L126"><span class="lineNum">     126</span>         [<span class="tlaGBC" title="Branch 0 was taken 785 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 89 times"> + </span>]:<span class="tlaGNC">         874 :   if (fill != 0) {</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">         785 :     const std::size_t take = remaining &lt; kBlockSize - fill ? remaining : kBlockSize - fill;</span></span>
+<span id="L128"><span class="lineNum">     128</span>         [<span class="tlaGBC" title="Branch 0 was taken 2392 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 785 times"> + </span>]:<span class="tlaGNC">        3177 :     for (std::size_t i = 0; i &lt; take; ++i) {</span></span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaGNC">        2392 :       state.buffer[fill + i] = ptr[i];</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :             :     }</span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">         785 :     ptr += take;</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">         785 :     remaining -= take;</span></span>
+<span id="L133"><span class="lineNum">     133</span>         [<span class="tlaGBC" title="Branch 0 was taken 742 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 43 times"> + </span>]:<span class="tlaGNC">         785 :     if (fill + take &lt; kBlockSize) {</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaGNC">         742 :       return;</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :             :     }</span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">          86 :     Compress(state.hash, state.buffer.data());</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :             :   }</span>
+<span id="L138"><span class="lineNum">     138</span>         [<span class="tlaGBC" title="Branch 0 was taken 15668 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 132 times"> + </span>]:<span class="tlaGNC">       15800 :   while (remaining &gt;= kBlockSize) {</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">       15668 :     Compress(state.hash, ptr);</span></span>
+<span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">       15668 :     ptr += kBlockSize;</span></span>
+<span id="L141"><span class="lineNum">     141</span>                 :<span class="tlaGNC">       15668 :     remaining -= kBlockSize;</span></span>
+<span id="L142"><span class="lineNum">     142</span>                 :             :   }</span>
+<span id="L143"><span class="lineNum">     143</span>         [<span class="tlaGBC" title="Branch 0 was taken 1797 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 132 times"> + </span>]:<span class="tlaGNC">        1929 :   for (std::size_t i = 0; i &lt; remaining; ++i) {</span></span>
+<span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">        1797 :     state.buffer[i] = ptr[i];</span></span>
+<span id="L145"><span class="lineNum">     145</span>                 :             :   }</span>
+<span id="L146"><span class="lineNum">     146</span>                 :             : }</span>
+<span id="L147"><span class="lineNum">     147</span>                 :             : </span>
+<span id="L148"><span class="lineNum">     148</span>                 :             : // Padding + output (RFC 1321, section 3.1/3.5): append 0x80, zero-fill to 56</span>
+<span id="L149"><span class="lineNum">     149</span>                 :             : // mod 64, append the bit length as a **little-endian** 64-bit integer; output</span>
+<span id="L150"><span class="lineNum">     150</span>                 :             : // is the little-endian bytes of the state. Takes the state by value so the</span>
+<span id="L151"><span class="lineNum">     151</span>                 :             : // caller's state stays valid (peekable finalize).</span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">          61 : constexpr std::array&lt;uint8_t, 16&gt; Finalize(State state) noexcept {</span></span>
+<span id="L153"><span class="lineNum">     153</span>                 :<span class="tlaGNC">          61 :   const uint64_t total_bits = state.total_len * 8;</span></span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">          61 :   std::size_t fill = state.total_len % kBlockSize;</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">          61 :   state.buffer[fill++] = static_cast&lt;char&gt;(0x80);</span></span>
+<span id="L156"><span class="lineNum">     156</span>         [<span class="tlaGBC" title="Branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 52 times"> + </span>]:<span class="tlaGNC">          61 :   if (fill &gt; kBlockSize - 8) {</span></span>
+<span id="L157"><span class="lineNum">     157</span>         [<span class="tlaGBC" title="Branch 0 was taken 42 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          51 :     for (; fill &lt; kBlockSize; ++fill) {</span></span>
+<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">          42 :       state.buffer[fill] = 0;</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :             :     }</span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">           9 :     Compress(state.hash, state.buffer.data());</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :<span class="tlaGNC">           9 :     fill = 0;</span></span>
+<span id="L162"><span class="lineNum">     162</span>                 :             :   }</span>
+<span id="L163"><span class="lineNum">     163</span>         [<span class="tlaGBC" title="Branch 0 was taken 2439 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 61 times"> + </span>]:<span class="tlaGNC">        2500 :   for (; fill &lt; kBlockSize - 8; ++fill) {</span></span>
+<span id="L164"><span class="lineNum">     164</span>                 :<span class="tlaGNC">        2439 :     state.buffer[fill] = 0;</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :             :   }</span>
+<span id="L166"><span class="lineNum">     166</span>         [<span class="tlaGBC" title="Branch 0 was taken 488 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 61 times"> + </span>]:<span class="tlaGNC">         549 :   for (std::size_t i = 0; i &lt; 8; ++i) {</span></span>
+<span id="L167"><span class="lineNum">     167</span>                 :<span class="tlaGNC">         488 :     state.buffer[(kBlockSize - 8) + i] = static_cast&lt;char&gt;(total_bits &gt;&gt; (8 * i));</span></span>
+<span id="L168"><span class="lineNum">     168</span>                 :             :   }</span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">          61 :   Compress(state.hash, state.buffer.data());</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :             : </span>
+<span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">          61 :   std::array&lt;uint8_t, 16&gt; digest = {};</span></span>
+<span id="L172"><span class="lineNum">     172</span>         [<span class="tlaGBC" title="Branch 0 was taken 976 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 61 times"> + </span>]:<span class="tlaGNC">        1037 :   for (std::size_t i = 0; i &lt; 16; ++i) {</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :<span class="tlaGNC">         976 :     digest[i] = static_cast&lt;uint8_t&gt;(state.hash[i / 4] &gt;&gt; (8 * (i % 4)));</span></span>
+<span id="L174"><span class="lineNum">     174</span>                 :             :   }</span>
+<span id="L175"><span class="lineNum">     175</span>                 :<span class="tlaGNC">          61 :   return digest;</span></span>
+<span id="L176"><span class="lineNum">     176</span>                 :             : }</span>
+<span id="L177"><span class="lineNum">     177</span>                 :             : </span>
+<span id="L178"><span class="lineNum">     178</span>                 :             : }  // namespace md5_internal</span>
+<span id="L179"><span class="lineNum">     179</span>                 :             : </span>
+<span id="L180"><span class="lineNum">     180</span>                 :             : namespace md5 {</span>
+<span id="L181"><span class="lineNum">     181</span>                 :             : </span>
+<span id="L182"><span class="lineNum">     182</span>                 :             : inline constexpr std::size_t kDigestSize = 16;</span>
+<span id="L183"><span class="lineNum">     183</span>                 :             : inline constexpr std::size_t kBlockSize = md5_internal::kBlockSize;</span>
+<span id="L184"><span class="lineNum">     184</span>                 :             : </span>
+<span id="L185"><span class="lineNum">     185</span>                 :<span class="tlaGNC">          35 : constexpr std::array&lt;uint8_t, kDigestSize&gt; Digest(std::string_view data) noexcept {</span></span>
+<span id="L186"><span class="lineNum">     186</span>                 :<span class="tlaGNC">          35 :   md5_internal::State state = md5_internal::Init();</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :<span class="tlaGNC">          35 :   md5_internal::Update(state, data);</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">          35 :   return md5_internal::Finalize(state);</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :             : }</span>
+<span id="L190"><span class="lineNum">     190</span>                 :             : </span>
+<span id="L191"><span class="lineNum">     191</span>                 :             : // The algorithm struct (see `mbo::digest::IsDigestAlgorithm` in digest.h).</span>
+<span id="L192"><span class="lineNum">     192</span>                 :             : // See the collision warning at the top of this file.</span>
+<span id="L193"><span class="lineNum">     193</span>                 :             : struct Algorithm {</span>
+<span id="L194"><span class="lineNum">     194</span>                 :             :   static constexpr std::size_t kDigestSize = ::mbo::digest::md5::kDigestSize;</span>
+<span id="L195"><span class="lineNum">     195</span>                 :             :   static constexpr std::size_t kBlockSize = ::mbo::digest::md5::kBlockSize;</span>
+<span id="L196"><span class="lineNum">     196</span>                 :             :   using DigestType = std::array&lt;uint8_t, kDigestSize&gt;;</span>
+<span id="L197"><span class="lineNum">     197</span>                 :             :   using StreamState = md5_internal::State;</span>
+<span id="L198"><span class="lineNum">     198</span>                 :             : </span>
+<span id="L199"><span class="lineNum">     199</span>                 :<span class="tlaGNC">          35 :   static constexpr DigestType Digest(std::string_view data) noexcept { return ::mbo::digest::md5::Digest(data); }</span></span>
+<span id="L200"><span class="lineNum">     200</span>                 :             : </span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">           7 :   static constexpr StreamState StreamInit() noexcept { return md5_internal::Init(); }</span></span>
+<span id="L202"><span class="lineNum">     202</span>                 :             : </span>
+<span id="L203"><span class="lineNum">     203</span>                 :<span class="tlaGNC">         839 :   static constexpr void StreamUpdate(StreamState&amp; state, std::string_view data) noexcept {</span></span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">         839 :     md5_internal::Update(state, data);</span></span>
+<span id="L205"><span class="lineNum">     205</span>                 :<span class="tlaGNC">         839 :   }</span></span>
+<span id="L206"><span class="lineNum">     206</span>                 :             : </span>
+<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          26 :   static constexpr DigestType StreamFinalize(StreamState state) noexcept { return md5_internal::Finalize(state); }</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :             : };</span>
+<span id="L209"><span class="lineNum">     209</span>                 :             : </span>
+<span id="L210"><span class="lineNum">     210</span>                 :             : }  // namespace md5</span>
+<span id="L211"><span class="lineNum">     211</span>                 :             : </span>
+<span id="L212"><span class="lineNum">     212</span>                 :             : // NOLINTEND(*-magic-numbers,*-pointer-arithmetic,*-constant-array-index,*-avoid-unchecked-container-access)</span>
+<span id="L213"><span class="lineNum">     213</span>                 :             : </span>
+<span id="L214"><span class="lineNum">     214</span>                 :             : }  // namespace mbo::digest</span>
+<span id="L215"><span class="lineNum">     215</span>                 :             : </span>
+<span id="L216"><span class="lineNum">     216</span>                 :             : #endif  // MBO_DIGEST_DIGEST_MD5_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

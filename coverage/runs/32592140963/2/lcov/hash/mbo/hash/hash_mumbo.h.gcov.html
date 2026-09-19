@@ -1,0 +1,484 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - hash/mbo/hash/hash_mumbo.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">hash</a>/<a href="../index.html">mbo</a>/<a href="index.html">hash</a> - hash_mumbo.h<span style="font-size: 80%;"> (source / <a href="hash_mumbo.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">157</td>
+            <td class="headerCovTableEntry">157</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 19:09:25</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">13</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">44</td>
+            <td class="headerCovTableEntry">44</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : //</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : //</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // limitations under the License.</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : </span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : #ifndef MBO_HASH_HASH_MUMBO_H_</span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #define MBO_HASH_HASH_MUMBO_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : </span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : // IWYU pragma: private, include &quot;mbo/hash/hash.h&quot;</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : </span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : #include &lt;array&gt;</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : #include &lt;cstddef&gt;</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : #include &lt;string_view&gt;</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : </span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : #include &quot;mbo/hash/hash_internal_util.h&quot;</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : #include &quot;mbo/hash/hash_types.h&quot;</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : </span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : // mumbo &amp; jumbo -- this library's own hash family and the defaults behind</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : // `mbo::hash::GetHash*`: `mumbo` fronts the 64-bit form (plus streaming),</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : // `jumbo` fronts the native 128-bit form; both `Algorithm` structs are</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : // complete (each delegates the other width), so either plugs in anywhere.</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : // The name is MUM + mbo: everything is built on the widening 64x64-&gt;128</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : // multiply folded to 64 bits (`hash_internal::Mul128Fold64`, the &quot;MUM&quot;</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : // mixer) -- one multiply absorbs 16 input bytes and diffuses full-width in</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : // both directions.</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : //</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // Quality: SMHasher3 PASS 188/188 in BOTH the 64-bit and the native 128-bit</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // form -- the only clean 128-bit result measured on our rig; performance and</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : // quality data plus the measured design iterations: see README.md. Values are</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : // NOT stable across library versions (library-wide policy) and not</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // cryptographic.</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : //</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // Structure:</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : // - &lt;= 16 bytes: a fully unrolled `switch` -- every length 0..8 has its own</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : //   one-go terminal action (no byte loops), 9..16 use two loads overlapping</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : //   the end. The key loads into BOTH operands of the widening product, so the</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : //   product is quadratic in the data (a single-operand load correlates</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : //   permuted keys pairwise through the shared seed operand).</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : // - 17..127 bytes: one sequential MUM chain, 16 bytes per step; the final</span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : //   &lt;= 16 bytes are read as two loads overlapping the end (no tail loops).</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : // - &gt;= 128 bytes: eight independent MUM chains over a 128-byte fetch window,</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             : //   manually unrolled and interleaved to eliminate execution stalls. Each</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : //   starts from a distinct secret so identical stripes cannot cancel on the XOR</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : //   merge.</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : // - Finalizer: keeps BOTH halves of a widening product and mixes them against</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             : //   each other, with the length folded into the product operands so it</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             : //   modulates the result multiplicatively (and only at finalize -- which is</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : //   what makes streaming possible).</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             : // - 128-bit: two lanes with distinct secret banks and swapped operand roles</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : //   run over the same input; an interleaved 4-chain bulk tier feeds both lanes</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             : //   through different nonlinear merges where each lane covers every input byte.</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : // - Streaming (64-bit): eagerly consumes full 128-byte blocks, keeps a</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : //   rolling window of the last 16 bytes for the overlapping tail reads;</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : //   chunked updates produce exactly the one-shot value.</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             : //</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : // The secret constants are nothing-up-my-sleeve numbers: the 64-bit</span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : // fractional parts of the square roots of the first sixteen primes (the</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : // SHA-512 and SHA-384 initial hash values, FIPS 180-4 sections 5.3.5/5.3.4).</span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : </span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : #if defined(__GNUC__) || defined(__clang__)</span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : # define MBO_FORCE_INLINE inline __attribute__((always_inline))</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : #elif defined(_MSC_VER)</span>
+<span id="L73"><span class="lineNum">      73</span>                 :             : # define MBO_FORCE_INLINE __forceinline</span>
+<span id="L74"><span class="lineNum">      74</span>                 :             : #else</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : # define MBO_FORCE_INLINE inline</span>
+<span id="L76"><span class="lineNum">      76</span>                 :             : #endif</span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : </span>
+<span id="L78"><span class="lineNum">      78</span>                 :             : namespace mbo::hash::mumbo {</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             : </span>
+<span id="L80"><span class="lineNum">      80</span>                 :             : // NOLINTBEGIN(*-magic-numbers,*-pointer-arithmetic,*-easily-swappable-parameters,readability-identifier-length,*-avoid-unchecked-container-access)</span>
+<span id="L81"><span class="lineNum">      81</span>                 :             : </span>
+<span id="L82"><span class="lineNum">      82</span>                 :             : inline constexpr uint64_t kDefaultSeed = ::mbo::hash::kDefaultSeed;</span>
+<span id="L83"><span class="lineNum">      83</span>                 :             : </span>
+<span id="L84"><span class="lineNum">      84</span>                 :             : namespace mumbo_internal {</span>
+<span id="L85"><span class="lineNum">      85</span>                 :             : </span>
+<span id="L86"><span class="lineNum">      86</span>                 :             : using hash_internal::Load32;</span>
+<span id="L87"><span class="lineNum">      87</span>                 :             : using hash_internal::Load64;</span>
+<span id="L88"><span class="lineNum">      88</span>                 :             : using hash_internal::LoadSmall;</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             : using hash_internal::Mul128Fold64;</span>
+<span id="L90"><span class="lineNum">      90</span>                 :             : using hash_internal::Mult128;</span>
+<span id="L91"><span class="lineNum">      91</span>                 :             : using hash_internal::SmallInput;</span>
+<span id="L92"><span class="lineNum">      92</span>                 :             : </span>
+<span id="L93"><span class="lineNum">      93</span>                 :             : inline constexpr std::array&lt;uint64_t, 16&gt; kSecret = {</span>
+<span id="L94"><span class="lineNum">      94</span>                 :             :     0x6A09E667F3BCC908, 0xBB67AE8584CAA73B, 0x3C6EF372FE94F82B, 0xA54FF53A5F1D36F1,</span>
+<span id="L95"><span class="lineNum">      95</span>                 :             :     0x510E527FADE682D1, 0x9B05688C2B3E6C1F, 0x1F83D9ABFB41BD6B, 0x5BE0CD19137E2179,</span>
+<span id="L96"><span class="lineNum">      96</span>                 :             :     0xCBBB9D5DC1059ED8, 0x629A292A367CD507, 0x9159015A3070DD17, 0x152FECD8F70E5939,</span>
+<span id="L97"><span class="lineNum">      97</span>                 :             :     0x67332667FFC00B31, 0x8EB44A8768581511, 0xDB0C2E0D64F98FA7, 0x47B5481DBEFA4FA4,</span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : };</span>
+<span id="L99"><span class="lineNum">      99</span>                 :             : </span>
+<span id="L100"><span class="lineNum">     100</span>                 :             : // The bulk tier's fetch window (eight 16-byte chains).</span>
+<span id="L101"><span class="lineNum">     101</span>                 :             : inline constexpr std::size_t kBulkWindow = 128;</span>
+<span id="L102"><span class="lineNum">     102</span>                 :             : </span>
+<span id="L103"><span class="lineNum">     103</span>                 :             : // The shared two-multiply finalizer. Keeps BOTH halves of the first widening</span>
+<span id="L104"><span class="lineNum">     104</span>                 :             : // product and mixes them against each other so every final-multiply operand</span>
+<span id="L105"><span class="lineNum">     105</span>                 :             : // carries input/seed entropy; the length sits in a product operand so it</span>
+<span id="L106"><span class="lineNum">     106</span>                 :             : // modulates the result multiplicatively (zero-entropy keys of different</span>
+<span id="L107"><span class="lineNum">     107</span>                 :             : // lengths must not correlate).</span>
+<span id="L108"><span class="lineNum">     108</span>                 :<span class="tlaGNC tlaBgGNC">     2144876 : constexpr uint64_t Finish(uint64_t val_a, uint64_t val_b, uint64_t seed, uint64_t len) noexcept {</span></span>
+<span id="L109"><span class="lineNum">     109</span>                 :<span class="tlaGNC">     2144876 :   const Hash128 product = Mult128(val_a ^ kSecret[2] ^ len, val_b ^ seed);</span></span>
+<span id="L110"><span class="lineNum">     110</span>                 :<span class="tlaGNC">     4289752 :   return Mul128Fold64(product.h1 ^ kSecret[3] ^ len, product.h2 ^ kSecret[1]);</span></span>
+<span id="L111"><span class="lineNum">     111</span>                 :             : }</span>
+<span id="L112"><span class="lineNum">     112</span>                 :             : </span>
+<span id="L113"><span class="lineNum">     113</span>                 :             : // The second-lane finalizer of the 128-bit form (distinct secrets, swapped</span>
+<span id="L114"><span class="lineNum">     114</span>                 :             : // operand roles).</span>
+<span id="L115"><span class="lineNum">     115</span>                 :<span class="tlaGNC">          43 : constexpr uint64_t Finish2(uint64_t val_a, uint64_t val_b, uint64_t seed, uint64_t len) noexcept {</span></span>
+<span id="L116"><span class="lineNum">     116</span>                 :<span class="tlaGNC">          43 :   const Hash128 product = Mult128(val_b ^ kSecret[10] ^ len, val_a ^ seed);</span></span>
+<span id="L117"><span class="lineNum">     117</span>                 :<span class="tlaGNC">          86 :   return Mul128Fold64(product.h1 ^ kSecret[11] ^ len, product.h2 ^ kSecret[9]);</span></span>
+<span id="L118"><span class="lineNum">     118</span>                 :             : }</span>
+<span id="L119"><span class="lineNum">     119</span>                 :             : </span>
+<span id="L120"><span class="lineNum">     120</span>                 :             : // One 128-byte bulk block over the eight chains. Manually unrolled and</span>
+<span id="L121"><span class="lineNum">     121</span>                 :             : // interleaved to maximize instruction-level parallelism (ILP) and prevent</span>
+<span id="L122"><span class="lineNum">     122</span>                 :             : // execution pipeline stalls while retaining identical state output.</span>
+<span id="L123"><span class="lineNum">     123</span>                 :             : MBO_FORCE_INLINE constexpr void BulkBlock(std::array&lt;uint64_t, 8&gt;&amp; chain, const char* ptr) noexcept {</span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">       64242 :   const uint64_t a0 = Load64(ptr + 0) ^ kSecret[4];</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b0 = Load64(ptr + 8) ^ chain[0];</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a1 = Load64(ptr + 16) ^ kSecret[5];</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b1 = Load64(ptr + 24) ^ chain[1];</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a2 = Load64(ptr + 32) ^ kSecret[6];</span></span>
+<span id="L129"><span class="lineNum">     129</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b2 = Load64(ptr + 40) ^ chain[2];</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a3 = Load64(ptr + 48) ^ kSecret[7];</span></span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b3 = Load64(ptr + 56) ^ chain[3];</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :             : </span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a4 = Load64(ptr + 64) ^ kSecret[8];</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b4 = Load64(ptr + 72) ^ chain[4];</span></span>
+<span id="L135"><span class="lineNum">     135</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a5 = Load64(ptr + 80) ^ kSecret[9];</span></span>
+<span id="L136"><span class="lineNum">     136</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b5 = Load64(ptr + 88) ^ chain[5];</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a6 = Load64(ptr + 96) ^ kSecret[10];</span></span>
+<span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b6 = Load64(ptr + 104) ^ chain[6];</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :<span class="tlaGNC">      128484 :   const uint64_t a7 = Load64(ptr + 112) ^ kSecret[11];</span></span>
+<span id="L140"><span class="lineNum">     140</span>                 :<span class="tlaGNC">      128484 :   const uint64_t b7 = Load64(ptr + 120) ^ chain[7];</span></span>
+<span id="L141"><span class="lineNum">     141</span>                 :             : </span>
+<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">       64242 :   chain[0] = Mul128Fold64(a0, b0);</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :<span class="tlaGNC">       64242 :   chain[1] = Mul128Fold64(a1, b1);</span></span>
+<span id="L144"><span class="lineNum">     144</span>                 :<span class="tlaGNC">       64242 :   chain[2] = Mul128Fold64(a2, b2);</span></span>
+<span id="L145"><span class="lineNum">     145</span>                 :<span class="tlaGNC">       64242 :   chain[3] = Mul128Fold64(a3, b3);</span></span>
+<span id="L146"><span class="lineNum">     146</span>                 :<span class="tlaGNC">       64242 :   chain[4] = Mul128Fold64(a4, b4);</span></span>
+<span id="L147"><span class="lineNum">     147</span>                 :<span class="tlaGNC">       64242 :   chain[5] = Mul128Fold64(a5, b5);</span></span>
+<span id="L148"><span class="lineNum">     148</span>                 :<span class="tlaGNC">       64242 :   chain[6] = Mul128Fold64(a6, b6);</span></span>
+<span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">       64242 :   chain[7] = Mul128Fold64(a7, b7);</span></span>
+<span id="L150"><span class="lineNum">     150</span>                 :<span class="tlaGNC">       64242 : }</span></span>
+<span id="L151"><span class="lineNum">     151</span>                 :             : </span>
+<span id="L152"><span class="lineNum">     152</span>                 :<span class="tlaGNC">       32186 : constexpr std::array&lt;uint64_t, 8&gt; BulkInit(uint64_t seed) noexcept {</span></span>
+<span id="L153"><span class="lineNum">     153</span>                 :             :   return {</span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">       32186 :       seed ^ kSecret[8],  seed ^ kSecret[9],  seed ^ kSecret[10], seed ^ kSecret[11],</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">      160930 :       seed ^ kSecret[12], seed ^ kSecret[13], seed ^ kSecret[14], seed ^ kSecret[15],</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :<span class="tlaGNC">       32186 :   };</span></span>
+<span id="L157"><span class="lineNum">     157</span>                 :             : }</span>
+<span id="L158"><span class="lineNum">     158</span>                 :             : </span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">       32186 : constexpr uint64_t BulkMerge(const std::array&lt;uint64_t, 8&gt;&amp; chain) noexcept {</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :<span class="tlaGNC">       32186 :   return chain[0] ^ chain[1] ^ chain[2] ^ chain[3] ^ chain[4] ^ chain[5] ^ chain[6] ^ chain[7];</span></span>
+<span id="L161"><span class="lineNum">     161</span>                 :             : }</span>
+<span id="L162"><span class="lineNum">     162</span>                 :             : </span>
+<span id="L163"><span class="lineNum">     163</span>                 :             : }  // namespace mumbo_internal</span>
+<span id="L164"><span class="lineNum">     164</span>                 :             : </span>
+<span id="L165"><span class="lineNum">     165</span>                 :             : using hash_internal::Load64;</span>
+<span id="L166"><span class="lineNum">     166</span>                 :             : using hash_internal::Mul128Fold64;</span>
+<span id="L167"><span class="lineNum">     167</span>                 :             : using mumbo_internal::kSecret;</span>
+<span id="L168"><span class="lineNum">     168</span>                 :             : </span>
+<span id="L169"><span class="lineNum">     169</span>                 :             : // NOLINTNEXTLINE(readability-function-cognitive-complexity): tiered by design.</span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">     2144415 : constexpr uint64_t GetHash64(std::string_view str, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">     2144415 :   const char* ptr = str.data();</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :<span class="tlaGNC">     2144415 :   const std::size_t len = str.size();</span></span>
+<span id="L173"><span class="lineNum">     173</span>                 :             : </span>
+<span id="L174"><span class="lineNum">     174</span>                 :             :   // Absorb + finalize the seed (structured seeds must not correlate with</span>
+<span id="L175"><span class="lineNum">     175</span>                 :             :   // input; see README.md's Seed* families).</span>
+<span id="L176"><span class="lineNum">     176</span>                 :<span class="tlaGNC">     2144415 :   seed = Mul128Fold64(seed ^ kSecret[0], kSecret[1]);</span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :             : </span>
+<span id="L178"><span class="lineNum">     178</span>         [<span class="tlaGBC" title="Branch 0 was taken 79429 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2064986 times"> + </span>]:<span class="tlaGNC">     2144415 :   if (len &lt;= 16) {</span></span>
+<span id="L179"><span class="lineNum">     179</span>                 :             :     const mumbo_internal::SmallInput input = mumbo_internal::LoadSmall(ptr, len);</span>
+<span id="L180"><span class="lineNum">     180</span>                 :<span class="tlaGNC">       79429 :     return mumbo_internal::Finish(input.a, input.b, seed, len);</span></span>
+<span id="L181"><span class="lineNum">     181</span>                 :             :   }</span>
+<span id="L182"><span class="lineNum">     182</span>                 :             : </span>
+<span id="L183"><span class="lineNum">     183</span>                 :<span class="tlaGNC">     2064986 :   std::size_t remaining = len;</span></span>
+<span id="L184"><span class="lineNum">     184</span>         [<span class="tlaGBC" title="Branch 0 was taken 32134 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2032852 times"> + </span>]:<span class="tlaGNC">     2064986 :   if (len &gt;= mumbo_internal::kBulkWindow) {</span></span>
+<span id="L185"><span class="lineNum">     185</span>                 :<span class="tlaGNC">       32134 :     std::array&lt;uint64_t, 8&gt; chain = mumbo_internal::BulkInit(seed);</span></span>
+<span id="L186"><span class="lineNum">     186</span>         [<span class="tlaGBC" title="Branch 0 was taken 64138 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32134 times"> + </span>]:<span class="tlaGNC">       96272 :     while (remaining &gt;= mumbo_internal::kBulkWindow) {</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :             :       mumbo_internal::BulkBlock(chain, ptr);</span>
+<span id="L188"><span class="lineNum">     188</span>                 :<span class="tlaGNC">       64138 :       ptr += mumbo_internal::kBulkWindow;</span></span>
+<span id="L189"><span class="lineNum">     189</span>                 :<span class="tlaGNC">       64138 :       remaining -= mumbo_internal::kBulkWindow;</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :             :     }</span>
+<span id="L191"><span class="lineNum">     191</span>                 :<span class="tlaGNC">       32134 :     seed = mumbo_internal::BulkMerge(chain);</span></span>
+<span id="L192"><span class="lineNum">     192</span>                 :             :   }</span>
+<span id="L193"><span class="lineNum">     193</span>         [<span class="tlaGBC" title="Branch 0 was taken 2258829 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2064986 times"> + </span>]:<span class="tlaGNC">     4323815 :   while (remaining &gt; 16) {</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">     6776487 :     seed = Mul128Fold64(Load64(ptr) ^ kSecret[1], Load64(ptr + 8) ^ seed);</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">     2258829 :     ptr += 16;</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :<span class="tlaGNC">     2258829 :     remaining -= 16;</span></span>
+<span id="L197"><span class="lineNum">     197</span>                 :             :   }</span>
+<span id="L198"><span class="lineNum">     198</span>                 :             :   // Final 1..16 bytes: two loads overlapping the end of the key (always</span>
+<span id="L199"><span class="lineNum">     199</span>                 :             :   // in-bounds because len &gt; 16).</span>
+<span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">     2064986 :   const uint64_t val_a = Load64(ptr + remaining - 16);</span></span>
+<span id="L201"><span class="lineNum">     201</span>                 :<span class="tlaGNC">     2064986 :   const uint64_t val_b = Load64(ptr + remaining - 8);</span></span>
+<span id="L202"><span class="lineNum">     202</span>                 :<span class="tlaGNC">     2064986 :   return mumbo_internal::Finish(val_a, val_b, seed, len);</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :             : }</span>
+<span id="L204"><span class="lineNum">     204</span>                 :             : </span>
+<span id="L205"><span class="lineNum">     205</span>                 :             : // NOLINTNEXTLINE(readability-function-cognitive-complexity): tiered by design.</span>
+<span id="L206"><span class="lineNum">     206</span>                 :<span class="tlaGNC">          43 : constexpr Hash128 GetHash128(std::string_view str, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L207"><span class="lineNum">     207</span>                 :<span class="tlaGNC">          43 :   const char* ptr = str.data();</span></span>
+<span id="L208"><span class="lineNum">     208</span>                 :<span class="tlaGNC">          43 :   const std::size_t len = str.size();</span></span>
+<span id="L209"><span class="lineNum">     209</span>                 :             : </span>
+<span id="L210"><span class="lineNum">     210</span>                 :             :   // Lane seeds derive from secret pairs distinct from GetHash64's, so no</span>
+<span id="L211"><span class="lineNum">     211</span>                 :             :   // lane ever equals the 64-bit hash (at any length).</span>
+<span id="L212"><span class="lineNum">     212</span>                 :<span class="tlaGNC">          43 :   uint64_t seed1 = Mul128Fold64(seed ^ kSecret[2], kSecret[3]);</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">          43 :   uint64_t seed2 = Mul128Fold64(seed ^ kSecret[8], kSecret[9]);</span></span>
+<span id="L214"><span class="lineNum">     214</span>                 :             : </span>
+<span id="L215"><span class="lineNum">     215</span>                 :<span class="tlaGNC">          43 :   uint64_t val_a = 0;</span></span>
+<span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">          43 :   uint64_t val_b = 0;</span></span>
+<span id="L217"><span class="lineNum">     217</span>         [<span class="tlaGBC" title="Branch 0 was taken 28 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          43 :   if (len &lt;= 16) {</span></span>
+<span id="L218"><span class="lineNum">     218</span>                 :             :     const mumbo_internal::SmallInput input = mumbo_internal::LoadSmall(ptr, len);</span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">          28 :     val_a = input.a;</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :<span class="tlaGNC">          28 :     val_b = input.b;</span></span>
+<span id="L221"><span class="lineNum">     221</span>                 :             :   } else {</span>
+<span id="L222"><span class="lineNum">     222</span>                 :<span class="tlaGNC">          15 :     std::size_t remaining = len;</span></span>
+<span id="L223"><span class="lineNum">     223</span>         [<span class="tlaGBC" title="Branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          15 :     if (len &gt;= 64) {</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :             :       // Shared 4-chain bulk tier: each lane derives from ALL chains, through</span>
+<span id="L225"><span class="lineNum">     225</span>                 :             :       // different (nonlinear) merges, so both halves cover every input byte.</span>
+<span id="L226"><span class="lineNum">     226</span>                 :             :       // Interleaved manually here to eliminate execution pipeline bottlenecks.</span>
+<span id="L227"><span class="lineNum">     227</span>                 :<span class="tlaGNC">           7 :       uint64_t chain0 = seed1 ^ kSecret[8];</span></span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">           7 :       uint64_t chain1 = seed1 ^ kSecret[9];</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :<span class="tlaGNC">           7 :       uint64_t chain2 = seed2 ^ kSecret[10];</span></span>
+<span id="L230"><span class="lineNum">     230</span>                 :<span class="tlaGNC">           7 :       uint64_t chain3 = seed2 ^ kSecret[11];</span></span>
+<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="Branch 0 was taken 15 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">          22 :       while (remaining &gt;= 64) {</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">          15 :         const uint64_t a0 = Load64(ptr) ^ kSecret[4];</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :<span class="tlaGNC">          15 :         const uint64_t b0 = Load64(ptr + 8) ^ chain0;</span></span>
+<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">          30 :         const uint64_t a1 = Load64(ptr + 16) ^ kSecret[5];</span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :<span class="tlaGNC">          15 :         const uint64_t b1 = Load64(ptr + 24) ^ chain1;</span></span>
+<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          30 :         const uint64_t a2 = Load64(ptr + 32) ^ kSecret[6];</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :<span class="tlaGNC">          15 :         const uint64_t b2 = Load64(ptr + 40) ^ chain2;</span></span>
+<span id="L238"><span class="lineNum">     238</span>                 :<span class="tlaGNC">          30 :         const uint64_t a3 = Load64(ptr + 48) ^ kSecret[7];</span></span>
+<span id="L239"><span class="lineNum">     239</span>                 :<span class="tlaGNC">          30 :         const uint64_t b3 = Load64(ptr + 56) ^ chain3;</span></span>
+<span id="L240"><span class="lineNum">     240</span>                 :             : </span>
+<span id="L241"><span class="lineNum">     241</span>                 :<span class="tlaGNC">          15 :         chain0 = Mul128Fold64(a0, b0);</span></span>
+<span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">          15 :         chain1 = Mul128Fold64(a1, b1);</span></span>
+<span id="L243"><span class="lineNum">     243</span>                 :<span class="tlaGNC">          15 :         chain2 = Mul128Fold64(a2, b2);</span></span>
+<span id="L244"><span class="lineNum">     244</span>                 :<span class="tlaGNC">          15 :         chain3 = Mul128Fold64(a3, b3);</span></span>
+<span id="L245"><span class="lineNum">     245</span>                 :             : </span>
+<span id="L246"><span class="lineNum">     246</span>                 :<span class="tlaGNC">          15 :         ptr += 64;</span></span>
+<span id="L247"><span class="lineNum">     247</span>                 :<span class="tlaGNC">          15 :         remaining -= 64;</span></span>
+<span id="L248"><span class="lineNum">     248</span>                 :             :       }</span>
+<span id="L249"><span class="lineNum">     249</span>                 :<span class="tlaGNC">           7 :       seed1 = chain0 ^ chain1 ^ chain2 ^ chain3;</span></span>
+<span id="L250"><span class="lineNum">     250</span>                 :<span class="tlaGNC">           7 :       seed2 = Mul128Fold64(chain0 ^ kSecret[12], chain2 ^ kSecret[13])</span></span>
+<span id="L251"><span class="lineNum">     251</span>                 :<span class="tlaGNC">          14 :               ^ Mul128Fold64(chain1 ^ kSecret[14], chain3 ^ kSecret[15]);</span></span>
+<span id="L252"><span class="lineNum">     252</span>                 :             :     }</span>
+<span id="L253"><span class="lineNum">     253</span>         [<span class="tlaGBC" title="Branch 0 was taken 14 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          29 :     while (remaining &gt; 16) {</span></span>
+<span id="L254"><span class="lineNum">     254</span>                 :<span class="tlaGNC">          14 :       const uint64_t block0 = Load64(ptr);</span></span>
+<span id="L255"><span class="lineNum">     255</span>                 :<span class="tlaGNC">          14 :       const uint64_t block1 = Load64(ptr + 8);</span></span>
+<span id="L256"><span class="lineNum">     256</span>                 :<span class="tlaGNC">          14 :       seed1 = Mul128Fold64(block0 ^ kSecret[1], block1 ^ seed1);</span></span>
+<span id="L257"><span class="lineNum">     257</span>                 :<span class="tlaGNC">          14 :       seed2 = Mul128Fold64(block1 ^ kSecret[9], block0 ^ seed2);  // Swapped roles, different secret.</span></span>
+<span id="L258"><span class="lineNum">     258</span>                 :<span class="tlaGNC">          14 :       ptr += 16;</span></span>
+<span id="L259"><span class="lineNum">     259</span>                 :<span class="tlaGNC">          14 :       remaining -= 16;</span></span>
+<span id="L260"><span class="lineNum">     260</span>                 :             :     }</span>
+<span id="L261"><span class="lineNum">     261</span>                 :<span class="tlaGNC">          15 :     val_a = Load64(ptr + remaining - 16);</span></span>
+<span id="L262"><span class="lineNum">     262</span>                 :<span class="tlaGNC">          30 :     val_b = Load64(ptr + remaining - 8);</span></span>
+<span id="L263"><span class="lineNum">     263</span>                 :             :   }</span>
+<span id="L264"><span class="lineNum">     264</span>                 :             :   return {</span>
+<span id="L265"><span class="lineNum">     265</span>                 :<span class="tlaGNC">          43 :       .h1 = mumbo_internal::Finish(val_a, val_b, seed1, len),</span></span>
+<span id="L266"><span class="lineNum">     266</span>                 :<span class="tlaGNC">          43 :       .h2 = mumbo_internal::Finish2(val_a, val_b, seed2, len),</span></span>
+<span id="L267"><span class="lineNum">     267</span>                 :<span class="tlaGNC">          43 :   };</span></span>
+<span id="L268"><span class="lineNum">     268</span>                 :             : }</span>
+<span id="L269"><span class="lineNum">     269</span>                 :             : </span>
+<span id="L270"><span class="lineNum">     270</span>                 :             : // The algorithm struct (see `mbo::hash::IsHashAlgorithm` in hash.h), with</span>
+<span id="L271"><span class="lineNum">     271</span>                 :             : // streaming (see `mbo::hash::HasStreaming`): chunked updates produce exactly</span>
+<span id="L272"><span class="lineNum">     272</span>                 :             : // the one-shot `GetHash64` value.</span>
+<span id="L273"><span class="lineNum">     273</span>                 :             : struct Algorithm {</span>
+<span id="L274"><span class="lineNum">     274</span>                 :<span class="tlaGNC">     2144371 :   static constexpr uint64_t GetHash64(std::string_view data, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L275"><span class="lineNum">     275</span>                 :<span class="tlaGNC">     2144371 :     return ::mbo::hash::mumbo::GetHash64(data, seed);</span></span>
+<span id="L276"><span class="lineNum">     276</span>                 :             :   }</span>
+<span id="L277"><span class="lineNum">     277</span>                 :             : </span>
+<span id="L278"><span class="lineNum">     278</span>                 :<span class="tlaGNC">          10 :   static constexpr Hash128 GetHash128(std::string_view data, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L279"><span class="lineNum">     279</span>                 :<span class="tlaGNC">          10 :     return ::mbo::hash::mumbo::GetHash128(data, seed);</span></span>
+<span id="L280"><span class="lineNum">     280</span>                 :             :   }</span>
+<span id="L281"><span class="lineNum">     281</span>                 :             : </span>
+<span id="L282"><span class="lineNum">     282</span>                 :             :   struct StreamState {</span>
+<span id="L283"><span class="lineNum">     283</span>                 :             :     uint64_t seed = 0;                   // Mixed seed (length-free).</span>
+<span id="L284"><span class="lineNum">     284</span>                 :             :     std::array&lt;uint64_t, 8&gt; chain = {};  // Bulk chains (once started).</span>
+<span id="L285"><span class="lineNum">     285</span>                 :             :     bool chains_started = false;</span>
+<span id="L286"><span class="lineNum">     286</span>                 :             :     std::array&lt;char, mumbo_internal::kBulkWindow&gt; buffer = {};  // Bytes not yet bulk-consumed.</span>
+<span id="L287"><span class="lineNum">     287</span>                 :             :     std::size_t buffered = 0;</span>
+<span id="L288"><span class="lineNum">     288</span>                 :             :     std::array&lt;char, 16&gt; last16 = {};  // Rolling window of the last 16 bytes.</span>
+<span id="L289"><span class="lineNum">     289</span>                 :             :     uint64_t total = 0;                // Bytes absorbed overall.</span>
+<span id="L290"><span class="lineNum">     290</span>                 :             :   };</span>
+<span id="L291"><span class="lineNum">     291</span>                 :             : </span>
+<span id="L292"><span class="lineNum">     292</span>                 :<span class="tlaGNC">           8 :   static constexpr StreamState StreamInit(uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L293"><span class="lineNum">     293</span>                 :<span class="tlaGNC">           8 :     StreamState state;</span></span>
+<span id="L294"><span class="lineNum">     294</span>                 :<span class="tlaGNC">           8 :     state.seed = Mul128Fold64(seed ^ kSecret[0], kSecret[1]);</span></span>
+<span id="L295"><span class="lineNum">     295</span>                 :<span class="tlaGNC">           8 :     return state;</span></span>
+<span id="L296"><span class="lineNum">     296</span>                 :             :   }</span>
+<span id="L297"><span class="lineNum">     297</span>                 :             : </span>
+<span id="L298"><span class="lineNum">     298</span>                 :<span class="tlaGNC">        2069 :   static constexpr void StreamUpdate(StreamState&amp; state, std::string_view data) noexcept {</span></span>
+<span id="L299"><span class="lineNum">     299</span>                 :             :     // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)</span>
+<span id="L300"><span class="lineNum">     300</span>                 :<span class="tlaGNC">        2069 :     const char* ptr = data.data();</span></span>
+<span id="L301"><span class="lineNum">     301</span>                 :<span class="tlaGNC">        2069 :     std::size_t remaining = data.size();</span></span>
+<span id="L302"><span class="lineNum">     302</span>                 :<span class="tlaGNC">        2069 :     state.total += remaining;</span></span>
+<span id="L303"><span class="lineNum">     303</span>         [<span class="tlaGBC" title="Branch 0 was taken 1997 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2069 times"> + </span>]:<span class="tlaGNC">        4066 :     while (remaining &gt; 0) {</span></span>
+<span id="L304"><span class="lineNum">     304</span>                 :<span class="tlaGNC">        1997 :       const std::size_t space = mumbo_internal::kBulkWindow - state.buffered;</span></span>
+<span id="L305"><span class="lineNum">     305</span>         [<span class="tlaGBC" title="Branch 0 was taken 1893 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 104 times"> + </span>]:<span class="tlaGNC">        1997 :       const std::size_t take = remaining &lt; space ? remaining : space;</span></span>
+<span id="L306"><span class="lineNum">     306</span>         [<span class="tlaGBC" title="Branch 0 was taken 28195 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1997 times"> + </span>]:<span class="tlaGNC">       30192 :       for (std::size_t i = 0; i &lt; take; ++i) {</span></span>
+<span id="L307"><span class="lineNum">     307</span>                 :<span class="tlaGNC">       28195 :         state.buffer[state.buffered + i] = ptr[i];</span></span>
+<span id="L308"><span class="lineNum">     308</span>                 :             :       }</span>
+<span id="L309"><span class="lineNum">     309</span>                 :<span class="tlaGNC">        1997 :       state.buffered += take;</span></span>
+<span id="L310"><span class="lineNum">     310</span>                 :<span class="tlaGNC">        1997 :       ptr += take;</span></span>
+<span id="L311"><span class="lineNum">     311</span>                 :<span class="tlaGNC">        1997 :       remaining -= take;</span></span>
+<span id="L312"><span class="lineNum">     312</span>         [<span class="tlaGBC" title="Branch 0 was taken 104 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1893 times"> + </span>]:<span class="tlaGNC">        1997 :       if (state.buffered == mumbo_internal::kBulkWindow) {</span></span>
+<span id="L313"><span class="lineNum">     313</span>                 :             :         // Eager consumption matches the one-shot bulk loop: a full 128-byte</span>
+<span id="L314"><span class="lineNum">     314</span>                 :             :         // block is always bulk-absorbed, even when it ends the input.</span>
+<span id="L315"><span class="lineNum">     315</span>         [<span class="tlaGBC" title="Branch 0 was taken 52 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 52 times"> + </span>]:<span class="tlaGNC">         104 :         if (!state.chains_started) {</span></span>
+<span id="L316"><span class="lineNum">     316</span>                 :<span class="tlaGNC">          52 :           state.chain = mumbo_internal::BulkInit(state.seed);</span></span>
+<span id="L317"><span class="lineNum">     317</span>                 :<span class="tlaGNC">          52 :           state.chains_started = true;</span></span>
+<span id="L318"><span class="lineNum">     318</span>                 :             :         }</span>
+<span id="L319"><span class="lineNum">     319</span>                 :<span class="tlaGNC">         208 :         mumbo_internal::BulkBlock(state.chain, state.buffer.data());</span></span>
+<span id="L320"><span class="lineNum">     320</span>                 :<span class="tlaGNC">         104 :         state.buffered = 0;</span></span>
+<span id="L321"><span class="lineNum">     321</span>                 :             :       }</span>
+<span id="L322"><span class="lineNum">     322</span>                 :             :     }</span>
+<span id="L323"><span class="lineNum">     323</span>                 :             :     // Maintain the rolling last-16 window (the finalize tail reads the last</span>
+<span id="L324"><span class="lineNum">     324</span>                 :             :     // 16 bytes of the stream, which may span consumed blocks).</span>
+<span id="L325"><span class="lineNum">     325</span>                 :<span class="tlaGNC">        2069 :     const std::size_t len = data.size();</span></span>
+<span id="L326"><span class="lineNum">     326</span>         [<span class="tlaGBC" title="Branch 0 was taken 411 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1658 times"> + </span>]:<span class="tlaGNC">        2069 :     if (len &gt;= 16) {</span></span>
+<span id="L327"><span class="lineNum">     327</span>         [<span class="tlaGBC" title="Branch 0 was taken 6576 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 411 times"> + </span>]:<span class="tlaGNC">        6987 :       for (std::size_t i = 0; i &lt; 16; ++i) {</span></span>
+<span id="L328"><span class="lineNum">     328</span>                 :<span class="tlaGNC">        6576 :         state.last16[i] = data[len - 16 + i];</span></span>
+<span id="L329"><span class="lineNum">     329</span>                 :             :       }</span>
+<span id="L330"><span class="lineNum">     330</span>         [<span class="tlaGBC" title="Branch 0 was taken 1485 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 173 times"> + </span>]:<span class="tlaGNC">        1658 :     } else if (len &gt; 0) {</span></span>
+<span id="L331"><span class="lineNum">     331</span>         [<span class="tlaGBC" title="Branch 0 was taken 18795 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1485 times"> + </span>]:<span class="tlaGNC">       20280 :       for (std::size_t i = 0; i + len &lt; 16; ++i) {</span></span>
+<span id="L332"><span class="lineNum">     332</span>                 :<span class="tlaGNC">       18795 :         state.last16[i] = state.last16[i + len];</span></span>
+<span id="L333"><span class="lineNum">     333</span>                 :             :       }</span>
+<span id="L334"><span class="lineNum">     334</span>         [<span class="tlaGBC" title="Branch 0 was taken 4965 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1485 times"> + </span>]:<span class="tlaGNC">        6450 :       for (std::size_t i = 0; i &lt; len; ++i) {</span></span>
+<span id="L335"><span class="lineNum">     335</span>                 :<span class="tlaGNC">        4965 :         state.last16[16 - len + i] = data[i];</span></span>
+<span id="L336"><span class="lineNum">     336</span>                 :             :       }</span>
+<span id="L337"><span class="lineNum">     337</span>                 :             :     }</span>
+<span id="L338"><span class="lineNum">     338</span>                 :             :     // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)</span>
+<span id="L339"><span class="lineNum">     339</span>                 :<span class="tlaGNC">        2069 :   }</span></span>
+<span id="L340"><span class="lineNum">     340</span>                 :             : </span>
+<span id="L341"><span class="lineNum">     341</span>                 :             :   // Takes the state by value: the caller's stream stays valid (peekable).</span>
+<span id="L342"><span class="lineNum">     342</span>                 :<span class="tlaGNC">         418 :   static constexpr uint64_t StreamFinalize(StreamState state) noexcept {</span></span>
+<span id="L343"><span class="lineNum">     343</span>         [<span class="tlaGBC" title="Branch 0 was taken 52 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 366 times"> + </span>]:<span class="tlaGNC">         418 :     uint64_t seed = state.chains_started ? mumbo_internal::BulkMerge(state.chain) : state.seed;</span></span>
+<span id="L344"><span class="lineNum">     344</span>         [<span class="tlaGBC" title="Branch 0 was taken 158 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 260 times"> + </span>]:<span class="tlaGNC">         418 :     if (state.total &lt;= 16) {</span></span>
+<span id="L345"><span class="lineNum">     345</span>                 :             :       const mumbo_internal::SmallInput input =</span>
+<span id="L346"><span class="lineNum">     346</span>         [<span class="tlaGBC" title="Branch 0 was taken 106 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 52 times"> + </span>]:<span class="tlaGNC">         316 :           mumbo_internal::LoadSmall(state.buffer.data(), static_cast&lt;std::size_t&gt;(state.total));</span></span>
+<span id="L347"><span class="lineNum">     347</span>                 :<span class="tlaGNC">         158 :       return mumbo_internal::Finish(input.a, input.b, seed, state.total);</span></span>
+<span id="L348"><span class="lineNum">     348</span>                 :             :     }</span>
+<span id="L349"><span class="lineNum">     349</span>                 :<span class="tlaGNC">         260 :     const char* ptr = state.buffer.data();</span></span>
+<span id="L350"><span class="lineNum">     350</span>                 :<span class="tlaGNC">         260 :     std::size_t remaining = state.buffered;</span></span>
+<span id="L351"><span class="lineNum">     351</span>         [<span class="tlaGBC" title="Branch 0 was taken 676 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 260 times"> + </span>]:<span class="tlaGNC">         936 :     while (remaining &gt; 16) {</span></span>
+<span id="L352"><span class="lineNum">     352</span>                 :<span class="tlaGNC">        2028 :       seed = Mul128Fold64(Load64(ptr) ^ kSecret[1], Load64(ptr + 8) ^ seed);</span></span>
+<span id="L353"><span class="lineNum">     353</span>                 :<span class="tlaGNC">         676 :       ptr += 16;</span></span>
+<span id="L354"><span class="lineNum">     354</span>                 :<span class="tlaGNC">         676 :       remaining -= 16;</span></span>
+<span id="L355"><span class="lineNum">     355</span>                 :             :     }</span>
+<span id="L356"><span class="lineNum">     356</span>                 :             :     // The one-shot tail overlaps the end of the key; the rolling window holds</span>
+<span id="L357"><span class="lineNum">     357</span>                 :             :     // exactly those bytes [total - 16, total).</span>
+<span id="L358"><span class="lineNum">     358</span>                 :<span class="tlaGNC">         520 :     const uint64_t val_a = Load64(state.last16.data());</span></span>
+<span id="L359"><span class="lineNum">     359</span>                 :<span class="tlaGNC">         260 :     const uint64_t val_b = Load64(state.last16.data() + 8);</span></span>
+<span id="L360"><span class="lineNum">     360</span>                 :<span class="tlaGNC">         260 :     return mumbo_internal::Finish(val_a, val_b, seed, state.total);</span></span>
+<span id="L361"><span class="lineNum">     361</span>                 :             :   }</span>
+<span id="L362"><span class="lineNum">     362</span>                 :             : };</span>
+<span id="L363"><span class="lineNum">     363</span>                 :             : </span>
+<span id="L364"><span class="lineNum">     364</span>                 :             : // NOLINTEND(*-magic-numbers,*-pointer-arithmetic,*-easily-swappable-parameters,readability-identifier-length,*-avoid-unchecked-container-access)</span>
+<span id="L365"><span class="lineNum">     365</span>                 :             : </span>
+<span id="L366"><span class="lineNum">     366</span>                 :             : }  // namespace mbo::hash::mumbo</span>
+<span id="L367"><span class="lineNum">     367</span>                 :             : </span>
+<span id="L368"><span class="lineNum">     368</span>                 :             : // jumbo -- the native 128-bit face of the mumbo family (&quot;mumbo jumbo&quot;): the</span>
+<span id="L369"><span class="lineNum">     369</span>                 :             : // same implementation core, fronted for 128-bit use and serving as</span>
+<span id="L370"><span class="lineNum">     370</span>                 :             : // `Default128HashAlgorithm`. Both directions delegate, so `jumbo::Algorithm`</span>
+<span id="L371"><span class="lineNum">     371</span>                 :             : // is as complete as `mumbo::Algorithm` -- they differ only in name and role.</span>
+<span id="L372"><span class="lineNum">     372</span>                 :             : namespace mbo::hash::jumbo {</span>
+<span id="L373"><span class="lineNum">     373</span>                 :             : </span>
+<span id="L374"><span class="lineNum">     374</span>                 :             : inline constexpr uint64_t kDefaultSeed = ::mbo::hash::kDefaultSeed;</span>
+<span id="L375"><span class="lineNum">     375</span>                 :             : </span>
+<span id="L376"><span class="lineNum">     376</span>                 :<span class="tlaGNC">          28 : constexpr Hash128 GetHash128(std::string_view str, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L377"><span class="lineNum">     377</span>                 :<span class="tlaGNC">          28 :   return ::mbo::hash::mumbo::GetHash128(str, seed);</span></span>
+<span id="L378"><span class="lineNum">     378</span>                 :             : }</span>
+<span id="L379"><span class="lineNum">     379</span>                 :             : </span>
+<span id="L380"><span class="lineNum">     380</span>                 :<span class="tlaGNC">           1 : constexpr uint64_t GetHash64(std::string_view str, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L381"><span class="lineNum">     381</span>                 :<span class="tlaGNC">           1 :   return ::mbo::hash::mumbo::GetHash64(str, seed);</span></span>
+<span id="L382"><span class="lineNum">     382</span>                 :             : }</span>
+<span id="L383"><span class="lineNum">     383</span>                 :             : </span>
+<span id="L384"><span class="lineNum">     384</span>                 :             : // The algorithm struct: inherits the complete mumbo surface (64/128 and</span>
+<span id="L385"><span class="lineNum">     385</span>                 :             : // streaming) under the 128-bit-fronted name.</span>
+<span id="L386"><span class="lineNum">     386</span>                 :             : struct Algorithm : ::mbo::hash::mumbo::Algorithm {};</span>
+<span id="L387"><span class="lineNum">     387</span>                 :             : </span>
+<span id="L388"><span class="lineNum">     388</span>                 :             : }  // namespace mbo::hash::jumbo</span>
+<span id="L389"><span class="lineNum">     389</span>                 :             : </span>
+<span id="L390"><span class="lineNum">     390</span>                 :             : #undef MBO_FORCE_INLINE</span>
+<span id="L391"><span class="lineNum">     391</span>                 :             : </span>
+<span id="L392"><span class="lineNum">     392</span>                 :             : #endif  // MBO_HASH_HASH_MUMBO_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

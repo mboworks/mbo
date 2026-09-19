@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - mbo production coverage - hash/mbo/hash/hash_mangle.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="../../index.html">hash</a>/<a href="../index.html">mbo</a>/<a href="index.html">hash</a> - hash_mangle.h<span style="font-size: 80%;"> (source / <a href="hash_mangle.h.func-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">mbo production coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">7</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-08-22 19:09:25</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">71</td>
+            <td class="headerCovTableEntry">71</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-FileCopyrightText: Copyright (c) The helly25 authors (helly25.com)</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : // SPDX-License-Identifier: Apache-2.0</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : //</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : // you may not use this file except in compliance with the License.</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // You may obtain a copy of the License at</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : //</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : //      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : //</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : // Unless required by applicable law or agreed to in writing, software</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : // See the License for the specific language governing permissions and</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : // limitations under the License.</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             : </span>
+<span id="L16"><span class="lineNum">      16</span>                 :             : #ifndef MBO_HASH_HASH_MANGLE_H_</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             : #define MBO_HASH_HASH_MANGLE_H_</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             : </span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : // The build-seed mangle: `GetHash` / `MangledHasher` equal `GetHash64` XORed</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : // with ONE build-selected constant, so values deliberately do not compare</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             : // across independently configured builds - precomputed tables or persisted</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             : // values cannot silently become load-bearing. Everything stays constexpr: the</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             : // constant is generated into a header (`hash_mangle_seed_gen.h`) by folding</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             : // the module's own version (from MODULE.bazel via `native.module_version()` -</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             : // every release rotates the constant by construction, for free: a release</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             : // recompiles dependents anyway) with the custom Bazel flags</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             : //</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             : //   --//mbo/hash:mangle_seed          any printable-ASCII string (user name,</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             : //                                     release tag, date, ...), folded to a</span>
+<span id="L30"><span class="lineNum">      30</span>                 :             : //                                     bucket inside the generation rule</span>
+<span id="L31"><span class="lineNum">      31</span>                 :             : //   --//mbo/hash:mangle_seed_buckets  0 disables (`GetHash == GetHash64`),</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             : //                                     1 pins one stable constant across</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             : //                                     releases and seeds,</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : //                                     N bounds variation to N constants</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             : //</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             : // Neither the raw seed string nor the version ever reaches a C++ action key,</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             : // so build/remote caches see at most N + 1 header variants and converge no</span>
+<span id="L38"><span class="lineNum">      38</span>                 :             : // matter how often the seed rotates. Only `//mbo/hash:hash_mangle_cc`</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : // dependents rebuild on rotation; `hash.h` / `//mbo/hash:hash_cc` values are</span>
+<span id="L40"><span class="lineNum">      40</span>                 :             : // fully deterministic and never exposed to seed variation. One constant</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : // applies per program: linking objects compiled under different flag values</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : // is an ODR violation (within a single Bazel build consistency is structural</span>
+<span id="L43"><span class="lineNum">      43</span>                 :             : // - there is one generated header per configuration).</span>
+<span id="L44"><span class="lineNum">      44</span>                 :             : </span>
+<span id="L45"><span class="lineNum">      45</span>                 :             : #include &lt;cstdint&gt;</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             : #include &lt;string_view&gt;</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : </span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : #include &quot;mbo/hash/hash.h&quot;</span>
+<span id="L49"><span class="lineNum">      49</span>                 :             : </span>
+<span id="L50"><span class="lineNum">      50</span>                 :             : // The build-selected constant lives in a header generated per build by</span>
+<span id="L51"><span class="lineNum">      51</span>                 :             : // `//mbo/hash:hash_mangle_seed_gen` (from the module version and the</span>
+<span id="L52"><span class="lineNum">      52</span>                 :             : // `--//mbo/hash:mangle_seed*` flags); it is never committed. A real build that</span>
+<span id="L53"><span class="lineNum">      53</span>                 :             : // lacks it is an error, not a silent fallback. clangd has no generated header,</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : // so under `-DIS_CLANGD` (set in the clangd config) it falls back to a stable</span>
+<span id="L55"><span class="lineNum">      55</span>                 :             : // constant purely so this low-level header still parses in the editor.</span>
+<span id="L56"><span class="lineNum">      56</span>                 :             : #if __has_include(&quot;mbo/hash/hash_mangle_seed_gen.h&quot;)</span>
+<span id="L57"><span class="lineNum">      57</span>                 :             : # include &quot;mbo/hash/hash_mangle_seed_gen.h&quot;  // IWYU pragma: export</span>
+<span id="L58"><span class="lineNum">      58</span>                 :             : #elif defined(IS_CLANGD)</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             : namespace mbo::hash {</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : // The buckets=1 &quot;one stable constant&quot; value (see internal/hash_mangle_seed.bzl).</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             : inline constexpr uint64_t kMangleConstant = 0x45828334C99AF44FULL;</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : }  // namespace mbo::hash</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : #else</span>
+<span id="L64"><span class="lineNum">      64</span>                 :             : # error &quot;mbo/hash/hash_mangle_seed_gen.h is missing; it is generated by //mbo/hash:hash_mangle_seed_gen.&quot;</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             : #endif</span>
+<span id="L66"><span class="lineNum">      66</span>                 :             : </span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : namespace mbo::hash {</span>
+<span id="L68"><span class="lineNum">      68</span>                 :             : </span>
+<span id="L69"><span class="lineNum">      69</span>                 :             : // XORs the build-selected mangle constant into `data` (identity when built</span>
+<span id="L70"><span class="lineNum">      70</span>                 :             : // with `--//mbo/hash:mangle_seed_buckets=0`). An XOR mask is deliberately</span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : // trivial to strip - the mangle guards against accidental dependence on hash</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : // values, not against adversaries (for that see `siphash` with a secret seed).</span>
+<span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC tlaBgGNC">         281 : inline constexpr uint64_t HashMangle(uint64_t data) noexcept {</span></span>
+<span id="L74"><span class="lineNum">      74</span>                 :<span class="tlaGNC">         281 :   return data ^ kMangleConstant;</span></span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : }</span>
+<span id="L76"><span class="lineNum">      76</span>                 :             : </span>
+<span id="L77"><span class="lineNum">      77</span>                 :             : // As `GetHash64` but folded through `HashMangle`, so values **may** change</span>
+<span id="L78"><span class="lineNum">      78</span>                 :             : // between differently configured builds (see the flags above). Use `GetHash`</span>
+<span id="L79"><span class="lineNum">      79</span>                 :             : // when values must deliberately not be comparable across independent builds;</span>
+<span id="L80"><span class="lineNum">      80</span>                 :             : // use `GetHash64` / `GetHash128` for fully deterministic, reproducible values.</span>
+<span id="L81"><span class="lineNum">      81</span>                 :             : template&lt;IsHashAlgorithm Algo = DefaultHashAlgorithm, uint64_t Seed = kDefaultSeed&gt;</span>
+<span id="L82"><span class="lineNum">      82</span>                 :<span class="tlaGNC">         100 : constexpr uint64_t GetHash(std::string_view data) noexcept {</span></span>
+<span id="L83"><span class="lineNum">      83</span>                 :<span class="tlaGNC">         100 :   return HashMangle(Hasher&lt;Algo&gt;::GetHash64(data, Seed));</span></span>
+<span id="L84"><span class="lineNum">      84</span>                 :             : }</span>
+<span id="L85"><span class="lineNum">      85</span>                 :             : </span>
+<span id="L86"><span class="lineNum">      86</span>                 :             : // `Hasher&lt;Algo&gt;` extended with the mangled `GetHash`; the functor form applies</span>
+<span id="L87"><span class="lineNum">      87</span>                 :             : // the mangle as well (the inherited deterministic interface remains available).</span>
+<span id="L88"><span class="lineNum">      88</span>                 :             : template&lt;IsHashAlgorithm Algo&gt;</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             : struct MangledHasher : Hasher&lt;Algo&gt; {</span>
+<span id="L90"><span class="lineNum">      90</span>                 :             :   using is_transparent = void;  // NOLINT(readability-identifier-naming): STL heterogeneous-lookup protocol name.</span>
+<span id="L91"><span class="lineNum">      91</span>                 :             : </span>
+<span id="L92"><span class="lineNum">      92</span>                 :<span class="tlaGNC">          22 :   constexpr uint64_t operator()(std::string_view data) const noexcept { return GetHash(data); }</span></span>
+<span id="L93"><span class="lineNum">      93</span>                 :             : </span>
+<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">         151 :   static constexpr uint64_t GetHash(std::string_view data, uint64_t seed = kDefaultSeed) noexcept {</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">         151 :     return HashMangle(Hasher&lt;Algo&gt;::GetHash64(data, seed));</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :             :   }</span>
+<span id="L97"><span class="lineNum">      97</span>                 :             : };</span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : </span>
+<span id="L99"><span class="lineNum">      99</span>                 :             : using DefaultMangledHasher = MangledHasher&lt;DefaultHashAlgorithm&gt;;</span>
+<span id="L100"><span class="lineNum">     100</span>                 :             : </span>
+<span id="L101"><span class="lineNum">     101</span>                 :             : }  // namespace mbo::hash</span>
+<span id="L102"><span class="lineNum">     102</span>                 :             : </span>
+<span id="L103"><span class="lineNum">     103</span>                 :             : #endif  // MBO_HASH_HASH_MANGLE_H_</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

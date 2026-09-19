@@ -133,6 +133,18 @@ storage, and node allocation. It must specify:
 One block-source concept drives the core implementation. Adapters provide standard allocator, PMR,
 arena, and fixed-buffer integration without multiplying HAMT implementations.
 
+The arena adapter is a required implementation component, not documentation shorthand. It must
+provide multiple simultaneously live node blocks from provisioned storage. Since a monotonic arena
+cannot reclaim an arbitrary node merely because `BlockSource::Release` is called, failed path-copy
+operations require either checkpointed transactional rewind or a bounded reusable node-block pool.
+Tests must prove that repeated failed mutations do not reduce the remaining usable capacity.
+
+Hard-real-time use is a distinct compile-time profile. Fixed hash width bounds trie depth, while an
+explicit collision bound limits full-hash equality scans. Exceeding that bound is a recoverable
+insertion failure and leaves the tree unchanged. Immutable lookup performs no reference-count
+mutation. Atomic snapshot retention, root publication, and reclamation are specified separately;
+the presence of atomics does not by itself establish wait-free behavior.
+
 ## Public type and policy shape
 
 Abseil's `flat_hash_map`, `flat_hash_set`, `node_hash_map`, and `node_hash_set` establish a useful

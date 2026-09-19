@@ -19,6 +19,17 @@ struct StringInternerRequireExceptionsTest : ::testing::Test {};
 static_assert(noexcept(*std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
+static_assert(noexcept(std::declval<StringInterner<>&>().intern(std::string_view{})) == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().intern_parent_first(std::string_view{}))
+    == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().intern_child_first(std::string_view{}))
+    == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().try_intern(std::string_view{})) == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().try_intern_id(std::string_view{})) == !::mbo::config::kRequireThrows);
 
 TEST_F(StringInternerRequireExceptionsTest, InvalidIteratorOperationsThrow) {
   if constexpr (!config::kRequireThrows) {

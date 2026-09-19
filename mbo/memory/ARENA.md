@@ -15,7 +15,7 @@ invalidates it. Invalidated checkpoints must not be reused. A checkpoint from an
 arena is a contract violation. External synchronization is required. Rewind does not
 destroy objects placed in raw byte storage.
 
-This document specifies the planned general arena component. Its proposed package is `mbo::memory`
+This document specifies the implemented general arena component in `mbo::memory`
 because aligned storage acquisition and region lifetime are memory-management facilities rather
 than container or string semantics.
 
@@ -61,8 +61,8 @@ Successful allocations remain valid and do not move until `Reset`, destruction, 
 explicitly documented region-lifetime operation. Individual allocations cannot be freed. Allocation
 failure leaves the arena's observable state unchanged.
 
-Candidate operations are deliberately provisional. The fast form assumes that configured
-exhaustion is a hard failure; the failure-aware form illustrates a nullable result:
+The implemented fast form treats configured exhaustion as a hard failure; the failure-aware form
+returns a nullable result:
 
 ```cpp
 std::byte* Allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t));
@@ -74,8 +74,8 @@ void Reset();
 void Release();
 ```
 
-`TryAllocate` returns null on failure in this sketch. The final failure-aware API may instead use an
-optional or typed error result only if measurement and a concrete caller justify another adapter.
+`TryAllocate` returns null on failure. A future adapter may instead use an optional or typed error
+result only if measurement and a concrete caller justify the additional representation.
 Invalid alignment, arithmetic overflow, configured exhaustion, and backing-source failure are
 distinct internal conditions, but the base API deliberately reports only success or failure.
 Not expressing failure means a documented hard failure such as termination, not undefined behavior

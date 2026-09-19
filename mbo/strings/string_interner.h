@@ -201,6 +201,14 @@ class StringInterner final {
 
   size_type local_size() const noexcept { return entries_.size(); }
 
+  static constexpr size_type max_size() noexcept {
+    if constexpr (std::numeric_limits<Representation>::digits < std::numeric_limits<size_type>::digits) {
+      return static_cast<size_type>(std::numeric_limits<Representation>::max());
+    } else {
+      return std::numeric_limits<size_type>::max();
+    }
+  }
+
   bool empty() const noexcept { return size() == 0; }
 
   const StringInterner* parent() const noexcept { return parent_; }
@@ -356,11 +364,15 @@ class StringInterner final {
     return std::nullopt;
   }
 
-  [[nodiscard]] insertion_result intern_parent_first(std::string_view key) noexcept { return Insert(key, find(key)); }
+  [[nodiscard]] insertion_result intern_parent_first(std::string_view key) noexcept(!::mbo::config::kRequireThrows) {
+    return Insert(key, find(key));
+  }
 
-  [[nodiscard]] insertion_result intern_child_first(std::string_view key) noexcept { return Insert(key, rfind(key)); }
+  [[nodiscard]] insertion_result intern_child_first(std::string_view key) noexcept(!::mbo::config::kRequireThrows) {
+    return Insert(key, rfind(key));
+  }
 
-  [[nodiscard]] insertion_result intern(std::string_view key) noexcept {
+  [[nodiscard]] insertion_result intern(std::string_view key) noexcept(!::mbo::config::kRequireThrows) {
     if constexpr (Options.parent_first) {
       return intern_parent_first(key);
     } else {
@@ -369,13 +381,14 @@ class StringInterner final {
   }
 
   // Convenience adapters deliberately discard the detailed exhaustion reason.
-  [[nodiscard]] std::optional<std::pair<id_type, bool>> try_intern(std::string_view key) noexcept {
+  [[nodiscard]] std::optional<std::pair<id_type, bool>> try_intern(std::string_view key) noexcept(
+      !::mbo::config::kRequireThrows) {
     const auto result = intern(key);
     const auto* const inserted = std::get_if<std::pair<id_type, bool>>(&result);
     return inserted == nullptr ? std::nullopt : std::optional(*inserted);
   }
 
-  [[nodiscard]] std::optional<id_type> try_intern_id(std::string_view key) noexcept {
+  [[nodiscard]] std::optional<id_type> try_intern_id(std::string_view key) noexcept(!::mbo::config::kRequireThrows) {
     const auto result = try_intern(key);
     return result ? std::optional(result->first) : std::nullopt;
   }
@@ -395,14 +408,17 @@ class StringInterner final {
     return FindLocal(key, limit);
   }
 
-  insertion_result Insert(std::string_view key, std::optional<id_type> existing) noexcept {
+  insertion_result Insert(std::string_view key, std::optional<id_type> existing) noexcept(
+      !::mbo::config::kRequireThrows) {
     if (existing) {
       return std::pair<id_type, bool>(*existing, false);
     }
-    auto identifier = id_type::try_from_ordinal(size());
-    if (!identifier) {
+    const auto ordinal = size();
+    if (ordinal >= max_size()) {
       return StringInternError::kIdExhausted;
     }
+    auto identifier = id_type::try_from_ordinal(ordinal);
+    MBO_CONFIG_REQUIRE_DEBUG(identifier.has_value(), "StringInterner max_size does not fit its ID representation");
     const auto checkpoint = storage_.checkpoint();
     const auto stored = storage_.try_store(key);
     if (!stored) {

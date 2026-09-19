@@ -1,7 +1,8 @@
 # SegmentedSequence design
 
-This document specifies the planned `mbo::container::SegmentedSequence`. It separates settled
-requirements from choices that still require design decisions or measurements.
+This document specifies the implemented `mbo::container::SegmentedSequence` and records the
+settled requirements behind it. Remaining performance choices are identified explicitly as
+benchmark decisions.
 
 ## Purpose
 
@@ -10,9 +11,15 @@ fixed-capacity segments. It provides stable element addresses while growing and 
 access without requiring one contiguous allocation. The string interner uses it for dense ID
 metadata, but the container is an independent project deliverable.
 
-Implement `SegmentedSequence` before the string interner that consumes it. Complete the entire
-implementation stack and its local/CI validation before final comparative benchmarks, charts, and
-configuration recommendations; the initial composition is not a measured winner.
+A finite configuration with `repeat_last == false` keeps its segment directory in an inline
+`LimitedVector` sized for the eight option slots and disables the page directory. Its metadata
+therefore performs no hidden allocation. Combined with a bounded block source, this is the
+allocation-bounded representation used by higher-level containers. Repeating configurations keep
+dynamic directories because their number of segments is intentionally unbounded.
+
+`SegmentedSequence` is implemented independently of the string interner that consumes it. Complete
+the entire implementation stack and its local/CI validation before final comparative benchmarks,
+charts, and configuration recommendations; the initial composition is not a measured winner.
 
 ## Settled requirements
 
@@ -120,7 +127,7 @@ the farthest future segment is released first so the remaining retained prefix s
 general exact/close/largest-fit block pool belongs below the container, where an Arena or future
 dynamic growth strategy can consume it without overstating sequence capacity.
 
-## Candidate structure
+## Implementation structure
 
 Each segment owns storage for a policy-selected number of `T` objects and tracks its constructed
 prefix. A directory locates segments for indexed access. The directory representation, segment
@@ -235,21 +242,21 @@ and transfer properties through the common contract.
 
 ## Required guarantees
 
-| Area                  | Guarantee                                                                       |
-| --------------------- | ------------------------------------------------------------------------------- |
-| Segment reuse         | Exact/close-fit then largest-fit selection through bounded size classes         |
-| Cache eviction        | Cheap hot-path accounting, explicit maintenance, and retained byte/count limits |
-| Indexed complexity    | Constant time for every supported options configuration                         |
-| Iterator category     | Random access for every supported options configuration                         |
-| Iterator identity     | Cross-sequence use is a precondition violation diagnosed in debug builds        |
-| Exception guarantee   | Strong guarantee for allocation and element-construction failures               |
-| Allocation            | Shared block-source concept with allocator, PMR, growing, and fixed adapters    |
-| Ownership             | Independent copies; conditional address-preserving block moves and swaps        |
-| Invalidation          | Append/trim preserve; pop invalidates removed element and old end               |
-| Capacity              | Hive-style allocation-free capacity and representation/source `max_size()`      |
-| Contiguous operations | Public segment-local span range                                                 |
-| Constexpr             | Which policies and allocation modes are usable during constant evaluation       |
-| Thread safety         | External synchronization; no internal locks or atomics                          |
+| Area                  | Guarantee                                                                    |
+| --------------------- | ---------------------------------------------------------------------------- |
+| Segment reuse         | Ordered retained tail whose next compatible segment is reused first          |
+| Cache eviction        | Retained byte/count limits; farthest future segment is released first        |
+| Indexed complexity    | Constant time for every supported options configuration                      |
+| Iterator category     | Random access for every supported options configuration                      |
+| Iterator identity     | Cross-sequence use is a precondition violation diagnosed in debug builds     |
+| Exception guarantee   | Strong guarantee for allocation and element-construction failures            |
+| Allocation            | Shared block-source concept with allocator, PMR, growing, and fixed adapters |
+| Ownership             | Independent copies; conditional address-preserving block moves and swaps     |
+| Invalidation          | Append/trim preserve; pop invalidates removed element and old end            |
+| Capacity              | Hive-style allocation-free capacity and representation/source `max_size()`   |
+| Contiguous operations | Public segment-local span range                                              |
+| Constexpr             | Which policies and allocation modes are usable during constant evaluation    |
+| Thread safety         | External synchronization; no internal locks or atomics                       |
 
 ## Measurements required
 
@@ -257,7 +264,7 @@ and transfer properties through the common contract.
 - iteration compared with `std::vector`, `std::deque`, and relevant Abseil containers;
 - append throughput for trivial, movable, and non-trivial element types;
 - allocation count, bytes retained, metadata overhead, and unused tail capacity;
-- retained-segment reuse hit rate and `shrink_to_fit()` cost;
+- retained-segment reuse hit rate and the cost of any proposed relocating compaction;
 - eviction policies under bursty growth, deep pop, and changed future segment sizes;
 - small, medium, and very large element sizes and alignments;
 - power-of-two mapping thresholds and generated code size;

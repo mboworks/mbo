@@ -484,6 +484,7 @@ TEST_F(SegmentedSequenceTest, TryAppendReportsFixedSourceExhaustionWithoutMutati
       .maximum_size = 4,
   };
   using FixedSequence = SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource>;
+  static_assert(FixedSequence::has_bounded_directory());
   FixedSequence sequence(mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
 
   const auto first = sequence.try_push_back(1);
@@ -500,6 +501,8 @@ TEST_F(SegmentedSequenceTest, TryAppendReportsFixedSourceExhaustionWithoutMutati
       Eq(std::addressof(sequence.back())));
   EXPECT_THAT(sequence.try_push_back(3), Eq(std::nullopt));
   EXPECT_THAT(sequence, ElementsAre(1, 2));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(0));
+  EXPECT_THAT(sequence.segment_directory_bytes_reserved() > 0, Eq(true));
 }
 
 TEST_F(SegmentedSequenceTest, DestructionCoversEveryConstructedElement) {

@@ -48,8 +48,7 @@ using AbseilFlatIndex = ContainerStringIndex<Id, absl::flat_hash_map<std::string
 using AbseilNodeIndex = ContainerStringIndex<Id, absl::node_hash_map<std::string_view, Id, Hash>>;
 
 template<typename Index>
-using IndexRepresentation =
-    typename decltype(std::declval<const Index&>().find(std::string_view{}))::value_type::value_type;
+using IndexRepresentation = decltype(std::declval<const Index&>().find(std::string_view{}))::value_type::value_type;
 
 template<typename Index>
 using Interner = StringInterner<
@@ -198,7 +197,7 @@ void BmCascadeMixedLookup(benchmark::State& state) {
   const auto depth = static_cast<std::size_t>(state.range(3));
   const auto inputs = MakeInputs(count, length, state.range(2) != 0, "key/");
   const std::span<const std::string> views(inputs);
-  CascadeFixture<Index> fixture(state, views, depth);
+  const CascadeFixture<Index> fixture(state, views, depth);
   if (!fixture.Ready()) {
     return;
   }
@@ -242,7 +241,7 @@ void BmCascadeLookup(benchmark::State& state) {
   const auto inputs = MakeInputs(count, length, embedded_nul, "key/");
   const std::span<const std::string> views(inputs);
   const auto depth = static_cast<std::size_t>(state.range(3));
-  CascadeFixture<Index> fixture(state, views, depth);
+  const CascadeFixture<Index> fixture(state, views, depth);
   if (!fixture.Ready()) {
     return;
   }
@@ -342,8 +341,8 @@ template<typename Index, int HashBits = 64>
 void RegisterIndex(std::string_view name) {
   const auto add_empty = [&](std::string_view operation, auto function) {
     const auto label = absl::StrCat("StringInterner/", name, "/", operation);
-    // Google Benchmark copies the name from its C-string registration API.
-    benchmark::RegisterBenchmark(label.c_str(), function);
+    // Google Benchmark copies the supplied name during registration.
+    benchmark::RegisterBenchmark(label, function);
   };
   add_empty("EmptyLifecycle", BmEmptyLifecycle<Index, HashBits>);
   add_empty("EmptyDuplicate", BmEmptyCascade<Index, HashBits, true, false>);
@@ -351,8 +350,8 @@ void RegisterIndex(std::string_view name) {
   add_empty("EmptyRfind", BmEmptyCascade<Index, HashBits, false, true>);
   const auto add = [&](std::string_view operation, auto function, bool cascade) {
     const auto label = absl::StrCat("StringInterner/", name, "/", operation);
-    // Google Benchmark's registration API takes a C string and copies its name.
-    auto* registered = benchmark::RegisterBenchmark(label.c_str(), function);
+    // Google Benchmark copies the supplied name during registration.
+    auto* registered = benchmark::RegisterBenchmark(label, function);
     static constexpr auto kCounts = std::to_array<std::int64_t>({64, 1'024});
     static constexpr auto kLengths = std::to_array<std::int64_t>({16, 64, 512});
     static constexpr auto kNulModes = std::to_array<std::int64_t>({0, 1});

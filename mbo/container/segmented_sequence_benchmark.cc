@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <list>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -313,6 +314,66 @@ void BmDequeFreshConstructAppendDestroy(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
+void BmListFreshConstructAppendDestroy(benchmark::State& state) {
+  for (auto _ : state) {
+    std::list<std::uint64_t> sequence;
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      sequence.push_back(pos);
+    }
+    benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+void BmVectorRetainedAppendClear(benchmark::State& state) {
+  std::vector<std::uint64_t> sequence;
+  sequence.reserve(kElementCount);
+  for (auto _ : state) {
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      sequence.push_back(pos);
+    }
+    benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
+    sequence.clear();
+  }
+  state.counters["capacity"] = static_cast<double>(sequence.capacity());
+  state.counters["reserved"] = static_cast<double>(sequence.capacity() * sizeof(std::uint64_t));
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<typename Sequence>
+void BmStandardIteratorForward(benchmark::State& state) {
+  Sequence sequence(kElementCount, 1);
+  benchmark::ClobberMemory();
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    for (const std::uint64_t value : sequence) {
+      sum += value;
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<typename Sequence, bool Permuted>
+void BmStandardIndexedLookup(benchmark::State& state) {
+  Sequence sequence;
+  for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+    sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation): Untimed fixture setup.
+  }
+  benchmark::ClobberMemory();
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
+      const std::size_t pos = Permuted ? (ordinal * 40'503) & (kElementCount - 1) : ordinal;
+      sum += sequence[pos];  // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
 #define REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS(Label, Options)                                              \
   BENCHMARK_TEMPLATE(BmFreshConstructAppendDestroy, Options)                                                \
       ->Name("SegmentedSequence/FreshConstructAppendDestroy/" Label);                                       \
@@ -344,6 +405,15 @@ BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256Reservation64)
     ->Name("SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation64/Preallocated");
 BENCHMARK(BmVectorFreshConstructAppendDestroy)->Name("Vector/FreshConstructAppendDestroy");
 BENCHMARK(BmDequeFreshConstructAppendDestroy)->Name("Deque/FreshConstructAppendDestroy");
+BENCHMARK(BmListFreshConstructAppendDestroy)->Name("List/FreshConstructAppendDestroy");
+BENCHMARK(BmVectorRetainedAppendClear)->Name("Vector/RetainedAppendClear");
+BENCHMARK_TEMPLATE(BmStandardIteratorForward, std::vector<std::uint64_t>)->Name("Vector/IteratorForward");
+BENCHMARK_TEMPLATE(BmStandardIteratorForward, std::deque<std::uint64_t>)->Name("Deque/IteratorForward");
+BENCHMARK_TEMPLATE(BmStandardIteratorForward, std::list<std::uint64_t>)->Name("List/IteratorForward");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, false)->Name("Vector/Indexed");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, true)->Name("Vector/IndexedPermuted");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, false)->Name("Deque/Indexed");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, true)->Name("Deque/IndexedPermuted");
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 

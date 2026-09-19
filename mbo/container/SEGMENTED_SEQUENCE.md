@@ -241,3 +241,22 @@ remains historical provenance and a comparison baseline. The current API intenti
 single flat pointer directory and fixed power-of-two segments. Embedded jump tables, alternative
 directories, retained segment budgets, and relocating `shrink_to_fit()` remain future experiments
 rather than parallel public modes.
+
+## Comparable standard-container workloads
+
+The manual `//mbo/container:segmented_sequence_benchmark` harness compares fresh construction,
+append, and destruction with `std::vector`, `std::deque`, and `std::list`; retained append and clear
+with `std::vector`; sequential and permuted indexed reads with vector and deque; and forward iterator
+traversal with vector, deque, and list. Each case processes 16,384 `uint64_t` elements per iteration.
+Lookup fixtures are created outside timed loops. Indexed cases use the same values and permutation;
+iterator cases use the same constant values. List has no indexed case because it lacks random access.
+These baselines do not provide interchangeable pointer stability or allocation guarantees.
+
+For charts derived with `tools.benchmark_report`, use `--operations-per-iteration 16384` and select
+cases with the same operation. Compare segment traversal separately from iterator traversal.
+Fresh lifecycle timing includes construction, growth, and destruction. Memory counters for fresh
+sequence and vector cases are recorded after timing from the measured instance; deque and list have
+no reserved-byte counter. `Vector/RetainedAppendClear` reserves once outside timing, matching the
+SegmentedSequence retained-capacity workload. Deque and list `clear()` do not promise to retain
+reusable element storage, so they are not labeled retained-capacity baselines. Compilation and
+registration checks do not constitute performance measurements.

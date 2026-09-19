@@ -13,10 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 
 package(default_visibility = ["//visibility:private"])
+
+cc_binary(
+    name = "string_interner_benchmark",
+    testonly = True,
+    srcs = ["string_interner_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":container_string_index_cc",
+        ":hamt_node_string_index_cc",
+        ":hamt_string_index_cc",
+        ":string_interner_cc",
+        "//mbo/hash:hash_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/strings",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
 
 cc_library(
     name = "hamt_node_string_index_cc",

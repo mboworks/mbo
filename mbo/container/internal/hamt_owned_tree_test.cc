@@ -78,14 +78,19 @@ struct HamtOwnedTreeTest : ::testing::Test {};
 
 TEST_F(HamtOwnedTreeTest, CallerOwnedControlStorageTracksTreeSnapshotLifetime) {
   mbo::memory::InlineBlockSource<4'096> storage;
-  auto owned = Owned::TryCreateIn(storage, Hash{}, KeyOf{}, Equal{});
-  ASSERT_THAT(owned.has_value(), Eq(true));
-  EXPECT_THAT(owned.value().tree().try_insert(42).changed, Eq(true));
-  auto snapshot = owned;
-  owned.reset();
-  EXPECT_THAT(Owned::TryCreateIn(storage, Hash{}, KeyOf{}, Equal{}).has_value(), Eq(false));
-  EXPECT_THAT(snapshot.value().tree().size(), Eq(1));
-  snapshot.reset();
+  {
+    auto owned = Owned::TryCreateIn(storage, Hash{}, KeyOf{}, Equal{});
+    if (!owned) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
+    Owned tree = std::move(*owned);
+    owned.reset();
+    EXPECT_THAT(tree.tree().try_insert(42).changed, Eq(true));
+    const auto snapshot = tree;
+    EXPECT_THAT(Owned::TryCreateIn(storage, Hash{}, KeyOf{}, Equal{}).has_value(), Eq(false));
+    EXPECT_THAT(snapshot.tree().size(), Eq(1));
+  }
   EXPECT_THAT(Owned::TryCreateIn(storage, Hash{}, KeyOf{}, Equal{}).has_value(), Eq(true));
 }
 

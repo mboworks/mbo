@@ -28,12 +28,17 @@ struct HamtNodeSetTest : ::testing::Test {};
 
 TEST_F(HamtNodeSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
   mbo::memory::InlineBlockSource<4'096> storage;
-  auto created = Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
-  ASSERT_THAT(created.has_value(), Eq(true));
-  created = created.value().insert(1).first;
-  EXPECT_THAT(created.value().contains(1), Eq(true));
-  EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
-  created.reset();
+  {
+    auto created = Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{});
+    if (!created) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
+    auto set = std::move(*created).insert(1).first;
+    created.reset();
+    EXPECT_THAT(set.contains(1), Eq(true));
+    EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+  }
   EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(true));
   mbo::memory::InlineBlockSource<1> exhausted;
   EXPECT_THAT(Set::try_create_in(exhausted, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));

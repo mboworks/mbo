@@ -57,7 +57,17 @@ Insertion prepares ownership before committing so reported failure never leaves
 a new key inserted; successful preparation may invalidate references even if the
 subsequent insertion fails. Mutable iterators convert to const iterators.
 
-Node storage variants and unique in-place structural mutation are still outstanding.
+Successful whole-tree node-ownership preparation is cached. Repeated mutable
+iteration, lookup, and insertion on a proven unshared tree do not repeat the
+ownership scan. Snapshot copying invalidates both trees' proofs; moves and swaps
+transfer the proof with its tree. Copying a logically const snapshot consequently
+also requires external synchronization. This cache does not enable concurrent
+snapshot copying or mutation.
+
+[`HamtNodeMap`](HAMT_NODE_MAP.md) provides the separate stable-payload layout.
+The shared core also supports unique in-place structural mutation and falls back
+to path copying when ownership is shared. Full-stack own-context CI validation
+is still required before treating this implementation sequence as complete.
 Result representations and performance decisions remain provisional until the
 complete implementation is benchmarked. This is C++20-compatible work; no C++26
 language or library features are required.

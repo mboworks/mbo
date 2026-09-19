@@ -29,4 +29,8 @@ duplicate arguments. A later topology-allocation failure preserves container val
 but may leave the supplied argument moved from; input objects are not rolled back.
 Clone operations require nothrow key copying, even when insertion supports moves.
 Comprehensive bounded-source tests remain in progress.
-Public node maps and benchmarks follow; this layout is not a performance claim.
+[`HamtNodeMap`](HAMT_NODE_MAP.md) implements the corresponding stable-payload map.
+The general map comparison harness is described in
+[`HAMT_MAP_BENCHMARKS.md`](HAMT_MAP_BENCHMARKS.md). Final performance comparisons
+and the full stack's own-context CI validation remain pending; this layout is not
+a performance claim.

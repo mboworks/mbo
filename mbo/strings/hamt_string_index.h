@@ -54,6 +54,9 @@ class HamtStringIndex final {
     return found == map_.end() ? std::optional<Id>{} : std::optional<Id>(found->second);
   }
 
+  // Describes this index snapshot, not character storage or allocator totals.
+  auto structural_diagnostics() const noexcept { return map_.structural_diagnostics(); }
+
   template<mbo::memory::BlockSource ControlSource, typename... SourceArgs>
   requires std::is_nothrow_constructible_v<Source, SourceArgs...>
   [[nodiscard]] static std::optional<HamtStringIndex> try_create_in(

@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+# SPDX-License-Identifier: Apache-2.0
+
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "hamt_sets_test",
+    size = "small",
+    srcs = ["hamt_sets_test.cc"],
+    deps = [
+        "//mbo/container:hamt_flat_set_cc",
+        "//mbo/container:hamt_node_set_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

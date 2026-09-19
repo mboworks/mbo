@@ -12,6 +12,10 @@ optimized benchmarks have been measured on both reference machines:
 - AMD Ryzen 9 9950X (Zen 5), Linux x86-64, with the repository's supported Clang toolchain and GCC
   where compiler-sensitive code generation is plausible.
 
+AMD Zen 5 measurements are a later follow-up, not a prerequisite for finishing the current
+implementation sequence or its first benchmark report. Initial decisions are provisional and must
+be revisited with the later x86-64 results. Do not claim cross-machine superiority from one host.
+
 Measurement chooses representations; it does not weaken correctness, lifetime, stability,
 exhaustion, or API guarantees already settled by the design documents.
 

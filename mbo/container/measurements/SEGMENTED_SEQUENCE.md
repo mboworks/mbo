@@ -79,6 +79,21 @@ calls and bytes. Vector reports capacity bytes; deque is timing-only because it 
 retained-allocation metadata. Unused tail slots are derivable where the final size is fixed. The
 harness does not claim to capture every allocator or metadata consequence.
 
+### Historical production comparison charts
+
+These charts come from the retained earlier production artifact. Bars show median CPU nanoseconds per
+element; whiskers show the observed nine-sample minimum and maximum, not confidence intervals.
+The raw artifact records the corresponding capacity and reserved-byte counters.
+
+![Fresh append comparison](charts/macos-arm64-apple-m5-pro_clang-22_append.svg)
+
+![Iteration comparison](charts/macos-arm64-apple-m5-pro_clang-22_iteration.svg)
+
+The charts include schedules and mapping candidates removed from the current container. They are
+historical evidence, not a current default-selection result. The current benchmark families and
+configuration choices above describe the executable target.
+
+
 ## Element-shape benchmark
 
 `//mbo/container:segmented_sequence_element_shape_benchmark` measures the actual fixed-segment

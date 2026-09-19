@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="732" role="img">
+<title>StringInterner input shapes, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner input shapes, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</text>
+<rect x="580" y="76" width="355.608" height="24" fill="#2563eb"/>
+<path d="M 932.153 88 H 945.973 M 932.153 82 V 94 M 945.973 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">257 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</text>
+<rect x="580" y="124" width="356.754" height="24" fill="#2563eb"/>
+<path d="M 931.242 136 H 940.030 M 931.242 130 V 142 M 940.030 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">258 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</text>
+<rect x="580" y="172" width="428.009" height="24" fill="#2563eb"/>
+<path d="M 999.959 184 H 1011.328 M 999.959 178 V 190 M 1011.328 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">309 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</text>
+<rect x="580" y="220" width="427.456" height="24" fill="#2563eb"/>
+<path d="M 1003.277 232 H 1011.450 M 1003.277 226 V 238 M 1011.450 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">309 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</title>
+<text x="16" y="284" font-family="monospace" font-size="11">StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</text>
+<rect x="580" y="268" width="408.871" height="24" fill="#2563eb"/>
+<path d="M 972.648 280 H 993.162 M 972.648 274 V 286 M 993.162 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">295 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</title>
+<text x="16" y="332" font-family="monospace" font-size="11">StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</text>
+<rect x="580" y="316" width="409.635" height="24" fill="#2563eb"/>
+<path d="M 971.355 328 H 994.455 M 971.355 322 V 334 M 994.455 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">296 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</title>
+<text x="16" y="380" font-family="monospace" font-size="11">StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</text>
+<rect x="580" y="364" width="471.621" height="24" fill="#2563eb"/>
+<path d="M 1034.587 376 H 1055.542 M 1034.587 370 V 382 M 1055.542 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">341 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</title>
+<text x="16" y="428" font-family="monospace" font-size="11">StringInterner/HamtFlat6/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</text>
+<rect x="580" y="412" width="476.845" height="24" fill="#2563eb"/>
+<path d="M 1030.773 424 H 1060.000 M 1030.773 418 V 430 M 1060.000 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">344 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</title>
+<text x="16" y="476" font-family="monospace" font-size="11">StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:0</text>
+<rect x="580" y="460" width="54.476" height="24" fill="#2563eb"/>
+<path d="M 634.163 472 H 634.859 M 634.163 466 V 478 M 634.859 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">39.4 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</title>
+<text x="16" y="524" font-family="monospace" font-size="11">StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:16/embedded_nul:1</text>
+<rect x="580" y="508" width="55.264" height="24" fill="#2563eb"/>
+<path d="M 634.431 520 H 635.524 M 634.431 514 V 526 M 635.524 514 V 526" stroke="#111827" fill="none"/>
+<text x="1080" y="524" font-family="sans-serif" font-size="12">39.9 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</title>
+<text x="16" y="572" font-family="monospace" font-size="11">StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:0</text>
+<rect x="580" y="556" width="166.577" height="24" fill="#2563eb"/>
+<path d="M 746.288 568 H 747.857 M 746.288 562 V 574 M 747.857 562 V 574" stroke="#111827" fill="none"/>
+<text x="1080" y="572" font-family="sans-serif" font-size="12">120 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</title>
+<text x="16" y="620" font-family="monospace" font-size="11">StringInterner/AbseilFlat/UniqueLifecycle/strings:1024/bytes:512/embedded_nul:1</text>
+<rect x="580" y="604" width="169.088" height="24" fill="#2563eb"/>
+<path d="M 748.581 616 H 749.957 M 748.581 610 V 622 M 749.957 610 V 622" stroke="#111827" fill="none"/>
+<text x="1080" y="620" font-family="sans-serif" font-size="12">122 ns; n=9</text>
+</g>
+<text x="16" y="680" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="698" font-family="monospace" font-size="11">Measured commit: f645e745f81248dfae7742e3cf52fe9fe76857f7</text>
+<text x="16" y="716" font-family="monospace" font-size="11">Source artifact SHA-256: cfc572e77ff218c997418bb95eb667d878eead350c3a5692e49f31ed812a3d41</text>
+</svg>

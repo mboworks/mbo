@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="348" role="img">
+<title>StringInterner ID width, 64 strings, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner ID width, 64 strings, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInterner/HamtFlat5Id8/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id8/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</text>
+<rect x="580" y="76" width="451.893" height="24" fill="#2563eb"/>
+<path d="M 1027.813 88 H 1037.694 M 1027.813 82 V 94 M 1037.694 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">137 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id16/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id16/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</text>
+<rect x="580" y="124" width="454.476" height="24" fill="#2563eb"/>
+<path d="M 1028.260 136 H 1060.000 M 1028.260 130 V 142 M 1060.000 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">138 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</text>
+<rect x="580" y="172" width="453.568" height="24" fill="#2563eb"/>
+<path d="M 1029.114 184 H 1036.989 M 1029.114 178 V 190 M 1036.989 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">138 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id64/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id64/UniqueLifecycle/strings:64/bytes:64/embedded_nul:0</text>
+<rect x="580" y="220" width="453.063" height="24" fill="#2563eb"/>
+<path d="M 1024.445 232 H 1044.731 M 1024.445 226 V 238 M 1044.731 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">138 ns; n=9</text>
+</g>
+<text x="16" y="296" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="314" font-family="monospace" font-size="11">Measured commit: f645e745f81248dfae7742e3cf52fe9fe76857f7</text>
+<text x="16" y="332" font-family="monospace" font-size="11">Source artifact SHA-256: be06c57b39509158406c31a655003498bb46cf2b84c1c65d1cac7aaaaf7546f1</text>
+</svg>

@@ -85,7 +85,9 @@ void BmIndexedLookup(benchmark::State& state) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.unchecked_emplace_back(pos);
   }
+  benchmark::DoNotOptimize(sequence);
   for (auto _ : state) {
+    benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
       const std::size_t pos = Permuted ? (ordinal * 40'503) & (kElementCount - 1) : ordinal;
@@ -101,7 +103,9 @@ template<SegmentedSequenceOptions Options>
 void BmIteratorLookup(benchmark::State& state) {
   SegmentedSequence<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
+  benchmark::DoNotOptimize(sequence);
   for (auto _ : state) {
+    benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const std::uint64_t value : sequence) {
       sum += value;
@@ -116,7 +120,9 @@ template<SegmentedSequenceOptions Options>
 void BmSegmentLookup(benchmark::State& state) {
   SegmentedSequence<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
+  benchmark::DoNotOptimize(sequence);
   for (auto _ : state) {
+    benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const auto segment : sequence.segments()) {
       for (const std::uint64_t value : segment) {
@@ -187,7 +193,9 @@ void BmListAppendFresh(benchmark::State& state) {
 template<typename Sequence>
 void BmStandardIteratorLookup(benchmark::State& state) {
   Sequence sequence(kElementCount, 1);
+  benchmark::DoNotOptimize(sequence);
   for (auto _ : state) {
+    benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const std::uint64_t value : sequence) {
       sum += value;
@@ -203,7 +211,9 @@ void BmStandardIndexedLookup(benchmark::State& state) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation): Untimed fixture setup.
   }
+  benchmark::DoNotOptimize(sequence);
   for (auto _ : state) {
+    benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
       const std::size_t pos = Permuted ? (ordinal * 40'503) & (kElementCount - 1) : ordinal;
@@ -213,6 +223,43 @@ void BmStandardIndexedLookup(benchmark::State& state) {
     benchmark::DoNotOptimize(sum);
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<typename Sequence>
+void BmPushPopCycle(benchmark::State& state) {
+  Sequence sequence;
+  if constexpr (requires { sequence.reserve(kElementCount); }) {
+    sequence.reserve(kElementCount);
+  }
+  for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+    sequence.emplace_back(pos);
+  }
+  for (std::size_t remaining = kElementCount; remaining > 0; --remaining) {
+    if (sequence.size() != remaining || sequence.back() != remaining - 1) {
+      state.SkipWithError("push/pop preflight disagrees with reverse element order");
+      return;
+    }
+    sequence.pop_back();
+  }
+  for (auto _ : state) {
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      benchmark::DoNotOptimize(sequence.emplace_back(pos));
+    }
+    benchmark::ClobberMemory();
+    while (!sequence.empty()) {
+      auto value = sequence.back();
+      benchmark::DoNotOptimize(value);
+      sequence.pop_back();
+    }
+  }
+  if constexpr (requires { sequence.bytes_reserved(); }) {
+    SetMemoryCounters(state, sequence);
+  } else if constexpr (requires { sequence.capacity(); }) {
+    state.counters["capacity"] = static_cast<double>(sequence.capacity());
+    state.counters["reserved"] = static_cast<double>(sequence.capacity() * sizeof(std::uint64_t));
+  }
+  state.counters["operations_per_iteration"] = static_cast<double>(2 * kElementCount);
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(2 * kElementCount));
 }
 
 #define REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS(Label, Options)                                          \
@@ -241,6 +288,17 @@ BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, false)->
 BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, true)->Name("Vector/IndexedPermuted");
 BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, false)->Name("Deque/Indexed");
 BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, true)->Name("Deque/IndexedPermuted");
+BENCHMARK_TEMPLATE(BmPushPopCycle, SegmentedSequence<std::uint64_t, kUniform64>)
+    ->Name("SegmentedSequence/PushPopCycle/Uniform64");
+BENCHMARK_TEMPLATE(BmPushPopCycle, SegmentedSequence<std::uint64_t, kUniform256>)
+    ->Name("SegmentedSequence/PushPopCycle/Uniform256");
+BENCHMARK_TEMPLATE(BmPushPopCycle, SegmentedSequence<std::uint64_t, kUniform1024>)
+    ->Name("SegmentedSequence/PushPopCycle/Uniform1024");
+BENCHMARK_TEMPLATE(BmPushPopCycle, SegmentedSequence<std::uint64_t, kListed>)
+    ->Name("SegmentedSequence/PushPopCycle/Listed");
+BENCHMARK_TEMPLATE(BmPushPopCycle, std::vector<std::uint64_t>)->Name("Vector/PushPopCycle");
+BENCHMARK_TEMPLATE(BmPushPopCycle, std::deque<std::uint64_t>)->Name("Deque/PushPopCycle");
+BENCHMARK_TEMPLATE(BmPushPopCycle, std::list<std::uint64_t>)->Name("List/PushPopCycle");
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 

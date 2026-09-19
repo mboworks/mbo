@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+# SPDX-License-Identifier: Apache-2.0
+
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "string_interner_test",
+    size = "small",
+    srcs = ["string_interner_test.cc"],
+    deps = [
+        "//mbo/strings:string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_indexes_test",
+    size = "small",
+    srcs = ["string_indexes_test.cc"],
+    deps = [
+        "//mbo/strings:container_string_index_cc",
+        "//mbo/strings:hamt_node_string_index_cc",
+        "//mbo/strings:hamt_string_index_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

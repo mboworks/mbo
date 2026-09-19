@@ -17,7 +17,7 @@ using ::testing::Optional;
 struct HamtNodeStringIndexTest : ::testing::Test {};
 
 struct CollisionHash final {
-  std::size_t operator()(std::string_view) const noexcept { return 7; }
+  std::size_t operator()(std::string_view /*unused*/) const noexcept { return 7; }
 };
 
 TEST_F(HamtNodeStringIndexTest, BoundedSizePreservesDuplicateIdsAndExistingSnapshots) {

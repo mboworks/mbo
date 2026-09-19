@@ -265,3 +265,31 @@ benchmarks. This is an options default and tuning choice, not an unresolved sema
 
 - Determine from concrete use and benchmarks whether the potentially relocating, invalidating
   `shrink_to_fit()` operation established by `std::hive` is justified.
+
+## Comparable standard-container workloads
+
+The manual `//mbo/container:segmented_sequence_benchmark` harness includes
+sequential and permuted indexed reads for `std::vector` and `std::deque`, and
+iterator traversal for vector, deque, and list. Each case processes the same
+16,384 `uint64_t` elements per iteration as its SegmentedSequence counterpart.
+Fixtures are created outside timed traversal loops. Indexed cases use the same
+values and permutation; iterator cases use the same constant values. List has
+no indexed case because it does not provide random access. These baselines are
+not interchangeable pointer-stability or allocation guarantees.
+
+For charts derived with `tools.benchmark_report`, use
+`--operations-per-iteration 16384` and select cases with the same operation.
+Compare segment traversal separately from iterator traversal: contiguous segment
+access is an additional SegmentedSequence capability, not the same iterator API.
+Compilation and registration checks do not constitute performance measurements.
+Fresh-append timing includes construction, growth, and destruction.
+List, deque, vector, and all SegmentedSequence configurations provide this
+fresh-lifecycle case; list intentionally pays its per-node allocation cost.
+Memory accounting uses a separate, untimed growth sample rather than per-iteration map
+updates, so memory instrumentation is not charged only to selected containers.
+`Vector/AppendRetained` reserves once outside timing and repeatedly appends and
+clears the same batch, matching SegmentedSequence's retained-capacity workload.
+Deque and list are not labeled retained-capacity baselines: their `clear()`
+operations do not promise to retain reusable element storage.
+Final comparisons follow complete-stack validation; AMD Zen 5 measurements will
+later test whether provisional decisions generalize.

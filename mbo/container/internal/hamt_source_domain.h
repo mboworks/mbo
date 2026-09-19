@@ -24,13 +24,17 @@ template<mbo::memory::BlockSource Source>
 requires std::is_nothrow_destructible_v<Source>
 class HamtSourceDomain final {
  private:
+  using ReleaseControl = void (*)(void*, mbo::memory::MemoryBlock) noexcept;
+
   struct Control final {
     template<typename... Args>
-    explicit Control(mbo::memory::MemoryBlock storage, Args&&... args) noexcept
-        : block(storage), source(std::forward<Args>(args)...) {}
+    explicit Control(mbo::memory::MemoryBlock storage, void* owner, ReleaseControl release, Args&&... args) noexcept
+        : block(storage), storage_owner(owner), release_storage(release), source(std::forward<Args>(args)...) {}
 
     std::atomic<std::size_t> references{1};
     mbo::memory::MemoryBlock block;
+    void* storage_owner;
+    ReleaseControl release_storage;
     Source source;
   };
 
@@ -70,21 +74,36 @@ class HamtSourceDomain final {
   ~HamtSourceDomain() {
     if (control_ != nullptr && control_->references.fetch_sub(1, std::memory_order_acq_rel) == 1) {
       const auto block = control_->block;
+      auto* const owner = control_->storage_owner;
+      const auto release = control_->release_storage;
       std::destroy_at(control_);
-      mbo::memory::NewDeleteBlockSource::Release(block);
+      release(owner, block);
     }
   }
 
   template<typename... Args>
   requires std::is_nothrow_constructible_v<Source, Args...>
   [[nodiscard]] static std::optional<HamtSourceDomain> TryCreate(Args&&... args) noexcept {
-    const auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(sizeof(Control), alignof(Control));
+    static mbo::memory::NewDeleteBlockSource storage;
+    return TryCreateIn(storage, std::forward<Args>(args)...);
+  }
+
+  // The control-block source is borrowed and must outlive every domain handle.
+  template<mbo::memory::BlockSource ControlSource, typename... Args>
+  requires std::is_nothrow_constructible_v<Source, Args...>
+  [[nodiscard]] static std::optional<HamtSourceDomain> TryCreateIn(ControlSource& storage, Args&&... args) noexcept {
+    const auto block = storage.TryAcquire(sizeof(Control), alignof(Control));
     if (!block) {
       return std::nullopt;
     }
     HamtSourceDomain domain;
-    void* const storage = block->data;
-    domain.control_ = std::construct_at(static_cast<Control*>(storage), *block, std::forward<Args>(args)...);
+    void* const control_storage = block->data;
+    domain.control_ = std::construct_at(
+        static_cast<Control*>(control_storage), *block, std::addressof(storage),
+        [](void* owner, mbo::memory::MemoryBlock released) noexcept {
+          static_cast<ControlSource*>(owner)->Release(released);
+        },
+        std::forward<Args>(args)...);
     return domain;
   }
 

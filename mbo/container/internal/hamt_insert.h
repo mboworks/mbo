@@ -49,7 +49,8 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
     std::size_t level,
     const HashOf& hash_of,
     const KeyOf& key_of,
-    const Equal& equal) noexcept {
+    const Equal& equal,
+    bool allow_unique_mutation) noexcept {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (original->is_collision()) {
     const Hash existing_hash = std::invoke(hash_of, original->entries().front());
@@ -114,8 +115,10 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
     }
     case HamtSlotKind::kNode: {
       const std::size_t position = index.NodeIndex(fragment);
+      const bool unique_path = allow_unique_mutation && original->is_unique();
       auto inserted = TryInsertAt<Hash, FragmentBits>(
-          source, original->children().subspan(position).front(), hash, key, entry, level + 1, hash_of, key_of, equal);
+          source, original->children().subspan(position).front(), hash, key, entry, level + 1, hash_of, key_of, equal,
+          unique_path);
       if (!inserted) {
         return std::nullopt;
       }
@@ -123,6 +126,14 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
         Node::Release(source, inserted->root);
         Node::Retain(original);
         return HamtInsertResult<Node>{.root = original, .inserted = false};
+      }
+      if (unique_path) {
+        auto& child = original->children().subspan(position).front();
+        auto* const previous = child;
+        child = inserted->root;
+        Node::Release(source, previous);
+        Node::Retain(original);
+        return HamtInsertResult<Node>{.root = original, .inserted = true};
       }
       auto replaced = Node::TryReplaceChild(source, *original, position, inserted->root);
       Node::Release(source, inserted->root);
@@ -158,7 +169,8 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertHa
     const Entry& entry,
     const HashOf& hash_of,
     const KeyOf& key_of,
-    const Equal& equal) noexcept {
+    const Equal& equal,
+    bool allow_unique_mutation = false) noexcept {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (root == nullptr) {
     typename Node::index_type index;
@@ -172,7 +184,7 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertHa
     return HamtInsertResult<Node>{.root = *inserted, .inserted = true};
   }
   return hamt_insert_internal::TryInsertAt<Hash, FragmentBits>(
-      source, root, hash, key, entry, 0, hash_of, key_of, equal);
+      source, root, hash, key, entry, 0, hash_of, key_of, equal, allow_unique_mutation);
 }
 
 }  // namespace mbo::container::container_internal

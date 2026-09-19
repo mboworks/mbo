@@ -82,6 +82,7 @@ cc_test(
     deps = [
         ":string_id_cc",
         ":string_interner_cc",
+        "//mbo/hash:hash_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

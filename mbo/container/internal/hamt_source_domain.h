@@ -7,6 +7,7 @@
 #include <atomic>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <limits>
 #include <memory>
@@ -94,6 +95,11 @@ class HamtSourceDomain final {
   [[nodiscard]] static std::optional<HamtSourceDomain> TryCreateIn(ControlSource& storage, Args&&... args) noexcept {
     const auto block = storage.TryAcquire(sizeof(Control), alignof(Control));
     if (!block) {
+      return std::nullopt;
+    }
+    if (block->data == nullptr || block->size < sizeof(Control) || block->alignment < alignof(Control)
+        || std::bit_cast<std::uintptr_t>(block->data) % alignof(Control) != 0) {
+      storage.Release(*block);
       return std::nullopt;
     }
     HamtSourceDomain domain;

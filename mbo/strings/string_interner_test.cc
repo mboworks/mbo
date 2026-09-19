@@ -419,6 +419,7 @@ TEST_F(StringInternerTest, FiniteParentDepthRejectsAnUnboundedCascade) {
       std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>,
       HamtStringIndex<StringId<>>, StringInternerOptions{.maximum_parent_depth = 1}>;
   static_assert(Bounded::max_parent_depth() == 1);
+  EXPECT_THAT(Bounded::max_parent_depth(), Eq(1));
   Bounded root;
   Bounded child(&root);
   EXPECT_DEATH(static_cast<void>(Bounded(&child)), "parent chain exceeds maximum_parent_depth=1");

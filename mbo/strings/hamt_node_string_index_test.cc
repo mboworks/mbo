@@ -4,6 +4,7 @@
 #include "mbo/strings/hamt_node_string_index.h"
 
 #include <cstddef>
+#include <exception>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -15,6 +16,29 @@ using ::testing::Eq;
 using ::testing::Optional;
 
 struct HamtNodeStringIndexTest : ::testing::Test {};
+
+TEST_F(HamtNodeStringIndexTest, BoundedControlAndNodeStoragePropagateFailureThroughInterner) {
+  using Index = HamtNodeStringIndex<
+      StringId<>, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::InlineBlockSource<1>>;
+  using Interner =
+      StringInterner<std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, Index>;
+  mbo::memory::InlineBlockSource<4'096> control;
+  {
+    Interner interner(nullptr, [&control]() noexcept {
+      auto created = Index::try_create_in(control, std::hash<std::string_view>{}, std::equal_to<>{});
+      if (!created) {
+        std::terminate();
+      }
+      return std::move(*created);
+    });
+    EXPECT_THAT(interner.intern("uncommitted").index(), Eq(1));
+    EXPECT_THAT(interner.size(), Eq(0));
+    EXPECT_THAT(interner.local_character_bytes_used(), Optional(0));
+    EXPECT_THAT(interner.find("uncommitted").has_value(), Eq(false));
+    EXPECT_THAT(Index::try_create_in(control, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(), Eq(false));
+  }
+  EXPECT_THAT(Index::try_create_in(control, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(), Eq(true));
+}
 
 struct CollisionHash final {
   std::size_t operator()(std::string_view /*unused*/) const noexcept { return 7; }

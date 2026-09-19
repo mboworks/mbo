@@ -59,9 +59,9 @@ struct StorageProfile final {};
 
 template<typename Profile>
 struct BenchmarkStorage final {
-  using index_type = Profile;
-  using storage_type = ArenaStringStorage<>;
-  using entries_type = mbo::container::SegmentedSequence<std::string_view>;
+  using IndexType = Profile;
+  using StorageType = ArenaStringStorage<>;
+  using EntriesType = mbo::container::SegmentedSequence<std::string_view>;
 };
 
 template<
@@ -69,31 +69,30 @@ template<
     mbo::memory::ArenaOptions ArenaOptions,
     mbo::container::SegmentedSequenceOptions SequenceOptions>
 struct BenchmarkStorage<StorageProfile<Index, ArenaOptions, SequenceOptions>> final {
-  using index_type = Index;
-  using storage_type = ArenaStringStorage<mbo::memory::Arena<mbo::memory::NewDeleteBlockSource, ArenaOptions>>;
-  using entries_type = mbo::container::SegmentedSequence<std::string_view, SequenceOptions>;
+  using IndexType = Index;
+  using StorageType = ArenaStringStorage<mbo::memory::Arena<mbo::memory::NewDeleteBlockSource, ArenaOptions>>;
+  using EntriesType = mbo::container::SegmentedSequence<std::string_view, SequenceOptions>;
 };
 
 struct BoundedCharacterProfile final {};
 
 template<>
 struct BenchmarkStorage<BoundedCharacterProfile> final {
-  using index_type = FlatIndex<5>;
-  using storage_type = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<4'096>>>;
-  using entries_type = mbo::container::SegmentedSequence<std::string_view>;
+  using IndexType = FlatIndex<5>;
+  using StorageType = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<4'096>>>;
+  using EntriesType = mbo::container::SegmentedSequence<std::string_view>;
 };
 
 template<typename Profile>
-using IndexRepresentation =
-    typename decltype(std::declval<const typename BenchmarkStorage<Profile>::index_type&>().find(
-        std::string_view{}))::value_type::value_type;
+using IndexRepresentation = decltype(std::declval<const typename BenchmarkStorage<Profile>::IndexType&>().find(
+    std::string_view{}))::value_type::value_type;
 
 template<typename Index>
 using Interner = StringInterner<
     IndexRepresentation<Index>,
-    typename BenchmarkStorage<Index>::storage_type,
-    typename BenchmarkStorage<Index>::entries_type,
-    typename BenchmarkStorage<Index>::index_type>;
+    typename BenchmarkStorage<Index>::StorageType,
+    typename BenchmarkStorage<Index>::EntriesType,
+    typename BenchmarkStorage<Index>::IndexType>;
 
 template<typename Representation>
 using WidthIndex = HamtStringIndex<StringId<Representation>, Hash>;
@@ -245,7 +244,7 @@ void BmCharacterCapacity(benchmark::State& state) {
     state.SkipWithError("character exhaustion requires nonempty strings");
     return;
   }
-  const auto inputs = MakeInputs(4'096 / length + 1, length, state.range(1) != 0, "key/");
+  const auto inputs = MakeInputs((4'096 / length) + 1, length, state.range(1) != 0, "key/");
   Interner<BoundedCharacterProfile> interner;
   for (const auto& text : inputs) {
     const auto result = interner.intern(text);
@@ -413,7 +412,12 @@ void BmCascadeIteration(benchmark::State& state) {
     return;
   }
   for (auto iterator = leaf.rbegin(); iterator != leaf.rend(); ++iterator) {
-    if (ordinal == 0 || *iterator != inputs.at(--ordinal)) {
+    if (ordinal == 0) {
+      state.SkipWithError("reverse cascade iteration produced extra strings");
+      return;
+    }
+    --ordinal;
+    if (*iterator != inputs.at(ordinal)) {
       state.SkipWithError("reverse cascade iteration did not preserve reverse dense-ID order");
       return;
     }
@@ -457,7 +461,7 @@ void BmStringSizeDiagnostics(benchmark::State& state) {
   const auto length = static_cast<std::size_t>(state.range(1));
   const auto depth = static_cast<std::size_t>(state.range(3));
   const auto inputs = MakeInputs(count, length, state.range(2) != 0, "key/");
-  CascadeFixture<Index> fixture(state, inputs, depth);
+  const CascadeFixture<Index> fixture(state, inputs, depth);
   if (!fixture.Ready()) {
     return;
   }

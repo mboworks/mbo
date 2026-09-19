@@ -51,8 +51,10 @@ TEST_F(StringInternerMapTest, ProvidesStableMappedAddressesAndDenseStringIds) {
   EXPECT_THAT(*map.mapped(first_id), Eq(1));
   const auto entry = map.get(first_id);
   ASSERT_THAT(entry.has_value(), Eq(true));
+  // NOLINTBEGIN(bugprone-unchecked-optional-access): ASSERT_THAT above terminates this test on failure.
   EXPECT_THAT(entry->key, Eq("first"));
   EXPECT_THAT(entry->mapped, Eq(1));
+  // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
 TEST_F(StringInternerMapTest, ChildPreservesCapturedParentValuesAndCanAddPostCutoffKey) {
@@ -118,7 +120,7 @@ TEST_F(StringInternerMapTest, IteratorBoundariesSupportEmptyMapsAndDecrementingE
 }
 
 TEST_F(StringInternerMapTest, InvalidIdentifiersHaveNeitherKeysNorMappedValues) {
-  StringInternerMap<int> map;
+  const StringInternerMap<int> map;
   const auto invalid = StringId<>(0);
   EXPECT_THAT(map.key(invalid), Eq(std::nullopt));
   EXPECT_THAT(map.mapped(invalid), Eq(nullptr));
@@ -127,7 +129,7 @@ TEST_F(StringInternerMapTest, InvalidIdentifiersHaveNeitherKeysNorMappedValues) 
 
 #ifndef NDEBUG
 TEST_F(StringInternerMapTest, InvalidIteratorOperationsFailDebugContracts) {
-  StringInternerMap<int> map;
+  const StringInternerMap<int> map;
   const StringInternerMap<int>::iterator singular;
   EXPECT_DEATH(static_cast<void>(*singular), "singular StringInternerMap iterator");
   EXPECT_DEATH(static_cast<void>(*map.end()), "StringInternerMap end iterator");
@@ -181,10 +183,10 @@ TEST_F(StringInternerMapTest, EveryStorageLayerCanUseCallerOwnedBoundedMemory) {
   EXPECT_THAT(map.size(), Eq(4));
   EXPECT_THAT(map.find("overflow"), Eq(std::nullopt));
   for (int value = 0; value < 4; ++value) {
-    const StringId<> id(static_cast<std::uint32_t>(value));
-    EXPECT_THAT(map.key(id), Eq(std::to_string(value)));
-    ASSERT_THAT(map.mapped(id), NotNull());
-    EXPECT_THAT(*map.mapped(id), Eq(value));
+    const StringId<> identifier(static_cast<std::uint32_t>(value));
+    EXPECT_THAT(map.key(identifier), Eq(std::to_string(value)));
+    ASSERT_THAT(map.mapped(identifier), NotNull());
+    EXPECT_THAT(*map.mapped(identifier), Eq(value));
   }
   const auto mapped_storage = map.local_mapped_storage_diagnostics();
   EXPECT_THAT(mapped_storage.objects, Eq(4));

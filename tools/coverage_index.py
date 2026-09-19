@@ -11,7 +11,9 @@ import datetime
 import html
 import json
 import re
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import coverage_policy
@@ -74,7 +76,7 @@ def _policy(summary: dict, category: str) -> dict[str, coverage_policy.MetricPol
             summary["enforcement"][category][metric],
         )
         for metric in _METRICS
-        if metric in summary["minimums"][category]
+        if metric in summary["minimums"].get(category, {})
     }
 
 
@@ -110,17 +112,20 @@ def _full_table(summary: dict) -> str:
             (html.escape(status), f'class="{_status_class(status)}"'),
         ]
         for metric in _METRICS:
+            if metric not in metrics:
+                cells.extend((('n/a', 'class="na"'),) * 3)
+                continue
             value = metrics[metric]
-            if metric in policy:
-                rating = coverage_policy.rating(value["percent"], policy[metric])
-                metric_policy = policy[metric]
-                title = (
-                    f"{rating}; enforce {metric_policy.enforce}; medium at {metric_policy.minimum:g}%; "
-                    f"high at {metric_policy.target:g}%"
-                )
-                attrs = f'class="{rating}" title="{html.escape(title, quote=True)}"'
-            else:
-                attrs = None
+            if metric not in policy:
+                cells.extend((("n/a", 'class="na"'), (str(value["covered"]), 'class="na"'), (str(value["total"]), 'class="na"')))
+                continue
+            rating = coverage_policy.rating(value["percent"], policy[metric])
+            metric_policy = policy[metric]
+            title = (
+                f"{rating}; enforce {metric_policy.enforce}; medium at {metric_policy.minimum:g}%; "
+                f"high at {metric_policy.target:g}%"
+            )
+            attrs = f'class="{rating}" title="{html.escape(title, quote=True)}"'
             rate = _percent(value)
             cells.extend(
                 (
@@ -276,7 +281,7 @@ def latest_metadata(values: list[dict]) -> dict[str, dict]:
     return result
 
 
-def _short_row(metadata: dict) -> str:
+def _short_row(metadata: dict, report_path: str | None = None) -> str:
     target = metadata["target"]
     if target == "main":
         label = "main"
@@ -309,8 +314,9 @@ def _short_row(metadata: dict) -> str:
         if attempt > 1:
             run += f" (attempt {attempt})"
     values = [_percent(metadata["coverage"][metric]) for metric in _METRICS]
-    report = f'<a href="{target}/">{html.escape(label)}</a>'
-    data = f'<a href="{target}/coverage-summary.json">JSON</a>'
+    report_path = html.escape(target if report_path is None else report_path)
+    report = f'<a href="{report_path}/">{html.escape(label)}</a>'
+    data = f'<a href="{report_path}/coverage-summary.json">JSON</a>'
     details = (report, data, source, timestamp, commit, run)
     return "        <tr>" + "".join(f"<td>{value}</td>" for value in (*details, *values)) + "</tr>"
 
@@ -322,24 +328,150 @@ def _metadata_paths(root: Path) -> list[Path]:
     return sources
 
 
-def update_history(root: Path, repository: Path, pull_requests: list[dict]) -> None:
-    """Attach each report to its merge/tag commit in main's first-parent history."""
+def archive_reports(root: Path, incoming: Path | None = None) -> None:
+    """Retain each published run/attempt once, including its detailed source pages."""
+    metadata_paths = _metadata_paths(root)
+    if incoming is not None:
+        metadata_paths.append(incoming / "coverage-meta.json")
+    for metadata_path in metadata_paths:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        source = metadata["source"]
+        run, attempt = int(source["run_id"]), int(source["run_attempt"])
+        if run <= 0 or attempt <= 0:
+            continue  # Legacy reports have no authentic run identity to archive.
+        destination = root / "runs" / str(run) / str(attempt)
+        if destination.exists():
+            continue
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".archive-", dir=destination.parent) as temporary:
+            candidate = Path(temporary) / "report"
+            shutil.copytree(metadata_path.parent, candidate)
+            # Archive URLs are deeper than main/pr/tag URLs. Keep report-local links
+            # intact and relocate only the generated links back to the overview.
+            for page in candidate.rglob("*.html"):
+                text = page.read_text(encoding="utf-8")
+                depth = len(destination.relative_to(root).parts) + len(page.relative_to(candidate).parent.parts)
+                relocated = re.sub(
+                    r'(<a href=")(?:\.\./)+(index\.html)?(">All (?:coverage )?reports</a>)',
+                    lambda match: match[1] + "../" * depth + (match[2] or "") + match[3], text,
+                )
+                if relocated != text:
+                    page.write_text(relocated, encoding="utf-8")
+            candidate.rename(destination)
+    (root / "runs").mkdir(parents=True, exist_ok=True)
+    (root / "runs/index.html").write_text(render_run_history(root), encoding="utf-8")
+
+
+def render_run_history(root: Path) -> str:
+    """Render all archived runs, without collapsing attempts or PR identities."""
+    reports = []
+    for path in (root / "runs").glob("*/*/coverage-meta.json"):
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+        reports.append((metadata, path.parent.relative_to(root / "runs").as_posix()))
+    reports.sort(key=lambda item: (
+        item[0]["source"]["created_at"], item[0]["source"]["run_id"], item[0]["source"]["run_attempt"]
+    ), reverse=True)
+    body = (
+        '    <h1>mbo coverage run history</h1>\n'
+        '    <p><a href="../index.html">Current coverage overview</a></p>\n'
+        '    <p>Immutable snapshots of published reports, including detailed source coverage, '
+        'identified by their original CI run and attempt. Newest runs appear first.</p>\n'
+    )
+    if reports:
+        headings = ("Report", "Data", "Source", "Completed", "Commit", "Workflow", "Lines", "Branches", "Functions")
+        body += '    <table class="reportsTable"><thead><tr>'
+        body += "".join(f"<th>{heading}</th>" for heading in headings)
+        body += "</tr></thead><tbody>\n"
+        body += "\n".join(_short_row(metadata, path) for metadata, path in reports)
+        body += "\n    </tbody></table>\n"
+    else:
+        body += "    <p>No archived coverage runs are available.</p>\n"
+    return _page("mbo coverage run history", body)
+
+
+def _integration_position(repository: Path, commit: str, commits: list[str]) -> int | None:
+    """Find the first main commit containing a merge made on an integration branch."""
+    def contains(index: int) -> bool:
+        return subprocess.run(
+            ["git", "-C", str(repository), "merge-base", "--is-ancestor", commit, commits[index]],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        ).returncode == 0
+
+    if not commits or not contains(len(commits) - 1):
+        return None
+    first, last = 0, len(commits) - 1
+    while first < last:
+        middle = (first + last) // 2
+        if contains(middle):
+            last = middle
+        else:
+            first = middle + 1
+    return first
+
+
+def _squashed_integration_position(repository: Path, pull: dict, merges: dict,
+                                   positions: dict, fetch_heads: bool) -> int | None:
+    """Verify membership in an aggregation whose final merge was squashed."""
+    base = pull.get("base", {})
+    for parent in merges.values():
+        head = parent.get("head", {})
+        position = positions.get(parent["merge_commit_sha"])
+        if (position is None or not base.get("ref") or base["ref"] != head.get("ref")
+                or base.get("repo", {}).get("full_name") != head.get("repo", {}).get("full_name")
+                or pull["merged_at"] > parent["merged_at"]):
+            continue
+        sha = head.get("sha", "")
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            continue
+        present = subprocess.run(
+            ["git", "-C", str(repository), "cat-file", "-e", f"{sha}^{{commit}}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        ).returncode == 0
+        if not present and fetch_heads:
+            subprocess.run(["git", "-C", str(repository), "fetch", "--no-tags", "origin", sha], check=True)
+        if _integration_position(repository, pull["merge_commit_sha"], [sha]) is not None:
+            return position
+    return None
+
+
+def _tag_reference_time(repository: Path, tag: str) -> str | None:
+    """Tagger time for annotated tags; commit time for lightweight tags."""
+    result = subprocess.run(
+        ["git", "-C", str(repository), "for-each-ref", "--format=%(creatordate:unix)",
+         f"refs/tags/{tag}"], capture_output=True, text=True, check=False,
+    )
+    value = result.stdout.strip()
+    if result.returncode or not value.isdecimal():
+        return None
+    return datetime.datetime.fromtimestamp(int(value), datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def update_history(root: Path, repository: Path, pull_requests: list[dict],
+                   fetch_heads: bool = False) -> None:
+    """Attach reports to main chronology, including merges through aggregation PRs."""
     commits = subprocess.check_output(
         ["git", "-C", str(repository), "rev-list", "--first-parent", "--reverse", "HEAD"],
         text=True,
     ).splitlines()
     positions = {sha: index for index, sha in enumerate(commits)}
+    pulls_by_target = {f"pr/{pull['number']}": pull for pull in pull_requests}
     merges = {
-        f"pr/{pull['number']}": pull["merge_commit_sha"]
+        f"pr/{pull['number']}": pull
         for pull in pull_requests
         if pull.get("merged_at")
     }
     for path in _metadata_paths(root):
         metadata = json.loads(path.read_text(encoding="utf-8"))
         target = metadata["target"]
-        sha = merges.get(target)
-        if re.fullmatch(r"tag/v?\d+\.\d+\.\d+", target):
+        current_pull = pulls_by_target.get(target, {})
+        metadata["pull_state"] = ("merged" if current_pull.get("merged_at")
+                                  else current_pull.get("state", "unknown")) if target.startswith("pr/") else None
+        pull = merges.get(target)
+        metadata["reference_time"] = pull["merged_at"] if pull else None
+        sha = pull["merge_commit_sha"] if pull else None
+        if re.fullmatch(r"tag/\d+\.\d+\.\d+", target):
             tag = target.removeprefix("tag/")
+            metadata["reference_time"] = _tag_reference_time(repository, tag)
             resolved = subprocess.run(
                 ["git", "-C", str(repository), "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}"],
                 capture_output=True,
@@ -347,39 +479,53 @@ def update_history(root: Path, repository: Path, pull_requests: list[dict]) -> N
                 check=False,
             )
             sha = resolved.stdout.strip() if resolved.returncode == 0 else None
-        metadata["history"] = (
-            {"commit": sha, "position": positions[sha]} if sha in positions else None
-        )
+        history = {"commit": sha, "position": positions[sha]} if sha in positions else None
+        if sha and history is None:
+            position = _integration_position(repository, sha, commits)
+            if position is None and pull:
+                position = _squashed_integration_position(repository, pull, merges, positions, fetch_heads)
+            if position is not None:
+                history = {
+                    "commit": sha,
+                    "position": position,
+                    "integration_commit": commits[position],
+                    "merged_at": pull["merged_at"] if pull else "",
+                }
+        metadata["history"] = history
         path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
 
 def _report_order(metadata: dict) -> tuple:
     target = metadata["target"]
-    history = metadata.get("history")
+    reference_time = metadata.get("reference_time")
     source = metadata["source"]
     return (
         target == "main",
-        history is not None,
-        history["position"] if history is not None else -1,
-        history is not None and target.startswith("tag/"),
-        source["created_at"] if history is None else "",
-        source["run_id"] if history is None else 0,
+        reference_time is not None,
+        reference_time or source["created_at"],
+        source["run_id"] if reference_time is None else 0,
         target,
     )
 
 
 def render_site(root: Path) -> str:
-    """Returns the overview, main first then newest merge/tag commit first."""
+    """Returns the overview, main first then newest PR merge/tag timestamp first."""
     metadata = latest_metadata(
         [json.loads(source.read_text(encoding="utf-8")) for source in _metadata_paths(root)]
     )
-    reports = sorted(metadata.values(), key=_report_order, reverse=True)
+    reports = sorted(
+        (report for report in metadata.values() if report.get("pull_state") != "closed"),
+        key=_report_order, reverse=True,
+    )
     rows = "\n".join(_short_row(metadata) for metadata in reports)
     body = (
         "    <h1>mbo coverage reports</h1>\n"
-        "    <p>Main first, then PRs and releases newest-first in main's commit history. "
-        "Releases use their tagged commit; PRs use their merge commit. "
-        "Reports without a commit on main follow, newest CI run first.</p>\n"
+        '    <p><a href="runs/">All retained coverage runs and attempts</a></p>\n'
+        "    <p>Main first, then PRs by actual merge time and releases by tag creation time, newest first. "
+        "Lightweight tags have no creation timestamp, so their tagged commit time is used. "
+        "Aggregated PRs retain their own reports and individual merge times. "
+        "Open PRs and reports without a reference timestamp follow, newest CI run first. "
+        "PRs closed without merging are omitted here; their reports remain in run history.</p>\n"
     )
     if rows:
         body += """    <table class="reportsTable"><thead><tr><th>Report</th><th>Data</th><th>Source</th><th>Completed</th><th>Commit</th><th>Workflow</th><th>Lines</th><th>Branches</th><th>Functions</th></tr></thead>
@@ -417,6 +563,10 @@ def main() -> int:
     history.add_argument("root", type=Path)
     history.add_argument("repository", type=Path)
     history.add_argument("pull_requests", type=Path)
+    history.add_argument("--fetch-aggregation-heads", action="store_true")
+    archive = subparsers.add_parser("archive")
+    archive.add_argument("root", type=Path)
+    archive.add_argument("--incoming", type=Path)
     newer = subparsers.add_parser("newer")
     newer.add_argument("candidate", type=Path)
     newer.add_argument("current", type=Path)
@@ -425,9 +575,12 @@ def main() -> int:
         args.output.write_text(render_report(json.loads(args.summary.read_text(encoding="utf-8")), args.target), encoding="utf-8")
     elif args.command == "site":
         args.output.write_text(render_site(args.root), encoding="utf-8")
+    elif args.command == "archive":
+        archive_reports(args.root, args.incoming)
     elif args.command == "history":
         pages = json.loads(args.pull_requests.read_text(encoding="utf-8"))
-        update_history(args.root, args.repository, [pull for page in pages for pull in page])
+        update_history(args.root, args.repository, [pull for page in pages for pull in page],
+                       args.fetch_aggregation_heads)
     elif args.command == "metadata":
         summary = json.loads(args.summary.read_text(encoding="utf-8"))
         value = report_metadata(

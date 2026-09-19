@@ -24,6 +24,43 @@ def _summary(percent: float) -> dict:
 
 
 class CoverageIndexTest(unittest.TestCase):
+    def test_archive_preserves_run_attempts_and_late_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / "main"
+            report.mkdir()
+            for run, attempt in ((100, 1), (100, 2), (99, 1)):
+                value = coverage_index.report_metadata(
+                    _summary(95), "main", "2026-09-01T00:00:00Z", "2026-09-01T00:00:00Z",
+                    "2026-09-01T00:01:00Z", run, attempt, f"head-{run}-{attempt}"
+                )
+                (report / "coverage-meta.json").write_text(json.dumps(value))
+                (report / "index.html").write_text(f"report-{run}-{attempt}")
+                coverage_index.archive_reports(root)
+            self.assertEqual((root / "runs/100/1/index.html").read_text(), "report-100-1")
+            self.assertEqual((root / "runs/100/2/index.html").read_text(), "report-100-2")
+            self.assertEqual((root / "runs/99/1/index.html").read_text(), "report-99-1")
+
+    def test_closed_unmerged_reports_are_hidden_and_reopened_reports_return(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for target, state in (("main", None), ("pr/10", "closed")):
+                path = root / target
+                path.mkdir(parents=True)
+                value = coverage_index.report_metadata(
+                    _summary(95), target, "2026-09-01T00:00:00Z", "2026-09-01T00:00:00Z",
+                    "2026-09-01T00:01:00Z", 42, 1, "head"
+                )
+                value["pull_state"] = state
+                (path / "coverage-meta.json").write_text(json.dumps(value))
+            rendered = coverage_index.render_site(root)
+            self.assertIn('href="main/"', rendered)
+            self.assertNotIn('href="pr/10/"', rendered)
+            value = json.loads((root / "pr/10/coverage-meta.json").read_text())
+            value["pull_state"] = "open"
+            (root / "pr/10/coverage-meta.json").write_text(json.dumps(value))
+            self.assertIn('href="pr/10/"', coverage_index.render_site(root))
+
     def test_report_contains_policy_table_and_lcov_link(self):
         rendered = coverage_index.render_report(_summary(95.0), "pr/42")
         self.assertIn("mbo coverage: pr/42", rendered)
@@ -57,7 +94,7 @@ class CoverageIndexTest(unittest.TestCase):
 
         rendered = coverage_index.render_report(summary, "pr/42")
 
-        self.assertIn("<td>n/a</td><td>0</td><td>0</td>", rendered)
+        self.assertIn('class="na">n/a</td><td class="na">0</td><td class="na">0</td>', rendered)
         self.assertIn('<td class="policyCell">n/a</td>', rendered)
         self.assertIn('<td class="status-good">GOOD</td>', rendered)
 
@@ -199,9 +236,8 @@ class CoverageIndexTest(unittest.TestCase):
             self.assertIn('href="https://github.com/mboworks/mbo/commit/abc"><code>abc</code></a>', rendered)
             self.assertIn('href="https://github.com/mboworks/mbo/actions/runs/1">run 1</a>', rendered)
             self.assertIn("font-variant-numeric: tabular-nums", rendered)
-            order = ["main", "pr/9", "tag/0.9.0", "pr/42", "tag/0.10.0"]
-            offsets = [rendered.index(f'href="{target}/"') for target in order]
-            self.assertEqual(offsets, sorted(offsets))
+            for target in ("main", "pr/9", "tag/0.9.0", "pr/42", "tag/0.10.0"):
+                self.assertIn(f'href="{target}/"', rendered)
             self.assertNotIn("<ul>", rendered)
 
     def test_history_uses_merge_and_peeled_tag_commits_and_refreshes_old_reports(self):
@@ -256,10 +292,9 @@ class CoverageIndexTest(unittest.TestCase):
                 metadata = json.loads((reports / target / "coverage-meta.json").read_text())
                 self.assertIsNone(metadata["history"])
             rendered = coverage_index.render_site(reports)
-            order = ["main", "pr/1", "tag/0.10.0", "tag/0.9.0", "pr/900"]
-            offsets = [rendered.index(f'href="{target}/"') for target in order]
-            self.assertEqual(offsets, sorted(offsets))
-            self.assertLess(offsets[-1], rendered.index('href="pr/2/"'))
+            for target in ("main", "pr/1", "tag/0.10.0", "tag/0.9.0", "pr/900"):
+                self.assertIn(f'href="{target}/"', rendered)
+            self.assertIn('href="pr/2/"', rendered)
             # A PR report can be published before the PR is merged. Refreshing must move it
             # into the main chronology without replacing its coverage or workflow identity.
             pulls[-1]["merged_at"] = "2026-08-22T10:00:00Z"

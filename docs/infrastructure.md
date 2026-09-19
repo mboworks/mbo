@@ -60,11 +60,14 @@ xff's timing improvements are evidence for measuring these phases, not predicted
 
 ## Coverage and publishing
 
-The trusted coverage publisher checks out main's full first-parent history and tags. It refreshes
-retained metadata with paginated merged-PR data. Main stays first; PRs and releases interleave by
-merge/tag commit position, newest first. Annotated tags are peeled; a release precedes a PR at the
-same commit. Reports absent from main history follow by workflow creation time. Replacement
-freshness is independent: an older slow run cannot overwrite a newer report.
+The trusted coverage publisher archives every identified report and attempt before replacing a
+target URL, including late reports that cannot replace a newer latest report. The immutable
+run-history index retains detailed LCOV pages and original run metadata. Main stays first; merged
+PRs and releases follow by actual merge/tag timestamps, while open and unknown reports follow by
+workflow creation time. Closed-unmerged PRs are omitted from the overview while direct reports
+remain. Aggregation ancestry is provenance and is verified for squashed parents without changing
+measured identities. Replacement freshness is independent: an older slow run cannot overwrite a
+newer report.
 
 Both full-site publishers add shared MBO Works favicons to the staged deployment copy only.
 Retained release snapshots remain unchanged. The README uses the shared logo at 64 by 64 pixels.

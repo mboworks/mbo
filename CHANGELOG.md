@@ -1,5 +1,8 @@
 # 0.15.1
 
+- Retain complete coverage reports per CI run and attempt, order the overview by actual PR merge/tag
+  timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
+
 - Restored C++20 as the project baseline while continuing to use newer standard-library features
   when they are available.
 

@@ -1,0 +1,134 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 27.186825614209337,
+      "maximum_cpu_ns": 27.487705428286375,
+      "median_cpu_ns": 27.297061752990295,
+      "minimum_cpu_ns": 27.114199452190384,
+      "name": "StringInterner/HamtFlat4/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 26.392421673127163,
+      "maximum_cpu_ns": 26.741914970929766,
+      "median_cpu_ns": 26.692708333334394,
+      "minimum_cpu_ns": 26.38989825581303,
+      "name": "StringInterner/HamtFlat5/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 19.559516514939208,
+      "maximum_cpu_ns": 20.00175070028068,
+      "median_cpu_ns": 19.884125525210003,
+      "minimum_cpu_ns": 19.04160101540615,
+      "name": "StringInterner/HamtFlat6/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 19.64877328080211,
+      "maximum_cpu_ns": 19.878223495702002,
+      "median_cpu_ns": 19.696342227794364,
+      "minimum_cpu_ns": 19.64037876074529,
+      "name": "StringInterner/HamtFlat7/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 27.871549211249313,
+      "maximum_cpu_ns": 28.239936985598067,
+      "median_cpu_ns": 28.038998199588523,
+      "minimum_cpu_ns": 27.801890432099576,
+      "name": "StringInterner/HamtNode5/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 15.10431396116147,
+      "maximum_cpu_ns": 15.421733597285037,
+      "median_cpu_ns": 15.29579680429965,
+      "minimum_cpu_ns": 15.05497030542959,
+      "name": "StringInterner/StdUnordered/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 8.870655189295443,
+      "maximum_cpu_ns": 9.042764768277067,
+      "median_cpu_ns": 8.977745593995053,
+      "minimum_cpu_ns": 8.856631445823917,
+      "name": "StringInterner/AbseilFlat/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 8.797484772531542,
+      "maximum_cpu_ns": 9.055627425614007,
+      "median_cpu_ns": 8.928029996765483,
+      "minimum_cpu_ns": 8.76758570504549,
+      "name": "StringInterner/AbseilNode/FindMiss/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/strings:string_interner_benchmark"
+    },
+    "component": "StringInterner",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-map-benchmarks",
+      "commit": "6bd5402e4cfa47a66d975bcf70a416f7db76797e",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [3.9013671875, 4.26953125, 3.798828125],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": null
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat4|HamtFlat5|HamtFlat6|HamtFlat7|HamtNode5|StdUnordered|AbseilFlat|AbseilNode)/(UniqueLifecycle|Duplicate|FindLocal|FindMiss|Iterate)/strings:1024/bytes:64/embedded_nul:0(/depth:1)?$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-8j_lvfok/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 4.617119292,
+      "ended_utc": "2026-09-16T02:54:28.729231+00:00",
+      "started_utc": "2026-09-16T02:54:24.113201+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["opt", "representative-core"],
+      "bazel_version": "bazel 9.2.0",
+      "build_flags": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat4|HamtFlat5|HamtFlat6|HamtFlat7|HamtNode5|StdUnordered|AbseilFlat|AbseilNode)/(UniqueLifecycle|Duplicate|FindLocal|FindMiss|Iterate)/strings:1024/bytes:64/embedded_nul:0(/depth:1)?$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-8j_lvfok/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "2e06d1b03c635e221f41d5f1f5edb188eafc6edd3d33145b8f45ebd3bf0c34d2"
+}

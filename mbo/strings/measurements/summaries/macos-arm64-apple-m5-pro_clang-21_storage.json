@@ -1,0 +1,242 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 257.2741386218051,
+      "maximum_cpu_ns": 261.1553485576918,
+      "median_cpu_ns": 258.9393028846137,
+      "minimum_cpu_ns": 256.8734975961637,
+      "name": "StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 44.07002502705512,
+      "maximum_cpu_ns": 44.5287134740265,
+      "median_cpu_ns": 44.30676745129919,
+      "minimum_cpu_ns": 43.9262885551928,
+      "name": "StringInterner/HamtFlat5/Duplicate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 41.98623285060971,
+      "maximum_cpu_ns": 42.331602515245415,
+      "median_cpu_ns": 42.12318978658419,
+      "minimum_cpu_ns": 41.8909584603666,
+      "name": "StringInterner/HamtFlat5/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.8368302471986311,
+      "maximum_cpu_ns": 0.8444060922299776,
+      "median_cpu_ns": 0.8394757803842042,
+      "minimum_cpu_ns": 0.8351467260805294,
+      "name": "StringInterner/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 258.1255008012834,
+      "maximum_cpu_ns": 272.7989783653937,
+      "median_cpu_ns": 259.72806490383795,
+      "minimum_cpu_ns": 256.34765625000307,
+      "name": "StringInterner/HamtFlat5Arena512/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 44.12075554653662,
+      "maximum_cpu_ns": 44.598467938310705,
+      "median_cpu_ns": 44.32579139610141,
+      "minimum_cpu_ns": 43.98336038961072,
+      "name": "StringInterner/HamtFlat5Arena512/Duplicate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 42.30153338509159,
+      "maximum_cpu_ns": 42.677600931678626,
+      "median_cpu_ns": 42.50776397515604,
+      "minimum_cpu_ns": 42.23481172360145,
+      "name": "StringInterner/HamtFlat5Arena512/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.8421968640214941,
+      "maximum_cpu_ns": 0.8469999612523081,
+      "median_cpu_ns": 0.8443360585864722,
+      "minimum_cpu_ns": 0.8409456370118037,
+      "name": "StringInterner/HamtFlat5Arena512/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 256.2090084876505,
+      "maximum_cpu_ns": 259.0060763888879,
+      "median_cpu_ns": 257.1614583333315,
+      "minimum_cpu_ns": 255.85937500000892,
+      "name": "StringInterner/HamtFlat5Arena16384/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 44.30938185307086,
+      "maximum_cpu_ns": 45.04394531249922,
+      "median_cpu_ns": 44.600637335527765,
+      "minimum_cpu_ns": 44.253700657894775,
+      "name": "StringInterner/HamtFlat5Arena16384/Duplicate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 42.628898060795976,
+      "maximum_cpu_ns": 43.36797366352055,
+      "median_cpu_ns": 42.950324292453,
+      "minimum_cpu_ns": 42.38526926100385,
+      "name": "StringInterner/HamtFlat5Arena16384/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.8438113504856501,
+      "maximum_cpu_ns": 0.8491795179788867,
+      "median_cpu_ns": 0.8448204045257298,
+      "minimum_cpu_ns": 0.8430041072535811,
+      "name": "StringInterner/HamtFlat5Arena16384/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 256.785857371798,
+      "maximum_cpu_ns": 259.61538461537737,
+      "median_cpu_ns": 258.7515024038516,
+      "minimum_cpu_ns": 256.27253605770153,
+      "name": "StringInterner/HamtFlat5Entries64/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 44.09961783008674,
+      "maximum_cpu_ns": 44.67456371753086,
+      "median_cpu_ns": 44.27506087662506,
+      "minimum_cpu_ns": 43.90726461038776,
+      "name": "StringInterner/HamtFlat5Entries64/Duplicate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 42.23429361979206,
+      "maximum_cpu_ns": 42.7856445312484,
+      "median_cpu_ns": 42.35229492187518,
+      "minimum_cpu_ns": 42.218017578125384,
+      "name": "StringInterner/HamtFlat5Entries64/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.8366298280178872,
+      "maximum_cpu_ns": 0.8486148950252542,
+      "median_cpu_ns": 0.8383935168082722,
+      "minimum_cpu_ns": 0.8355074806058312,
+      "name": "StringInterner/HamtFlat5Entries64/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 255.6840945512813,
+      "maximum_cpu_ns": 259.2773437500122,
+      "median_cpu_ns": 258.18810096153186,
+      "minimum_cpu_ns": 255.25841346153936,
+      "name": "StringInterner/HamtFlat5Entries1024/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 43.94954004329035,
+      "maximum_cpu_ns": 44.55407873377031,
+      "median_cpu_ns": 44.2687195616877,
+      "minimum_cpu_ns": 43.913605925323715,
+      "name": "StringInterner/HamtFlat5Entries1024/Duplicate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 42.145849508282026,
+      "maximum_cpu_ns": 43.138586956521785,
+      "median_cpu_ns": 42.35005822981393,
+      "minimum_cpu_ns": 42.07710597826204,
+      "name": "StringInterner/HamtFlat5Entries1024/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.8406810561178287,
+      "maximum_cpu_ns": 0.8434935046901805,
+      "median_cpu_ns": 0.841685502036583,
+      "minimum_cpu_ns": 0.8402390999136089,
+      "name": "StringInterner/HamtFlat5Entries1024/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/strings:string_interner_benchmark"
+    },
+    "component": "StringInterner",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-map-benchmarks",
+      "commit": "f645e745f81248dfae7742e3cf52fe9fe76857f7",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [3.01220703125, 2.56689453125, 3.21240234375],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": null
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat5|HamtFlat5Arena512|HamtFlat5Arena16384|HamtFlat5Entries64|HamtFlat5Entries1024)/(UniqueLifecycle|Duplicate|FindLocal|Iterate)/strings:1024/bytes:64/embedded_nul:0(/depth:1)?$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-pnpgei6e/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 2.888779208,
+      "ended_utc": "2026-09-16T03:24:09.087576+00:00",
+      "started_utc": "2026-09-16T03:24:06.198714+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["opt", "storage-profiles"],
+      "bazel_version": "bazel 9.2.0",
+      "build_flags": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat5|HamtFlat5Arena512|HamtFlat5Arena16384|HamtFlat5Entries64|HamtFlat5Entries1024)/(UniqueLifecycle|Duplicate|FindLocal|Iterate)/strings:1024/bytes:64/embedded_nul:0(/depth:1)?$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-pnpgei6e/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "0c3c1d4710b9d43f15299ada1224e19ec39e338f8f82998dd0ee30ecc7c5b560"
+}

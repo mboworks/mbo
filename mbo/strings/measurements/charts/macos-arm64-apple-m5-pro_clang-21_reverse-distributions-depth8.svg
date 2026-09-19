@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="588" role="img">
+<title>StringInterner reverse cascade distributions, depth 8, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner reverse cascade distributions, depth 8, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInterner/HamtFlat5/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInterner/HamtFlat5/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_n</text>
+<text x="16" y="108" font-family="monospace" font-size="11">ul:0/depth:8</text>
+<rect x="580" y="76" width="476.020" height="24" fill="#2563eb"/>
+<path d="M 1055.197 88 H 1060.000 M 1055.197 82 V 94 M 1060.000 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">146 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInterner/HamtFlat5/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded_</text>
+<text x="16" y="156" font-family="monospace" font-size="11">nul:0/depth:8</text>
+<rect x="580" y="124" width="200.948" height="24" fill="#2563eb"/>
+<path d="M 780.349 136 H 781.348 M 780.349 130 V 142 M 781.348 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">61.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInterner/HamtFlat5/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_n</text>
+<text x="16" y="204" font-family="monospace" font-size="11">ul:0/depth:8</text>
+<rect x="580" y="172" width="432.428" height="24" fill="#2563eb"/>
+<path d="M 1011.127 184 H 1014.843 M 1011.127 178 V 190 M 1014.843 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">133 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInterner/HamtFlat6/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_n</text>
+<text x="16" y="252" font-family="monospace" font-size="11">ul:0/depth:8</text>
+<rect x="580" y="220" width="436.577" height="24" fill="#2563eb"/>
+<path d="M 1014.223 232 H 1018.496 M 1014.223 226 V 238 M 1018.496 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">134 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="284" font-family="monospace" font-size="11">StringInterner/HamtFlat6/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded_</text>
+<text x="16" y="300" font-family="monospace" font-size="11">nul:0/depth:8</text>
+<rect x="580" y="268" width="180.083" height="24" fill="#2563eb"/>
+<path d="M 758.879 280 H 761.234 M 758.879 274 V 286 M 761.234 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">55.4 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat6/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="332" font-family="monospace" font-size="11">StringInterner/HamtFlat6/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_n</text>
+<text x="16" y="348" font-family="monospace" font-size="11">ul:0/depth:8</text>
+<rect x="580" y="316" width="399.180" height="24" fill="#2563eb"/>
+<path d="M 976.754 328 H 986.120 M 976.754 322 V 334 M 986.120 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">123 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="380" font-family="monospace" font-size="11">StringInterner/AbseilFlat/RfindRootHeavyShuffled/strings:1024/bytes:64/embedded_</text>
+<text x="16" y="396" font-family="monospace" font-size="11">nul:0/depth:8</text>
+<rect x="580" y="364" width="208.493" height="24" fill="#2563eb"/>
+<path d="M 785.865 376 H 790.136 M 785.865 370 V 382 M 790.136 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">64.2 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="428" font-family="monospace" font-size="11">StringInterner/AbseilFlat/RfindLocalHeavyShuffled/strings:1024/bytes:64/embedded</text>
+<text x="16" y="444" font-family="monospace" font-size="11">_nul:0/depth:8</text>
+<rect x="580" y="412" width="82.908" height="24" fill="#2563eb"/>
+<path d="M 662.480 424 H 664.569 M 662.480 418 V 430 M 664.569 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">25.5 ns; n=9</text>
+</g>
+<g><title>StringInterner/AbseilFlat/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8</title>
+<text x="16" y="476" font-family="monospace" font-size="11">StringInterner/AbseilFlat/RfindMissHeavyShuffled/strings:1024/bytes:64/embedded_</text>
+<text x="16" y="492" font-family="monospace" font-size="11">nul:0/depth:8</text>
+<rect x="580" y="460" width="199.294" height="24" fill="#2563eb"/>
+<path d="M 776.840 472 H 781.348 M 776.840 466 V 478 M 781.348 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">61.3 ns; n=9</text>
+</g>
+<text x="16" y="536" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="554" font-family="monospace" font-size="11">Measured commit: f645e745f81248dfae7742e3cf52fe9fe76857f7</text>
+<text x="16" y="572" font-family="monospace" font-size="11">Source artifact SHA-256: 708e4e4cdaf446fa769248dbdd6b035bee36020f30104a38b7a370586c124537</text>
+</svg>

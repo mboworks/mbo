@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="876" role="img">
+<title>StringInterner map composition, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner map composition, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInternerMap/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInternerMap/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="76" width="378.535" height="24" fill="#2563eb"/>
+<path d="M 952.209 88 H 969.727 M 952.209 82 V 94 M 969.727 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">285 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/HamtFlat5/FindMapped/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInternerMap/HamtFlat5/FindMapped/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="124" width="57.072" height="24" fill="#2563eb"/>
+<path d="M 636.594 136 H 637.607 M 636.594 130 V 142 M 637.607 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">43 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInternerMap/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="172" width="4.340" height="24" fill="#2563eb"/>
+<path d="M 584.306 184 H 584.484 M 584.306 178 V 190 M 584.484 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">3.27 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/HamtNode5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInternerMap/HamtNode5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="220" width="448.273" height="24" fill="#2563eb"/>
+<path d="M 1006.342 232 H 1060.000 M 1006.342 226 V 238 M 1060.000 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">337 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/HamtNode5/FindMapped/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="284" font-family="monospace" font-size="11">StringInternerMap/HamtNode5/FindMapped/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="268" width="57.576" height="24" fill="#2563eb"/>
+<path d="M 637.303 280 H 638.237 M 637.303 274 V 286 M 638.237 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">43.3 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/HamtNode5/Iterate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="332" font-family="monospace" font-size="11">StringInternerMap/HamtNode5/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="316" width="3.900" height="24" fill="#2563eb"/>
+<path d="M 583.893 328 H 584.140 M 583.893 322 V 334 M 584.140 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">2.94 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/StdUnordered/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="380" font-family="monospace" font-size="11">StringInternerMap/StdUnordered/UniqueLifecycle/strings:1024/bytes:64/embedded_nu</text>
+<text x="16" y="396" font-family="monospace" font-size="11">l:0</text>
+<rect x="580" y="364" width="112.020" height="24" fill="#2563eb"/>
+<path d="M 689.299 376 H 694.459 M 689.299 370 V 382 M 694.459 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">84.3 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/StdUnordered/FindMapped/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="428" font-family="monospace" font-size="11">StringInternerMap/StdUnordered/FindMapped/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="412" width="23.301" height="24" fill="#2563eb"/>
+<path d="M 603.098 424 H 604.343 M 603.098 418 V 430 M 604.343 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">17.5 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/StdUnordered/Iterate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="476" font-family="monospace" font-size="11">StringInternerMap/StdUnordered/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="460" width="4.484" height="24" fill="#2563eb"/>
+<path d="M 584.396 472 H 584.504 M 584.396 466 V 478 M 584.504 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">3.37 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilFlat/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="524" font-family="monospace" font-size="11">StringInternerMap/AbseilFlat/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:</text>
+<text x="16" y="540" font-family="monospace" font-size="11">0</text>
+<rect x="580" y="508" width="89.823" height="24" fill="#2563eb"/>
+<path d="M 669.382 520 H 671.199 M 669.382 514 V 526 M 671.199 514 V 526" stroke="#111827" fill="none"/>
+<text x="1080" y="524" font-family="sans-serif" font-size="12">67.6 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilFlat/FindMapped/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="572" font-family="monospace" font-size="11">StringInternerMap/AbseilFlat/FindMapped/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="556" width="17.185" height="24" fill="#2563eb"/>
+<path d="M 596.748 568 H 597.680 M 596.748 562 V 574 M 597.680 562 V 574" stroke="#111827" fill="none"/>
+<text x="1080" y="572" font-family="sans-serif" font-size="12">12.9 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilFlat/Iterate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="620" font-family="monospace" font-size="11">StringInternerMap/AbseilFlat/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="604" width="3.914" height="24" fill="#2563eb"/>
+<path d="M 583.910 616 H 583.996 M 583.910 610 V 622 M 583.996 610 V 622" stroke="#111827" fill="none"/>
+<text x="1080" y="620" font-family="sans-serif" font-size="12">2.95 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilNode/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="668" font-family="monospace" font-size="11">StringInternerMap/AbseilNode/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:</text>
+<text x="16" y="684" font-family="monospace" font-size="11">0</text>
+<rect x="580" y="652" width="114.686" height="24" fill="#2563eb"/>
+<path d="M 693.372 664 H 695.934 M 693.372 658 V 670 M 695.934 658 V 670" stroke="#111827" fill="none"/>
+<text x="1080" y="668" font-family="sans-serif" font-size="12">86.3 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilNode/FindMapped/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="716" font-family="monospace" font-size="11">StringInternerMap/AbseilNode/FindMapped/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="700" width="18.007" height="24" fill="#2563eb"/>
+<path d="M 597.762 712 H 598.562 M 597.762 706 V 718 M 598.562 706 V 718" stroke="#111827" fill="none"/>
+<text x="1080" y="716" font-family="sans-serif" font-size="12">13.6 ns; n=9</text>
+</g>
+<g><title>StringInternerMap/AbseilNode/Iterate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="764" font-family="monospace" font-size="11">StringInternerMap/AbseilNode/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="748" width="3.910" height="24" fill="#2563eb"/>
+<path d="M 583.891 760 H 583.929 M 583.891 754 V 766 M 583.929 754 V 766" stroke="#111827" fill="none"/>
+<text x="1080" y="764" font-family="sans-serif" font-size="12">2.94 ns; n=9</text>
+</g>
+<text x="16" y="824" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="842" font-family="monospace" font-size="11">Measured commit: 6bd5402e4cfa47a66d975bcf70a416f7db76797e</text>
+<text x="16" y="860" font-family="monospace" font-size="11">Source artifact SHA-256: a43eb15320564a8369363cd65d194ab6ac50581582e675d2c9b828d3123a84be</text>
+</svg>

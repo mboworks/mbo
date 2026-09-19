@@ -29,6 +29,10 @@ struct IntegerHash final {
   }
 };
 
+struct ConstantHash final {
+  constexpr std::uint64_t operator()(std::uint64_t /*key*/) const noexcept { return 0; }
+};
+
 template<std::size_t Bits>
 using Flat =
     HamtFlatMap<std::uint64_t, std::uint64_t, IntegerHash, std::equal_to<>, HamtOptions{.fragment_bits = Bits}>;
@@ -38,6 +42,11 @@ using Node =
 using Standard = std::unordered_map<std::uint64_t, std::uint64_t, IntegerHash>;
 using AbseilFlat = absl::flat_hash_map<std::uint64_t, std::uint64_t, IntegerHash>;
 using AbseilNode = absl::node_hash_map<std::uint64_t, std::uint64_t, IntegerHash>;
+using CollisionFlat = HamtFlatMap<std::uint64_t, std::uint64_t, ConstantHash>;
+using CollisionNode = HamtNodeMap<std::uint64_t, std::uint64_t, ConstantHash>;
+using CollisionStandard = std::unordered_map<std::uint64_t, std::uint64_t, ConstantHash>;
+using CollisionAbseilFlat = absl::flat_hash_map<std::uint64_t, std::uint64_t, ConstantHash>;
+using CollisionAbseilNode = absl::node_hash_map<std::uint64_t, std::uint64_t, ConstantHash>;
 
 template<typename Map>
 Map Populate(std::size_t count) {
@@ -260,6 +269,17 @@ void Register(const char* name) {
       ->Arg(16'384);
 }
 
+template<typename Map>
+void RegisterCollision(const char* name) {
+  const std::string prefix = std::string("HamtMap/FullHashCollision/") + name;
+  benchmark::RegisterBenchmark((prefix + "/FindHit").c_str(), &BmLookup<Map, false>)->Arg(16)->Arg(64)->Arg(256);
+  benchmark::RegisterBenchmark((prefix + "/FindMiss").c_str(), &BmLookup<Map, true>)->Arg(16)->Arg(64)->Arg(256);
+  benchmark::RegisterBenchmark((prefix + "/FillEraseFresh").c_str(), &BmFillEraseFresh<Map>)
+      ->Arg(16)
+      ->Arg(64)
+      ->Arg(256);
+}
+
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 void RegisterAll() {
@@ -274,6 +294,11 @@ void RegisterAll() {
   Register<Standard>("Standard");
   Register<AbseilFlat>("AbseilFlat");
   Register<AbseilNode>("AbseilNode");
+  RegisterCollision<CollisionFlat>("Flat5");
+  RegisterCollision<CollisionNode>("Node5");
+  RegisterCollision<CollisionStandard>("Standard");
+  RegisterCollision<CollisionAbseilFlat>("AbseilFlat");
+  RegisterCollision<CollisionAbseilNode>("AbseilNode");
 }
 
 }  // namespace
@@ -293,7 +318,7 @@ int main(int argc, char** argv) {
 #else
   benchmark::AddCustomContext("cxx_standard", "c++20");
 #endif
-  benchmark::AddCustomContext("hash", "common-64-bit-integer-mix");
+  benchmark::AddCustomContext("hash_profiles", "common-64-bit-integer-mix; constant-zero full-hash collision");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

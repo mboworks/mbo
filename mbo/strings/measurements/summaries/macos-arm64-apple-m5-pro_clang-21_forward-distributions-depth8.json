@@ -1,0 +1,143 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 70.24572649572336,
+      "maximum_cpu_ns": 71.86498397436051,
+      "median_cpu_ns": 70.38261217948613,
+      "minimum_cpu_ns": 70.1822916666643,
+      "name": "StringInterner/HamtFlat5/FindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 155.9375000000019,
+      "maximum_cpu_ns": 157.27678571428316,
+      "median_cpu_ns": 156.2723214285772,
+      "minimum_cpu_ns": 155.87053571428487,
+      "name": "StringInterner/HamtFlat5/FindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 143.96929824561497,
+      "maximum_cpu_ns": 144.75740131580014,
+      "median_cpu_ns": 144.3256578947237,
+      "minimum_cpu_ns": 143.79111842104692,
+      "name": "StringInterner/HamtFlat5/FindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 67.63020833332652,
+      "maximum_cpu_ns": 68.0761718750006,
+      "median_cpu_ns": 67.70507812500077,
+      "minimum_cpu_ns": 67.52929687499355,
+      "name": "StringInterner/HamtFlat6/FindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 148.0574324324297,
+      "maximum_cpu_ns": 149.6199324324262,
+      "median_cpu_ns": 148.43749999999724,
+      "minimum_cpu_ns": 147.9307432432353,
+      "name": "StringInterner/HamtFlat6/FindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 136.17838541668306,
+      "maximum_cpu_ns": 137.46093750001063,
+      "median_cpu_ns": 136.3281250000084,
+      "minimum_cpu_ns": 136.17187500002126,
+      "name": "StringInterner/HamtFlat6/FindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 35.767886513155666,
+      "maximum_cpu_ns": 36.14309210526164,
+      "median_cpu_ns": 35.96319901315406,
+      "minimum_cpu_ns": 35.68050986841879,
+      "name": "StringInterner/AbseilFlat/FindRootHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 72.48733108107993,
+      "maximum_cpu_ns": 74.37711148649319,
+      "median_cpu_ns": 73.26858108108286,
+      "minimum_cpu_ns": 71.71663851351403,
+      "name": "StringInterner/AbseilFlat/FindLocalHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 68.16573183761024,
+      "maximum_cpu_ns": 69.69150641025661,
+      "median_cpu_ns": 69.23076923076731,
+      "minimum_cpu_ns": 68.0488782051301,
+      "name": "StringInterner/AbseilFlat/FindMissHeavyShuffled/strings:1024/bytes:64/embedded_nul:0/depth:8",
+      "operations_per_iteration": 1280,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/strings:string_interner_benchmark"
+    },
+    "component": "StringInterner",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-map-benchmarks",
+      "commit": "f645e745f81248dfae7742e3cf52fe9fe76857f7",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [1.802734375, 3.08056640625, 4.09814453125],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": null
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat5|HamtFlat6|AbseilFlat)/(FindMixedShuffled|RfindMixedShuffled|FindRootHeavyShuffled|RfindRootHeavyShuffled|FindLocalHeavyShuffled|RfindLocalHeavyShuffled|FindMissHeavyShuffled|RfindMissHeavyShuffled)/strings:1024/bytes:64/embedded_nul:0/depth:(2|8|32)$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-91i0r32y/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 7.736187834,
+      "ended_utc": "2026-09-16T03:13:43.135012+00:00",
+      "started_utc": "2026-09-16T03:13:35.398754+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["opt", "representative-cascades"],
+      "bazel_version": "bazel 9.2.0",
+      "build_flags": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInterner/(HamtFlat5|HamtFlat6|AbseilFlat)/(FindMixedShuffled|RfindMixedShuffled|FindRootHeavyShuffled|RfindRootHeavyShuffled|FindLocalHeavyShuffled|RfindLocalHeavyShuffled|FindMissHeavyShuffled|RfindMissHeavyShuffled)/strings:1024/bytes:64/embedded_nul:0/depth:(2|8|32)$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-91i0r32y/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "708e4e4cdaf446fa769248dbdd6b035bee36020f30104a38b7a370586c124537"
+}

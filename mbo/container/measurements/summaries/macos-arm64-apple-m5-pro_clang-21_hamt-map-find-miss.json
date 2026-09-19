@@ -1,0 +1,161 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 15.039932488863991,
+      "maximum_cpu_ns": 15.361828368601802,
+      "median_cpu_ns": 15.13128131959112,
+      "minimum_cpu_ns": 15.005132934296002,
+      "name": "HamtMap/Flat4/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 12.237873280177007,
+      "maximum_cpu_ns": 12.761271693244352,
+      "median_cpu_ns": 12.649507504688028,
+      "minimum_cpu_ns": 11.825017589117717,
+      "name": "HamtMap/Flat5/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 10.765584309896745,
+      "maximum_cpu_ns": 10.83068847656393,
+      "median_cpu_ns": 10.784912109375451,
+      "minimum_cpu_ns": 10.749816894530863,
+      "name": "HamtMap/Flat6/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 9.805847401818903,
+      "maximum_cpu_ns": 10.21882857399571,
+      "median_cpu_ns": 9.877873563223284,
+      "minimum_cpu_ns": 9.7642218929575,
+      "name": "HamtMap/Flat7/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 15.210634554436737,
+      "maximum_cpu_ns": 15.557274189033519,
+      "median_cpu_ns": 15.30166387024659,
+      "minimum_cpu_ns": 15.1858745805387,
+      "name": "HamtMap/Node4/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 11.818613170904518,
+      "maximum_cpu_ns": 12.90221133474539,
+      "median_cpu_ns": 12.029925847457347,
+      "minimum_cpu_ns": 11.68399099576553,
+      "name": "HamtMap/Node5/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 10.842427248676504,
+      "maximum_cpu_ns": 10.98710317460246,
+      "median_cpu_ns": 10.892547123017085,
+      "minimum_cpu_ns": 10.80574156746041,
+      "name": "HamtMap/Node6/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 9.75040943696926,
+      "maximum_cpu_ns": 10.021523105520625,
+      "median_cpu_ns": 9.838936349150652,
+      "minimum_cpu_ns": 9.726894475921501,
+      "name": "HamtMap/Node7/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.5033505071907562,
+      "maximum_cpu_ns": 2.654323959937847,
+      "median_cpu_ns": 2.5632884726496834,
+      "minimum_cpu_ns": 2.4951999470341906,
+      "name": "HamtMap/Standard/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.9402780750567845,
+      "maximum_cpu_ns": 3.0107890089895113,
+      "median_cpu_ns": 2.989886558219012,
+      "minimum_cpu_ns": 2.929687499999588,
+      "name": "HamtMap/AbseilFlat/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.896721675550171,
+      "maximum_cpu_ns": 3.028584973350584,
+      "median_cpu_ns": 2.9865435373106815,
+      "minimum_cpu_ns": 2.810770295202874,
+      "name": "HamtMap/AbseilNode/FindMiss/1024",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/container:hamt_map_benchmark"
+    },
+    "component": "hamt-map",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-m5-report",
+      "commit": "969abfd2c798db4a1a22c93a594865f8548b9c0a",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [3.47216796875, 3.7880859375, 3.3916015625],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": 18
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/container/hamt_map_benchmark --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-jdr80j6n/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 23.638280416999997,
+      "ended_utc": "2026-09-16T03:44:03.537104+00:00",
+      "started_utc": "2026-09-16T03:43:39.898655+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["-c", "opt"],
+      "bazel_version": "9.2.0",
+      "build_flags": "bazel-bin/mbo/container/hamt_map_benchmark --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-jdr80j6n/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "50c0ca004b0dbce576afa2b6f6793ce01758359c6ac9fe02ffbbb0311470ac83"
+}

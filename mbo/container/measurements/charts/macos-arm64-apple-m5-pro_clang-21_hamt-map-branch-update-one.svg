@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="684" role="img">
+<title>HAMT map one-value branch update at 1,024 entries</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">HAMT map one-value branch update at 1,024 entries</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>HamtMap/Flat4/BranchUpdateOne/1024</title>
+<text x="16" y="92" font-family="monospace" font-size="11">HamtMap/Flat4/BranchUpdateOne/1024</text>
+<rect x="580" y="76" width="2.934" height="24" fill="#2563eb"/>
+<path d="M 582.882 88 H 583.090 M 582.882 82 V 94 M 583.090 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">164 ns; n=9</text>
+</g>
+<g><title>HamtMap/Flat5/BranchUpdateOne/1024</title>
+<text x="16" y="140" font-family="monospace" font-size="11">HamtMap/Flat5/BranchUpdateOne/1024</text>
+<rect x="580" y="124" width="3.513" height="24" fill="#2563eb"/>
+<path d="M 583.357 136 H 583.689 M 583.357 130 V 142 M 583.689 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">197 ns; n=9</text>
+</g>
+<g><title>HamtMap/Flat6/BranchUpdateOne/1024</title>
+<text x="16" y="188" font-family="monospace" font-size="11">HamtMap/Flat6/BranchUpdateOne/1024</text>
+<rect x="580" y="172" width="3.925" height="24" fill="#2563eb"/>
+<path d="M 583.911 184 H 584.005 M 583.911 178 V 190 M 584.005 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">220 ns; n=9</text>
+</g>
+<g><title>HamtMap/Flat7/BranchUpdateOne/1024</title>
+<text x="16" y="236" font-family="monospace" font-size="11">HamtMap/Flat7/BranchUpdateOne/1024</text>
+<rect x="580" y="220" width="6.482" height="24" fill="#2563eb"/>
+<path d="M 586.394 232 H 587.083 M 586.394 226 V 238 M 587.083 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">363 ns; n=9</text>
+</g>
+<g><title>HamtMap/Node4/BranchUpdateOne/1024</title>
+<text x="16" y="284" font-family="monospace" font-size="11">HamtMap/Node4/BranchUpdateOne/1024</text>
+<rect x="580" y="268" width="3.700" height="24" fill="#2563eb"/>
+<path d="M 583.560 280 H 583.794 M 583.560 274 V 286 M 583.794 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">207 ns; n=9</text>
+</g>
+<g><title>HamtMap/Node5/BranchUpdateOne/1024</title>
+<text x="16" y="332" font-family="monospace" font-size="11">HamtMap/Node5/BranchUpdateOne/1024</text>
+<rect x="580" y="316" width="4.000" height="24" fill="#2563eb"/>
+<path d="M 583.927 328 H 584.401 M 583.927 322 V 334 M 584.401 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">224 ns; n=9</text>
+</g>
+<g><title>HamtMap/Node6/BranchUpdateOne/1024</title>
+<text x="16" y="380" font-family="monospace" font-size="11">HamtMap/Node6/BranchUpdateOne/1024</text>
+<rect x="580" y="364" width="4.690" height="24" fill="#2563eb"/>
+<path d="M 584.574 376 H 584.840 M 584.574 370 V 382 M 584.840 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">262 ns; n=9</text>
+</g>
+<g><title>HamtMap/Node7/BranchUpdateOne/1024</title>
+<text x="16" y="428" font-family="monospace" font-size="11">HamtMap/Node7/BranchUpdateOne/1024</text>
+<rect x="580" y="412" width="7.687" height="24" fill="#2563eb"/>
+<path d="M 587.021 424 H 587.772 M 587.021 418 V 430 M 587.772 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">430 ns; n=9</text>
+</g>
+<g><title>HamtMap/Standard/BranchUpdateOne/1024</title>
+<text x="16" y="476" font-family="monospace" font-size="11">HamtMap/Standard/BranchUpdateOne/1024</text>
+<rect x="580" y="460" width="390.244" height="24" fill="#2563eb"/>
+<path d="M 952.156 472 H 980.533 M 952.156 466 V 478 M 980.533 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">2.18e+04 ns; n=9</text>
+</g>
+<g><title>HamtMap/AbseilFlat/BranchUpdateOne/1024</title>
+<text x="16" y="524" font-family="monospace" font-size="11">HamtMap/AbseilFlat/BranchUpdateOne/1024</text>
+<rect x="580" y="508" width="64.480" height="24" fill="#2563eb"/>
+<path d="M 643.616 520 H 644.681 M 643.616 514 V 526 M 644.681 514 V 526" stroke="#111827" fill="none"/>
+<text x="1080" y="524" font-family="sans-serif" font-size="12">3.61e+03 ns; n=9</text>
+</g>
+<g><title>HamtMap/AbseilNode/BranchUpdateOne/1024</title>
+<text x="16" y="572" font-family="monospace" font-size="11">HamtMap/AbseilNode/BranchUpdateOne/1024</text>
+<rect x="580" y="556" width="420.764" height="24" fill="#2563eb"/>
+<path d="M 990.272 568 H 1060.000 M 990.272 562 V 574 M 1060.000 562 V 574" stroke="#111827" fill="none"/>
+<text x="1080" y="572" font-family="sans-serif" font-size="12">2.36e+04 ns; n=9</text>
+</g>
+<text x="16" y="632" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="650" font-family="monospace" font-size="11">Measured commit: 969abfd2c798db4a1a22c93a594865f8548b9c0a</text>
+<text x="16" y="668" font-family="monospace" font-size="11">Source artifact SHA-256: 50c0ca004b0dbce576afa2b6f6793ce01758359c6ac9fe02ffbbb0311470ac83</text>
+</svg>

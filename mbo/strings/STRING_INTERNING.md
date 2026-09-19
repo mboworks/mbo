@@ -5,6 +5,11 @@ for `mbo::strings`. The public headers remain authoritative for exact signatures
 choices that still require measurements are identified separately so experiments can change the
 representation without weakening the required semantics.
 
+The benchmark matrix is documented in
+[`STRING_INTERNER_BENCHMARKS.md`](STRING_INTERNER_BENCHMARKS.md). Retained initial-host artifacts,
+charts, and the provisional configuration matrix are in
+[`measurements/STRING_INTERNER.md`](measurements/STRING_INTERNER.md).
+
 ## Goals
 
 The interner accepts strings as `std::string_view`, owns one stable copy of each interned string,

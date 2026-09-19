@@ -1,0 +1,197 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 281.9417317708288,
+      "maximum_cpu_ns": 293.2942708333375,
+      "median_cpu_ns": 284.8714192708438,
+      "minimum_cpu_ns": 280.1106770833289,
+      "name": "StringInternerMap/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 42.685953776041046,
+      "maximum_cpu_ns": 43.35327148437414,
+      "median_cpu_ns": 42.95043945312611,
+      "minimum_cpu_ns": 42.59033203124821,
+      "name": "StringInternerMap/HamtFlat5/FindMapped/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 3.249418437088292,
+      "maximum_cpu_ns": 3.374544528162029,
+      "median_cpu_ns": 3.266466464920921,
+      "minimum_cpu_ns": 3.240411931818155,
+      "name": "StringInternerMap/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 323.3723958333369,
+      "maximum_cpu_ns": 361.2304687499899,
+      "median_cpu_ns": 337.3535156249918,
+      "minimum_cpu_ns": 320.8496093749834,
+      "name": "StringInternerMap/HamtNode5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 43.167794585986925,
+      "maximum_cpu_ns": 43.827129777072116,
+      "median_cpu_ns": 43.3295183121007,
+      "minimum_cpu_ns": 43.124253582803036,
+      "name": "StringInternerMap/HamtNode5/FindMapped/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.9309470389080183,
+      "maximum_cpu_ns": 3.1152595657781523,
+      "median_cpu_ns": 2.935145501934639,
+      "minimum_cpu_ns": 2.9296875000000635,
+      "name": "StringInternerMap/HamtNode5/Iterate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 82.97251506024253,
+      "maximum_cpu_ns": 86.13751882530278,
+      "median_cpu_ns": 84.30205195783236,
+      "minimum_cpu_ns": 82.25480045180687,
+      "name": "StringInternerMap/StdUnordered/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 17.453759348290518,
+      "maximum_cpu_ns": 18.319310897436704,
+      "median_cpu_ns": 17.535556891025873,
+      "minimum_cpu_ns": 17.38281250000001,
+      "name": "StringInternerMap/StdUnordered/FindMapped/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 3.3402803459894086,
+      "maximum_cpu_ns": 3.389557908037484,
+      "median_cpu_ns": 3.374630177514853,
+      "minimum_cpu_ns": 3.308177699704002,
+      "name": "StringInternerMap/StdUnordered/Iterate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 67.38281249999909,
+      "maximum_cpu_ns": 68.63281250000034,
+      "median_cpu_ns": 67.59765624999875,
+      "minimum_cpu_ns": 67.26562499999572,
+      "name": "StringInternerMap/AbseilFlat/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 12.718433605919072,
+      "maximum_cpu_ns": 13.304979556074546,
+      "median_cpu_ns": 12.932608060747679,
+      "minimum_cpu_ns": 12.604044976635402,
+      "name": "StringInternerMap/AbseilFlat/FindMapped/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.9430055358168925,
+      "maximum_cpu_ns": 3.0074928671403574,
+      "median_cpu_ns": 2.945669142980194,
+      "minimum_cpu_ns": 2.942304586563308,
+      "name": "StringInternerMap/AbseilFlat/Iterate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 85.4842431434578,
+      "maximum_cpu_ns": 87.24782436708871,
+      "median_cpu_ns": 86.30834651898789,
+      "minimum_cpu_ns": 85.31942246835123,
+      "name": "StringInternerMap/AbseilNode/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 13.377714555234382,
+      "maximum_cpu_ns": 13.969171483622116,
+      "median_cpu_ns": 13.551451107899677,
+      "minimum_cpu_ns": 13.36705202312097,
+      "name": "StringInternerMap/AbseilNode/FindMapped/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 2.934020323457898,
+      "maximum_cpu_ns": 2.956942357234796,
+      "median_cpu_ns": 2.942266664877651,
+      "minimum_cpu_ns": 2.9280102780162065,
+      "name": "StringInternerMap/AbseilNode/Iterate/strings:1024/bytes:64/embedded_nul:0",
+      "operations_per_iteration": 1024,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/strings:string_interner_benchmark"
+    },
+    "component": "StringInterner",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-map-benchmarks",
+      "commit": "6bd5402e4cfa47a66d975bcf70a416f7db76797e",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [3.49072265625, 4.2314453125, 3.728515625],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": null
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInternerMap/(HamtFlat5|HamtNode5|StdUnordered|AbseilFlat|AbseilNode)/(UniqueLifecycle|FindMapped|Iterate)/strings:1024/bytes:64/embedded_nul:0$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-d1ryqq2u/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 2.365992375,
+      "ended_utc": "2026-09-16T02:52:55.828933+00:00",
+      "started_utc": "2026-09-16T02:52:53.462815+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["opt", "representative-map-composition"],
+      "bazel_version": "bazel 9.2.0",
+      "build_flags": "bazel-bin/mbo/strings/string_interner_benchmark '--benchmark_filter=^StringInternerMap/(HamtFlat5|HamtNode5|StdUnordered|AbseilFlat|AbseilNode)/(UniqueLifecycle|FindMapped|Iterate)/strings:1024/bytes:64/embedded_nul:0$' --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-d1ryqq2u/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "a43eb15320564a8369363cd65d194ab6ac50581582e675d2c9b828d3123a84be"
+}

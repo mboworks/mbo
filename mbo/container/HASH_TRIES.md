@@ -251,6 +251,13 @@ This keeps recovery state and result handling out of the ordinary successful pat
 
 ## Measurements required
 
+The initial Apple M5 Pro map comparison, retained raw evidence, charts, and provisional decision
+matrix are in [`measurements/HAMT.md`](measurements/HAMT.md). It covers ordinary lookup, traversal,
+fresh transient fill/erase, and the two persistent-branch endpoints: editing one mapped value and
+editing every mapped value. The list below remains the complete evidence envelope; entries not
+covered by that initial report are still required before making broader default or
+cross-architecture claims.
+
 - successful and unsuccessful lookup across realistic and adversarial hashes;
 - insertion, replacement, and deletion where supported;
 - persistent snapshot creation and branch-local updates;

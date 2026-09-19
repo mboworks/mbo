@@ -6,8 +6,9 @@ The methodology inherits the repository-wide artifact contract in
 precautions established by [`mbo/hash/measurements`](../../hash/measurements/README.md).
 
 Arena results are not publication decoration. They decide block growth, descriptor layout,
-retention, and default source choices. Every selected representation must have comparable JSON from
-the Apple M5 Pro and AMD Zen 5 reference machines before the implementation PR merges.
+retention, and default source choices. The Apple M5 Pro provides the initial implementation report.
+AMD Zen 5 is a later second-machine follow-up; until then, every performance conclusion is
+explicitly provisional and not a cross-architecture recommendation.
 
 ## Layout
 
@@ -55,9 +56,11 @@ python3 tools/benchmark_artifact.py run \
   -- bazel run //mbo/memory:arena_benchmark --config=clang --config=opt_zen5 -c opt --
 ```
 
-Use the default nine repetitions, random interleaving, one-second warmup, and one-second minimum
-time. A smoke run may shorten time controls only when marked `suspect` with a reason; it is never
-merge evidence.
+Use nine repetitions, random interleaving, a nonzero warmup, and a sufficient minimum sample time.
+Record the exact controls in the artifact. The initial report uses a 0.01-second warmup and
+0.005-second minimum, matching the other initial-host component reports; every raw sample and its
+observed range remain available for noise review. A one-repetition smoke run is never measurement
+evidence.
 
 Validate every artifact:
 
@@ -83,7 +86,9 @@ python3 tools/benchmark_artifact.py validate mbo/memory/measurements/data/*.json
 
 Compare matched benchmark names from one randomly interleaved run. Retain all repetitions. Headline
 summaries use the mean of the fastest three of nine samples, matching the hash methodology, while
-also reporting the full minimum, median, mean, standard deviation, and coefficient of variation.
+also reporting the full minimum, median, and maximum. The immutable raw repetitions remain
+available for computing the mean, standard deviation, coefficient of variation, or another
+documented statistic without rerunning or silently changing the measurement.
 
 A candidate is selected only after inspecting latency distributions and memory cost together.
 Faster allocation does not excuse materially worse fragmentation or an incomplete failure/lifetime
@@ -92,9 +97,39 @@ is never removed merely because it complicates the conclusion.
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact | Status  |
-| ------------ | -------- | ------------------ | ------------ | -------- | ------- |
-| Apple M5 Pro | Clang 22 | pending            | pending      | pending  | pending |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending  | pending |
+| Machine      | Compiler       | Implementation SHA | Artifact                                       | Status     |
+| ------------ | -------------- | ------------------ | ---------------------------------------------- | ---------- |
+| Apple M5 Pro | Apple Clang 21 | `704c3bcb1`        | `macos-arm64-apple-m5-pro_clang-21_arena.json` | Validated  |
+| AMD Zen 5    | Clang and GCC  | pending            | pending                                        | Later work |
 
 This table is updated only from validated JSON. The JSON remains the source of truth.
+
+## Initial Apple M5 Pro results
+
+The charts normalize each 1,024-allocation batch to CPU nanoseconds per allocation. Bars show the
+median of nine randomly interleaved observations; whiskers show the observed minimum and maximum,
+not confidence intervals. The JSON summaries beside the charts also retain the established
+best-three-of-nine mean.
+
+![Retained 64-byte allocation](arena-allocate-64-align16.svg)
+
+With 16-byte alignment, the default Arena and its PMR-source composition both take approximately
+2.5 ns per retained allocation. `std::pmr::monotonic_buffer_resource` takes approximately 3.4 ns,
+and direct aligned new/delete takes approximately 17.3 ns. The Arena cases reset and reuse their
+retained blocks between batches; direct new/delete creates and destroys every allocation.
+
+![Retained 64-byte allocation with 256-byte alignment](arena-allocate-64-align256.svg)
+
+The same ordering holds at 256-byte alignment. Padding and reserved-byte counters in the raw
+artifact remain part of the decision: latency alone is not permission to ignore alignment waste.
+
+![Fresh 64-byte allocation lifecycle](arena-fresh-lifecycle-64-align16.svg)
+
+Constructing and destroying a fresh Arena around each 1,024-allocation batch costs approximately
+2.7 ns per allocation on this host. That remains below the PMR monotonic and direct new/delete
+baselines. This benchmark measures region lifecycle, not arbitrary individual reclamation.
+
+The initial evidence supports Arena as the string-storage and bounded-source substrate. It does not
+yet select every growth or descriptor layout. Listed/repeated/geometric growth, offset descriptors,
+reuse/retention distributions, caller-owned bounded sources, and detailed peak-memory comparisons
+remain separate experiments, as does AMD Zen 5 validation.

@@ -1,0 +1,116 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 1.2732324213889932,
+      "maximum_cpu_ns": 1.622398834365206,
+      "median_cpu_ns": 1.290233813673385,
+      "minimum_cpu_ns": 1.268510656166024,
+      "name": "Vector/AppendFresh",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 0.9922605277058122,
+      "maximum_cpu_ns": 1.0148467716406007,
+      "median_cpu_ns": 1.0021281023688675,
+      "minimum_cpu_ns": 0.9881586836395514,
+      "name": "Deque/AppendFresh",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 6.128172719688549,
+      "maximum_cpu_ns": 7.730350252148307,
+      "median_cpu_ns": 6.1366619950564045,
+      "minimum_cpu_ns": 6.1200242136452125,
+      "name": "SegmentedSequence/AppendFresh/Uniform64",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 5.469380696614528,
+      "maximum_cpu_ns": 6.5189636230468695,
+      "median_cpu_ns": 5.47849731445324,
+      "minimum_cpu_ns": 5.463684082031207,
+      "name": "SegmentedSequence/AppendFresh/Uniform256",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 5.285529989071528,
+      "maximum_cpu_ns": 5.313219807164063,
+      "median_cpu_ns": 5.290507298868742,
+      "minimum_cpu_ns": 5.279098295033627,
+      "name": "SegmentedSequence/AppendFresh/Uniform1024",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 5.756736990172552,
+      "maximum_cpu_ns": 8.338775436341885,
+      "median_cpu_ns": 5.863621268997918,
+      "minimum_cpu_ns": 5.674705951824613,
+      "name": "SegmentedSequence/AppendFresh/Listed",
+      "operations_per_iteration": 16384,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/container:segmented_sequence_benchmark"
+    },
+    "component": "SegmentedSequence",
+    "controls": {
+      "minimum_time": "1s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 1.0
+    },
+    "git": {
+      "branch": "feature/segmented-sequence",
+      "commit": "aeb18e3b47105e5d3ad93266db9c36f28d7f92a2",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [1.70263671875, 3.9755859375, 6.38037109375],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": 18
+    },
+    "provenance": {
+      "command": "bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_apple_m5 -c opt -- --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-w5kp7a7d/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=1s --benchmark_min_warmup_time=1.0 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": "797b31c24cda07fe7d5c867627c24727bfdb773a"
+    },
+    "timing": {
+      "duration_seconds": 404.47063554100004,
+      "ended_utc": "2026-09-10T02:47:50.291740+00:00",
+      "started_utc": "2026-09-10T02:41:05.839065+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["clang", "opt_apple_m5"],
+      "bazel_version": "bazel 9.2.0",
+      "build_flags": "bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_apple_m5 -c opt -- --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-w5kp7a7d/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=1s --benchmark_min_warmup_time=1.0 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "clang-22",
+      "compiler_version": "22.1.8 (https://github.com/llvm/llvm-project ca7933e47d3a3451d81e72ac174dcb5aa28b59d1)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "8fd71d491860e28b60e1484833370b346eeaef6e6ca85d4aa531c22760ac689f"
+}

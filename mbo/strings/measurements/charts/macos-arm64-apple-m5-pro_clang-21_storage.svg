@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1116" role="img">
+<title>StringInterner storage profiles, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner storage profiles, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInterner/HamtFlat5/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="76" width="455.613" height="24" fill="#2563eb"/>
+<path d="M 1031.979 88 H 1039.513 M 1031.979 82 V 94 M 1039.513 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">259 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/Duplicate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInterner/HamtFlat5/Duplicate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="124" width="77.959" height="24" fill="#2563eb"/>
+<path d="M 657.290 136 H 658.350 M 657.290 130 V 142 M 658.350 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">44.3 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInterner/HamtFlat5/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</text>
+<rect x="580" y="172" width="74.117" height="24" fill="#2563eb"/>
+<path d="M 653.709 184 H 654.484 M 653.709 178 V 190 M 654.484 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">42.1 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInterner/HamtFlat5/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</text>
+<rect x="580" y="220" width="1.477" height="24" fill="#2563eb"/>
+<path d="M 581.469 232 H 581.486 M 581.469 226 V 238 M 581.486 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">0.839 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena512/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="284" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena512/UniqueLifecycle/strings:1024/bytes:64/embedded_</text>
+<text x="16" y="300" font-family="monospace" font-size="11">nul:0</text>
+<rect x="580" y="268" width="457.001" height="24" fill="#2563eb"/>
+<path d="M 1031.053 280 H 1060.000 M 1031.053 274 V 286 M 1060.000 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">260 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena512/Duplicate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="332" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena512/Duplicate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="316" width="77.993" height="24" fill="#2563eb"/>
+<path d="M 657.390 328 H 658.473 M 657.390 322 V 334 M 658.473 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">44.3 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena512/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="380" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena512/FindLocal/strings:1024/bytes:64/embedded_nul:0/</text>
+<text x="16" y="396" font-family="monospace" font-size="11">depth:1</text>
+<rect x="580" y="364" width="74.794" height="24" fill="#2563eb"/>
+<path d="M 654.314 376 H 655.093 M 654.314 370 V 382 M 655.093 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">42.5 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena512/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="428" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena512/Iterate/strings:1024/bytes:64/embedded_nul:0/de</text>
+<text x="16" y="444" font-family="monospace" font-size="11">pth:1</text>
+<rect x="580" y="412" width="1.486" height="24" fill="#2563eb"/>
+<path d="M 581.480 424 H 581.490 M 581.480 418 V 430 M 581.490 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">0.844 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena16384/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="476" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena16384/UniqueLifecycle/strings:1024/bytes:64/embedde</text>
+<text x="16" y="492" font-family="monospace" font-size="11">d_nul:0</text>
+<rect x="580" y="460" width="452.485" height="24" fill="#2563eb"/>
+<path d="M 1030.194 472 H 1035.731 M 1030.194 466 V 478 M 1035.731 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">257 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena16384/Duplicate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="524" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena16384/Duplicate/strings:1024/bytes:64/embedded_nul:</text>
+<text x="16" y="540" font-family="monospace" font-size="11">0</text>
+<rect x="580" y="508" width="78.476" height="24" fill="#2563eb"/>
+<path d="M 657.866 520 H 659.257 M 657.866 514 V 526 M 659.257 514 V 526" stroke="#111827" fill="none"/>
+<text x="1080" y="524" font-family="sans-serif" font-size="12">44.6 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena16384/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="572" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena16384/FindLocal/strings:1024/bytes:64/embedded_nul:</text>
+<text x="16" y="588" font-family="monospace" font-size="11">0/depth:1</text>
+<rect x="580" y="556" width="75.573" height="24" fill="#2563eb"/>
+<path d="M 654.578 568 H 656.308 M 654.578 562 V 574 M 656.308 562 V 574" stroke="#111827" fill="none"/>
+<text x="1080" y="572" font-family="sans-serif" font-size="12">43 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Arena16384/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="620" font-family="monospace" font-size="11">StringInterner/HamtFlat5Arena16384/Iterate/strings:1024/bytes:64/embedded_nul:0/</text>
+<text x="16" y="636" font-family="monospace" font-size="11">depth:1</text>
+<rect x="580" y="604" width="1.486" height="24" fill="#2563eb"/>
+<path d="M 581.483 616 H 581.494 M 581.483 610 V 622 M 581.494 610 V 622" stroke="#111827" fill="none"/>
+<text x="1080" y="620" font-family="sans-serif" font-size="12">0.845 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries64/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="668" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries64/UniqueLifecycle/strings:1024/bytes:64/embedded</text>
+<text x="16" y="684" font-family="monospace" font-size="11">_nul:0</text>
+<rect x="580" y="652" width="455.283" height="24" fill="#2563eb"/>
+<path d="M 1030.921 664 H 1036.803 M 1030.921 658 V 670 M 1036.803 658 V 670" stroke="#111827" fill="none"/>
+<text x="1080" y="668" font-family="sans-serif" font-size="12">259 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries64/Duplicate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="716" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries64/Duplicate/strings:1024/bytes:64/embedded_nul:0</text>
+<rect x="580" y="700" width="77.904" height="24" fill="#2563eb"/>
+<path d="M 657.256 712 H 658.607 M 657.256 706 V 718 M 658.607 706 V 718" stroke="#111827" fill="none"/>
+<text x="1080" y="716" font-family="sans-serif" font-size="12">44.3 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries64/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="764" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries64/FindLocal/strings:1024/bytes:64/embedded_nul:0</text>
+<text x="16" y="780" font-family="monospace" font-size="11">/depth:1</text>
+<rect x="580" y="748" width="74.520" height="24" fill="#2563eb"/>
+<path d="M 654.284 760 H 655.283 M 654.284 754 V 766 M 655.283 754 V 766" stroke="#111827" fill="none"/>
+<text x="1080" y="764" font-family="sans-serif" font-size="12">42.4 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries64/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="812" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries64/Iterate/strings:1024/bytes:64/embedded_nul:0/d</text>
+<text x="16" y="828" font-family="monospace" font-size="11">epth:1</text>
+<rect x="580" y="796" width="1.475" height="24" fill="#2563eb"/>
+<path d="M 581.470 808 H 581.493 M 581.470 802 V 814 M 581.493 802 V 814" stroke="#111827" fill="none"/>
+<text x="1080" y="812" font-family="sans-serif" font-size="12">0.838 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries1024/UniqueLifecycle/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="860" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries1024/UniqueLifecycle/strings:1024/bytes:64/embedd</text>
+<text x="16" y="876" font-family="monospace" font-size="11">ed_nul:0</text>
+<rect x="580" y="844" width="454.292" height="24" fill="#2563eb"/>
+<path d="M 1029.137 856 H 1036.208 M 1029.137 850 V 862 M 1036.208 850 V 862" stroke="#111827" fill="none"/>
+<text x="1080" y="860" font-family="sans-serif" font-size="12">258 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries1024/Duplicate/strings:1024/bytes:64/embedded_nul:0</title>
+<text x="16" y="908" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries1024/Duplicate/strings:1024/bytes:64/embedded_nul</text>
+<text x="16" y="924" font-family="monospace" font-size="11">:0</text>
+<rect x="580" y="892" width="77.892" height="24" fill="#2563eb"/>
+<path d="M 657.268 904 H 658.395 M 657.268 898 V 910 M 658.395 898 V 910" stroke="#111827" fill="none"/>
+<text x="1080" y="908" font-family="sans-serif" font-size="12">44.3 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries1024/FindLocal/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="956" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries1024/FindLocal/strings:1024/bytes:64/embedded_nul</text>
+<text x="16" y="972" font-family="monospace" font-size="11">:0/depth:1</text>
+<rect x="580" y="940" width="74.517" height="24" fill="#2563eb"/>
+<path d="M 654.036 952 H 655.904 M 654.036 946 V 958 M 655.904 946 V 958" stroke="#111827" fill="none"/>
+<text x="1080" y="956" font-family="sans-serif" font-size="12">42.4 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Entries1024/Iterate/strings:1024/bytes:64/embedded_nul:0/depth:1</title>
+<text x="16" y="1004" font-family="monospace" font-size="11">StringInterner/HamtFlat5Entries1024/Iterate/strings:1024/bytes:64/embedded_nul:0</text>
+<text x="16" y="1020" font-family="monospace" font-size="11">/depth:1</text>
+<rect x="580" y="988" width="1.481" height="24" fill="#2563eb"/>
+<path d="M 581.478 1000 H 581.484 M 581.478 994 V 1006 M 581.484 994 V 1006" stroke="#111827" fill="none"/>
+<text x="1080" y="1004" font-family="sans-serif" font-size="12">0.842 ns; n=9</text>
+</g>
+<text x="16" y="1064" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="1082" font-family="monospace" font-size="11">Measured commit: f645e745f81248dfae7742e3cf52fe9fe76857f7</text>
+<text x="16" y="1100" font-family="monospace" font-size="11">Source artifact SHA-256: 0c3c1d4710b9d43f15299ada1224e19ec39e338f8f82998dd0ee30ecc7c5b560</text>
+</svg>

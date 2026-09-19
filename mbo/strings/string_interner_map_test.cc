@@ -99,6 +99,9 @@ TEST_F(StringInternerMapTest, MappedExhaustionDoesNotPublishAString) {
 }
 
 TEST_F(StringInternerMapTest, IteratorBoundariesSupportEmptyMapsAndDecrementingEnd) {
+  const StringInternerMap<int>::iterator first_singular;
+  const StringInternerMap<int>::iterator second_singular;
+  EXPECT_THAT(first_singular == second_singular, Eq(true));
   StringInternerMap<int> map;
   EXPECT_THAT(map.begin() == map.end(), Eq(true));
   EXPECT_THAT(map.rbegin() == map.rend(), Eq(true));
@@ -112,6 +115,14 @@ TEST_F(StringInternerMapTest, IteratorBoundariesSupportEmptyMapsAndDecrementingE
   StringInternerMap<int> other;
   EXPECT_THAT(other.try_emplace("entry", 1).index(), Eq(0));
   EXPECT_THAT(map.begin() == other.begin(), Eq(false));
+}
+
+TEST_F(StringInternerMapTest, InvalidIdentifiersHaveNeitherKeysNorMappedValues) {
+  StringInternerMap<int> map;
+  const auto invalid = StringId<>(0);
+  EXPECT_THAT(map.key(invalid), Eq(std::nullopt));
+  EXPECT_THAT(map.mapped(invalid), Eq(nullptr));
+  EXPECT_THAT(map.get(invalid), Eq(std::nullopt));
 }
 
 #ifndef NDEBUG

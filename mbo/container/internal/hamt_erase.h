@@ -75,29 +75,142 @@ std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEras
     const HashOf& hash_of,
     const KeyOf& key_of,
     const Equal& equal,
+    bool allow_unique_mutation) noexcept;
+
+template<
+    std::unsigned_integral Hash,
+    std::size_t FragmentBits,
+    typename Entry,
+    typename Key,
+    mbo::memory::BlockSource Source,
+    typename HashOf,
+    typename KeyOf,
+    typename Equal>
+std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEraseCollision(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* original,
+    Hash hash,
+    const Key& key,
+    const HashOf& hash_of,
+    const KeyOf& key_of,
+    const Equal& equal) noexcept {
+  using Node = HamtSharedNode<FragmentBits, Entry>;
+  std::size_t position = 0;
+  for (const Entry& existing : original->entries()) {
+    if (std::invoke(hash_of, existing) == hash && std::invoke(equal, std::invoke(key_of, existing), key)) {
+      if (original->entries().size() == 1) {
+        return HamtEraseStep<Node, Entry>{.erased = true};
+      }
+      if (original->entries().size() == 2) {
+        return HamtEraseStep<Node, Entry>{
+            .singleton = position == 0 ? original->entries().back() : original->entries().front(), .erased = true};
+      }
+      auto erased = Node::TryEraseCollisionEntry(source, *original, position);
+      if (!erased) {
+        return std::nullopt;
+      }
+      return HamtEraseStep<Node, Entry>{.node = *erased, .erased = true};
+    }
+    ++position;
+  }
+  Node::Retain(original);
+  return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
+}
+
+template<
+    std::unsigned_integral Hash,
+    std::size_t FragmentBits,
+    typename Entry,
+    typename Key,
+    mbo::memory::BlockSource Source,
+    typename HashOf,
+    typename KeyOf,
+    typename Equal>
+std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEraseChild(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* original,
+    typename HamtSharedNode<FragmentBits, Entry>::index_type index,
+    std::size_t fragment,
+    Hash hash,
+    const Key& key,
+    std::size_t level,
+    const HashOf& hash_of,
+    const KeyOf& key_of,
+    const Equal& equal,
+    bool allow_unique_mutation) noexcept {
+  using Node = HamtSharedNode<FragmentBits, Entry>;
+  const std::size_t position = index.NodeIndex(fragment);
+  const bool can_reuse = allow_unique_mutation && original->is_unique();
+  // Do not mutate descendants if singleton propagation could require a
+  // subsequent allocation here. Three slots cannot collapse to a singleton.
+  const bool descendant_mutation = can_reuse && original->entries().size() + original->children().size() >= 3;
+  auto erased = TryEraseAt<Hash, FragmentBits>(
+      source, original->children().subspan(position).front(), hash, key, level + 1, hash_of, key_of, equal,
+      descendant_mutation);
+  if (!erased) {
+    return std::nullopt;
+  }
+  if (!erased->erased) {
+    Node::Release(source, erased->node);
+    Node::Retain(original);
+    return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
+  }
+  std::optional<Node*> changed;
+  if (erased->singleton) {
+    if (original->entries().empty() && original->children().size() == 1) {
+      return erased;
+    }
+    index.DemoteNodeToData(fragment);
+    changed =
+        Node::TryDemoteChildToEntry(source, *original, index, position, index.DataIndex(fragment), *erased->singleton);
+  } else if (erased->node == nullptr) {
+    index.EraseNode(fragment);
+    changed = Node::TryEraseChild(source, *original, index, position);
+  } else {
+    if (can_reuse) {
+      auto& child = original->children().subspan(position).front();
+      auto* const previous = child;
+      child = erased->node;
+      Node::Release(source, previous);
+      Node::Retain(original);
+      return Compact<Node, Entry>(source, original);
+    }
+    changed = Node::TryReplaceChild(source, *original, position, erased->node);
+    Node::Release(source, erased->node);
+  }
+  if (!changed) {
+    return std::nullopt;
+  }
+  return Compact<Node, Entry>(source, *changed);
+}
+
+template<
+    std::unsigned_integral Hash,
+    std::size_t FragmentBits,
+    typename Entry,
+    typename Key,
+    mbo::memory::BlockSource Source,
+    typename HashOf,
+    typename KeyOf,
+    typename Equal>
+requires(
+    std::is_nothrow_copy_constructible_v<Entry> && std::is_nothrow_move_constructible_v<Entry>
+    && std::is_nothrow_invocable_r_v<Hash, const HashOf&, const Entry&>
+    && std::is_nothrow_invocable_v<const KeyOf&, const Entry&>
+    && std::is_nothrow_invocable_r_v<bool, const Equal&, std::invoke_result_t<const KeyOf&, const Entry&>, const Key&>)
+std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEraseAt(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* original,
+    Hash hash,
+    const Key& key,
+    std::size_t level,
+    const HashOf& hash_of,
+    const KeyOf& key_of,
+    const Equal& equal,
     bool allow_unique_mutation) noexcept {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (original->is_collision()) {
-    std::size_t position = 0;
-    for (const Entry& existing : original->entries()) {
-      if (std::invoke(hash_of, existing) == hash && std::invoke(equal, std::invoke(key_of, existing), key)) {
-        if (original->entries().size() == 1) {
-          return HamtEraseStep<Node, Entry>{.erased = true};
-        }
-        if (original->entries().size() == 2) {
-          return HamtEraseStep<Node, Entry>{
-              .singleton = position == 0 ? original->entries().back() : original->entries().front(), .erased = true};
-        }
-        auto erased = Node::TryEraseCollisionEntry(source, *original, position);
-        if (!erased) {
-          return std::nullopt;
-        }
-        return HamtEraseStep<Node, Entry>{.node = *erased, .erased = true};
-      }
-      ++position;
-    }
-    Node::Retain(original);
-    return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
+    return TryEraseCollision<Hash, FragmentBits>(source, original, hash, key, hash_of, key_of, equal);
   }
 
   const HamtHashPath<Hash, FragmentBits> path(hash);
@@ -133,49 +246,8 @@ std::optional<HamtEraseStep<HamtSharedNode<FragmentBits, Entry>, Entry>> TryEras
       return Compact<Node, Entry>(source, *erased);
     }
     case HamtSlotKind::kNode: {
-      const std::size_t position = index.NodeIndex(fragment);
-      const bool can_reuse = allow_unique_mutation && original->is_unique();
-      // Do not mutate descendants if singleton propagation could require a
-      // subsequent allocation here. Three slots cannot collapse to a singleton.
-      const bool descendant_mutation = can_reuse && original->entries().size() + original->children().size() >= 3;
-      auto erased = TryEraseAt<Hash, FragmentBits>(
-          source, original->children().subspan(position).front(), hash, key, level + 1, hash_of, key_of, equal,
-          descendant_mutation);
-      if (!erased) {
-        return std::nullopt;
-      }
-      if (!erased->erased) {
-        Node::Release(source, erased->node);
-        Node::Retain(original);
-        return HamtEraseStep<Node, Entry>{.node = original, .erased = false};
-      }
-      std::optional<Node*> changed;
-      if (erased->singleton) {
-        if (original->entries().empty() && original->children().size() == 1) {
-          return erased;
-        }
-        index.DemoteNodeToData(fragment);
-        changed = Node::TryDemoteChildToEntry(
-            source, *original, index, position, index.DataIndex(fragment), *erased->singleton);
-      } else if (erased->node == nullptr) {
-        index.EraseNode(fragment);
-        changed = Node::TryEraseChild(source, *original, index, position);
-      } else {
-        if (can_reuse) {
-          auto& child = original->children().subspan(position).front();
-          auto* const previous = child;
-          child = erased->node;
-          Node::Release(source, previous);
-          Node::Retain(original);
-          return Compact<Node, Entry>(source, original);
-        }
-        changed = Node::TryReplaceChild(source, *original, position, erased->node);
-        Node::Release(source, erased->node);
-      }
-      if (!changed) {
-        return std::nullopt;
-      }
-      return Compact<Node, Entry>(source, *changed);
+      return TryEraseChild<Hash, FragmentBits>(
+          source, original, index, fragment, hash, key, level, hash_of, key_of, equal, allow_unique_mutation);
     }
   }
   return std::nullopt;

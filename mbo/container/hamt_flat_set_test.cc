@@ -155,6 +155,22 @@ TEST_F(HamtFlatSetTest, CollisionSnapshotsPreserveStateAndSupportHeterogeneousLo
   EXPECT_THAT(next.cend() == next.end(), Eq(true));
 }
 
+TEST_F(HamtFlatSetTest, CollisionLimitRejectsOnlyNewEqualHashKeys) {
+  constexpr HamtOptions kOptions{.maximum_collision_size = 2};
+  using CollisionSet = HamtFlatSet<int, CollisionHash, std::equal_to<>, kOptions>;
+  CollisionSet empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(1).second, Eq(true));
+  EXPECT_THAT(edit.insert(2).second, Eq(true));
+  const auto duplicate = edit.try_insert(2);
+  const auto* const duplicate_result = std::get_if<std::pair<CollisionSet::iterator, bool>>(&duplicate);
+  ASSERT_THAT(duplicate_result, NotNull());
+  EXPECT_THAT(duplicate_result->second, Eq(false));
+  EXPECT_THAT(
+      edit.try_insert(3), Eq(CollisionSet::transient_type::insertion_result(HamtError::kCollisionLimitExceeded)));
+  EXPECT_THAT(edit, UnorderedElementsAre(1, 2));
+}
+
 TEST_F(HamtFlatSetTest, OrdinaryOperationsMatchTheDocumentedExample) {
   const Set empty;
   auto [one, inserted] = empty.insert(1);

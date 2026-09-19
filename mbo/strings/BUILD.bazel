@@ -122,6 +122,30 @@ cc_test(
     }),
     deps = [
         ":string_interner_cc",
+        ":string_interner_map_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "string_interner_map_cc",
+    hdrs = ["string_interner_map.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":string_interner_cc",
+        "//mbo/container:segmented_sequence_cc",
+    ],
+)
+
+cc_test(
+    name = "string_interner_map_test",
+    size = "small",
+    srcs = ["string_interner_map_test.cc"],
+    deps = [
+        ":string_interner_map_cc",
+        "//mbo/container:limited_vector_cc",
+        "//mbo/memory:arena_block_source_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

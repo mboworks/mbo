@@ -43,6 +43,22 @@ struct CollisionHash final {
   std::size_t operator()(std::string_view /*text*/) const noexcept { return 7; }
 };
 
+TEST_F(HamtStringIndexTest, DiagnosticsReflectOnlyTheInspectedIndexSnapshot) {
+  HamtStringIndex<StringId<>, CollisionHash> index;
+  EXPECT_THAT(index.structural_diagnostics().entries, Eq(0));
+  EXPECT_THAT(index.try_insert("a", StringId<>(0)), Optional(true));
+  const auto snapshot = index;
+  EXPECT_THAT(index.try_insert("b", StringId<>(1)), Optional(true));
+  const auto measured = index.structural_diagnostics();
+  EXPECT_THAT(measured.entries, Eq(2));
+  EXPECT_THAT(measured.collision_nodes, Eq(1));
+  EXPECT_THAT(measured.collision_entries, Eq(2));
+  EXPECT_THAT(measured.largest_collision, Eq(2));
+  EXPECT_THAT(snapshot.structural_diagnostics().entries, Eq(1));
+  EXPECT_THAT(snapshot.structural_diagnostics().collision_nodes, Eq(0));
+  EXPECT_THAT(index.find("b"), Optional(StringId<>(1)));
+}
+
 struct CountingHash final {
   std::size_t operator()(std::string_view key) const noexcept {
     ++*calls;

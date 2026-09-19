@@ -5,12 +5,17 @@ and `StringInterner`. The semantic contracts live in the component design docume
 controls how implementations, experiments, measurements, and pull requests turn those contracts
 into production code.
 
-No implementation pull request merges until its relevant optimized benchmarks have been measured
-on both reference machines:
+Complete the entire implementation sequence and its local/CI validation before running the final
+comparisons, producing charts, and selecting measured configurations. Keep implementation PRs as
+drafts until that work is complete; green CI alone is not authorization to merge. Reference hosts:
 
 - Apple M5 Pro, macOS arm64, with the repository's supported Clang toolchain;
 - AMD Ryzen 9 9950X (Zen 5), Linux x86-64, with the repository's supported Clang toolchain and GCC
   where compiler-sensitive code generation is plausible.
+
+AMD Zen 5 measurements are a later follow-up, not a prerequisite for finishing the current
+implementation sequence or its first benchmark report. Initial decisions are provisional and must
+be revisited with the later x86-64 results. Do not claim cross-machine superiority from one host.
 
 Measurement chooses representations; it does not weaken correctness, lifetime, stability,
 exhaustion, or API guarantees already settled by the design documents.
@@ -57,13 +62,13 @@ the required `## AG;DR` detail section.
 | ----: | -------------------------------------- | ------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
 |     0 | `design/string-interning`              | Contracts, dependency graph, measurement requirements   | `main`                       | Documentation validation                            |
 |     1 | `perf/benchmark-artifacts`             | Shared JSON runner, metadata schema, validation tooling | `design/string-interning`    | Self-tests and example schema validation            |
-|     2 | `feature/arena`                        | Block source adapters and raw byte `Arena`              | `perf/benchmark-artifacts`   | M5 Pro and Zen 5 Arena JSON                         |
+|     2 | `feature/arena`                        | Block source adapters and raw byte `Arena`              | `perf/benchmark-artifacts`   | Initial-host Arena JSON                             |
 |    2a | `proof/arena-layouts`                  | Pointer/offset and growth candidates                    | `feature/arena`              | Comparative JSON; never merged wholesale            |
-|     3 | `feature/segmented-sequence`           | Production `SegmentedSequence`                          | `feature/arena`              | M5 Pro and Zen 5 sequence JSON                      |
+|     3 | `feature/segmented-sequence`           | Production `SegmentedSequence`                          | `feature/arena`              | Initial-host sequence JSON                          |
 |    3a | `proof/segmented-sequence-layouts`     | Directory, mapping, reuse, and retention candidates     | `feature/segmented-sequence` | Comparative JSON; selected commits only             |
 |    4a | `proof/hamt-layouts`                   | Fragment, bitmap, collision, ownership candidates       | `feature/arena`              | Comparative JSON; never merged wholesale            |
-|     4 | `feature/hamt`                         | Selected node/flat persistent and transient HAMT        | `feature/segmented-sequence` | M5 Pro and Zen 5 HAMT JSON                          |
-|     5 | `feature/string-interner`              | Arena-backed cascading `StringInterner`                 | `feature/hamt`               | M5 Pro and Zen 5 end-to-end interner JSON           |
+|     4 | `feature/hamt`                         | Selected node/flat persistent and transient HAMT        | `feature/segmented-sequence` | Initial-host HAMT JSON                              |
+|     5 | `feature/string-interner`              | Arena-backed cascading `StringInterner`                 | `feature/hamt`               | Initial-host end-to-end interner JSON               |
 |     6 | `perf/ci-benchmark-collection`         | Optimized CI benchmark artifact collection              | `feature/string-interner`    | CI artifact schema and collection integration tests |
 |     7 | `perf/benchmark-history-and-reporting` | Artifact-store ingestion, comparisons, and chart inputs | previous                     | Fixture history, regression tests, generated charts |
 
@@ -72,9 +77,9 @@ stack unless a measured winner is deliberately implemented or selected into the 
 production branch. Their JSON results remain reviewable evidence.
 
 The production stack may be split further when a reviewable unit becomes too large, but a split
-must preserve this dependency order and must add its own tests, benchmark coverage, and two-machine
-evidence before merge. The active pull-request graph is kept small enough to avoid wasting CI on
-heads made obsolete by a parent update.
+must preserve this dependency order and must add its own tests and applicable benchmark coverage
+before final review. Run stacked CI serially, advancing only after the predecessor is fully green,
+to avoid wasting CI on heads made obsolete by a parent update.
 
 ## Measurement artifact contract
 
@@ -175,8 +180,9 @@ An implementation pull request is not merge-ready until all of the following are
 1. The implementation and user-visible options match the relevant design contract.
 2. Unit, constexpr, bounded-capacity, failure, sanitizer, and documentation tests pass.
 3. Benchmarks cover every representation or option selected by that pull request.
-4. Raw JSON from the M5 Pro and Zen 5 machines is attached or checked in and validates against the
-   shared schema.
+4. Raw JSON from the initial reference host is attached or checked in and validates against the
+   shared schema. Zen 5 comparison is explicitly tracked as follow-up, and single-host decisions
+   are labeled provisional.
 5. The pull-request description identifies the compared commit SHAs and summarizes statistically
    meaningful results without discarding regressions.
 6. The selected implementation is not materially worse on an important workload without a stated,

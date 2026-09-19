@@ -59,6 +59,12 @@ class StringInterner final {
   using size_type = std::size_t;
   using insertion_result = std::variant<std::pair<id_type, bool>, StringInternError>;
 
+  struct LookupTrace final {
+    std::optional<id_type> id;
+    size_type index_queries = 0;
+    std::optional<size_type> parent_depth;
+  };
+
   class iterator final {
    public:
     using value_type = std::string_view;
@@ -182,6 +188,16 @@ class StringInterner final {
 
   size_type first_local_id() const noexcept { return first_local_id_; }
 
+  // Only this node's index. Parent indexes may contain post-cutoff insertions
+  // and must be inspected separately, never summed as visible-string counts.
+  auto local_index_diagnostics() const noexcept
+  requires requires(const Index& index) {
+    { index.structural_diagnostics() } noexcept;
+  }
+  {
+    return index_.structural_diagnostics();
+  }
+
   // Cold-path diagnostics: no counters or allocations on insertion and lookup.
   // Visits exactly the visible prefix, in ID order, including empty strings.
   template<typename Visitor>
@@ -228,6 +244,45 @@ class StringInterner final {
   }
 
   std::optional<id_type> find(std::string_view key) const noexcept { return FindForward(key, size()); }
+
+  // Explicitly instrumented lookup; ordinary find/rfind have no trace counters.
+  LookupTrace trace_find(std::string_view key) const noexcept {
+    LookupTrace trace;
+    const auto search = [&](auto&& self, const StringInterner* owner, size_type limit,
+                            size_type depth) noexcept -> bool {
+      if (owner->parent_ != nullptr && self(self, owner->parent_, std::min(limit, owner->first_local_id_), depth + 1)) {
+        return true;
+      }
+      ++trace.index_queries;
+      trace.id = owner->FindLocal(key, limit);
+      if (trace.id) {
+        trace.parent_depth = depth;
+        return true;
+      }
+      return false;
+    };
+    search(search, this, size(), 0);
+    return trace;
+  }
+
+  LookupTrace trace_rfind(std::string_view key) const noexcept {
+    LookupTrace trace;
+    const auto* owner = this;
+    auto limit = size();
+    size_type depth = 0;
+    while (owner != nullptr) {
+      ++trace.index_queries;
+      trace.id = owner->FindLocal(key, limit);
+      if (trace.id) {
+        trace.parent_depth = depth;
+        return trace;
+      }
+      limit = std::min(limit, owner->first_local_id_);
+      owner = owner->parent_;
+      ++depth;
+    }
+    return trace;
+  }
 
   std::optional<id_type> rfind(std::string_view key) const noexcept {
     const auto* owner = this;

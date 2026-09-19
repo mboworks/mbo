@@ -144,7 +144,7 @@ TEST_F(HamtLookupTest, TraversesTheEntireHashWidthForEverySupportedFragmentSize)
 
 TEST_F(HamtLookupTest, RejectsMalformedTreesDeeperThanTheHashPath) {
   mbo::memory::NewDeleteBlockSource source;
-  Node::index_type empty_index;
+  const Node::index_type empty_index;
   Node* root = Node::TryCreate(source, empty_index, {}, {}).value_or(nullptr);
   ASSERT_THAT(root, NotNull());
   for (std::size_t level = 0; level < HamtHashPath<std::uint64_t, 5>::kLevels; ++level) {

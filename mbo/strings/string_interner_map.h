@@ -34,13 +34,14 @@ concept StringInternerMappedEntries =
 // are immutable through children and obey the same captured cutoff as keys.
 template<typename Mapped, typename Core = StringInterner<>, typename Values = mbo::container::SegmentedSequence<Mapped>>
 requires StringInternerMappedEntries<Values, Mapped>
+// NOLINTBEGIN(readability-identifier-naming): StringInternerMap follows STL container vocabulary.
 class StringInternerMap final {
  public:
   using mapped_type = Mapped;
   using core_type = Core;
-  using id_type = typename Core::id_type;
-  using size_type = typename Core::size_type;
-  using insertion_result = typename Core::insertion_result;
+  using id_type = Core::id_type;
+  using size_type = Core::size_type;
+  using insertion_result = Core::insertion_result;
 
   struct entry_reference final {
     std::string_view key;
@@ -56,7 +57,7 @@ class StringInternerMap final {
   };
 
   struct StorageDiagnostics final {
-    typename Core::StorageDiagnostics interner;
+    Core::StorageDiagnostics interner;
     MappedStorageDiagnostics mapped;
   };
 
@@ -73,8 +74,8 @@ class StringInternerMap final {
     reference operator*() const noexcept(!::mbo::config::kRequireThrows) {
       MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot dereference a singular StringInternerMap iterator");
       MBO_CONFIG_REQUIRE_DEBUG(position_ < owner_->size(), "Cannot dereference a StringInternerMap end iterator");
-      const auto id = id_type::try_from_ordinal(position_).value_or(id_type{});
-      const auto key = current_owner_->core_.get(id).value_or(std::string_view{});
+      const auto identifier = id_type::try_from_ordinal(position_).value_or(id_type{});
+      const auto key = current_owner_->core_.get(identifier).value_or(std::string_view{});
       return {.key = key, .mapped = current_owner_->values_.at(position_ - current_owner_->first_local_id())};
     }
 
@@ -216,22 +217,22 @@ class StringInternerMap final {
 
   std::optional<id_type> rfind(std::string_view key) const noexcept { return core_.rfind(key); }
 
-  std::optional<std::string_view> key(id_type id) const noexcept { return core_.get(id); }
+  std::optional<std::string_view> key(id_type identifier) const noexcept { return core_.get(identifier); }
 
-  const Mapped* mapped(id_type id) const noexcept {
-    if (id.value() >= size()) {
+  const Mapped* mapped(id_type identifier) const noexcept {
+    if (identifier.value() >= size()) {
       return nullptr;
     }
     const auto* owner = this;
-    while (id.value() < owner->first_local_id()) {
+    while (identifier.value() < owner->first_local_id()) {
       owner = owner->parent_;
     }
-    return std::addressof(owner->values_.at(id.value() - owner->first_local_id()));
+    return std::addressof(owner->values_.at(identifier.value() - owner->first_local_id()));
   }
 
-  std::optional<entry_reference> get(id_type id) const noexcept {
-    const auto found_key = key(id);
-    const auto* const found_mapped = mapped(id);
+  std::optional<entry_reference> get(id_type identifier) const noexcept {
+    const auto found_key = key(identifier);
+    const auto* const found_mapped = mapped(identifier);
     if (!found_key || found_mapped == nullptr) {
       return std::nullopt;
     }
@@ -266,6 +267,8 @@ class StringInternerMap final {
   Core core_;
   Values values_;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::strings
 

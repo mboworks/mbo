@@ -216,7 +216,7 @@ TEST_F(StringInternerTest, BoundedIndexExhaustionRollsBackBytesAndPreservesParen
 }
 
 struct ConstantStringHash final {
-  std::uint64_t operator()(std::string_view) const noexcept { return 7; }
+  std::uint64_t operator()(std::string_view /*text*/) const noexcept { return 7; }
 };
 
 TEST_F(StringInternerTest, CollisionBoundExhaustionRollsBackUnpublishedStrings) {
@@ -422,8 +422,8 @@ TEST_F(StringInternerTest, FiniteParentDepthRejectsAnUnboundedCascade) {
       HamtStringIndex<StringId<>>, StringInternerOptions{.maximum_parent_depth = 1}>;
   static_assert(Bounded::max_parent_depth() == 1);
   EXPECT_THAT(Bounded::max_parent_depth(), Eq(1));
-  Bounded root;
-  Bounded child(&root);
+  const Bounded root;
+  const Bounded child(&root);
   EXPECT_DEATH(static_cast<void>(Bounded(&child)), "parent chain exceeds maximum_parent_depth=1");
 }
 

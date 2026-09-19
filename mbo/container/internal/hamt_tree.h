@@ -297,13 +297,15 @@ class HamtTree final {
   [[nodiscard]] HamtMutationResult try_insert(const Entry& entry) noexcept {
     const auto& key = std::invoke(key_of_, entry);
     const hash_type hash = std::invoke(hash_, key);
-    HamtLookupResult<Entry> inspected;
-    if constexpr (
-        Options.maximum_size != std::numeric_limits<std::size_t>::max()
-        || Options.maximum_collision_size != std::numeric_limits<std::size_t>::max()) {
-      inspected =
-          InspectHamtEntry(root_.get(), hash, key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);
-    }
+    const HamtLookupResult<Entry> inspected = [&]() noexcept {
+      if constexpr (
+          Options.maximum_size != std::numeric_limits<std::size_t>::max()
+          || Options.maximum_collision_size != std::numeric_limits<std::size_t>::max()) {
+        return InspectHamtEntry(root_.get(), hash, key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);
+      } else {
+        return HamtLookupResult<Entry>{};
+      }
+    }();
     if constexpr (Options.maximum_size != std::numeric_limits<std::size_t>::max()) {
       if (size_ == max_size() && inspected.entry == nullptr) {
         return {.error = HamtError::kMaxSizeExceeded};

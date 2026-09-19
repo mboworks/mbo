@@ -4,12 +4,16 @@
 #include "mbo/strings/string_interner.h"
 
 #include <array>
+#include <exception>
 #include <memory>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/container/limited_vector.h"
 #include "mbo/hash/hash.h"
+#include "mbo/memory/arena.h"
+#include "mbo/memory/block_source.h"
 
 namespace mbo::strings {
 namespace {
@@ -24,7 +28,165 @@ static_assert(noexcept(*std::declval<StringInterner<>::iterator&>()) == !::mbo::
 static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 
+struct ThrowingDestructionIndex final {
+  using checkpoint_type = std::size_t;
+  using value_type = std::string_view;
+
+  ThrowingDestructionIndex() = default;
+  ThrowingDestructionIndex(const ThrowingDestructionIndex&) = default;
+  ThrowingDestructionIndex& operator=(const ThrowingDestructionIndex&) = default;
+  ThrowingDestructionIndex(ThrowingDestructionIndex&&) = default;
+  ThrowingDestructionIndex& operator=(ThrowingDestructionIndex&&) = default;
+
+  ~ThrowingDestructionIndex() noexcept(false) {}
+
+  std::optional<StringId<>> find(std::string_view) const noexcept { return std::nullopt; }
+
+  std::optional<bool> try_insert(std::string_view, StringId<>) noexcept { return true; }
+
+  std::optional<std::string_view> try_store(std::string_view) noexcept;
+  checkpoint_type checkpoint() const noexcept;
+  void rewind(const checkpoint_type&) noexcept;
+  std::size_t size() const noexcept;
+  std::string_view at(std::size_t) const;
+  bool try_emplace_back(std::string_view) noexcept;
+  void pop_back() noexcept;
+};
+
+static_assert(!StringInternerIndex<ThrowingDestructionIndex, StringId<>>);
+static_assert(!StringInternerStorage<ThrowingDestructionIndex>);
+static_assert(!StringInternerEntries<ThrowingDestructionIndex>);
+static_assert(std::is_nothrow_destructible_v<StringInterner<>>);
+
+struct QueryCountingIndex final {
+  explicit QueryCountingIndex(std::size_t& queries) noexcept : queries(queries) {}
+
+  std::optional<StringId<>> find(std::string_view key) const noexcept {
+    ++queries;
+    return index.find(key);
+  }
+
+  std::optional<bool> try_insert(std::string_view key, StringId<> id) noexcept { return index.try_insert(key, id); }
+
+  std::size_t& queries;
+  HamtStringIndex<> index;
+};
+
+template<bool ParentFirst>
+void CheckConfiguredSearchOrder() {
+  using Inserted = std::pair<StringId<>, bool>;
+  using Interner = StringInterner<
+      std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, QueryCountingIndex,
+      StringInternerOptions{.parent_first = ParentFirst}>;
+  std::size_t root_queries = 0;
+  std::size_t child_queries = 0;
+  Interner root(nullptr, [&]() noexcept { return QueryCountingIndex(root_queries); });
+  EXPECT_THAT(root.intern("root").index(), Eq(0));
+  Interner child(&root, [&]() noexcept { return QueryCountingIndex(child_queries); });
+  EXPECT_THAT(child.intern("child").index(), Eq(0));
+  root_queries = 0;
+  child_queries = 0;
+  EXPECT_THAT(child.intern("child"), VariantWith<Inserted>(Inserted(StringId<>(1), false)));
+  EXPECT_THAT(child_queries, Eq(1));
+  EXPECT_THAT(root_queries, Eq(ParentFirst ? 1 : 0));
+  root_queries = 0;
+  child_queries = 0;
+  EXPECT_THAT(child.intern("root"), VariantWith<Inserted>(Inserted(StringId<>(0), false)));
+  EXPECT_THAT(root_queries, Eq(1));
+  EXPECT_THAT(child_queries, Eq(ParentFirst ? 0 : 1));
+  root_queries = 0;
+  child_queries = 0;
+  EXPECT_THAT(child.intern_parent_first("child").index(), Eq(0));
+  EXPECT_THAT(root_queries, Eq(1));
+  EXPECT_THAT(child_queries, Eq(1));
+  EXPECT_THAT(child.size(), Eq(2));
+}
+
+TEST_F(StringInternerTest, ParentFirstOptionQueriesTheParentBeforeLocalDuplicates) {
+  CheckConfiguredSearchOrder<true>();
+}
+
+TEST_F(StringInternerTest, ChildFirstOptionAvoidsParentQueriesForLocalDuplicates) {
+  CheckConfiguredSearchOrder<false>();
+}
+
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
+
+TEST_F(StringInternerTest, InlineLimitedVectorDescriptorsSupportRecoverableCapacityExhaustion) {
+  using Entries = mbo::container::LimitedVector<std::string_view, 1>;
+  static_assert(StringInternerEntries<Entries>);
+  StringInterner<std::uint32_t, ArenaStringStorage<>, Entries> interner;
+  EXPECT_THAT(interner.try_intern_id("first"), Optional(StringId<>(0)));
+  EXPECT_THAT(interner.try_intern_id("second").has_value(), Eq(false));
+  EXPECT_THAT(interner.try_intern_id("first"), Optional(StringId<>(0)));
+  EXPECT_THAT(interner.size(), Eq(1));
+  EXPECT_THAT(interner.local_character_bytes_used(), Optional(std::size_t{5}));
+  EXPECT_THAT(interner.get(StringId<>(0)), Optional(std::string_view("first")));
+}
+
+TEST_F(StringInternerTest, CallerOwnedBuffersAndInlineDescriptorsSupportBoundedCascades) {
+  using Arena = mbo::memory::Arena<
+      mbo::memory::InlineBlockSource<256>,
+      mbo::memory::ArenaOptions{.initial_block_size = 128, .maximum_block_size = 128}>;
+  using Storage = ArenaStringStorage<Arena>;
+  using Entries = mbo::container::LimitedVector<std::string_view, 1>;
+  using Index = HamtStringIndex<
+      StringId<>, std::hash<std::string_view>, std::equal_to<>, mbo::container::HamtOptions{},
+      mbo::memory::InlineBlockSource<4'096>>;
+  using Interner = StringInterner<std::uint32_t, Storage, Entries, Index>;
+  // Control storage contains the node source itself as well as domain metadata.
+  mbo::memory::InlineBlockSource<8'192> root_control;
+  mbo::memory::InlineBlockSource<8'192> child_control;
+  const auto make_index = [](auto& control) noexcept {
+    auto index = Index::try_create_in(control, std::hash<std::string_view>{}, std::equal_to<>{});
+    if (!index) {
+      std::terminate();
+    }
+    return std::move(*index);
+  };
+  Interner root(
+      nullptr, []() noexcept { return Storage{}; }, []() noexcept { return Entries{}; },
+      [&]() noexcept { return make_index(root_control); });
+  EXPECT_THAT(root.try_intern_id("root"), Optional(StringId<>(0)));
+  Interner child(
+      &root, []() noexcept { return Storage{}; }, []() noexcept { return Entries{}; },
+      [&]() noexcept { return make_index(child_control); });
+  EXPECT_THAT(child.try_intern_id("child"), Optional(StringId<>(1)));
+  EXPECT_THAT(child.try_intern_id("overflow").has_value(), Eq(false));
+  EXPECT_THAT(child.try_intern_id("root"), Optional(StringId<>(0)));
+  EXPECT_THAT(child.try_intern_id("child"), Optional(StringId<>(1)));
+  EXPECT_THAT(child.size(), Eq(2));
+  EXPECT_THAT(child.local_size(), Eq(1));
+  EXPECT_THAT(child.local_character_bytes_used(), Optional(std::size_t{5}));
+  EXPECT_THAT(child.get(StringId<>(0)), Optional(std::string_view("root")));
+  EXPECT_THAT(child.get(StringId<>(1)), Optional(std::string_view("child")));
+}
+
+TEST_F(StringInternerTest, BoundedIndexExhaustionRollsBackBytesAndPreservesParentDuplicates) {
+  using Index = HamtStringIndex<
+      StringId<>, std::hash<std::string_view>, std::equal_to<>, mbo::container::HamtOptions{.maximum_size = 1}>;
+  using Interner =
+      StringInterner<std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, Index>;
+  Interner root;
+  EXPECT_THAT(root.try_intern_id("root"), Optional(StringId<>(0)));
+  Interner child(&root);
+  EXPECT_THAT(child.try_intern_id("local"), Optional(StringId<>(1)));
+  const auto original = child.get(StringId<>(1)).value_or(std::string_view{});
+  const auto* const original_data = original.data();
+  EXPECT_THAT(child.intern("overflow"), VariantWith<StringInternError>(StringInternError::kIndexExhausted));
+  EXPECT_THAT(child.try_intern("overflow").has_value(), Eq(false));
+  EXPECT_THAT(child.try_intern_id("overflow").has_value(), Eq(false));
+  EXPECT_THAT(child.local_character_bytes_used(), Optional(std::size_t{5}));
+  EXPECT_THAT(child.size(), Eq(2));
+  EXPECT_THAT(child.local_size(), Eq(1));
+  EXPECT_THAT(child.local_index_diagnostics().entries, Eq(1));
+  EXPECT_THAT(child.find("overflow").has_value(), Eq(false));
+  EXPECT_THAT(child.try_intern_id("root"), Optional(StringId<>(0)));
+  EXPECT_THAT(child.try_intern_id("local"), Optional(StringId<>(1)));
+  EXPECT_THAT(child.get(StringId<>(1)), Optional(std::string_view("local")));
+  EXPECT_THAT(child.get(StringId<>(1)).value_or(std::string_view{}).data(), Eq(original_data));
+  EXPECT_THAT(original, Eq("local"));
+}
 
 TEST_F(StringInternerTest, LocalIndexDiagnosticsDoNotIncludeParentOrPostCutoffEntries) {
   StringInterner<> root;
@@ -34,10 +196,62 @@ TEST_F(StringInternerTest, LocalIndexDiagnosticsDoNotIncludeParentOrPostCutoffEn
   EXPECT_THAT(child.intern("local").index(), Eq(0));
   EXPECT_THAT(root.local_index_diagnostics().entries, Eq(2));
   EXPECT_THAT(child.local_index_diagnostics().entries, Eq(1));
+  std::size_t index_entries = 0;
+  child.visit_local_index_nodes([&](const auto& node) noexcept { index_entries += node.entries; });
+  EXPECT_THAT(index_entries, Eq(1));
   EXPECT_THAT(child.size(), Eq(2));
   EXPECT_THAT(child.find("late").has_value(), Eq(false));
   EXPECT_THAT(child.find("shared"), Optional(StringId<>(0)));
   EXPECT_THAT(child.find("local"), Optional(StringId<>(1)));
+}
+
+TEST_F(StringInternerTest, EntryStorageDiagnosticsSeparateLiveDescriptorsFromReservedMemory) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("root").index(), Eq(0));
+  StringInterner<> child(&root);
+  const auto empty = child.local_entry_storage_diagnostics();
+  EXPECT_THAT(empty.descriptors, Eq(0));
+  EXPECT_THAT(empty.live_descriptor_bytes, Eq(0));
+  EXPECT_THAT(empty.segment_bytes_reserved, Optional(std::size_t{0}));
+  EXPECT_THAT(child.intern("local").index(), Eq(0));
+  const auto measured = child.local_entry_storage_diagnostics();
+  EXPECT_THAT(measured.descriptors, Eq(1));
+  EXPECT_THAT(measured.live_descriptor_bytes, Eq(sizeof(std::string_view)));
+  ASSERT_THAT(measured.segment_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.segment_bytes_reserved.value() >= measured.live_descriptor_bytes, Eq(true));
+  EXPECT_THAT(measured.lookup_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.segment_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(child.size(), Eq(2));
+}
+
+struct UnmeasuredEntries final {
+  using value_type = std::string_view;
+
+  std::size_t size() const noexcept { return entries.size(); }
+
+  std::string_view at(std::size_t index) const noexcept { return entries.at(index); }
+
+  bool try_emplace_back(std::string_view value) noexcept { return entries.try_emplace_back(value).has_value(); }
+
+  void pop_back() noexcept { entries.pop_back(); }
+
+  mbo::container::SegmentedSequence<std::string_view> entries;
+};
+
+static_assert(StringInternerEntries<UnmeasuredEntries>);
+static_assert(StringInternerEntries<mbo::container::SegmentedSequence<std::string_view>>);
+static_assert(!StringInternerEntries<mbo::container::SegmentedSequence<int>>);
+static_assert(!StringInternerEntries<std::array<std::string_view, 1>>);
+
+TEST_F(StringInternerTest, UnsupportedEntryMemoryStatisticsRemainUnknown) {
+  StringInterner<std::uint32_t, ArenaStringStorage<>, UnmeasuredEntries> interner;
+  EXPECT_THAT(interner.intern("owned").index(), Eq(0));
+  const auto measured = interner.local_entry_storage_diagnostics();
+  EXPECT_THAT(measured.descriptors, Eq(1));
+  EXPECT_THAT(measured.live_descriptor_bytes, Eq(sizeof(std::string_view)));
+  EXPECT_THAT(measured.segment_bytes_reserved.has_value(), Eq(false));
+  EXPECT_THAT(measured.lookup_directory_bytes_reserved.has_value(), Eq(false));
+  EXPECT_THAT(measured.segment_directory_bytes_reserved.has_value(), Eq(false));
 }
 
 TEST_F(StringInternerTest, TracedSearchesReportDirectionDependentQueriesAndRespectCutoffs) {
@@ -295,6 +509,9 @@ TEST_F(StringInternerTest, CharacterAndEntryExhaustionLeavePublishedStringsUncha
   StringInterner<std::uint32_t, EmptyStorage> bounded;
   EXPECT_THAT(bounded.intern("x"), VariantWith<StringInternError>(StringInternError::kCharacterStorageExhausted));
   EXPECT_THAT(bounded.size(), Eq(0));
+  EXPECT_THAT(bounded.try_intern("x").has_value(), Eq(false));
+  EXPECT_THAT(bounded.try_intern_id("x").has_value(), Eq(false));
+  EXPECT_THAT(bounded.size(), Eq(0));
   EXPECT_THAT(bounded.intern("").index(), Eq(0));
   EXPECT_THAT(bounded.get(StringId<>(0)), Optional(std::string_view{}));
   using Entries = mbo::container::SegmentedSequence<
@@ -306,6 +523,10 @@ TEST_F(StringInternerTest, CharacterAndEntryExhaustionLeavePublishedStringsUncha
   EXPECT_THAT(one.size(), Eq(1));
   EXPECT_THAT(original, Eq("first"));
   EXPECT_THAT(one.find("second").has_value(), Eq(false));
+  EXPECT_THAT(one.try_intern("second").has_value(), Eq(false));
+  EXPECT_THAT(one.try_intern_id("second").has_value(), Eq(false));
+  EXPECT_THAT(one.try_intern_id("first"), Optional(StringId<>(0)));
+  EXPECT_THAT(one.size(), Eq(1));
 }
 
 TEST_F(StringInternerTest, EmbeddedNulsAndExistingIteratorsSurviveInputMutationAndAppend) {
@@ -410,9 +631,24 @@ TEST_F(StringInternerTest, EightBitIdsReserveInvalidValueAndFindDuplicatesAfterE
   EXPECT_THAT(interner.size(), Eq(255));
   EXPECT_THAT(interner.get(StringId<std::uint8_t>(254)), Optional(std::string_view("254")));
   EXPECT_THAT(interner.get(StringId<std::uint8_t>{}), Eq(std::nullopt));
+  EXPECT_THAT(interner.try_intern("exhausted").has_value(), Eq(false));
+  EXPECT_THAT(interner.try_intern_id("exhausted").has_value(), Eq(false));
+  EXPECT_THAT(interner.try_intern("0"), Optional(std::pair(StringId<std::uint8_t>(0), false)));
+  EXPECT_THAT(interner.try_intern_id("254"), Optional(StringId<std::uint8_t>(254)));
   EXPECT_THAT(interner.intern("exhausted"), VariantWith<StringInternError>(StringInternError::kIdExhausted));
   EXPECT_THAT(interner.intern("0").index(), Eq(0));
   EXPECT_THAT(interner.size(), Eq(255));
+}
+
+TEST_F(StringInternerTest, OptionalInsertionAdaptersPreserveDenseIdsAndParentDuplicates) {
+  StringInterner<> root;
+  EXPECT_THAT(root.try_intern("root"), Optional(std::pair(StringId<>(0), true)));
+  StringInterner<> child(&root);
+  EXPECT_THAT(child.try_intern("root"), Optional(std::pair(StringId<>(0), false)));
+  EXPECT_THAT(child.try_intern_id("local"), Optional(StringId<>(1)));
+  EXPECT_THAT(child.try_intern("local"), Optional(std::pair(StringId<>(1), false)));
+  EXPECT_THAT(child.size(), Eq(2));
+  EXPECT_THAT(child.local_size(), Eq(1));
 }
 
 TEST_F(StringInternerTest, EmptyDeclaredParentRetainsIdentityWithoutExposingLaterValues) {

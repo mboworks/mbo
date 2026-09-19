@@ -178,6 +178,7 @@ TEST_F(HamtTreeTest, StructuralDiagnosticsMeasureReachableNodesWithoutAllocating
   EXPECT_THAT(empty.nodes, Eq(0));
   EXPECT_THAT(empty.entries, Eq(0));
   EXPECT_THAT(empty.node_allocation_bytes, Eq(0));
+  EXPECT_THAT(empty.entry_allocation_bytes, Eq(0));
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
   EXPECT_THAT(tree.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
   const Tree snapshot = tree;
@@ -185,12 +186,30 @@ TEST_F(HamtTreeTest, StructuralDiagnosticsMeasureReachableNodesWithoutAllocating
   source.remaining = 0;
   const auto measured = snapshot.structural_diagnostics();
   EXPECT_THAT(measured.nodes, Eq(2));
+  EXPECT_THAT(measured.entry_allocation_bytes, Eq(0));
   EXPECT_THAT(measured.entries, Eq(2));
   EXPECT_THAT(measured.maximum_depth, Eq(1));
   EXPECT_THAT(measured.collision_nodes, Eq(0));
   EXPECT_THAT(measured.collision_entries, Eq(0));
   EXPECT_THAT(measured.largest_collision, Eq(0));
   EXPECT_THAT(measured.node_allocation_bytes > 0, IsTrue());
+  EXPECT_THAT(source.acquired, Eq(acquired));
+  std::size_t visited = 0;
+  std::size_t entries = 0;
+  std::size_t children = 0;
+  std::size_t bytes = 0;
+  snapshot.VisitNodeDiagnostics([&](const HamtNodeDiagnostics& node) noexcept {
+    ++visited;
+    entries += node.entries;
+    children += node.children;
+    bytes += node.allocation_bytes;
+    EXPECT_THAT(node.collision, IsFalse());
+    EXPECT_THAT(node.depth <= measured.maximum_depth, IsTrue());
+  });
+  EXPECT_THAT(visited, Eq(measured.nodes));
+  EXPECT_THAT(entries, Eq(measured.entries));
+  EXPECT_THAT(children, Eq(1));
+  EXPECT_THAT(bytes, Eq(measured.node_allocation_bytes));
   EXPECT_THAT(source.acquired, Eq(acquired));
 }
 

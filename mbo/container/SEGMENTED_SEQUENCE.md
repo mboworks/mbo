@@ -10,7 +10,9 @@ fixed-capacity segments. It provides stable element addresses while growing and 
 access without requiring one contiguous allocation. The string interner uses it for dense ID
 metadata, but the container is an independent project deliverable.
 
-Implementation and benchmarks for `SegmentedSequence` precede implementation of the string interner.
+Implement `SegmentedSequence` before the string interner that consumes it. Complete the entire
+implementation stack and its local/CI validation before final comparative benchmarks, charts, and
+configuration recommendations; the initial composition is not a measured winner.
 
 ## Settled requirements
 
@@ -81,6 +83,11 @@ Implementation and benchmarks for `SegmentedSequence` precede implementation of 
   `random_access_iterator`; an options configuration that cannot provide constant-time movement
   and distance is not a supported `SegmentedSequence` configuration.
 - Bounded configurations detect capacity and arithmetic exhaustion before committing an element.
+  The current element block source does not govern the `std::vector` segment/page directories:
+  a fixed source alone is not a no-heap guarantee. Directory allocation failure is recoverable when
+  exceptions are enabled; without them, standard allocator exhaustion terminates. For interner
+  descriptors requiring strictly inline storage, a `LimitedVector<string_view, N>` backend avoids
+  segment and page-directory allocations entirely.
 - `SegmentedSequenceOptions` can select eager release, unbounded retention, or independent retained
   byte-and-count limits. The default is selected only after both reference machines establish a
   useful memory/latency envelope. Retention bookkeeping must remain bounded and must not add an

@@ -11,6 +11,18 @@ counters. Shared nodes count toward each inspected snapshot, not exclusive owner
 allocations, control blocks, and retained free storage are not included in node block bytes.
 As with other tree access, callers must externally synchronize inspection with mutation.
 
+`visit_node_diagnostics(visitor)` emits value records in root-first depth-first order containing
+depth, entry and child occupancy, collision status, and source-reported block bytes. This permits
+caller-owned depth, occupancy and collision-size histograms without storing counters in the tree.
+The callback must be non-throwing and must not mutate the inspected tree. No node handles escape
+through these records. Empty trees emit no records; traversal itself allocates nothing.
+
+`entry_allocation_bytes` additionally counts separately allocated node-value payload blocks,
+including their ownership headers and source-reported spare capacity. Flat inline entries have
+zero separate payload-block bytes. Like node blocks, shared payload blocks are reported for each
+snapshot that reaches them; these figures are not exclusive memory ownership. Arbitrary dynamic
+memory owned internally by user keys or mapped values is not introspected.
+
 Erasing one of two leaf entries now propagates the remaining entry directly through single-child
 ancestors. Singleton compaction therefore needs only the final root allocation, instead of
 allocating and immediately destroying temporary singleton nodes at each level. Exhaustion of that

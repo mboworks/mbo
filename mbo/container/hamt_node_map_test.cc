@@ -4,6 +4,7 @@
 #include "mbo/container/hamt_node_map.h"
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -13,7 +14,13 @@
 namespace mbo::container {
 namespace {
 using ::testing::Eq;
+using ::testing::Gt;
+using ::testing::IsEmpty;
+using ::testing::Ne;
 using ::testing::NotNull;
+using ::testing::Pair;
+using ::testing::SizeIs;
+using ::testing::UnorderedElementsAre;
 using ::testing::VariantWith;
 
 template<typename Map>
@@ -42,7 +49,12 @@ concept SupportsMutablePayloadAccess = requires(Map& map) {
 static_assert(SupportsMutablePayloadAccess<CopyableMap::transient_type>);
 static_assert(!SupportsMutablePayloadAccess<MoveOnlyMap::transient_type>);
 
+enum class DeepMutation { kUpdate, kInsert, kErase };
+
 struct HamtNodeMapTest : ::testing::Test {
+  template<std::size_t Bits, DeepMutation Mutation = DeepMutation::kUpdate>
+  void CheckDeepMutationFailure();
+
   template<std::size_t Bits>
   void CheckFragmentWidth() {
     using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{.fragment_bits = Bits}>;
@@ -173,6 +185,134 @@ struct BudgetSource final {
 
   AllocationBudget* budget;
 };
+
+struct FullWidthIdentityHash final {
+  std::uint64_t operator()(std::uint64_t key) const noexcept { return key; }
+};
+
+template<std::size_t Bits, DeepMutation Mutation>
+void HamtNodeMapTest::CheckDeepMutationFailure() {
+  using Map = HamtNodeMap<
+      std::uint64_t, int, FullWidthIdentityHash, std::equal_to<>, HamtOptions{.fragment_bits = Bits}, BudgetSource>;
+  constexpr auto kHighBit = std::uint64_t{1} << 63;
+  constexpr auto kNewKey = std::uint64_t{1} << 62;
+  constexpr auto kMaxAllocations = 2 * ((std::numeric_limits<std::uint64_t>::digits + Bits - 1) / Bits) + 4;
+  AllocationBudget budget{.remaining = 4 * kMaxAllocations};
+  {
+    auto created = Map::try_create(FullWidthIdentityHash{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto first = created->insert({0, 10});
+    auto second = first.first.insert({kHighBit, 20});
+    const auto& snapshot = second.first;
+    const auto* const original = &snapshot.at(0);
+    const auto* const sibling = &snapshot.at(kHighBit);
+    bool succeeded = false;
+    std::size_t failures = 0;
+    for (std::size_t allowance = 0; allowance <= kMaxAllocations; ++allowance) {
+      SCOPED_TRACE(allowance);
+      budget.remaining = allowance;
+      const auto acquired = budget.acquired;
+      const auto released = budget.released;
+      {
+        auto result = [&]() {
+          if constexpr (Mutation == DeepMutation::kInsert) {
+            return snapshot.try_insert({kNewKey, 30});
+          } else if constexpr (Mutation == DeepMutation::kErase) {
+            return snapshot.try_erase(0);
+          } else {
+            return snapshot.try_update(0, [](int& value) noexcept { value = 99; });
+          }
+        }();
+        if (const auto* updated = std::get_if<std::pair<Map, bool>>(&result); updated != nullptr) {
+          EXPECT_THAT(updated->second, Eq(true));
+          if constexpr (Mutation == DeepMutation::kInsert) {
+            EXPECT_THAT(updated->first.at(0), Eq(10));
+            EXPECT_THAT(&updated->first.at(0), Eq(original));
+            EXPECT_THAT(updated->first.at(kNewKey), Eq(30));
+            EXPECT_THAT(updated->first.size(), Eq(3));
+          } else if constexpr (Mutation == DeepMutation::kErase) {
+            EXPECT_THAT(updated->first.count(0), Eq(0));
+            EXPECT_THAT(updated->first.size(), Eq(1));
+          } else {
+            EXPECT_THAT(updated->first.at(0), Eq(99));
+            EXPECT_THAT(&updated->first.at(0), Ne(original));
+            EXPECT_THAT(updated->first.size(), Eq(2));
+          }
+          EXPECT_THAT(updated->first.at(kHighBit), Eq(20));
+          EXPECT_THAT(&updated->first.at(kHighBit), Eq(sibling));
+          succeeded = true;
+        } else {
+          EXPECT_THAT(result, VariantWith<HamtError>(HamtError::kAllocationExhausted));
+          ++failures;
+        }
+      }
+      EXPECT_THAT(budget.acquired - acquired, Eq(budget.released - released));
+      EXPECT_THAT(snapshot.at(0), Eq(10));
+      EXPECT_THAT(snapshot.at(kHighBit), Eq(20));
+      EXPECT_THAT(snapshot.count(kNewKey), Eq(0));
+      EXPECT_THAT(&snapshot.at(0), Eq(original));
+      EXPECT_THAT(&snapshot.at(kHighBit), Eq(sibling));
+      if (succeeded) {
+        break;
+      }
+    }
+    EXPECT_THAT(succeeded, Eq(true));
+    constexpr auto kMinFailures = Mutation == DeepMutation::kErase ? std::size_t{0} : std::size_t{1};
+    EXPECT_THAT(failures, Gt(kMinFailures));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
+TEST_F(HamtNodeMapTest, FourBitDeepPersistentUpdateRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<4>();
+}
+
+TEST_F(HamtNodeMapTest, FiveBitDeepPersistentUpdateRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<5>();
+}
+
+TEST_F(HamtNodeMapTest, SixBitDeepPersistentUpdateRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<6>();
+}
+
+TEST_F(HamtNodeMapTest, SevenBitDeepPersistentUpdateRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<7>();
+}
+
+TEST_F(HamtNodeMapTest, FourBitDeepPersistentInsertionRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<4, DeepMutation::kInsert>();
+}
+
+TEST_F(HamtNodeMapTest, FiveBitDeepPersistentInsertionRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<5, DeepMutation::kInsert>();
+}
+
+TEST_F(HamtNodeMapTest, SixBitDeepPersistentInsertionRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<6, DeepMutation::kInsert>();
+}
+
+TEST_F(HamtNodeMapTest, SevenBitDeepPersistentInsertionRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<7, DeepMutation::kInsert>();
+}
+
+TEST_F(HamtNodeMapTest, FourBitDeepPersistentErasureRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<4, DeepMutation::kErase>();
+}
+
+TEST_F(HamtNodeMapTest, FiveBitDeepPersistentErasureRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<5, DeepMutation::kErase>();
+}
+
+TEST_F(HamtNodeMapTest, SixBitDeepPersistentErasureRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<6, DeepMutation::kErase>();
+}
+
+TEST_F(HamtNodeMapTest, SevenBitDeepPersistentErasureRollsBackEveryAllocationBoundary) {
+  CheckDeepMutationFailure<7, DeepMutation::kErase>();
+}
 
 TEST_F(HamtNodeMapTest, SnapshotsKeepTheirSourceAliveAfterOriginalContainersDisappear) {
   using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
@@ -312,6 +452,168 @@ TEST_F(HamtNodeMapTest, MutablePreparationFailurePreservesValuesAndMissingLookup
   EXPECT_THAT(budget.acquired, Eq(budget.released));
 }
 
+TEST_F(HamtNodeMapTest, SwappingPreparedAndSharedTransientsPreservesPayloadIsolation) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 20};
+  {
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto inserted = created->insert({42, 99});
+    const auto& snapshot = inserted.first;
+    auto prepared = snapshot.transient();
+    auto result = prepared.try_begin();
+    const auto* const position = std::get_if<Map::transient_type::iterator>(&result);
+    ASSERT_THAT(position, NotNull());
+    auto shared = snapshot.transient();
+    prepared.swap(shared);
+    budget.remaining = 0;
+    EXPECT_THAT(prepared.try_begin(), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    auto private_result = shared.try_find(42);
+    auto* const private_position = std::get_if<Map::transient_type::iterator>(&private_result);
+    ASSERT_THAT(private_position, NotNull());
+    ASSERT_THAT(*private_position, Ne(shared.end()));
+    (*private_position)->second = 100;
+    EXPECT_THAT(snapshot.at(42), Eq(99));
+    EXPECT_THAT(std::as_const(prepared).at(42), Eq(99));
+    EXPECT_THAT(std::as_const(shared).at(42), Eq(100));
+    auto moved = std::move(shared);
+    auto published = std::move(moved).persistent();
+    EXPECT_THAT(moved, IsEmpty());
+    EXPECT_THAT(published.at(42), Eq(100));
+    auto child = published.transient();
+    EXPECT_THAT(child.try_begin(), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    budget.remaining = 20;
+    EXPECT_THAT(moved.insert({7, 8}).second, Eq(true));
+    EXPECT_THAT(std::as_const(moved).at(7), Eq(8));
+    EXPECT_THAT(published.contains(7), Eq(false));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
+TEST_F(HamtNodeMapTest, RecoverableMutableAccessFailuresPreserveBothSharedEntries) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 20};
+  {
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto first = created->insert({42, 99});
+    auto second = first.first.insert({7, 8});
+    const auto& snapshot = second.first;
+    const auto* const first_address = &snapshot.at(42);
+    const auto* const second_address = &snapshot.at(7);
+    auto edit = snapshot.transient();
+    budget.remaining = 0;
+    EXPECT_THAT(edit.try_find(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.try_at(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.try_get_or_insert(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.try_get_or_insert(100), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    const Map::value_type entry(100, 5);
+    EXPECT_THAT(edit.try_insert(entry), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.try_erase(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit, SizeIs(2));
+    EXPECT_THAT(std::as_const(edit).at(42), Eq(99));
+    EXPECT_THAT(std::as_const(edit).at(7), Eq(8));
+    EXPECT_THAT(&std::as_const(edit).at(42), Eq(first_address));
+    EXPECT_THAT(&std::as_const(edit).at(7), Eq(second_address));
+    EXPECT_THAT(snapshot.at(42), Eq(99));
+    EXPECT_THAT(snapshot.at(7), Eq(8));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
+TEST_F(HamtNodeMapTest, MoveAssignmentDoesNotReuseTheReplacedMapsPayloadProof) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 20};
+  {
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto inserted = created->insert({42, 99});
+    const auto& snapshot = inserted.first;
+    auto target = snapshot.transient();
+    auto prepared = target.try_begin();
+    ASSERT_THAT(std::get_if<Map::transient_type::iterator>(&prepared), NotNull());
+    auto shared = snapshot.transient();
+    target = std::move(shared);
+    EXPECT_THAT(shared, IsEmpty());
+    budget.remaining = 0;
+    EXPECT_THAT(target.try_find(42), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(snapshot.at(42), Eq(99));
+    EXPECT_THAT(std::as_const(target).at(42), Eq(99));
+    budget.remaining = 20;
+    auto found = target.try_find(42);
+    auto* const position = std::get_if<Map::transient_type::iterator>(&found);
+    ASSERT_THAT(position, NotNull());
+    ASSERT_THAT(*position, Ne(target.end()));
+    (*position)->second = 100;
+    EXPECT_THAT(snapshot.at(42), Eq(99));
+    EXPECT_THAT(std::as_const(target).at(42), Eq(100));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
+TEST_F(HamtNodeMapTest, EmptyMutableInsertionReportsPayloadAllocationFailure) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget;
+  {
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto edit = created->transient();
+    const Map::value_type entry(100, 5);
+    EXPECT_THAT(edit.try_insert(entry), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.try_get_or_insert(100), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit, IsEmpty());
+    EXPECT_THAT(budget.acquired, Eq(0));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
+TEST_F(HamtNodeMapTest, ConstTransientTraversalAndLookupDoNotDetachSharedPayloads) {
+  using Map = HamtNodeMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
+  AllocationBudget budget{.remaining = 20};
+  {
+    auto created = Map::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
+    if (!created) {
+      FAIL() << "source domain creation failed";
+      return;
+    }
+    auto first = created->insert({42, 99});
+    auto second = first.first.insert({7, 8});
+    const auto& snapshot = second.first;
+    auto edit = snapshot.transient();
+    const auto& read = std::as_const(edit);
+    budget.remaining = 0;
+    const auto acquired = budget.acquired;
+    int sum = 0;
+    for (auto position = edit.cbegin(); position != edit.cend(); ++position) {
+      sum += position->second;
+    }
+    EXPECT_THAT(sum, Eq(107));
+    EXPECT_THAT(read, UnorderedElementsAre(Pair(42, 99), Pair(7, 8)));
+    const auto found = read.find(42);
+    ASSERT_THAT(found, Ne(read.cend()));
+    EXPECT_THAT(found->second, Eq(99));
+    EXPECT_THAT(read.find(100), Eq(read.cend()));
+    EXPECT_THAT(read.contains(42), Eq(true));
+    EXPECT_THAT(read.contains(100), Eq(false));
+    EXPECT_THAT(&read.at(42), Eq(&snapshot.at(42)));
+    EXPECT_THAT(&read.at(7), Eq(&snapshot.at(7)));
+    EXPECT_THAT(budget.acquired, Eq(acquired));
+  }
+  EXPECT_THAT(budget.acquired, Eq(budget.released));
+}
+
 TEST_F(HamtNodeMapTest, HeterogeneousLookupAndEditUseTheStoredKeyWithoutChangingItsType) {
   using Map = HamtNodeMap<int, int>;
   auto inserted = Map{}.insert({42, 99});
@@ -323,6 +625,28 @@ TEST_F(HamtNodeMapTest, HeterogeneousLookupAndEditUseTheStoredKeyWithoutChanging
   found->second = 100;
   EXPECT_THAT(std::as_const(edit).at(short{42}), Eq(100));
   EXPECT_THAT(inserted.first.at(short{42}), Eq(99));
+}
+
+TEST_F(HamtNodeMapTest, ConstTransientLookupAndTraversalSupportMoveOnlyMappedValues) {
+  auto inserted = MoveOnlyMap{}.insert({42, std::make_unique<int>(99)});
+  const auto snapshot = std::move(inserted.first);
+  auto edit = snapshot.transient();
+  const auto& read = std::as_const(edit);
+  const auto found = read.find(short{42});
+  ASSERT_THAT(found, Ne(read.cend()));
+  ASSERT_THAT(found->second, NotNull());
+  EXPECT_THAT(*found->second, Eq(99));
+  EXPECT_THAT(found->second.get(), Eq(snapshot.at(42).get()));
+  EXPECT_THAT(read.find(short{7}), Eq(read.cend()));
+  EXPECT_THAT(read.contains(short{42}), Eq(true));
+  EXPECT_THAT(read.contains(short{7}), Eq(false));
+  EXPECT_THAT(read, SizeIs(1));
+  auto iterator = edit.cbegin();
+  ASSERT_THAT(iterator, Ne(edit.cend()));
+  EXPECT_THAT(iterator->first, Eq(42));
+  EXPECT_THAT(iterator->second.get(), Eq(snapshot.at(42).get()));
+  ++iterator;
+  EXPECT_THAT(iterator, Eq(edit.cend()));
 }
 
 TEST_F(HamtNodeMapTest, PersistentMappedEditDetachesPayloadAndPreservesSnapshot) {

@@ -97,11 +97,21 @@ configuration recommendations; the initial composition is not a measured winner.
 - The implementation is C++20 and supports constant evaluation wherever its selected storage and
   element operations permit it.
 
+Options validation and empty-container construction, observation, and destruction
+are tested during constant evaluation. The current nonempty segment-allocation
+path converts raw byte pointers to typed element pointers; C++20 constant evaluation
+does not permit those conversions. Marking operations `constexpr` does not make
+nonempty allocation through the existing byte block sources constant-evaluable.
+Runtime C++20 support and compile-time option selection are independent of that
+limitation. No C++26 language or library facilities are required by this API.
+
 The proof implementation names the independent compile-time bounds `retained_segment_limit` and
 `retained_byte_limit`. A segment is retained only while both limits permit it. Setting either limit
 to zero selects eager release; setting both to `std::numeric_limits<std::size_t>::max()` selects
-unbounded retention. These names and their eventual defaults remain experimental until Apple M5
-Pro and Zen 5 measurements agree.
+unbounded retention. Initial configuration decisions use the Apple M5 Pro reference
+measurements and remain provisional. AMD Zen 5 measurements are later follow-up,
+not a prerequisite for the initial report; revisit defaults and recommendations
+with those results rather than claiming single-host cross-machine superiority.
 
 Retained segments form an ordered tail, not an unordered spare-block pool. This preserves the STL
 meaning of `capacity()`: every counted slot can accept a future element without another element

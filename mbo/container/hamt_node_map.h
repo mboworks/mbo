@@ -382,7 +382,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   [[nodiscard]] iterator_result try_begin() noexcept
   requires std::is_nothrow_copy_constructible_v<value_type>
   {
-    if (auto error = map_.TryPrepareMutable()) {
+    if (auto error = TryPrepareMutable()) {
       return *error;
     }
     return iterator(std::get<typename Tree::mutable_iterator>(map_.owned_.tree().TryMutableBegin()));
@@ -424,7 +424,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
       return iterator{};
     }
     const Key lookup = payload->get()->first;
-    if (auto error = map_.TryPrepareMutable()) {
+    if (auto error = TryPrepareMutable()) {
       return *error;
     }
     return iterator(std::get<typename Tree::mutable_iterator>(map_.owned_.tree().TryMutableFind(lookup)));
@@ -515,7 +515,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
     }
     // The argument may borrow an entry invalidated by ownership preparation.
     const value_type insertion = entry;
-    const auto preparation = map_.TryPrepareMutable();
+    const auto preparation = TryPrepareMutable();
     if (preparation) {
       return *preparation;
     }
@@ -548,7 +548,10 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
     return HamtNodeMap::RequireValue(try_erase(key));
   }
 
-  void clear() noexcept { map_.owned_.tree().clear(); }
+  void clear() noexcept {
+    map_.owned_.tree().clear();
+    mutable_prepared_ = true;
+  }
 
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
   requires(
@@ -559,7 +562,10 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   [[nodiscard]] HamtNodeMap persistent() && noexcept { return std::move(map_); }
 
-  void swap(transient_type& other) noexcept { map_.swap(other.map_); }
+  void swap(transient_type& other) noexcept {
+    map_.swap(other.map_);
+    std::swap(mutable_prepared_, other.mutable_prepared_);
+  }
 
   friend void swap(transient_type& first, transient_type& second) noexcept { first.swap(second); }
 
@@ -570,7 +576,25 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
     return *mapped;
   }
 
+  std::optional<HamtError> TryPrepareMutable() noexcept
+  requires std::is_nothrow_copy_constructible_v<value_type>
+  {
+    if (mutable_prepared_) {
+      return std::nullopt;
+    }
+    const auto error = map_.TryPrepareMutable();
+    if (!error) {
+      mutable_prepared_ = true;
+    }
+    return error;
+  }
+
   HamtNodeMap map_;
+  // Only this move-only transient can publish its map, through a consuming
+  // conversion. Once every payload is private, mutation cannot introduce a
+  // shared payload: inserted entries create their own ownership record.
+  // A failed partial preparation never establishes this proof.
+  bool mutable_prepared_ = false;
 };
 
 // NOLINTEND(readability-identifier-naming)

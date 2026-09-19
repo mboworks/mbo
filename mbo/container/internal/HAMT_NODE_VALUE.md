@@ -34,6 +34,7 @@ Do not mutate an earlier reference after publishing a snapshot.
 with an acquire load but does not permit concurrent mutation or unsynchronized retain.
 All container and source operations require external synchronization.
 
-Each allocation has its own reference count and domain handle. Their memory and
-execution cost must be measured after the complete implementation; this is not yet
-a benchmark-selected layout. Public node map/set integration remains outstanding.
+Each allocation has its own reference count and domain handle. `HamtNodeMap` and
+`HamtNodeSet` use these payloads for stable addresses and snapshot sharing. Their
+memory and execution cost must still be measured after complete-stack validation;
+this is not yet a benchmark-selected layout.

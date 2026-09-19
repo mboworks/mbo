@@ -91,7 +91,16 @@ class HamtTree final {
   HamtTree(Source& source, Hash hash, KeyOf key_of, Equal equal) noexcept
       : hash_(std::move(hash)), key_of_(std::move(key_of)), equal_(std::move(equal)), root_(source) {}
 
-  HamtTree(const HamtTree&) noexcept = default;
+  HamtTree(const HamtTree& other) noexcept
+      : hash_(other.hash_),
+        key_of_(other.key_of_),
+        equal_(other.equal_),
+        root_(other.root_),
+        size_(other.size_),
+        all_nodes_unique_(false) {
+    // Retaining the root invalidates both trees' prior uniqueness proof.
+    other.all_nodes_unique_ = false;
+  }
 
   HamtTree& operator=(const HamtTree& other) noexcept {
     HamtTree copied(other);
@@ -104,7 +113,8 @@ class HamtTree final {
         key_of_(other.key_of_),
         equal_(other.equal_),
         root_(std::move(other.root_)),
-        size_(std::exchange(other.size_, 0)) {}
+        size_(std::exchange(other.size_, 0)),
+        all_nodes_unique_(std::exchange(other.all_nodes_unique_, true)) {}
 
   HamtTree& operator=(HamtTree&& other) noexcept {
     HamtTree moved(std::move(other));
@@ -191,7 +201,8 @@ class HamtTree final {
   static iterator end() noexcept { return {}; }
 
   [[nodiscard]] std::optional<HamtError> TryMakeUnique() noexcept {
-    if (AllUnique(root_.get())) {
+    if (all_nodes_unique_ || AllUnique(root_.get())) {
+      all_nodes_unique_ = true;
       return std::nullopt;
     }
     const auto cloned = TryCloneHamtTree(root_.source(), root_.get());
@@ -199,6 +210,7 @@ class HamtTree final {
       return HamtError::kAllocationExhausted;
     }
     root_.reset(*cloned);
+    all_nodes_unique_ = true;
     return std::nullopt;
   }
 
@@ -236,7 +248,8 @@ class HamtTree final {
       return mutable_iterator{};
     }
     const hash_type hash = std::invoke(hash_, key);
-    if (AllUnique(root_.get())) {
+    if (all_nodes_unique_ || AllUnique(root_.get())) {
+      all_nodes_unique_ = true;
       Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, original);
       return mutable_iterator::At(root_.get(), hash, found, this);
     }
@@ -355,6 +368,7 @@ class HamtTree final {
   void clear() noexcept {
     root_.reset();
     size_ = 0;
+    all_nodes_unique_ = true;
   }
 
   void swap(HamtTree& other) noexcept {
@@ -364,6 +378,7 @@ class HamtTree final {
     swap(equal_, other.equal_);
     root_.swap(other.root_);
     swap(size_, other.size_);
+    swap(all_nodes_unique_, other.all_nodes_unique_);
   }
 
   friend void swap(HamtTree& lhs, HamtTree& rhs) noexcept { lhs.swap(rhs); }
@@ -379,6 +394,7 @@ class HamtTree final {
     HamtTree tree(source, std::move(hash), std::move(key_of), std::move(equal));
     tree.root_.reset(owned);
     tree.size_ = count;
+    tree.all_nodes_unique_ = false;
     return tree;
   }
 
@@ -416,6 +432,11 @@ class HamtTree final {
   [[no_unique_address]] Equal equal_;
   HamtRootOwner<Options.fragment_bits, Entry, Source> root_;
   std::size_t size_ = 0;
+  // A successful whole-tree proof remains valid across mutations: new nodes
+  // are private and superseded roots are released before returning. Copies
+  // invalidate both proofs; adoption starts unknown. External synchronization
+  // includes snapshot copying, which updates this logically const cache.
+  mutable bool all_nodes_unique_ = true;
 };
 
 // NOLINTEND(readability-identifier-naming)

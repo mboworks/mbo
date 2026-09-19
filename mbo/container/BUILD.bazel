@@ -752,6 +752,23 @@ cc_test(
 )
 
 cc_binary(
+    name = "hamt_map_benchmark",
+    testonly = 1,
+    srcs = ["hamt_map_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":hamt_flat_map_cc",
+        ":hamt_node_map_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
     name = "segmented_sequence_benchmark",
     testonly = 1,
     srcs = ["segmented_sequence_benchmark.cc"],

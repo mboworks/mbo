@@ -69,9 +69,9 @@ destruction order preserves borrowed character lifetimes.
 
 The implementation provides on-demand diagnostics, stateful and injected backend construction,
 and extended bounded-failure tests. Full-stack CI, complete instrumentation and memory accounting,
-and benchmark-selected performance tuning remain outstanding. Forward lookup recurses through
-ancestors, while reverse lookup iterates. These are initial algorithms, not benchmark-selected
-strategies.
+and benchmark-selected performance tuning remain outstanding. Forward lookup
+recurses through ancestors, while reverse lookup iterates. These are initial
+algorithms, not benchmark-selected strategies.
 
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false

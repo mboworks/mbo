@@ -127,6 +127,19 @@ class BenchmarkReportTest(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 subject.summarize(self.data, operations_per_iteration=value)
 
+    def test_long_chart_names_wrap_without_losing_characters(self):
+        report = subject.summarize(self.data)
+        name = "StringInterner/" + "x" * 230 + "/<end>"
+        report["benchmarks"][0]["name"] = name
+        import xml.etree.ElementTree as element_tree
+        root = element_tree.fromstring(subject.render_svg(report, title="Long names", names=[name]))
+        namespace = {"svg": "http://www.w3.org/2000/svg"}
+        texts = root.findall("svg:g/svg:text", namespace)
+        label_lines = [text.text for text in texts if text.attrib["x"] == "16"]
+        self.assertEqual("".join(label_lines), name)
+        self.assertTrue(all(len(line) <= 80 for line in label_lines))
+        self.assertGreater(int(root.attrib["height"]), 204)
+
     def test_svg_is_escaped_and_selection_is_explicit(self):
         report = subject.summarize(self.data)
         svg = subject.render_svg(report, title="Compare <CPU>", names=["Example"])

@@ -146,14 +146,16 @@ bool Populate(benchmark::State& state, Interner<Index>& interner, std::span<cons
 template<typename Index>
 bool PopulateMap(benchmark::State& state, InternerMap<Index>& interner, std::span<const std::string> inputs) {
   const auto initial_size = interner.size();
-  for (std::size_t ordinal = 0; ordinal < inputs.size(); ++ordinal) {
-    const auto inserted = interner.try_emplace(inputs[ordinal], static_cast<std::uint64_t>(initial_size + ordinal));
+  std::size_t ordinal = 0;
+  for (const auto& input : inputs) {
+    const auto inserted = interner.try_emplace(input, static_cast<std::uint64_t>(initial_size + ordinal));
     using Insertion = std::pair<typename InternerMap<Index>::id_type, bool>;
     const auto* const result = std::get_if<Insertion>(&inserted);
     if (result == nullptr || !result->second || result->first.value() != initial_size + ordinal) {
       state.SkipWithError("map setup exhausted storage or did not assign the expected dense ID");
       return false;
     }
+    ++ordinal;
   }
   return true;
 }
@@ -185,18 +187,20 @@ void BmMapFindMapped(benchmark::State& state) {
   if (!PopulateMap<Index>(state, interner, inputs)) {
     return;
   }
-  for (std::size_t ordinal = 0; ordinal < inputs.size(); ++ordinal) {
-    const auto id = interner.find(inputs[ordinal]);
-    if (!id || interner.mapped(*id) == nullptr || *interner.mapped(*id) != ordinal) {
+  std::size_t ordinal = 0;
+  for (const auto& input : inputs) {
+    const auto found_id = interner.find(input);
+    if (!found_id || interner.mapped(*found_id) == nullptr || *interner.mapped(*found_id) != ordinal) {
       state.SkipWithError("map lookup preflight disagrees with the inserted mapped value");
       return;
     }
+    ++ordinal;
   }
   for (auto iteration : state) {
     (void)iteration;
     for (const auto& text : inputs) {
-      const auto id = interner.find(text);
-      const auto* const mapped = id ? interner.mapped(*id) : nullptr;
+      const auto found_id = interner.find(text);
+      const auto* const mapped = found_id ? interner.mapped(*found_id) : nullptr;
       benchmark::DoNotOptimize(mapped == nullptr ? std::uint64_t{} : *mapped);
     }
   }
@@ -213,8 +217,10 @@ void BmMapIterate(benchmark::State& state) {
     return;
   }
   std::uint64_t expected = 0;
-  for (std::size_t ordinal = 0; ordinal < count; ++ordinal) {
-    expected += ordinal + inputs[ordinal].size();
+  std::size_t ordinal = 0;
+  for (const auto& input : inputs) {
+    expected += ordinal + input.size();
+    ++ordinal;
   }
   for (auto iteration : state) {
     (void)iteration;
@@ -833,7 +839,7 @@ template<typename Index, int HashBits = 64>
 void RegisterMapIndex(std::string_view name) {
   const auto add = [&](std::string_view operation, auto function) {
     const auto label = absl::StrCat("StringInternerMap/", name, "/", operation);
-    auto* registered = benchmark::RegisterBenchmark(label.c_str(), function);
+    auto* registered = benchmark::RegisterBenchmark(label, function);
     for (const auto count : std::to_array<std::int64_t>({64, 1'024})) {
       for (const auto length : std::to_array<std::int64_t>({16, 64, 512})) {
         for (const auto nul_mode : std::to_array<std::int64_t>({0, 1})) {

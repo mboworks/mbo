@@ -530,6 +530,14 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+`HamtNodeStringIndex` selects node-owned index payloads while reusing the flat index adapter's
+lookup, duplicate, failure, and source-configuration implementation. The payload owns a string-view
+descriptor and ID, not the characters; string storage must still outlive the index and its snapshots.
+Both aliases implement the same interner contract. Node allocation adds a separate payload cost,
+whereas flat storage keeps entries in topology blocks. Neither is declared the faster interner
+configuration before representative workload measurements; the adapter exposes no native iterator
+or payload reference, so callers cannot depend on internal node pointer stability.
+
 Insertion rewinds its character-storage checkpoint on every recoverable downstream failure,
 including a character backend returning failure after making an uncommitted allocation. Backends
 need not implement their own allocation rollback, but must leave the checkpoint valid and preserve

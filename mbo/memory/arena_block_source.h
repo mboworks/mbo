@@ -20,7 +20,7 @@ namespace mbo::memory {
 
 struct ArenaBlockSourceOptions final {
   std::size_t minimum_block_size = 32;
-  std::size_t maximum_block_size = 64 * 1'024;
+  std::size_t maximum_block_size = std::size_t{64} * 1'024;
   std::size_t maximum_alignment = alignof(std::max_align_t);
 
   constexpr bool IsValid() const noexcept {
@@ -42,6 +42,9 @@ concept RecoverableArena = requires(ArenaType& arena, std::size_t size, std::siz
 // Adapts a caller-owned arena to multi-block users such as HAMT nodes. Released
 // power-of-two blocks are retained in exact-size free lists, making rollback
 // reusable instead of permanently consuming monotonic arena capacity.
+// NOLINTBEGIN(readability-identifier-naming): BlockSource vocabulary.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access):
+// ClassFor proves every free-list index is in range without adding hot-path checks.
 template<RecoverableArena ArenaType, ArenaBlockSourceOptions Options = {}>
 requires ValidArenaBlockSourceOptions<Options>
 class ArenaBlockSource final {
@@ -118,6 +121,9 @@ class ArenaBlockSource final {
   ArenaType* arena_;
   std::array<FreeBlock*, kClassCount> free_{};
 };
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+// NOLINTEND(readability-identifier-naming)
 
 static_assert(BlockSource<ArenaBlockSource<Arena<>>>);
 

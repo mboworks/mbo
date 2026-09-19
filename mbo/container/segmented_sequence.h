@@ -71,10 +71,12 @@ class SegmentedSequence final {
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
   static constexpr std::size_t kDirectoryPageSize = 64;
   static constexpr bool kUsePageDirectory = Options.repeat_last && [] {
-    for (std::size_t pos = 0; pos < Options.listed_capacities; ++pos) {
+    std::size_t pos = 0;
+    while (pos < Options.listed_capacities) {
       if (Options.segment_capacities[pos] % kDirectoryPageSize != 0) {
         return false;
       }
+      ++pos;
     }
     return true;
   }();
@@ -87,8 +89,10 @@ class SegmentedSequence final {
     std::size_t cumulative_bytes = 0;
   };
 
-  using SegmentDirectory = std::
-      conditional_t<Options.repeat_last, std::vector<Segment>, LimitedVector<Segment, Options.kMaxListedCapacities>>;
+  using SegmentDirectory = std::conditional_t<
+      Options.repeat_last,
+      std::vector<Segment>,
+      LimitedVector<Segment, SegmentedSequenceOptions::kMaxListedCapacities>>;
 
   template<bool IsConst>
   class Iterator final {

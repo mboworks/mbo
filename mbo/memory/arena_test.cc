@@ -186,7 +186,7 @@ struct InvalidResponseSource final {
 
   void Release(MemoryBlock /*block*/) noexcept { ++release_count; }
 
-  alignas(64) std::array<std::byte, 2'048> storage{};
+  std::span<std::byte> storage;
   std::size_t release_count = 0;
   Response response = Response::kUnavailable;
 };
@@ -414,6 +414,7 @@ TEST_F(ArenaTest, InvalidSourceResponseIsReleasedWithoutMutation) {
 }
 
 TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
+  alignas(64) std::array<std::byte, 2'048> storage{};
   constexpr std::array kResponses{
       InvalidResponseSource::Response::kUnavailable,
       InvalidResponseSource::Response::kNullData,
@@ -421,8 +422,7 @@ TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
       InvalidResponseSource::Response::kMisalignedData,
   };
   for (const auto response : kResponses) {
-    InvalidResponseSource source;
-    source.response = response;
+    InvalidResponseSource source{.storage = storage, .response = response};
     Arena<InvalidResponseSource, kSmallArenaOptions> arena(source);
 
     EXPECT_THAT(arena.TryAllocate(80, 16), IsNull());

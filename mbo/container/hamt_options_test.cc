@@ -37,6 +37,7 @@ TEST_F(HamtOptionsTest, RejectsAZeroMaximumSize) {
 
 static_assert(ValidHamtOptions<HamtOptions{}>);
 static_assert(!ValidHamtOptions<HamtOptions{.fragment_bits = 3}>);
+static_assert(!ValidHamtOptions<HamtOptions{.maximum_collision_size = 0}>);
 
 }  // namespace
 }  // namespace mbo::container

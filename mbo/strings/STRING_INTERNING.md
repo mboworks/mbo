@@ -1,8 +1,9 @@
 # String interning design
 
-This document records the design of an owning string interner for `mbo::strings`. It is a design
-document, not yet an API contract. Settled decisions are separated from questions so experiments
-can change the implementation without obscuring the required semantics.
+This document records the design and implemented semantic contract of the owning string interner
+for `mbo::strings`. The public headers remain authoritative for exact signatures. Performance
+choices that still require measurements are identified separately so experiments can change the
+representation without weakening the required semantics.
 
 ## Goals
 
@@ -34,6 +35,79 @@ Allocator and PMR sources permit recoverable general use where their failure con
 The default new-delete source provides unrestricted convenience growth. These are distinct storage
 envelopes, and a fixed single-live-block source alone does not prove that multi-node index updates
 are bounded. External synchronization remains required.
+
+The implementation is not complete merely when the default composition works. One shared core must
+support set semantics (string identity and dense ID only) and map semantics (an immutable string key
+plus a mapped object) without imposing mapped-value size or work on the set specialization. Mapped
+objects and string descriptors live in append-only segmented storage; the lookup index contains only
+the key material and handle needed to reach them. Consequently, character pointers, descriptors,
+mapped-object addresses, and dense IDs remain stable across successful insertion. A duplicate found
+in any visible ancestor preserves both its ID and mapped value.
+
+Three allocation envelopes are required and must be named and tested independently:
+
+| Envelope                 | Backing storage                         | Operation contract                                             |
+| ------------------------ | --------------------------------------- | -------------------------------------------------------------- |
+| Provisioned real-time    | Caller-owned fixed buffers and/or arena | No general allocator call; deterministic, non-destructive fail |
+| Recoverable general use  | Guarded allocator or PMR adapter        | Allocation allowed; exhaustion returned by `try_*`             |
+| Unrestricted convenience | Ordinary allocator/new-delete source    | Growth allowed under the documented fail-fast convenience API  |
+
+“Allocation-free” in the provisioned envelope means an operation performs no call to a general
+allocator after storage is provisioned. A successful insertion necessarily consumes character,
+descriptor, and index capacity. Every one of those budgets must be bounded and independently
+diagnosable. An arena-backed HAMT source must support multiple live nodes; the single-live-block
+`FixedBlockSource` alone is not such a proof. Failed multi-node mutations must either rewind their
+arena transaction or return released blocks to a bounded reusable pool, so failure cannot silently
+consume the remaining real-time budget.
+
+Complexity claims separate unavoidable string work from container work. Hashing and equality are
+linear in the bytes inspected. Given a fixed-width hash, HAMT routing has a fixed maximum number of
+levels. A provisioned real-time configuration must additionally bound full-hash collision work and
+the visible parent depth; an arbitrary collision bucket or parent chain is not worst-case O(1).
+Dense ID lookup is O(1) within an interner node. Whole-chain forward iteration must retain its
+current ancestor/segment position so increment remains O(1) amortized instead of resolving every ID
+from the leaf repeatedly.
+
+The iterator caches the current owning interner and its captured visible limit. Dereference therefore
+uses the owning descriptor sequence directly, and increment or decrement resolves the parent chain
+only when crossing an interner boundary. A finite visible-parent-depth contract is still required for
+a strict worst-case O(1) boundary crossing; unrestricted parent chains intentionally retain their
+general snapshot semantics instead of making a false real-time guarantee.
+
+The baseline API continues to require external synchronization. A separately selected concurrent
+profile may publish immutable HAMT roots and completed segmented entries to lock-free readers.
+Construction must precede release-publication of the visible size/root, directories read by those
+readers must remain immutable or use an explicit publication scheme, and reclamation must be
+deferred until no reader can observe the old snapshot. Lock-free lookup does not imply wait-free
+snapshot copying: retrying atomic reference acquisition and general reclamation are outside the
+hard-real-time hot path unless a measured, bounded strategy proves otherwise.
+
+The implementation sequence is checked against the final contract explicitly:
+
+| Requirement                         | Implementation surface                                      | Remaining acceptance work                                      |
+| ----------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
+| Set semantics                       | `StringInterner`                                            | End-to-end configuration benchmarks                            |
+| Map semantics without set overhead  | `StringInternerMap`, parallel values, cascading iteration   | End-to-end API workload benchmarks                             |
+| Stable strings and mapped addresses | `ArenaStringStorage` plus `SegmentedSequence`               | Compare descriptor and inline-record layouts                   |
+| Average O(1) identity lookup        | Configurable flat or node HAMT string index                 | Select benchmark-backed defaults                               |
+| No general allocation after setup   | Finite sequence metadata, arena bytes, `ArenaBlockSource`   | Publish named provisioned profiles and whole-system budgets    |
+| Recoverable exhaustion              | Transactional storage rollback and `try_*` index operations | Sweep combined character, descriptor, mapped, and index limits |
+| Bounded HAMT routing                | Fixed-width hash path and `maximum_collision_size`          | Benchmark useful collision limits                              |
+| Bounded cascade work                | `maximum_parent_depth`, captured cutoffs, cached ownership  | Benchmark useful finite depths                                 |
+| Lock-free reads of held snapshots   | Immutable persistent HAMT nodes                             | Root publication and reclamation profile                       |
+| Pointer-stable forward storage      | Append-only segmented sequences                             | Concurrent release-publication profile                         |
+| Cold diagnostics                    | Unified local storage report plus detailed visitors         | Cross-chain and workload-level reporting                       |
+
+The entries in the last column are requirements, not optional polish. In particular, immutable HAMT
+lookup alone is not a claim that the mutable interner is concurrently usable, and arena backing alone
+is not proof that a complete insertion is allocation-free.
+
+`StringInternerOptions::maximum_parent_depth` defaults to unrestricted compatibility. A finite value
+is a hard topology precondition checked when a child is constructed; roots have depth zero. Violating
+it terminates with a diagnostic because it is a configuration/programming error, not recoverable
+storage exhaustion. With a finite value, every parent walk and cached-iterator boundary transition
+has a compile-time upper bound without adding a depth field or branch to ordinary lookup loops.
+
 
 ## Core model
 
@@ -77,9 +151,24 @@ starting ID does not imply a null parent. Index/storage member destruction order
 preserves borrowed character lifetimes.
 
 The implementation provides on-demand diagnostics, stateful and injected backend construction,
-and extended bounded-failure tests. Complete memory accounting and benchmark-selected performance
-tuning remain outstanding. Forward lookup recurses through ancestors, while reverse lookup iterates.
-These are initial algorithms, not benchmark-selected strategies.
+and extended bounded-failure tests. Diagnostics cover string-size visits, directed lookup traces,
+local character and descriptor accounting, and supporting-index structure visits without adding
+counters to ordinary operations. Serial validation of the implementation stack and
+benchmark-selected performance tuning remain outstanding. Forward lookup recurses through
+ancestors, while reverse lookup iterates. These are initial algorithms, not benchmark-selected
+strategies.
+
+[`StringInternerMap<Mapped, Core, Values>`](string_interner_map.h) composes the set-like core with a
+parallel dense mapped-value sequence instead of duplicating string ownership, lookup, or cascade
+logic. Its default `Values` backend is `SegmentedSequence<Mapped>`; compatible bounded backends are
+accepted through the same append/pop contract. `try_emplace` checks the visible key first, appends a
+mapped object only for a new string, and removes that uncommitted object if character, descriptor, or
+index insertion fails. Mapped-storage exhaustion reports `kMappedStorageExhausted` and never
+publishes the string. A child exposes inherited mapped objects as const and preserves the captured
+parent cutoff. String bytes and mapped-object addresses remain stable across successful append.
+`local_mapped_storage_diagnostics()` reports local object count, live payload bytes, and supported
+segment/directory reservations. `string_interner()` exposes the const core for character,
+descriptor, and index diagnostics without duplicating those interfaces.
 
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false
@@ -587,6 +676,16 @@ totals.
 `StringInterner::local_index_diagnostics()` forwards this node's index diagnostics when its backend
 provides a nonthrowing `structural_diagnostics()` method. It excludes ancestor indexes; inspect
 those explicitly through `parent()`. Unsupported backends do not expose this method.
+
+`StringInterner::local_storage_diagnostics()` combines this node's character, descriptor, directory,
+index-byte, occupancy, collision, and depth accounting in one cold report.
+`StringInternerMap::local_storage_diagnostics()` adds the parallel mapped-object storage report. Every
+field remains local: inherited strings and shared ancestor indexes are deliberately excluded, and
+unsupported backend figures remain `nullopt`.
+This makes a fully provisioned configuration's independent budgets inspectable together without
+adding counters, branches, locks, or atomics to insertion and lookup. Cross-chain aggregation,
+histograms, lookup traces, and per-bucket collision analysis remain explicit visitor/workload operations
+because summing shared snapshots could otherwise double-count memory.
 
 ## Language baseline
 

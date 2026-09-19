@@ -30,7 +30,12 @@ equality includes container identity even when snapshots share their entire root
 Mutation invalidates the mutated container's iterators; unchanged snapshots retain
 their values and iterators. External synchronization is required.
 
-The owned domain adds one nothrow global allocation even for an inline block source.
+The ordinary owned-domain factory adds one nothrow global allocation even for an inline block
+source. `TryCreateIn(control_source, hash, equal, source_args...)` instead constructs that domain in
+caller-provided block storage. The control source and every resource borrowed by the node source
+must outlive the set and all snapshots sharing its domain. This makes a fully caller-provisioned
+configuration possible when both sources report recoverable exhaustion; control-domain and node
+budgets remain independent.
 `try_clone_to<OtherSource>(source_constructor_args...)` returns an optional set of
 the destination-source specialization, owning independently copied nodes and its
 new source domain. It preserves hash/equality state. The const-lvalue overload
@@ -41,7 +46,11 @@ requires its own lifetime guarantee.
 The transient's rvalue clone overload returns a persistent destination set and
 also preserves the transient on failure.
 
-Caller-provided allocation-free domain storage is not implemented yet. Structural
-transient operations currently use the persistent path-copying primitives; unique
-in-place structural mutation, node storage variants, flat maps, benchmarks, and
-the final performance-backed result/API decisions remain outstanding.
+Transient structural operations reuse uniquely owned nodes where the representation permits and
+fall back to persistent path copying for shared paths. Separate node set/map variants provide
+stable payload addresses, while flat variants keep payloads inside packed topology blocks. An
+`ArenaBlockSource` can supply multiple simultaneously live node blocks from a caller-owned arena
+and recycle blocks released during failed mutations, so repeated bounded failure does not silently
+consume the provisioned budget. The container still requires external synchronization; immutable
+snapshots and atomic node reference counts do not by themselves publish roots or reclaim snapshots
+for concurrent readers. Benchmarks and final performance-backed defaults remain outstanding.

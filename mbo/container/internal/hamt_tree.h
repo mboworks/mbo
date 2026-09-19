@@ -296,12 +296,27 @@ class HamtTree final {
 
   [[nodiscard]] HamtMutationResult try_insert(const Entry& entry) noexcept {
     const auto& key = std::invoke(key_of_, entry);
-    if (size_ == max_size() && Find(key) == nullptr) {
-      return {.error = HamtError::kMaxSizeExceeded};
+    const hash_type hash = std::invoke(hash_, key);
+    HamtLookupResult<Entry> inspected;
+    if constexpr (
+        Options.maximum_size != std::numeric_limits<std::size_t>::max()
+        || Options.maximum_collision_size != std::numeric_limits<std::size_t>::max()) {
+      inspected =
+          InspectHamtEntry(root_.get(), hash, key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);
+    }
+    if constexpr (Options.maximum_size != std::numeric_limits<std::size_t>::max()) {
+      if (size_ == max_size() && inspected.entry == nullptr) {
+        return {.error = HamtError::kMaxSizeExceeded};
+      }
+    }
+    if constexpr (Options.maximum_collision_size != std::numeric_limits<std::size_t>::max()) {
+      if (inspected.entry == nullptr && inspected.full_hash_entries >= Options.maximum_collision_size) {
+        return {.error = HamtError::kCollisionLimitExceeded};
+      }
     }
     const auto inserted = TryInsertHamtEntry(
-        root_.source(), root_.get(), std::invoke(hash_, key), key, entry, EntryHash{.hash = hash_, .key_of = key_of_},
-        key_of_, equal_, true);
+        root_.source(), root_.get(), hash, key, entry, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_,
+        true);
     if (!inserted) {
       return {.error = HamtError::kAllocationExhausted};
     }

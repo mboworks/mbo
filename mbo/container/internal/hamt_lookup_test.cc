@@ -68,6 +68,12 @@ TEST_F(HamtLookupTest, BorrowsCallableStateAndRejectsHashesBeforeKeyExtraction) 
   ASSERT_THAT(found, NotNull());
   EXPECT_THAT(found->key, Eq(21));
   EXPECT_THAT(calls, Eq(2));
+  const auto absent = InspectHamtEntry(node, std::uint64_t{2}, 22, HashOf{}, key_of, Equal{});
+  EXPECT_THAT(absent.entry, Eq(nullptr));
+  EXPECT_THAT(absent.full_hash_entries, Eq(2));
+  const auto different_hash = InspectHamtEntry(node, std::uint64_t{34}, 21, HashOf{}, key_of, Equal{});
+  EXPECT_THAT(different_hash.entry, Eq(nullptr));
+  EXPECT_THAT(different_hash.full_hash_entries, Eq(0));
   Node::Release(source, node);
 }
 

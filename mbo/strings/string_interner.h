@@ -26,9 +26,16 @@ namespace mbo::strings {
 
 struct StringInternerOptions final {
   bool parent_first = true;
+  std::size_t maximum_parent_depth = std::numeric_limits<std::size_t>::max();
 };
 
-enum class StringInternError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
+enum class StringInternError {
+  kIdExhausted,
+  kCharacterStorageExhausted,
+  kEntryStorageExhausted,
+  kIndexExhausted,
+  kMappedStorageExhausted,
+};
 
 template<typename Index, typename Id>
 concept StringInternerIndex = std::is_nothrow_destructible_v<Index>
@@ -95,6 +102,26 @@ class StringInterner final {
     std::optional<size_type> segment_directory_bytes_reserved;
   };
 
+  // One local interner node. Optional byte counts remain unknown when a
+  // configured backend does not expose the corresponding cold diagnostic.
+  struct StorageDiagnostics final {
+    size_type string_count = 0;
+    std::optional<size_type> character_bytes_used;
+    std::optional<size_type> character_bytes_reserved;
+    size_type live_descriptor_bytes = 0;
+    std::optional<size_type> descriptor_segment_bytes_reserved;
+    std::optional<size_type> descriptor_lookup_directory_bytes_reserved;
+    std::optional<size_type> descriptor_segment_directory_bytes_reserved;
+    std::optional<size_type> index_nodes;
+    std::optional<size_type> index_entries;
+    std::optional<size_type> index_collision_nodes;
+    std::optional<size_type> index_collision_entries;
+    std::optional<size_type> index_largest_collision;
+    std::optional<size_type> index_maximum_depth;
+    std::optional<size_type> index_node_bytes;
+    std::optional<size_type> index_entry_bytes;
+  };
+
   class iterator final {
    public:
     using value_type = std::string_view;
@@ -107,13 +134,16 @@ class StringInterner final {
     reference operator*() const noexcept(!::mbo::config::kRequireThrows) {
       MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot dereference a singular StringInterner iterator");
       MBO_CONFIG_REQUIRE_DEBUG(position_ < owner_->size(), "Cannot dereference a StringInterner end iterator");
-      return owner_->get(id_type(static_cast<Representation>(position_))).value_or(std::string_view{});
+      return current_owner_->entries_.at(position_ - current_owner_->first_local_id_);
     }
 
     iterator& operator++() noexcept(!::mbo::config::kRequireThrows) {
       MBO_CONFIG_REQUIRE_DEBUG(owner_ != nullptr, "Cannot increment a singular StringInterner iterator");
       MBO_CONFIG_REQUIRE_DEBUG(position_ < owner_->size(), "Cannot increment a StringInterner end iterator");
       ++position_;
+      if (position_ < owner_->size() && position_ >= current_limit_) {
+        Resolve();
+      }
       return *this;
     }
 
@@ -128,6 +158,9 @@ class StringInterner final {
       MBO_CONFIG_REQUIRE_DEBUG(position_ > 0, "Cannot decrement a StringInterner begin iterator");
       MBO_CONFIG_REQUIRE_DEBUG(position_ <= owner_->size(), "StringInterner iterator is out of range");
       --position_;
+      if (position_ < current_owner_->first_local_id_) {
+        Resolve();
+      }
       return *this;
     }
 
@@ -137,15 +170,34 @@ class StringInterner final {
       return before;
     }
 
-    friend bool operator==(const iterator&, const iterator&) noexcept = default;
+    friend bool operator==(const iterator& lhs, const iterator& rhs) noexcept {
+      return lhs.owner_ == rhs.owner_ && lhs.position_ == rhs.position_;
+    }
 
    private:
     friend class StringInterner;
 
-    iterator(const StringInterner* owner, size_type position) noexcept : owner_(owner), position_(position) {}
+    iterator(const StringInterner* owner, size_type position) noexcept : owner_(owner), position_(position) {
+      Resolve();
+    }
+
+    void Resolve() noexcept {
+      current_owner_ = owner_;
+      if (owner_ == nullptr) {
+        current_limit_ = 0;
+        return;
+      }
+      current_limit_ = owner_->size();
+      while (position_ < current_owner_->first_local_id_) {
+        current_limit_ = std::min(current_limit_, current_owner_->first_local_id_);
+        current_owner_ = current_owner_->parent_;
+      }
+    }
 
     const StringInterner* owner_ = nullptr;
+    const StringInterner* current_owner_ = nullptr;
     size_type position_ = 0;
+    size_type current_limit_ = 0;
   };
 
   using const_iterator = iterator;
@@ -166,13 +218,15 @@ class StringInterner final {
   StringInterner() = default;
 
   explicit StringInterner(const StringInterner* parent) noexcept
-      : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()) {}
+      : parent_(ValidateParent(parent)), first_local_id_(parent == nullptr ? 0 : parent->size()) {}
 
   template<typename IndexFactory>
   requires(std::is_nothrow_invocable_v<IndexFactory&> && std::same_as<std::invoke_result_t<IndexFactory&>, Index>
            && std::is_nothrow_default_constructible_v<Storage> && std::is_nothrow_default_constructible_v<Entries>)
   StringInterner(const StringInterner* parent, IndexFactory factory) noexcept
-      : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()), index_(std::invoke(factory)) {}
+      : parent_(ValidateParent(parent)),
+        first_local_id_(parent == nullptr ? 0 : parent->size()),
+        index_(std::invoke(factory)) {}
 
   StringInterner(const StringInterner&) = delete;
 
@@ -186,7 +240,7 @@ class StringInterner final {
       StorageFactory storage,
       EntriesFactory entries,
       IndexFactory index) noexcept
-      : parent_(parent),
+      : parent_(ValidateParent(parent)),
         first_local_id_(parent == nullptr ? 0 : parent->size()),
         storage_(std::invoke(storage)),
         entries_(std::invoke(entries)),
@@ -208,6 +262,8 @@ class StringInterner final {
       return std::numeric_limits<size_type>::max();
     }
   }
+
+  static constexpr size_type max_parent_depth() noexcept { return Options.maximum_parent_depth; }
 
   bool empty() const noexcept { return size() == 0; }
 
@@ -296,6 +352,33 @@ class StringInterner final {
     } else {
       return std::nullopt;
     }
+  }
+
+  StorageDiagnostics local_storage_diagnostics() const noexcept {
+    const auto entries = local_entry_storage_diagnostics();
+    StorageDiagnostics result{
+        .string_count = local_size(),
+        .character_bytes_used = local_character_bytes_used(),
+        .character_bytes_reserved = local_character_bytes_reserved(),
+        .live_descriptor_bytes = entries.live_descriptor_bytes,
+        .descriptor_segment_bytes_reserved = entries.segment_bytes_reserved,
+        .descriptor_lookup_directory_bytes_reserved = entries.lookup_directory_bytes_reserved,
+        .descriptor_segment_directory_bytes_reserved = entries.segment_directory_bytes_reserved,
+    };
+    if constexpr (requires(const Index& index) {
+                    { index.structural_diagnostics() } noexcept;
+                  }) {
+      const auto index = index_.structural_diagnostics();
+      result.index_nodes = index.nodes;
+      result.index_entries = index.entries;
+      result.index_collision_nodes = index.collision_nodes;
+      result.index_collision_entries = index.collision_entries;
+      result.index_largest_collision = index.largest_collision;
+      result.index_maximum_depth = index.maximum_depth;
+      result.index_node_bytes = index.node_allocation_bytes;
+      result.index_entry_bytes = index.entry_allocation_bytes;
+    }
+    return result;
   }
 
   std::optional<std::string_view> get(id_type identifier) const noexcept {
@@ -394,6 +477,18 @@ class StringInterner final {
   }
 
  private:
+  static const StringInterner* ValidateParent(const StringInterner* parent) noexcept {
+    if constexpr (Options.maximum_parent_depth != std::numeric_limits<size_type>::max()) {
+      size_type depth = 0;
+      for (const auto* ancestor = parent; ancestor != nullptr; ancestor = ancestor->parent_) {
+        ++depth;
+      }
+      ABSL_LOG_IF(FATAL, depth > Options.maximum_parent_depth)
+          << "StringInterner parent chain exceeds maximum_parent_depth=" << Options.maximum_parent_depth;
+    }
+    return parent;
+  }
+
   std::optional<id_type> FindLocal(std::string_view key, size_type limit) const noexcept {
     const auto found = index_.find(key);
     return found && std::cmp_less(found->value(), limit) ? found : std::nullopt;

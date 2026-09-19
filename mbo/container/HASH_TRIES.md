@@ -3,10 +3,11 @@
 This document records the decision between two distinct hash/trie families: HART and HAMT. They
 must not be conflated merely because their acronyms and use of hashes are similar.
 
-HAMT is the implementation target. HART remains documented as a separate concurrency-oriented
+HAMT is the implemented target. HART remains documented as a separate concurrency-oriented
 research option, but is not planned for implementation. Neither is a prerequisite for
-`SegmentedSequence` or the arena. HAMT becomes a string-interner dependency only if benchmarks show
-that it is the best index for the representative workloads.
+`SegmentedSequence` or the arena. StringInterner can use HAMT through its replaceable index
+contract; benchmarks still decide which index configuration should be recommended for each
+representative workload.
 
 ## Structures under consideration
 
@@ -144,6 +145,38 @@ explicit collision bound limits full-hash equality scans. Exceeding that bound i
 insertion failure and leaves the tree unchanged. Immutable lookup performs no reference-count
 mutation. Atomic snapshot retention, root publication, and reclamation are specified separately;
 the presence of atomics does not by itself establish wait-free behavior.
+
+`HamtOptions::maximum_collision_size` supplies that bound. Its default is unrestricted and compiles
+out the additional lookup and collision-size check. A finite value rejects only insertion of a new,
+unequal key once the terminal full-hash bucket has that many entries; reinserting an existing key
+still succeeds with `inserted == false`. Rejection reports `HamtError::kCollisionLimitExceeded` and
+does not change the tree.
+
+## Implemented acceptance surfaces
+
+The implementation deliberately separates semantic guarantees that require different public types
+from resource guarantees selected through sources and constexpr options:
+
+| Requirement                     | Implemented surface                                              | Guarantee boundary                                                |
+| ------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Set and map semantics           | `HamtFlatSet`, `HamtFlatMap`, `HamtNodeSet`, `HamtNodeMap`       | One shared routing, collision, mutation, and ownership machinery  |
+| Persistent updates              | Value-returning `insert`/`erase`/mapped replacement              | Source snapshots remain unchanged and share untouched structure   |
+| Efficient construction/editing  | Move-only nested `transient_type`                                | Consuming `persistent() &&`; failed edits preserve current state  |
+| Flat locality                   | `HamtFlatSet` and `HamtFlatMap`                                  | Mutation may invalidate flat entry references and iterators       |
+| Pointer-stable payloads         | `HamtNodeSet` and `HamtNodeMap`                                  | Surviving payload addresses remain stable; erased payloads expire |
+| Unrestricted allocation         | `NewDeleteBlockSource` defaults                                  | Convenience modifiers fail hard if allocation cannot complete     |
+| Guarded/recoverable allocation  | Fallible custom `BlockSource` plus `try_*`                       | Exhaustion is reported and mutation is non-destructive            |
+| Provisioned allocation-free use | `TryCreateIn` plus bounded control and arena/fixed block sources | No general allocation after provisioning within declared budgets  |
+| Bounded routing work            | Fixed hash width and finite collision option                     | String hashing/equality remains proportional to inspected bytes   |
+| Diagnostics                     | `structural_diagnostics` and node visitors                       | Cold, allocation-free inspection; no hot-path counters            |
+| Threading baseline              | Immutable held snapshots and external synchronization            | No mutable root publication or reclamation protocol is implied    |
+
+The node names expose pointer stability because it changes observable semantics. Allocation mode is
+not another container family: the block-source type and factory select unrestricted, recoverable,
+or fully provisioned storage without creating parallel HAMT implementations. Arena-backed sources
+must support multiple simultaneously live blocks and recycle failed path-copy work, so a fixed
+buffer is a real bounded configuration rather than an allocation claim layered over hidden heap
+state.
 
 ## Public type and policy shape
 

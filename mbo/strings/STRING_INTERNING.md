@@ -22,6 +22,48 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
+## Final acceptance envelope
+
+The implementation is not complete merely when the default composition works. One shared core must
+support set semantics (string identity and dense ID only) and map semantics (an immutable string key
+plus a mapped object) without imposing mapped-value size or work on the set specialization. Mapped
+objects and string descriptors live in append-only segmented storage; the lookup index contains only
+the key material and handle needed to reach them. Consequently, character pointers, descriptors,
+mapped-object addresses, and dense IDs remain stable across successful insertion. A duplicate found
+in any visible ancestor preserves both its ID and mapped value.
+
+Three allocation envelopes are required and must be named and tested independently:
+
+| Envelope                 | Backing storage                         | Operation contract                                             |
+| ------------------------ | --------------------------------------- | -------------------------------------------------------------- |
+| Provisioned real-time    | Caller-owned fixed buffers and/or arena | No general allocator call; deterministic, non-destructive fail |
+| Recoverable general use  | Guarded allocator or PMR adapter        | Allocation allowed; exhaustion returned by `try_*`             |
+| Unrestricted convenience | Ordinary allocator/new-delete source    | Growth allowed under the documented fail-fast convenience API  |
+
+“Allocation-free” in the provisioned envelope means an operation performs no call to a general
+allocator after storage is provisioned. A successful insertion necessarily consumes character,
+descriptor, and index capacity. Every one of those budgets must be bounded and independently
+diagnosable. An arena-backed HAMT source must support multiple live nodes; the single-live-block
+`FixedBlockSource` alone is not such a proof. Failed multi-node mutations must either rewind their
+arena transaction or return released blocks to a bounded reusable pool, so failure cannot silently
+consume the remaining real-time budget.
+
+Complexity claims separate unavoidable string work from container work. Hashing and equality are
+linear in the bytes inspected. Given a fixed-width hash, HAMT routing has a fixed maximum number of
+levels. A provisioned real-time configuration must additionally bound full-hash collision work and
+the visible parent depth; an arbitrary collision bucket or parent chain is not worst-case O(1).
+Dense ID lookup is O(1) within an interner node. Whole-chain forward iteration must retain its
+current ancestor/segment position so increment remains O(1) amortized instead of resolving every ID
+from the leaf repeatedly.
+
+The baseline API continues to require external synchronization. A separately selected concurrent
+profile may publish immutable HAMT roots and completed segmented entries to lock-free readers.
+Construction must precede release-publication of the visible size/root, directories read by those
+readers must remain immutable or use an explicit publication scheme, and reclamation must be
+deferred until no reader can observe the old snapshot. Lock-free lookup does not imply wait-free
+snapshot copying: retrying atomic reference acquisition and general reclamation are outside the
+hard-real-time hot path unless a measured, bounded strategy proves otherwise.
+
 [`SegmentedSequence`](../container/SEGMENTED_SEQUENCE.md) and the
 [`Arena`](../memory/ARENA.md) are prerequisite components. Implement them before composing the
 interner, then complete the entire stack and its local/CI validation. Measure the components
@@ -68,10 +110,11 @@ identity; a zero local starting ID does not imply a null parent. Index/storage m
 destruction order preserves borrowed character lifetimes.
 
 The implementation provides on-demand diagnostics, stateful and injected backend construction,
-and extended bounded-failure tests. Full-stack CI, complete instrumentation and memory accounting,
-and benchmark-selected performance tuning remain outstanding. Forward lookup
-recurses through ancestors, while reverse lookup iterates. These are initial
-algorithms, not benchmark-selected strategies.
+and extended bounded-failure tests. Diagnostics cover string-size visits, directed lookup traces,
+local character and descriptor accounting, and supporting-index structure visits without adding
+counters to ordinary operations. Full-stack CI and benchmark-selected performance tuning remain
+outstanding. Forward lookup recurses through ancestors, while reverse lookup iterates. These are
+initial algorithms, not benchmark-selected strategies.
 
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false
@@ -184,6 +227,12 @@ supported POD representations; other underlying types, including signed integers
 supported without a demonstrated use. ID exhaustion must be detected before mutating either
 storage or the index. The default underlying representation is `std::uint32_t`.
 
+Interner capacity is bounded by both the ID representation and its STL-compatible `std::size_t`
+count; `max_size()` reports the resulting limit. The usable cardinality is the smaller of the
+representation's maximum value and `SIZE_MAX`: the representation's maximum value is reserved,
+while `size()` cannot represent a count greater than `SIZE_MAX`. For example, an 8-bit ID supports
+255 entries with IDs 0 through 254. Exhaustion is detected before storage or index mutation.
+
 ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload
 may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output
 bits for routing and collision detection, while the ID remains only the value associated with the
@@ -208,6 +257,7 @@ optional. Hash width remains independent. Direct construction assumes an already
 underlying value; constructing `invalid_value` deliberately produces an invalid ID. Use checked
 conversion when assigning from a wider count. This helper does not establish membership in any
 particular interner or chain.
+
 `local_size()` is the number added directly to that interner.
 
 Looking up an invalid or non-visible identifier returns `std::optional<std::string_view>` in the
@@ -408,8 +458,10 @@ storage component whose capacity could not grow.
 The implemented C++20 core returns `variant<pair<StringId, bool>, StringInternError>` from `intern`.
 `try_intern` is an optional-pair adapter, preserving the inserted flag but discarding the detailed
 failure reason. `try_intern_id` returns only an optional ID. Both delegate to the same insertion
-implementation; zero and the maximum representable ID remain valid successes. Neither adapter
-changes rollback or parent visibility. These convenience forms are not measured performance winners.
+implementation. Zero is always a valid success. The maximum representation value is also a valid
+success when its resulting element count fits `size_t`; otherwise count exhaustion precedes that
+assignment as described above. Neither adapter changes rollback or parent visibility. These
+convenience forms are not measured performance winners.
 
 The following interfaces are candidates and may coexist as adapters over one implementation:
 
@@ -475,6 +527,7 @@ std::optional<std::string_view> get(id_type id) const noexcept;
 
 std::size_t size() const;
 std::size_t local_size() const;
+static constexpr std::size_t max_size();
 bool empty() const;
 ```
 

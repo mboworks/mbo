@@ -1,24 +1,30 @@
 name: Publish coverage
 
 on:
+  # Use trusted default-branch code; never check out or execute a PR head.
+  pull_request_target:
+    types: [closed, reopened]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Optional completed Test or Release run to publish; empty refreshes metadata only
+        required: false
+        type: string
   workflow_run:
     workflows: [Release, Test]
     types: [completed]
 
-# Updating the retained site and deploying it must be one serial operation: concurrent runs based
-# on the same branch revision would otherwise discard whichever report was pushed first.
+# Updating the retained site and deploying it must be one serial operation: two runs restoring the
+# same branch concurrently would otherwise overwrite whichever report was pushed first.
 concurrency:
   group: coverage-pages
   queue: max
   cancel-in-progress: false
 
-# The publishing job below declares its exact elevated scopes. Default to no
-# token access so any future job must opt in deliberately.
-permissions: {}
+permissions: read-all
 
 jobs:
   publish:
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -30,77 +36,57 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Pull-request workflow runs carry their review identity directly. Keep a commit-association
-      # fallback for older runs and other callers; a branch without a PR keeps its downloadable
-      # artifact but does not claim a public PR URL.
-      - name: Select the report destination
-        id: target
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
-        run: |
-          set -euo pipefail
-          if [ "${WORKFLOW_NAME}" = "Release" ]; then
-            target="tag/${HEAD_BRANCH}"
-          elif [ "${HEAD_BRANCH}" = "main" ]; then
-            target="main"
-          else
-            pr_number="${PR_NUMBER}"
-            if [[ ! "${pr_number}" =~ ^[1-9][0-9]*$ ]]; then
-              pr_number="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/pulls" --jq '.[0].number // empty')"
-            fi
-            if [[ ! "${pr_number}" =~ ^[1-9][0-9]*$ ]]; then
-              echo "No pull request owns ${HEAD_SHA}; retaining only the run artifact."
-              echo "publish=false" >>"${GITHUB_OUTPUT}"
-              exit 0
-            fi
-            target="pr/${pr_number}"
-          fi
-          echo "publish=true" >>"${GITHUB_OUTPUT}"
-          echo "target=${target}" >>"${GITHUB_OUTPUT}"
-      # This workflow always comes from the trusted default branch. PR code never receives the
-      # token that updates the retained report branch or deploys Pages.
+      # This workflow always comes from the trusted default branch. It consumes the report emitted
+      # by an unprivileged test run; PR code never receives the token that updates Pages.
       - uses: actions/checkout@v7
-        if: steps.target.outputs.publish == 'true'
         with:
           path: source
           ref: main
           fetch-depth: 0
       - uses: actions/checkout@v7
-        if: steps.target.outputs.publish == 'true'
         with:
           path: site
           ref: coverage-pages
+      - name: Check coverage job result
+        id: coverage-result
+        if: github.event_name == 'workflow_run' || inputs.source_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > coverage-run.json
+          jq -e '.status == "completed" and (.path == ".github/workflows/main.yml" or .path == ".github/workflows/test.yml" or .path == ".github/workflows/release.yml")' \
+            coverage-run.json >/dev/null
+          gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?filter=latest&per_page=100" > coverage-jobs.json
+          eligible="$(jq 'any(.[].jobs[]; .name == "coverage" and .conclusion == "success")' coverage-jobs.json)"
+          echo "eligible=${eligible}" >>"${GITHUB_OUTPUT}"
+          jq -r '{created_at, updated_at, head_sha, run_attempt, id, run_started_at} | to_entries[] | "\(.key)=\(.value)"' \
+            coverage-run.json >>"${GITHUB_OUTPUT}"
       - uses: actions/download-artifact@v8
-        if: steps.target.outputs.publish == 'true'
+        if: steps.coverage-result.outputs.eligible == 'true'
         with:
           github-token: ${{ github.token }}
           name: coverage-report
           path: report
-          run-id: ${{ github.event.workflow_run.id }}
-      - name: Stage and index the report
-        if: steps.target.outputs.publish == 'true'
+          run-id: ${{ steps.coverage-result.outputs.id }}
+      - name: Select and stage the report
+        if: steps.coverage-result.outputs.eligible == 'true'
         env:
-          EXPECTED_TARGET: ${{ steps.target.outputs.target }}
-          SOURCE_COMPLETED_AT: ${{ github.event.workflow_run.updated_at }}
-          SOURCE_CREATED_AT: ${{ github.event.workflow_run.created_at }}
-          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
-          SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
+          SOURCE_CREATED_AT: ${{ steps.coverage-result.outputs.created_at }}
+          SOURCE_COMPLETED_AT: ${{ steps.coverage-result.outputs.updated_at }}
+          SOURCE_HEAD_SHA: ${{ steps.coverage-result.outputs.head_sha }}
+          SOURCE_RUN_ATTEMPT: ${{ steps.coverage-result.outputs.run_attempt }}
+          SOURCE_RUN_ID: ${{ steps.coverage-result.outputs.id }}
+          SOURCE_STARTED_AT: ${{ steps.coverage-result.outputs.run_started_at }}
         run: |
           set -euo pipefail
           target="$(<report/coverage-target.txt)"
           if [[ ! "${target}" =~ ^(main|pr/[1-9][0-9]*|tag/[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             echo "Invalid coverage target: ${target}" >&2
-            exit 1
-          fi
-          if [ "${target}" != "${EXPECTED_TARGET}" ]; then
-            echo "Coverage target ${target} does not match independently resolved ${EXPECTED_TARGET}" >&2
             exit 1
           fi
           python3 source/tools/coverage_index.py metadata \
@@ -113,6 +99,9 @@ jobs:
             --run-attempt "${SOURCE_RUN_ATTEMPT}" \
             --run-id "${SOURCE_RUN_ID}" \
             --started-at "${SOURCE_STARTED_AT}"
+          # Migrate every report produced before the namespaced PR layout was introduced. This is
+          # deliberately registry-like rather than naming PR 609/610: any old retained prN report
+          # is moved once, and future reports are written directly below pr/N.
           for legacy in site/coverage/pr[1-9]*; do
             if [[ ! -d "${legacy}" ]]; then
               continue
@@ -121,9 +110,9 @@ jobs:
             mkdir -p site/coverage/pr
             git -C site mv "coverage/pr${number}" "coverage/pr/${number}"
           done
-          current="site/coverage/${target}/coverage-meta.json"
           # Preserve both reports, even when an older incoming run cannot replace the latest URL.
           python3 source/tools/coverage_index.py archive site/coverage --incoming report/coverage-html
+          current="site/coverage/${target}/coverage-meta.json"
           if [[ -f "${current}" ]] && ! python3 source/tools/coverage_index.py newer \
             report/coverage-html/coverage-meta.json "${current}"; then
             echo "Ignoring older ${target} report from run ${SOURCE_RUN_ID}"
@@ -131,6 +120,13 @@ jobs:
             mkdir -p "site/coverage/${target}"
             rsync --archive --delete report/coverage-html/ "site/coverage/${target}/"
           fi
+      - name: Refresh metadata and publish retained reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Bootstrap retained reports created before metadata became the report registry. Their
+          # epoch identity lets any real subsequent run replace them.
           while IFS= read -r -d '' summary; do
             report_dir="${summary%/coverage-summary.json}"
             if [[ -f "${report_dir}/coverage-meta.json" ]]; then
@@ -148,27 +144,31 @@ jobs:
               --run-id 0 \
               --started-at "1970-01-01T00:00:00Z"
           done < <(find site/coverage -name coverage-summary.json -print0)
-          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=all&per_page=100" >merged-prs.json
-          python3 source/tools/coverage_index.py history site/coverage source merged-prs.json --fetch-aggregation-heads
+          # Refresh every retained PR: its report can predate the merge, and CI completion
+          # order must not affect placement relative to release tags on main.
+          gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/pulls?state=all&per_page=100" > coverage-pulls.json
+          python3 source/tools/coverage_index.py history site/coverage source coverage-pulls.json --fetch-aggregation-heads
           python3 source/tools/coverage_index.py archive site/coverage
           python3 source/tools/coverage_index.py site site/coverage site/coverage/index.html
           git -C site config user.name 'github-actions[bot]'
           git -C site config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C site add coverage
+          if [[ -d site/releases ]]; then
+            git -C site add releases
+          fi
           if git -C site diff --cached --quiet; then
             echo "Coverage report is unchanged"
           else
-            git -C site commit -m "coverage: publish ${target} from run ${SOURCE_RUN_ID}"
+            git -C site commit -m "coverage: publish reports and refresh PR metadata"
             git -C site push
           fi
           mkdir -p public
           rsync --archive --exclude='.git' site/ public/
           python3 source/tools/site_artwork.py source/docs/assets public
       - uses: actions/upload-pages-artifact@v5
-        if: steps.target.outputs.publish == 'true'
         with:
           path: public
       - name: Deploy to GitHub Pages
         id: deployment
-        if: steps.target.outputs.publish == 'true'
         uses: actions/deploy-pages@v5

@@ -1,5 +1,8 @@
 # 0.15.1
 
+- Refresh coverage metadata when PRs close or reopen, show one pre/post-merge result per PR,
+  publish valid coverage when unrelated jobs fail, and support serialized source-run backfill.
+
 - Retain complete coverage reports per CI run and attempt, order the overview by actual PR merge/tag
   timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
 

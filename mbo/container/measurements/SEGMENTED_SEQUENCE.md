@@ -244,6 +244,31 @@ questions. An option becomes public only when at least one measured workload nee
 that wins one access family but violates constant-time lookup, pointer stability, or failure
 transactionality is ineligible regardless of speed.
 
+## Provisional configuration decision matrix
+
+The table maps requirements to public `SegmentedSequenceOptions`, not to private benchmark-only
+layouts. It records the current Apple M5 Pro decision and is deliberately provisional until the
+same cases are measured on AMD Zen 5. Where the evidence does not select one universal numeric
+budget, the recommendation says so instead of encoding an arbitrary default.
+
+| Requirement or workload                            | Provisional configuration                                                                                               | Rationale and limits                                                                                                                                    |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General-purpose stable-address sequence            | `SegmentedSequenceOptions{}`: repeating 256-element segments and unbounded size/retention                               | Balanced current default; 256 is page-directory compatible and avoids the high segment count of 64 without 1,024-element tail waste                     |
+| StringInterner pointer-plus-size descriptors       | Default 256-element schedule, or a measured repeating 1,024-element schedule for large long-lived tables                | M5 descriptor lookup strongly favors the automatic 64-element page directory; choose 1,024 only when lower segment metadata outweighs larger tail waste |
+| Heterogeneous growth with small initial footprint  | `{.segment_capacities = {64, 256, 1'024, 4'096}, .listed_capacities = 4, .repeat_last = true}`                          | Starts small and reduces later allocations; all capacities preserve automatic page-directory eligibility                                                |
+| Compile-time fixed maximum and bounded directory   | Set a complete capacity list, `repeat_last = false`, and `maximum_size` no greater than the listed sum                  | Uses the inline bounded segment directory and rejects growth beyond the declared schedule                                                               |
+| Repeating schedule with a hard element bound       | Keep `repeat_last = true` and set `maximum_size` to the application limit                                               | Preserves the normal growth/mapping path while making exhaustion explicit and testable                                                                  |
+| Hot pop/regrow cycles                              | Leave both retention limits unbounded, or set measured nonzero `retained_segment_limit` / `retained_byte_limit` budgets | Retention avoids reacquisition; budgets must come from the application's steady-state rollback depth and memory envelope                                |
+| Memory-first reclamation                           | Set `retained_segment_limit = 0` and `retained_byte_limit = 0`                                                          | Releases every unused tail segment; lifecycle evidence shows this trades regrowth latency for minimum retained payload bytes                            |
+| Bounded reuse under a byte envelope                | Set `retained_byte_limit` to the allowed payload budget and optionally cap `retained_segment_limit`                     | Both limits are enforced; use the byte limit for heterogeneous capacities and the count limit to bound directory work                                   |
+| Bulk scans where per-element indexing is avoidable | Keep the storage schedule selected above and traverse `segments()`                                                      | Contiguous-span traversal avoids per-element mapping and remains the preferred public path for bulk algorithms                                          |
+| Large or over-aligned elements                     | Start with the default schedule; measure application element size and tail waste before selecting a larger segment      | M5 lookup gains narrow as element traffic dominates; current public API intentionally has no mapping-layout selector                                    |
+
+The page directory is selected internally when every configured capacity is divisible by 64; it
+is not an additional option users should copy from a benchmark. The matrix does not claim that
+256, 1,024, or any retention budget is universally optimal. Zen 5 results may change the default,
+the recommended segment size for descriptors, or whether a new measured option is justified.
+
 ## Review method
 
 Compare matching benchmark names from a single randomly interleaved artifact. Retain every raw

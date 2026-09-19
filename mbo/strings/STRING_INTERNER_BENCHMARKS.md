@@ -165,12 +165,13 @@ A one-iteration sanitizer smoke run may validate fixture setup, hit/miss preflig
 before final measurements. Such debug, instrumented results are validation data only: retain them
 separately and mark them nonpublishable, rather than folding their timings into a performance report.
 
-Before the final report, extend the matrix with additional character/dense-storage configurations,
-capacity exhaustion, distribution and access-order
-variations, and detailed memory diagnostics. These initial sequential synthetic scans must not be
-presented as all representative mbo, xff, or proto workloads. Measurements need nine interleaved
-repetitions, warmup, raw JSON, charts regenerated from that JSON, and a provisional configuration
-decision matrix. AMD Zen 5 measurements follow later and may change the recommendations.
+The retained initial-host report extends the matrix with character and dense-storage
+configurations, capacity exhaustion, distribution and access-order variations, and detailed memory
+diagnostics. These synthetic workloads still must not be presented as all representative mbo, xff,
+or proto workloads. Additional application traces remain useful follow-up. Published measurements
+require nine interleaved repetitions, warmup, raw JSON, charts regenerated from that JSON, and a
+provisional configuration decision matrix. AMD Zen 5 measurements follow later and may change the
+recommendations.
 
 ## Retained-result reporting
 

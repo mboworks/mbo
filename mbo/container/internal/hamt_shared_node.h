@@ -70,6 +70,9 @@ class HamtSharedNode final {
 
   bool is_collision() const noexcept { return collision_count_ != 0; }
 
+  // Bytes reported by the creating block source, including its spare capacity.
+  std::size_t allocation_bytes() const noexcept { return block_.size; }
+
   std::uint32_t use_count() const noexcept { return references_.load(std::memory_order_relaxed); }
 
   // Permission to mutate additionally observes work preceding previous releases.

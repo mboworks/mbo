@@ -91,6 +91,8 @@ class HamtNodeSet final {
 
   bool empty() const noexcept { return owned_.tree().empty(); }
 
+  auto structural_diagnostics() const noexcept { return owned_.tree().structural_diagnostics(); }
+
   static constexpr size_type max_size() noexcept { return Tree::max_size(); }
 
   iterator begin() const noexcept { return iterator(owned_.tree().begin()); }
@@ -282,6 +284,8 @@ class HamtNodeSet<Key, Hash, Equal, Options, Source>::transient_type final {
   size_type size() const noexcept { return set_.size(); }
 
   bool empty() const noexcept { return set_.empty(); }
+
+  auto structural_diagnostics() const noexcept { return set_.structural_diagnostics(); }
 
   static constexpr size_type max_size() noexcept { return HamtNodeSet::max_size(); }
 

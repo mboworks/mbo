@@ -26,6 +26,13 @@ using Set = HamtNodeSet<int>;
 
 struct HamtNodeSetTest : ::testing::Test {};
 
+TEST_F(HamtNodeSetTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
+  Set container;
+  EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
+  auto transient = std::move(container).transient();
+  EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
+}
+
 TEST_F(HamtNodeSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
   mbo::memory::InlineBlockSource<4'096> storage;
   {

@@ -3,10 +3,13 @@
 
 #include "mbo/strings/string_interner.h"
 
+#include <array>
+#include <memory>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/hash/hash.h"
 
 namespace mbo::strings {
 namespace {
@@ -22,6 +25,101 @@ static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo:
 static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
+
+TEST_F(StringInternerTest, LocalIndexDiagnosticsDoNotIncludeParentOrPostCutoffEntries) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("shared").index(), Eq(0));
+  StringInterner<> child(&root);
+  EXPECT_THAT(root.intern("late").index(), Eq(0));
+  EXPECT_THAT(child.intern("local").index(), Eq(0));
+  EXPECT_THAT(root.local_index_diagnostics().entries, Eq(2));
+  EXPECT_THAT(child.local_index_diagnostics().entries, Eq(1));
+  EXPECT_THAT(child.size(), Eq(2));
+  EXPECT_THAT(child.find("late").has_value(), Eq(false));
+  EXPECT_THAT(child.find("shared"), Optional(StringId<>(0)));
+  EXPECT_THAT(child.find("local"), Optional(StringId<>(1)));
+}
+
+TEST_F(StringInternerTest, TracedSearchesReportDirectionDependentQueriesAndRespectCutoffs) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("root").index(), Eq(0));
+  StringInterner<> child(&root);
+  EXPECT_THAT(child.intern("child").index(), Eq(0));
+  StringInterner<> leaf(&child);
+  EXPECT_THAT(leaf.intern("leaf").index(), Eq(0));
+  EXPECT_THAT(root.intern("late").index(), Eq(0));
+  const auto forward = leaf.trace_find("root");
+  EXPECT_THAT(forward.id, Optional(StringId<>(0)));
+  EXPECT_THAT(forward.parent_depth, Optional(std::size_t{2}));
+  EXPECT_THAT(forward.index_queries, Eq(1));
+  const auto reverse = leaf.trace_rfind("leaf");
+  EXPECT_THAT(reverse.id, Optional(StringId<>(2)));
+  EXPECT_THAT(reverse.parent_depth, Optional(std::size_t{0}));
+  EXPECT_THAT(reverse.index_queries, Eq(1));
+  EXPECT_THAT(leaf.trace_find("leaf").index_queries, Eq(3));
+  EXPECT_THAT(leaf.trace_rfind("root").index_queries, Eq(3));
+  EXPECT_THAT(leaf.trace_find("child").parent_depth, Optional(std::size_t{1}));
+  EXPECT_THAT(leaf.trace_rfind("child").parent_depth, Optional(std::size_t{1}));
+  const auto missing = leaf.trace_find("late");
+  EXPECT_THAT(missing.id.has_value(), Eq(false));
+  EXPECT_THAT(missing.parent_depth.has_value(), Eq(false));
+  EXPECT_THAT(missing.index_queries, Eq(3));
+  EXPECT_THAT(leaf.trace_rfind("late").id.has_value(), Eq(false));
+}
+
+TEST_F(StringInternerTest, MboHashKeepsHashWidthIndependentOfDenseIdWidth) {
+  using Id = StringId<std::uint8_t>;
+  using Index = HamtStringIndex<Id, mbo::hash::DefaultHasher>;
+  using Interner =
+      StringInterner<std::uint8_t, ArenaStringStorage<>, mbo::container::SegmentedSequence<std::string_view>, Index>;
+  static_assert(sizeof(Id) == 1);
+  static_assert(std::same_as<std::invoke_result_t<mbo::hash::DefaultHasher, std::string_view>, std::uint64_t>);
+  Interner root;
+  EXPECT_THAT(root.intern("").index(), Eq(0));
+  EXPECT_THAT(root.intern(std::string_view("a\0b", 3)).index(), Eq(0));
+  Interner child(&root);
+  EXPECT_THAT(child.intern("a").index(), Eq(0));
+  EXPECT_THAT(child.find(""), Optional(Id(0)));
+  EXPECT_THAT(child.rfind(std::string_view("a\0b", 3)), Optional(Id(1)));
+  EXPECT_THAT(child.find("a"), Optional(Id(2)));
+  EXPECT_THAT(child.get(Id(1)), Optional(std::string_view("a\0b", 3)));
+}
+
+TEST_F(StringInternerTest, DeepChainsFilterEveryAncestorsLaterInsertionsInBothDirections) {
+  constexpr std::size_t kDepth = 128;
+  std::array<std::unique_ptr<StringInterner<>>, kDepth> chain;
+  for (std::size_t depth = 0; depth < kDepth; ++depth) {
+    chain.at(depth) = std::make_unique<StringInterner<>>(depth == 0 ? nullptr : chain.at(depth - 1).get());
+    EXPECT_THAT(chain.at(depth)->intern("node" + std::to_string(depth)).index(), Eq(0));
+  }
+  for (std::size_t depth = 0; depth + 1 < kDepth; ++depth) {
+    EXPECT_THAT(chain.at(depth)->intern("later").index(), Eq(0));
+  }
+  const auto& leaf = *chain.back();
+  EXPECT_THAT(leaf.size(), Eq(kDepth));
+  EXPECT_THAT(leaf.find("later").has_value(), Eq(false));
+  EXPECT_THAT(leaf.rfind("later").has_value(), Eq(false));
+  for (std::size_t depth = 0; depth < kDepth; ++depth) {
+    const auto name = "node" + std::to_string(depth);
+    const StringId<> id(static_cast<std::uint32_t>(depth));
+    EXPECT_THAT(leaf.find(name), Optional(id));
+    EXPECT_THAT(leaf.rfind(name), Optional(id));
+    EXPECT_THAT(leaf.get(id), Optional(std::string_view(name)));
+  }
+  EXPECT_THAT(chain.back()->intern("later").index(), Eq(0));
+  EXPECT_THAT(leaf.find("later"), Optional(StringId<>(kDepth)));
+  EXPECT_THAT(leaf.rfind("later"), Optional(StringId<>(kDepth)));
+  auto position = leaf.rbegin();
+  EXPECT_THAT(*position++, Eq("later"));
+  for (std::size_t depth = kDepth; depth > 0; --depth) {
+    EXPECT_THAT(*position++, Eq("node" + std::to_string(depth - 1)));
+  }
+  EXPECT_THAT(position == leaf.rend(), Eq(true));
+  // Honor the lifetime contract explicitly: destroy descendants first.
+  for (auto owner = chain.rbegin(); owner != chain.rend(); ++owner) {
+    owner->reset();
+  }
+}
 
 TEST_F(StringInternerTest, RootIdentityAndParentGrowthDoNotChangeCapturedVisibility) {
   StringInterner<> root;
@@ -264,6 +362,18 @@ struct RejectFirstIndex final {
     return true;
   }
 };
+
+template<typename Interner>
+concept SupportsLocalIndexDiagnostics = requires(const Interner& interner) {
+  { interner.local_index_diagnostics() } noexcept;
+};
+
+static_assert(SupportsLocalIndexDiagnostics<StringInterner<>>);
+static_assert(!SupportsLocalIndexDiagnostics<StringInterner<
+                  std::uint32_t,
+                  ArenaStringStorage<>,
+                  mbo::container::SegmentedSequence<std::string_view>,
+                  FailFirstIndex>>);
 
 // NOLINTEND(readability-identifier-naming)
 

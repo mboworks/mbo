@@ -24,6 +24,7 @@ cc_library(
 cc_library(
     name = "hamt_flat_set_cc",
     hdrs = ["hamt_flat_set.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hamt_key_of_cc",
         ":hamt_options_cc",
@@ -294,6 +295,7 @@ cc_library(
 cc_library(
     name = "hamt_node_set_cc",
     hdrs = ["hamt_node_set.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hamt_key_of_cc",
         ":hamt_node_iterator_cc",

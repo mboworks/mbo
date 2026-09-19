@@ -31,6 +31,17 @@ struct HamtMutationResult final {
   std::optional<HamtError> error;
 };
 
+// One reachable snapshot, not exclusive ownership or total allocator usage.
+struct HamtStructuralDiagnostics final {
+  std::size_t nodes = 0;
+  std::size_t entries = 0;
+  std::size_t collision_nodes = 0;
+  std::size_t collision_entries = 0;
+  std::size_t largest_collision = 0;
+  std::size_t maximum_depth = 0;
+  std::size_t node_allocation_bytes = 0;
+};
+
 // Shared map/set implementation over immutable stored entries. Mutations use
 // path copying; copying this value retains its root, not its entries. The source
 // is borrowed and must outlive all snapshots. Public wrappers supply its domain.
@@ -97,6 +108,37 @@ class HamtTree final {
   std::size_t size() const noexcept { return size_; }
 
   bool empty() const noexcept { return size_ == 0; }
+
+  // Cold, allocation-free traversal. Shared nodes are included once in this
+  // snapshot; their bytes are not attributed exclusively to this owner. Node
+  // payload allocations, source control blocks and retained free blocks are
+  // deliberately excluded. External synchronization is required as usual.
+  HamtStructuralDiagnostics structural_diagnostics() const noexcept {
+    HamtStructuralDiagnostics result;
+    const auto visit = [&result](auto&& self, const node_type* node, std::size_t depth) noexcept -> void {
+      if (node == nullptr) {
+        return;
+      }
+      ++result.nodes;
+      result.entries += node->entries().size();
+      result.node_allocation_bytes += node->allocation_bytes();
+      if (depth > result.maximum_depth) {
+        result.maximum_depth = depth;
+      }
+      if (node->is_collision()) {
+        ++result.collision_nodes;
+        result.collision_entries += node->entries().size();
+        if (node->entries().size() > result.largest_collision) {
+          result.largest_collision = node->entries().size();
+        }
+      }
+      for (const node_type* child : node->children()) {
+        self(self, child, depth + 1);
+      }
+    };
+    visit(visit, root_.get(), 0);
+    return result;
+  }
 
   static constexpr std::size_t max_size() noexcept { return Options.maximum_size; }
 
@@ -204,7 +246,7 @@ class HamtTree final {
     }
     const auto inserted = TryInsertHamtEntry(
         root_.source(), root_.get(), std::invoke(hash_, key), key, entry, EntryHash{.hash = hash_, .key_of = key_of_},
-        key_of_, equal_);
+        key_of_, equal_, true);
     if (!inserted) {
       return {.error = HamtError::kAllocationExhausted};
     }
@@ -218,7 +260,7 @@ class HamtTree final {
   [[nodiscard]] HamtMutationResult try_erase(const Key& key) noexcept {
     const auto erased = TryEraseHamtEntry(
         root_.source(), root_.get(), std::invoke(hash_, key), key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_,
-        equal_);
+        equal_, true);
     if (!erased) {
       return {.error = HamtError::kAllocationExhausted};
     }
@@ -230,9 +272,23 @@ class HamtTree final {
   // Public map wrappers preserve the original immutable key in replacement.
   [[nodiscard]] HamtMutationResult try_replace(const Entry& replacement) noexcept {
     const auto& key = std::invoke(key_of_, replacement);
+    const Entry* const target = Find(key);
+    if (target == nullptr) {
+      return {.changed = false};
+    }
+    const auto hash = std::invoke(hash_, key);
+    if (Entry* const unique = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target); unique != nullptr) {
+      if (unique != std::addressof(replacement)) {
+        // Copy before destruction: replacement may borrow data from the target.
+        const Entry saved(replacement);
+        std::destroy_at(unique);
+        std::construct_at(unique, saved);
+      }
+      return {.changed = true};
+    }
     const auto replaced = TryReplaceHamtEntry(
-        root_.source(), root_.get(), std::invoke(hash_, key), key, replacement,
-        EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);
+        root_.source(), root_.get(), hash, key, replacement, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_,
+        equal_);
     if (!replaced) {
       return {.error = HamtError::kAllocationExhausted};
     }

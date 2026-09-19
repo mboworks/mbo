@@ -3,10 +3,12 @@
 
 #include "mbo/container/hamt_flat_map.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -14,6 +16,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/container/hamt_options.h"
+#include "mbo/memory/arena.h"
+#include "mbo/memory/arena_block_source.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container {
@@ -97,6 +101,43 @@ TEST_F(HamtFlatMapTest, CallerOwnedControlStorageSupportsInsertionAndReclamation
   EXPECT_THAT(Map::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(true));
   mbo::memory::InlineBlockSource<1> exhausted;
   EXPECT_THAT(Map::try_create_in(exhausted, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
+}
+
+TEST_F(HamtFlatMapTest, ArenaBackedNodesReportStableExhaustionWithoutLosingEntries) {
+  alignas(std::max_align_t) std::array<std::byte, 4'096> node_storage{};
+  using NodeArena = mbo::memory::Arena<
+      mbo::memory::FixedBlockSource,
+      mbo::memory::ArenaOptions{.initial_block_size = 4'096, .maximum_block_size = 4'096}>;
+  NodeArena arena{mbo::memory::FixedBlockSource(std::span<std::byte>(node_storage))};
+  using NodeSource = mbo::memory::ArenaBlockSource<
+      NodeArena, mbo::memory::ArenaBlockSourceOptions{.minimum_block_size = 32, .maximum_block_size = 1'024}>;
+  using ArenaMap = HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, NodeSource>;
+  mbo::memory::InlineBlockSource<1'024> control_storage;
+  auto created = ArenaMap::try_create_in(control_storage, std::hash<int>{}, std::equal_to<>{}, arena);
+  ASSERT_THAT(created.has_value(), Eq(true));
+  auto edit = std::move(*created).transient();
+
+  int key = 0;
+  while (true) {
+    const auto result = edit.try_insert(ArenaMap::value_type(key, key));
+    if (const auto* const error = std::get_if<HamtError>(&result); error != nullptr) {
+      EXPECT_THAT(*error, Eq(HamtError::kAllocationExhausted));
+      break;
+    }
+    ++key;
+  }
+  ASSERT_THAT(edit.empty(), Eq(false));
+  const auto size_at_exhaustion = edit.size();
+  const auto arena_bytes_at_exhaustion = arena.bytes_used();
+  for (int attempt = 0; attempt < 8; ++attempt) {
+    EXPECT_THAT(
+        edit.try_insert(ArenaMap::value_type(key, key)), VariantWith<HamtError>(HamtError::kAllocationExhausted));
+    EXPECT_THAT(edit.size(), Eq(size_at_exhaustion));
+    EXPECT_THAT(arena.bytes_used(), Eq(arena_bytes_at_exhaustion));
+  }
+  for (int existing = 0; existing < key; ++existing) {
+    EXPECT_THAT(edit.at(existing), Eq(existing));
+  }
 }
 
 struct CollisionHash final {

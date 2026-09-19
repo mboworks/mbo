@@ -71,3 +71,24 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "arena_block_source_cc",
+    hdrs = ["arena_block_source.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":arena_cc",
+        ":block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "arena_block_source_test",
+    size = "small",
+    srcs = ["arena_block_source_test.cc"],
+    deps = [
+        ":arena_block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

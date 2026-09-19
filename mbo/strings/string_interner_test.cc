@@ -27,6 +27,17 @@ struct StringInternerTest : ::testing::Test {};
 static_assert(noexcept(*std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
+static_assert(noexcept(std::declval<StringInterner<>&>().intern(std::string_view{})) == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().intern_parent_first(std::string_view{}))
+    == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().intern_child_first(std::string_view{}))
+    == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().try_intern(std::string_view{})) == !::mbo::config::kRequireThrows);
+static_assert(
+    noexcept(std::declval<StringInterner<>&>().try_intern_id(std::string_view{})) == !::mbo::config::kRequireThrows);
 
 // These syntax-only backends differ solely in their destructor specification.
 template<bool NothrowDestruction>
@@ -638,7 +649,9 @@ TEST_F(StringInternerTest, RejectedIndexInsertionRollsBackTheDenseEntryAndCanRet
 
 TEST_F(StringInternerTest, EightBitIdsReserveInvalidValueAndFindDuplicatesAfterExhaustion) {
   StringInterner<std::uint8_t> interner;
-  for (unsigned value = 0; value < StringId<std::uint8_t>::invalid_value; ++value) {
+  static_assert(StringInterner<std::uint8_t>::max_size() == 255);
+  static_assert(StringInterner<std::uint64_t>::max_size() == std::numeric_limits<std::size_t>::max());
+  for (unsigned value = 0; value < StringInterner<std::uint8_t>::max_size(); ++value) {
     const auto text = std::to_string(value);
     EXPECT_THAT(interner.intern(text).index(), Eq(0));
   }

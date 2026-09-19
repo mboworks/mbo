@@ -23,6 +23,7 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
+#include "mbo/container/limited_vector.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container {
@@ -69,7 +70,7 @@ class SegmentedSequence final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
   static constexpr std::size_t kDirectoryPageSize = 64;
-  static constexpr bool kUsePageDirectory = [] {
+  static constexpr bool kUsePageDirectory = Options.repeat_last && [] {
     for (std::size_t pos = 0; pos < Options.listed_capacities; ++pos) {
       if (Options.segment_capacities[pos] % kDirectoryPageSize != 0) {
         return false;
@@ -85,6 +86,9 @@ class SegmentedSequence final {
     std::size_t size = 0;
     std::size_t cumulative_bytes = 0;
   };
+
+  using SegmentDirectory = std::
+      conditional_t<Options.repeat_last, std::vector<Segment>, LimitedVector<Segment, Options.kMaxListedCapacities>>;
 
   template<bool IsConst>
   class Iterator final {
@@ -383,6 +387,8 @@ class SegmentedSequence final {
   constexpr size_type capacity() const noexcept { return capacity_; }
 
   static constexpr size_type max_size() noexcept { return Options.maximum_size; }
+
+  static constexpr bool has_bounded_directory() noexcept { return !Options.repeat_last; }
 
   constexpr size_type segment_count() const noexcept { return segments_.size(); }
 
@@ -789,7 +795,7 @@ class SegmentedSequence final {
   }
 
   [[no_unique_address]] Source source_{};
-  std::vector<Segment> segments_;
+  SegmentDirectory segments_;
   std::vector<T*> pages_;
   std::size_t size_ = 0;
   std::size_t capacity_ = 0;

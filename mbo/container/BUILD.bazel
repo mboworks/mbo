@@ -54,6 +54,8 @@ cc_test(
     deps = [
         ":hamt_flat_map_cc",
         ":hamt_options_cc",
+        "//mbo/memory:arena_block_source_cc",
+        "//mbo/memory:arena_cc",
         "//mbo/memory:block_source_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
@@ -715,6 +717,7 @@ cc_library(
     hdrs = ["segmented_sequence.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":limited_vector_cc",
         "//mbo/config:require_cc",
         "//mbo/memory:block_source_cc",
     ],

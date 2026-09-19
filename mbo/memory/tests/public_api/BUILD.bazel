@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+# SPDX-License-Identifier: Apache-2.0
+
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "arena_test",
+    size = "small",
+    srcs = ["arena_test.cc"],
+    deps = [
+        "//mbo/memory:arena_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

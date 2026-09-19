@@ -4,12 +4,35 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
+    name = "hamt_maps_test",
+    size = "small",
+    srcs = ["hamt_maps_test.cc"],
+    deps = [
+        "//mbo/container:hamt_flat_map_cc",
+        "//mbo/container:hamt_node_map_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "hamt_sets_test",
     size = "small",
     srcs = ["hamt_sets_test.cc"],
     deps = [
         "//mbo/container:hamt_flat_set_cc",
         "//mbo/container:hamt_node_set_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "segmented_sequence_test",
+    size = "small",
+    srcs = ["segmented_sequence_test.cc"],
+    deps = [
+        "//mbo/container:segmented_sequence_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

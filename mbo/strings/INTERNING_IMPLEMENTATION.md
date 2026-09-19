@@ -34,10 +34,10 @@ block-source concept and Arena
              +-----------------------+
              |                       |
              v                       v
-SegmentedSequence              HAMT experiments
+SegmentedSequence              general HAMT
              |                       |
              |                       v
-             |                selected production HAMT
+             |                configurable index adapters
              |                       |
              +-----------+-----------+
                          |
@@ -45,12 +45,21 @@ SegmentedSequence              HAMT experiments
                    StringInterner
                          |
                          v
-             repository-wide CI collection
+             complete-stack local/CI validation
+                         |
+                         v
+             comparative benchmarks and charts
+                         |
+                         v
+             provisional configuration decisions
 ```
 
-`StringInterner` depends on `Arena` and `SegmentedSequence`. It depends on HAMT only if HAMT wins the
-index benchmarks. HAMT remains a general container deliverable even if another index wins for the
-interner.
+The initial `StringInterner` implementation uses `Arena` and `SegmentedSequence`, with a HAMT index
+as its starting composition. Its backend concepts also support other compatible implementations,
+including standard and Abseil index adapters and inline descriptor storage. Implementing these
+compositions does not declare a benchmark winner: complete their local and own-context CI validation
+before the final comparative measurements select defaults and recommendations. HAMT remains a
+general container deliverable even if another index wins for the interner.
 
 ## Branch and pull-request sequence
 

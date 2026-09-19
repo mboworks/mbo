@@ -382,6 +382,7 @@ TEST_F(HamtFlatMapTest, RecoverableMutableAccessPreservesSharedValuesWhenAllocat
       shared.try_insert(BoundedMap::value_type(1, 99)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(std::as_const(shared).find(1) == shared.cend(), Eq(false));
   EXPECT_THAT(shared.try_at(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(shared.try_get_or_insert(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(shared.try_get_or_insert(2), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(snapshot.at(1), Eq(10));
   EXPECT_THAT(std::as_const(shared).at(1), Eq(10));

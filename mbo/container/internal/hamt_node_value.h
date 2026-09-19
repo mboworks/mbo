@@ -121,6 +121,9 @@ class HamtNodeValue final {
 
   const Value* get() const noexcept { return control_ == nullptr ? nullptr : std::addressof(control_->value); }
 
+  // Includes the payload ownership header and source-reported spare capacity.
+  std::size_t allocation_bytes() const noexcept { return control_ == nullptr ? 0 : control_->block.size; }
+
   // Nonallocating access for prepared mutable traversal. Shared and empty
   // handles return nullptr; this does not perform copy-on-write.
   Value* get_unique_mutable() noexcept { return is_unique() ? std::addressof(control_->value) : nullptr; }

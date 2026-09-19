@@ -89,6 +89,12 @@ class HamtFlatSet final {
 
   auto structural_diagnostics() const noexcept { return owned_.tree().structural_diagnostics(); }
 
+  template<typename Visitor>
+  requires requires(const Tree& tree, Visitor& visitor) { tree.VisitNodeDiagnostics(visitor); }
+  void visit_node_diagnostics(Visitor&& visitor) const noexcept {
+    owned_.tree().VisitNodeDiagnostics(std::forward<Visitor>(visitor));
+  }
+
   static constexpr size_type max_size() noexcept { return Tree::max_size(); }
 
   iterator begin() const noexcept { return owned_.tree().begin(); }
@@ -232,6 +238,12 @@ class HamtFlatSet<Key, Hash, Equal, Options, Source>::transient_type final {
   bool empty() const noexcept { return set_.empty(); }
 
   auto structural_diagnostics() const noexcept { return set_.structural_diagnostics(); }
+
+  template<typename Visitor>
+  requires requires(const HamtFlatSet& tree, Visitor& visitor) { tree.visit_node_diagnostics(visitor); }
+  void visit_node_diagnostics(Visitor&& visitor) const noexcept {
+    set_.visit_node_diagnostics(std::forward<Visitor>(visitor));
+  }
 
   static constexpr size_type max_size() noexcept { return HamtFlatSet::max_size(); }
 

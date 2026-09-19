@@ -72,6 +72,13 @@ TEST_F(HamtNodeMapTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNod
   EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
   auto transient = std::move(container).transient();
   EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
+  EXPECT_THAT(transient.structural_diagnostics().entry_allocation_bytes, Eq(0));
+  EXPECT_THAT(transient.insert({42, 10}).second, Eq(true));
+  const auto measured = transient.structural_diagnostics();
+  EXPECT_THAT(measured.entries, Eq(1));
+  EXPECT_THAT(measured.entry_allocation_bytes >= sizeof(CopyableMap::value_type), Eq(true));
+  const auto snapshot = std::move(transient).persistent();
+  EXPECT_THAT(snapshot.structural_diagnostics().entry_allocation_bytes, Eq(measured.entry_allocation_bytes));
 }
 
 TEST_F(HamtNodeMapTest, FourBitFragmentsPreserveSnapshotsAcrossAllEdits) {

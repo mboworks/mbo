@@ -106,6 +106,33 @@ TEST_F(ArenaTest, CheckpointRewindsOnlyLaterBytesAndReusesTheirStorage) {
   EXPECT_THAT(arena.TryAllocate(16, 1), Eq(later));
 }
 
+TEST_F(ArenaTest, CheckpointRestoresAlignmentPaddingAndReplaysOversizedAllocations) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  auto* const first = arena.TryAllocate(1, 64);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto checkpoint = arena.checkpoint();
+  const auto before = arena.bytes_used();
+  auto* const aligned = arena.TryAllocate(1, 64);
+  ASSERT_THAT(aligned, NotNull());
+  EXPECT_THAT(arena.bytes_used(), Eq(before + 64));
+  auto* const oversized = arena.TryAllocate(2'048, 64);
+  ASSERT_THAT(oversized, NotNull());
+  const auto after = arena.bytes_used();
+  const auto reserved = arena.bytes_reserved();
+  const auto blocks = arena.block_count();
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(before));
+  EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
+  EXPECT_THAT(arena.block_count(), Eq(blocks));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(1, 64), Eq(aligned));
+  EXPECT_THAT(arena.bytes_used(), Eq(before + 64));
+  EXPECT_THAT(arena.TryAllocate(2'048, 64), Eq(oversized));
+  EXPECT_THAT(arena.bytes_used(), Eq(after));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+}
+
 // NOLINTBEGIN(readability-identifier-naming): test doubles model BlockSource spelling.
 struct RecordingSource final {
   static constexpr bool supports_recoverable_failure = true;

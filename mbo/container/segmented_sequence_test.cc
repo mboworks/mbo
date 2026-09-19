@@ -99,6 +99,11 @@ constexpr SegmentedSequenceOptions kRetainFourBytes{
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
 static_assert(!std::ranges::contiguous_range<IntSequence>);
+static_assert([] {
+  const IntSequence sequence;
+  // NOLINTNEXTLINE(readability-container-size-empty): independently verifies the size contract.
+  return sequence.empty() && sequence.size() == 0 && sequence.capacity() == 0 && sequence.begin() == sequence.end();
+}());
 
 struct SegmentedSequenceTest : ::testing::Test {};
 

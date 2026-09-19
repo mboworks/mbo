@@ -76,7 +76,9 @@ def _policy(summary: dict, category: str) -> dict[str, coverage_policy.MetricPol
             summary["enforcement"][category][metric],
         )
         for metric in _METRICS
-        if metric in summary["minimums"].get(category, {})
+        if metric in summary["minimums"][category]
+        and metric in summary["targets"][category]
+        and metric in summary["enforcement"][category]
     }
 
 
@@ -98,11 +100,29 @@ def _status_class(status: str) -> str:
     return "status-bad"
 
 
+def _ordered_categories(measurements: dict[str, dict]) -> list[str]:
+    """Order overall first, then program and extension groups alphabetically."""
+    return sorted(
+        measurements,
+        key=lambda category: (
+            0
+            if category == "overall"
+            else 1
+            if category.startswith("program /")
+            else 2
+            if category.startswith("extensions /")
+            else 3,
+            category.casefold(),
+        ),
+    )
+
+
 def _full_table(summary: dict) -> str:
     rows = []
     overall = _policy(summary, "overall")
     reasons = summary.get("reasons", {})
-    for category, metrics in summary["measurements"].items():
+    for category in _ordered_categories(summary["measurements"]):
+        metrics = summary["measurements"][category]
         policy = _policy(summary, category)
         status = _status(metrics, policy)
         reason = reasons.get(category, "")
@@ -112,13 +132,10 @@ def _full_table(summary: dict) -> str:
             (html.escape(status), f'class="{_status_class(status)}"'),
         ]
         for metric in _METRICS:
-            if metric not in metrics:
-                cells.extend((('n/a', 'class="na"'),) * 3)
+            if metric not in metrics or metric not in policy:
+                cells.extend(("n/a", 'class="na"') for _ in range(3))
                 continue
             value = metrics[metric]
-            if metric not in policy:
-                cells.extend((("n/a", 'class="na"'), (str(value["covered"]), 'class="na"'), (str(value["total"]), 'class="na"')))
-                continue
             rating = coverage_policy.rating(value["percent"], policy[metric])
             metric_policy = policy[metric]
             title = (
@@ -140,8 +157,8 @@ def _full_table(summary: dict) -> str:
         )
         row += '<td class="policyGap"></td>'
         for metric in _METRICS:
-            if metric not in policy:
-                row += '<td class="policyCell">n/a</td>'
+            if metric not in policy or metric not in overall:
+                row += '<td class="na">n/a</td>'
                 continue
             value = policy[metric]
             if category == "overall":
@@ -215,10 +232,14 @@ def render_report(summary: dict, target: str) -> str:
                 serialized["enforce"][metric],
             )
             for metric in ("lines", "branches")
+            if metric in serialized["minimum"]
         }
         patch_status = _status(patch, patch_policy)
         values = []
         for metric in ("lines", "branches"):
+            if metric not in patch_policy:
+                values.append(f"<td>{_percent(patch[metric])}</td>")
+                continue
             rating = coverage_policy.rating(patch[metric]["percent"], patch_policy[metric])
             values.append(f'<td class="{rating}">{_percent(patch[metric])}</td>')
         status_class = _status_class(patch_status)
@@ -228,9 +249,9 @@ def render_report(summary: dict, target: str) -> str:
             f'<td class="{status_class}">{patch_status}</td>{"".join(values)}</tr></tbody></table>\n'
         )
     body += (
-        '    <p><a href="lcov/">Browse detailed LCOV source coverage</a> · '
-        '<a href="coverage-summary.json">Coverage data (JSON)</a> · '
-        '<a href="coverage-meta.json">Report metadata (JSON)</a> · '
+        '    <p><a href="lcov/">Browse detailed LCOV source coverage</a> &middot; '
+        '<a href="coverage-summary.json">Coverage data (JSON)</a> &middot; '
+        '<a href="coverage-meta.json">Report metadata (JSON)</a> &middot; '
         f'<a href="{overview}">All reports</a></p>'
     )
     return _page(f"mbo coverage: {target}", body)
@@ -290,13 +311,15 @@ def _short_row(metadata: dict, report_path: str | None = None) -> str:
         release = target.removeprefix("tag/")
         label = f"release {release}"
         source = (
-            f'<a href="https://github.com/mboworks/mbo/releases/tag/{html.escape(release)}">'
-            f"release {html.escape(release)}</a>"
+            f'<a href="https://github.com/mboworks/mbo/releases/tag/v{html.escape(release)}">'
+            f"release v{html.escape(release)}</a>"
         )
     else:
         number = target.removeprefix("pr/")
         label = f"PR {number}"
         source = f'<a href="https://github.com/mboworks/mbo/pull/{html.escape(number)}">PR #{html.escape(number)}</a>'
+    if metadata.get("phase"):
+        label += f" ({metadata['phase']})"
     source_metadata = metadata["source"]
     run_id = source_metadata["run_id"]
     if run_id == 0:  # Reports retained before metadata was introduced.
@@ -346,47 +369,74 @@ def archive_reports(root: Path, incoming: Path | None = None) -> None:
         with tempfile.TemporaryDirectory(prefix=".archive-", dir=destination.parent) as temporary:
             candidate = Path(temporary) / "report"
             shutil.copytree(metadata_path.parent, candidate)
-            # Archive URLs are deeper than main/pr/tag URLs. Keep report-local links
-            # intact and relocate only the generated links back to the overview.
-            for page in candidate.rglob("*.html"):
-                text = page.read_text(encoding="utf-8")
-                depth = len(destination.relative_to(root).parts) + len(page.relative_to(candidate).parent.parts)
-                relocated = re.sub(
-                    r'(<a href=")(?:\.\./)+(index\.html)?(">All (?:coverage )?reports</a>)',
-                    lambda match: match[1] + "../" * depth + (match[2] or "") + match[3], text,
-                )
-                if relocated != text:
-                    page.write_text(relocated, encoding="utf-8")
             candidate.rename(destination)
     (root / "runs").mkdir(parents=True, exist_ok=True)
     (root / "runs/index.html").write_text(render_run_history(root), encoding="utf-8")
 
 
-def render_run_history(root: Path) -> str:
-    """Render all archived runs, without collapsing attempts or PR identities."""
-    reports = []
-    for path in (root / "runs").glob("*/*/coverage-meta.json"):
+def selected_reports(root: Path, both_phases: bool = False) -> list[tuple[dict, str]]:
+    """Select one result per PR, or one per phase, with exact merge attribution."""
+    registry = root / "pull-requests.json"
+    pulls = json.loads(registry.read_text()) if registry.exists() else []
+    by_target = {f"pr/{pull['number']}": pull for pull in pulls}
+    by_merge = {pull["merge_commit_sha"]: target for target, pull in by_target.items()
+                if pull.get("merged_at") and pull.get("merge_commit_sha")}
+    selected = {}
+    paths = list((root / "runs").glob("*/*/coverage-meta.json")) + _metadata_paths(root)
+    for path in paths:
         metadata = json.loads(path.read_text(encoding="utf-8"))
-        reports.append((metadata, path.parent.relative_to(root / "runs").as_posix()))
-    reports.sort(key=lambda item: (
-        item[0]["source"]["created_at"], item[0]["source"]["run_id"], item[0]["source"]["run_attempt"]
-    ), reverse=True)
+        target = metadata["target"]
+        phase = ""
+        if target == "main":
+            target = by_merge.get(metadata["source"]["head_sha"])
+            if target is None:
+                continue
+            metadata["target"] = target
+            phase = "post-merge"
+        elif target.startswith("pr/"):
+            phase = "pre-merge"
+        if target in by_target:
+            pull = by_target[target]
+            metadata["pull_state"] = "merged" if pull.get("merged_at") else pull.get("state")
+            metadata["reference_time"] = pull.get("merged_at")
+        if metadata.get("pull_state") == "closed":
+            continue
+        metadata["phase"] = phase
+        key = (target, phase)
+        if key not in selected or is_newer(metadata, selected[key][0]):
+            report_path = path.parent
+            if phase == "post-merge":
+                source = metadata["source"]
+                archived = root / "runs" / str(source["run_id"]) / str(source["run_attempt"])
+                if (archived / "coverage-meta.json").exists():
+                    report_path = archived
+            selected[key] = (metadata, report_path.relative_to(root).as_posix())
+    if not both_phases:
+        for target, phase in list(selected):
+            if phase == "pre-merge" and (target, "post-merge") in selected:
+                del selected[(target, phase)]
+    return sorted(selected.values(), key=lambda item: (_report_order(item[0]), item[0]["phase"] == "post-merge"), reverse=True)
+
+
+def render_run_history(root: Path) -> str:
+    """Show at most one pre-merge and one post-merge result per PR."""
+    reports = selected_reports(root, both_phases=True)
     body = (
-        '    <h1>mbo coverage run history</h1>\n'
+        '    <h1>mbo pre-merge and post-merge coverage</h1>\n'
         '    <p><a href="../index.html">Current coverage overview</a></p>\n'
-        '    <p>Immutable snapshots of published reports, including detailed source coverage, '
-        'identified by their original CI run and attempt. Newest runs appear first.</p>\n'
+        '    <p>One result per PR phase and release. Post-merge results test the exact merge commit; '
+        'retries and unrelated main runs are omitted.</p>\n'
     )
     if reports:
         headings = ("Report", "Data", "Source", "Completed", "Commit", "Workflow", "Lines", "Branches", "Functions")
         body += '    <table class="reportsTable"><thead><tr>'
         body += "".join(f"<th>{heading}</th>" for heading in headings)
         body += "</tr></thead><tbody>\n"
-        body += "\n".join(_short_row(metadata, path) for metadata, path in reports)
+        body += "\n".join(_short_row(metadata, "../" + path) for metadata, path in reports)
         body += "\n    </tbody></table>\n"
     else:
-        body += "    <p>No archived coverage runs are available.</p>\n"
-    return _page("mbo coverage run history", body)
+        body += "    <p>No PR or release coverage results are available.</p>\n"
+    return _page("mbo pre-merge and post-merge coverage", body)
 
 
 def _integration_position(repository: Path, commit: str, commits: list[str]) -> int | None:
@@ -438,7 +488,7 @@ def _tag_reference_time(repository: Path, tag: str) -> str | None:
     """Tagger time for annotated tags; commit time for lightweight tags."""
     result = subprocess.run(
         ["git", "-C", str(repository), "for-each-ref", "--format=%(creatordate:unix)",
-         f"refs/tags/{tag}"], capture_output=True, text=True, check=False,
+         f"refs/tags/v{tag}"], capture_output=True, text=True, check=False,
     )
     value = result.stdout.strip()
     if result.returncode or not value.isdecimal():
@@ -454,6 +504,10 @@ def update_history(root: Path, repository: Path, pull_requests: list[dict],
         text=True,
     ).splitlines()
     positions = {sha: index for index, sha in enumerate(commits)}
+    root.mkdir(parents=True, exist_ok=True)
+    registry = [{key: pull.get(key) for key in ("number", "state", "merged_at", "merge_commit_sha")}
+                for pull in pull_requests]
+    (root / "pull-requests.json").write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
     pulls_by_target = {f"pr/{pull['number']}": pull for pull in pull_requests}
     merges = {
         f"pr/{pull['number']}": pull
@@ -473,7 +527,7 @@ def update_history(root: Path, repository: Path, pull_requests: list[dict],
             tag = target.removeprefix("tag/")
             metadata["reference_time"] = _tag_reference_time(repository, tag)
             resolved = subprocess.run(
-                ["git", "-C", str(repository), "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}"],
+                ["git", "-C", str(repository), "rev-parse", "--verify", "--quiet", f"refs/tags/v{tag}^{{commit}}"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -509,23 +563,18 @@ def _report_order(metadata: dict) -> tuple:
 
 
 def render_site(root: Path) -> str:
-    """Returns the overview, main first then newest PR merge/tag timestamp first."""
-    metadata = latest_metadata(
-        [json.loads(source.read_text(encoding="utf-8")) for source in _metadata_paths(root)]
-    )
-    reports = sorted(
-        (report for report in metadata.values() if report.get("pull_state") != "closed"),
-        key=_report_order, reverse=True,
-    )
-    rows = "\n".join(_short_row(metadata) for metadata in reports)
+    """Return one preferred result per PR and release in reference-time order."""
+    reports = selected_reports(root)
+    rows = "\n".join(_short_row(metadata, path) for metadata, path in reports)
     body = (
         "    <h1>mbo coverage reports</h1>\n"
-        '    <p><a href="runs/">All retained coverage runs and attempts</a></p>\n'
-        "    <p>Main first, then PRs by actual merge time and releases by tag creation time, newest first. "
+        '    <p><a href="runs/">Pre-merge and post-merge results</a></p>\n'
+        "    <p>PRs by actual merge time and releases by tag creation time, newest first. "
         "Lightweight tags have no creation timestamp, so their tagged commit time is used. "
-        "Aggregated PRs retain their own reports and individual merge times. "
+        "Each PR shows pre-merge coverage until its exact merge-commit coverage is available, then post-merge replaces it. "
+        "Aggregated PRs retain their own pre-merge reports and individual merge times. "
         "Open PRs and reports without a reference timestamp follow, newest CI run first. "
-        "PRs closed without merging are omitted here; their reports remain in run history.</p>\n"
+        "PRs closed without merging are omitted here; their direct report URLs remain available.</p>\n"
     )
     if rows:
         body += """    <table class="reportsTable"><thead><tr><th>Report</th><th>Data</th><th>Source</th><th>Completed</th><th>Commit</th><th>Workflow</th><th>Lines</th><th>Branches</th><th>Functions</th></tr></thead>

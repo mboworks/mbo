@@ -49,3 +49,7 @@ Each retained report links its detailed LCOV source view, full `coverage-summary
 `coverage-meta.json`. The coverage index also links the summary JSON directly. The summary records
 measurements and the fully resolved minimum, target, and enforcement values for every overview row,
 so consumers do not need to reimplement inheritance.
+Coverage publication also refreshes PR lifecycle metadata on close and reopen, selects one
+pre-merge or exact-merge-commit post-merge result per PR, and accepts a valid coverage job when
+other CI jobs fail. A manual source-run input can replay a retained artifact through the same
+serialized publisher without rerunning tests.

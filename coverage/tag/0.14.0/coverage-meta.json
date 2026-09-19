@@ -26,10 +26,7 @@
       "percent": 89.35
     }
   },
-  "history": {
-    "commit": "4eef7f85e5d15b281ea1f915eb95b07a1deccd89",
-    "position": 589
-  },
+  "history": null,
   "pull_state": null,
-  "reference_time": "2026-08-30T19:04:55Z"
+  "reference_time": null
 }

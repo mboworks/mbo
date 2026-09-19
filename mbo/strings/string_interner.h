@@ -183,10 +183,6 @@ class StringInterner final {
 
     void Resolve() noexcept {
       current_owner_ = owner_;
-      if (owner_ == nullptr) {
-        current_limit_ = 0;
-        return;
-      }
       current_limit_ = owner_->size();
       while (position_ < current_owner_->first_local_id_) {
         current_limit_ = std::min(current_limit_, current_owner_->first_local_id_);

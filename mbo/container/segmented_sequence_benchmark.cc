@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -52,8 +53,13 @@ void BmAppendFresh(benchmark::State& state) {
       benchmark::DoNotOptimize(sequence.emplace_back(pos));
     }
     benchmark::DoNotOptimize(sequence);
-    SetMemoryCounters(state, sequence);
   }
+  // Reproduce growth outside the timed loop for cold memory accounting.
+  SegmentedSequence<std::uint64_t, Options> memory_sample;
+  for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+    memory_sample.emplace_back(pos);
+  }
+  SetMemoryCounters(state, memory_sample);
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
@@ -131,9 +137,13 @@ void BmVectorAppendFresh(benchmark::State& state) {
       sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation)
     }
     benchmark::DoNotOptimize(sequence);
-    state.counters["capacity"] = static_cast<double>(sequence.capacity());
-    state.counters["reserved"] = static_cast<double>(sequence.capacity() * sizeof(std::uint64_t));
   }
+  std::vector<std::uint64_t> memory_sample;
+  for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+    memory_sample.push_back(pos);  // NOLINT(performance-inefficient-vector-operation): Reproduce measured growth.
+  }
+  state.counters["capacity"] = static_cast<double>(memory_sample.capacity());
+  state.counters["reserved"] = static_cast<double>(memory_sample.capacity() * sizeof(std::uint64_t));
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
@@ -144,6 +154,63 @@ void BmDequeAppendFresh(benchmark::State& state) {
       sequence.push_back(pos);
     }
     benchmark::DoNotOptimize(sequence);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+void BmVectorAppendRetained(benchmark::State& state) {
+  std::vector<std::uint64_t> sequence;
+  sequence.reserve(kElementCount);
+  for (auto _ : state) {
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      sequence.push_back(pos);
+    }
+    benchmark::ClobberMemory();
+    sequence.clear();
+  }
+  state.counters["capacity"] = static_cast<double>(sequence.capacity());
+  state.counters["reserved"] = static_cast<double>(sequence.capacity() * sizeof(std::uint64_t));
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+void BmListAppendFresh(benchmark::State& state) {
+  for (auto _ : state) {
+    std::list<std::uint64_t> sequence;
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      sequence.push_back(pos);
+    }
+    benchmark::DoNotOptimize(sequence);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<typename Sequence>
+void BmStandardIteratorLookup(benchmark::State& state) {
+  Sequence sequence(kElementCount, 1);
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    for (const std::uint64_t value : sequence) {
+      sum += value;
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<typename Sequence, bool Permuted>
+void BmStandardIndexedLookup(benchmark::State& state) {
+  Sequence sequence;
+  for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+    sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation): Untimed fixture setup.
+  }
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
+      const std::size_t pos = Permuted ? (ordinal * 40'503) & (kElementCount - 1) : ordinal;
+      sum += sequence[pos];  // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): Measured indexed
+                             // access.
+    }
+    benchmark::DoNotOptimize(sum);
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
@@ -164,7 +231,16 @@ REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Listed", kListed);
 #undef REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS
 
 BENCHMARK(BmVectorAppendFresh)->Name("Vector/AppendFresh");
+BENCHMARK(BmVectorAppendRetained)->Name("Vector/AppendRetained");
 BENCHMARK(BmDequeAppendFresh)->Name("Deque/AppendFresh");
+BENCHMARK(BmListAppendFresh)->Name("List/AppendFresh");
+BENCHMARK_TEMPLATE(BmStandardIteratorLookup, std::vector<std::uint64_t>)->Name("Vector/Iterator");
+BENCHMARK_TEMPLATE(BmStandardIteratorLookup, std::deque<std::uint64_t>)->Name("Deque/Iterator");
+BENCHMARK_TEMPLATE(BmStandardIteratorLookup, std::list<std::uint64_t>)->Name("List/Iterator");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, false)->Name("Vector/Indexed");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::vector<std::uint64_t>, true)->Name("Vector/IndexedPermuted");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, false)->Name("Deque/Indexed");
+BENCHMARK_TEMPLATE(BmStandardIndexedLookup, std::deque<std::uint64_t>, true)->Name("Deque/IndexedPermuted");
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 

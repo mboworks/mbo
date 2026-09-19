@@ -283,8 +283,8 @@ repos:
       - id: benchmark-artifact-tests
         name: Test benchmark artifact production and validation
         language: system
-        entry: python3 -m unittest tools/benchmark_artifact_test.py
-        files: ^tools/benchmark_artifact(_test)?\.py$
+        entry: python3 -m unittest tools/benchmark_artifact_test.py tools/benchmark_report_test.py
+        files: ^tools/benchmark_(artifact|report)(_test)?\.py$
         pass_filenames: false
       - id: clang-tidy
         name: clang-tidy

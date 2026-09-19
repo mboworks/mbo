@@ -36,6 +36,49 @@ template<
     typename HashOf,
     typename KeyOf,
     typename Equal>
+std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertCollision(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* original,
+    Hash hash,
+    const Key& key,
+    const Entry& entry,
+    std::size_t level,
+    const HashOf& hash_of,
+    const KeyOf& key_of,
+    const Equal& equal) noexcept {
+  using Node = HamtSharedNode<FragmentBits, Entry>;
+  const Hash existing_hash = std::invoke(hash_of, original->entries().front());
+  if (existing_hash != hash) {
+    const auto branch = TryBuildHamtCollisionBranch<FragmentBits>(source, original, existing_hash, hash, entry, level);
+    if (!branch) {
+      return std::nullopt;
+    }
+    return HamtInsertResult<Node>{.root = *branch, .inserted = true};
+  }
+  std::size_t position = 0;
+  for (const Entry& existing : original->entries()) {
+    if (std::invoke(hash_of, existing) == hash && std::invoke(equal, std::invoke(key_of, existing), key)) {
+      Node::Retain(original);
+      return HamtInsertResult<Node>{.root = original, .inserted = false};
+    }
+    ++position;
+  }
+  auto inserted = Node::TryInsertCollisionEntry(source, *original, position, entry);
+  if (!inserted) {
+    return std::nullopt;
+  }
+  return HamtInsertResult<Node>{.root = *inserted, .inserted = true};
+}
+
+template<
+    std::unsigned_integral Hash,
+    std::size_t FragmentBits,
+    typename Entry,
+    typename Key,
+    mbo::memory::BlockSource Source,
+    typename HashOf,
+    typename KeyOf,
+    typename Equal>
 requires(
     std::is_nothrow_copy_constructible_v<Entry> && std::is_nothrow_invocable_r_v<Hash, const HashOf&, const Entry&>
     && std::is_nothrow_invocable_v<const KeyOf&, const Entry&>
@@ -53,28 +96,7 @@ std::optional<HamtInsertResult<HamtSharedNode<FragmentBits, Entry>>> TryInsertAt
     bool allow_unique_mutation) noexcept {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (original->is_collision()) {
-    const Hash existing_hash = std::invoke(hash_of, original->entries().front());
-    if (existing_hash != hash) {
-      const auto branch =
-          TryBuildHamtCollisionBranch<FragmentBits>(source, original, existing_hash, hash, entry, level);
-      if (!branch) {
-        return std::nullopt;
-      }
-      return HamtInsertResult<Node>{.root = *branch, .inserted = true};
-    }
-    std::size_t position = 0;
-    for (const Entry& existing : original->entries()) {
-      if (std::invoke(hash_of, existing) == hash && std::invoke(equal, std::invoke(key_of, existing), key)) {
-        Node::Retain(original);
-        return HamtInsertResult<Node>{.root = original, .inserted = false};
-      }
-      ++position;
-    }
-    auto inserted = Node::TryInsertCollisionEntry(source, *original, position, entry);
-    if (!inserted) {
-      return std::nullopt;
-    }
-    return HamtInsertResult<Node>{.root = *inserted, .inserted = true};
+    return TryInsertCollision<Hash, FragmentBits>(source, original, hash, key, entry, level, hash_of, key_of, equal);
   }
 
   const HamtHashPath<Hash, FragmentBits> path(hash);

@@ -30,34 +30,45 @@ static_assert(noexcept(++std::declval<StringInterner<>::iterator&>()) == !::mbo:
 static_assert(noexcept(--std::declval<StringInterner<>::iterator&>()) == !::mbo::config::kRequireThrows);
 
 // NOLINTBEGIN(readability-identifier-naming): Models deliberately STL-shaped public backend contracts.
-struct ThrowingDestructionIndex final {
+// These syntax-only backends differ solely in their destructor specification.
+template<bool NothrowDestruction>
+struct DestructionBackend final {
   using checkpoint_type = std::size_t;
   using value_type = std::string_view;
 
-  ThrowingDestructionIndex() = default;
-  ThrowingDestructionIndex(const ThrowingDestructionIndex&) = default;
-  ThrowingDestructionIndex& operator=(const ThrowingDestructionIndex&) = default;
-  ThrowingDestructionIndex(ThrowingDestructionIndex&&) = default;
-  ThrowingDestructionIndex& operator=(ThrowingDestructionIndex&&) = default;
+  DestructionBackend() = default;
+  DestructionBackend(const DestructionBackend&) = default;
+  DestructionBackend& operator=(const DestructionBackend&) = default;
+  DestructionBackend(DestructionBackend&&) noexcept = default;
+  DestructionBackend& operator=(DestructionBackend&&) noexcept = default;
 
-  ~ThrowingDestructionIndex() noexcept(false) = default;
+  ~DestructionBackend() noexcept(NothrowDestruction) = default;
 
   static std::optional<StringId<>> find(std::string_view /*key*/) noexcept { return std::nullopt; }
 
   static std::optional<bool> try_insert(std::string_view /*key*/, StringId<> /*identifier*/) noexcept { return true; }
 
-  std::optional<std::string_view> try_store(std::string_view value) noexcept;
-  checkpoint_type checkpoint() const noexcept;
-  void rewind(const checkpoint_type&) noexcept;
-  std::size_t size() const noexcept;
-  std::string_view at(std::size_t index) const;
-  bool try_emplace_back(std::string_view value) noexcept;
-  void pop_back() noexcept;
+  static std::optional<std::string_view> try_store(std::string_view text) noexcept { return text; }
+
+  static checkpoint_type checkpoint() noexcept { return 0; }
+
+  static void rewind(const checkpoint_type& /*checkpoint*/) noexcept {}
+
+  static std::size_t size() noexcept { return 0; }
+
+  static std::string_view at(std::size_t /*index*/) noexcept { return {}; }
+
+  static bool try_emplace_back(std::string_view /*value*/) noexcept { return false; }
+
+  static void pop_back() noexcept {}
 };
 
-static_assert(!StringInternerIndex<ThrowingDestructionIndex, StringId<>>);
-static_assert(!StringInternerStorage<ThrowingDestructionIndex>);
-static_assert(!StringInternerEntries<ThrowingDestructionIndex>);
+static_assert(StringInternerIndex<DestructionBackend<true>, StringId<>>);
+static_assert(StringInternerStorage<DestructionBackend<true>>);
+static_assert(StringInternerEntries<DestructionBackend<true>>);
+static_assert(!StringInternerIndex<DestructionBackend<false>, StringId<>>);
+static_assert(!StringInternerStorage<DestructionBackend<false>>);
+static_assert(!StringInternerEntries<DestructionBackend<false>>);
 static_assert(std::is_nothrow_destructible_v<StringInterner<>>);
 
 struct QueryCountingIndex final {

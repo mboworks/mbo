@@ -68,6 +68,12 @@ TEST_F(HamtLookupTest, BorrowsCallableStateAndRejectsHashesBeforeKeyExtraction) 
   ASSERT_THAT(found, NotNull());
   EXPECT_THAT(found->key, Eq(21));
   EXPECT_THAT(calls, Eq(2));
+  const auto absent = InspectHamtEntry(node, std::uint64_t{2}, 22, HashOf{}, key_of, Equal{});
+  EXPECT_THAT(absent.entry, Eq(nullptr));
+  EXPECT_THAT(absent.full_hash_entries, Eq(2));
+  const auto different_hash = InspectHamtEntry(node, std::uint64_t{34}, 21, HashOf{}, key_of, Equal{});
+  EXPECT_THAT(different_hash.entry, Eq(nullptr));
+  EXPECT_THAT(different_hash.full_hash_entries, Eq(0));
   Node::Release(source, node);
 }
 
@@ -134,6 +140,24 @@ TEST_F(HamtLookupTest, TraversesTheEntireHashWidthForEverySupportedFragmentSize)
   check_width.operator()<5>();
   check_width.operator()<6>();
   check_width.operator()<7>();
+}
+
+TEST_F(HamtLookupTest, RejectsMalformedTreesDeeperThanTheHashPath) {
+  mbo::memory::NewDeleteBlockSource source;
+  const Node::index_type empty_index;
+  Node* root = Node::TryCreate(source, empty_index, {}, {}).value_or(nullptr);
+  ASSERT_THAT(root, NotNull());
+  for (std::size_t level = 0; level < HamtHashPath<std::uint64_t, 5>::kLevels; ++level) {
+    Node::index_type index;
+    ASSERT_THAT(index.InsertNode(0), Eq(true));
+    const auto children = std::to_array<Node*>({root});
+    auto* const parent = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+    ASSERT_THAT(parent, NotNull());
+    Node::Release(source, root);
+    root = parent;
+  }
+  EXPECT_THAT(FindHamtEntry(root, std::uint64_t{0}, 0, HashOf{}, KeyOf{}, Equal{}), Eq(nullptr));
+  Node::Release(source, root);
 }
 
 TEST_F(HamtLookupTest, DirectEntryRequiresBothFullHashAndKeyToMatch) {

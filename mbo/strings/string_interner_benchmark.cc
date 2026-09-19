@@ -1,18 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <random>
 #include <span>
 #include <string>
 #include <string_view>
 // Deliberate standard-container comparison, not a production recommendation.
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -20,6 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "benchmark/benchmark.h"
 #include "mbo/hash/hash.h"
+#include "mbo/memory/block_source.h"
 #include "mbo/strings/container_string_index.h"
 #include "mbo/strings/hamt_node_string_index.h"
 #include "mbo/strings/hamt_string_index.h"
@@ -47,15 +51,49 @@ using StandardIndex = ContainerStringIndex<Id, std::unordered_map<std::string_vi
 using AbseilFlatIndex = ContainerStringIndex<Id, absl::flat_hash_map<std::string_view, Id, Hash>>;
 using AbseilNodeIndex = ContainerStringIndex<Id, absl::node_hash_map<std::string_view, Id, Hash>>;
 
-template<typename Index>
-using IndexRepresentation = decltype(std::declval<const Index&>().find(std::string_view{}))::value_type::value_type;
+template<
+    typename Index,
+    mbo::memory::ArenaOptions ArenaOptions,
+    mbo::container::SegmentedSequenceOptions SequenceOptions>
+struct StorageProfile final {};
+
+template<typename Profile>
+struct BenchmarkStorage final {
+  using index_type = Profile;
+  using storage_type = ArenaStringStorage<>;
+  using entries_type = mbo::container::SegmentedSequence<std::string_view>;
+};
+
+template<
+    typename Index,
+    mbo::memory::ArenaOptions ArenaOptions,
+    mbo::container::SegmentedSequenceOptions SequenceOptions>
+struct BenchmarkStorage<StorageProfile<Index, ArenaOptions, SequenceOptions>> final {
+  using index_type = Index;
+  using storage_type = ArenaStringStorage<mbo::memory::Arena<mbo::memory::NewDeleteBlockSource, ArenaOptions>>;
+  using entries_type = mbo::container::SegmentedSequence<std::string_view, SequenceOptions>;
+};
+
+struct BoundedCharacterProfile final {};
+
+template<>
+struct BenchmarkStorage<BoundedCharacterProfile> final {
+  using index_type = FlatIndex<5>;
+  using storage_type = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<4'096>>>;
+  using entries_type = mbo::container::SegmentedSequence<std::string_view>;
+};
+
+template<typename Profile>
+using IndexRepresentation =
+    typename decltype(std::declval<const typename BenchmarkStorage<Profile>::index_type&>().find(
+        std::string_view{}))::value_type::value_type;
 
 template<typename Index>
 using Interner = StringInterner<
     IndexRepresentation<Index>,
-    ArenaStringStorage<>,
-    mbo::container::SegmentedSequence<std::string_view>,
-    Index>;
+    typename BenchmarkStorage<Index>::storage_type,
+    typename BenchmarkStorage<Index>::entries_type,
+    typename BenchmarkStorage<Index>::index_type>;
 
 template<typename Representation>
 using WidthIndex = HamtStringIndex<StringId<Representation>, Hash>;
@@ -111,7 +149,7 @@ void BmUniqueLifecycle(benchmark::State& state) {
   for (auto iteration : state) {
     (void)iteration;
     Interner<Index> interner;
-    if (!Populate(state, interner, inputs)) {
+    if (!Populate<Index>(state, interner, inputs)) {
       return;
     }
     auto size = interner.size();
@@ -127,7 +165,7 @@ void BmDuplicate(benchmark::State& state) {
   const auto count = static_cast<std::size_t>(state.range(0));
   const auto inputs = MakeInputs(count, static_cast<std::size_t>(state.range(1)), state.range(2) != 0, "key/");
   Interner<Index> interner;
-  if (!Populate(state, interner, inputs)) {
+  if (!Populate<Index>(state, interner, inputs)) {
     return;
   }
   for (auto iteration : state) {
@@ -138,6 +176,94 @@ void BmDuplicate(benchmark::State& state) {
     }
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
+}
+
+template<typename Index, bool Duplicate, StringInternError ExpectedError>
+void RunCapacity(benchmark::State& state, Interner<Index>& interner, std::string_view query, std::size_t capacity) {
+  const auto character_bytes_used = interner.local_character_bytes_used();
+  const auto detailed = interner.intern(query);
+  if constexpr (Duplicate) {
+    using Result = std::pair<typename Interner<Index>::id_type, bool>;
+    const auto* const inserted = std::get_if<Result>(&detailed);
+    if (inserted == nullptr || inserted->first.value() != capacity - 1 || inserted->second) {
+      state.SkipWithError("full-capacity duplicate returned an incorrect ID or insertion flag");
+      return;
+    }
+  } else {
+    const auto* const error = std::get_if<StringInternError>(&detailed);
+    if (error == nullptr || *error != ExpectedError) {
+      state.SkipWithError("capacity preflight failed for an unexpected exhaustion reason");
+      return;
+    }
+  }
+  const auto preflight = interner.try_intern_id(query);
+  if (preflight.has_value() != Duplicate || interner.size() != capacity
+      || interner.local_character_bytes_used() != character_bytes_used) {
+    state.SkipWithError("full capacity did not preserve duplicate/failure semantics");
+    return;
+  }
+  for (auto iteration : state) {
+    (void)iteration;
+    auto result = interner.try_intern_id(query);
+    benchmark::DoNotOptimize(result);
+  }
+  if (interner.size() != capacity || interner.local_character_bytes_used() != character_bytes_used) {
+    state.SkipWithError("timed capacity attempts changed size or committed character bytes");
+    return;
+  }
+  state.counters["capacity"] = static_cast<double>(capacity);
+  if (const auto bytes = interner.local_character_bytes_used(); bytes.has_value()) {
+    state.counters["character_bytes_used"] = static_cast<double>(*bytes);
+  }
+  if (const auto bytes = interner.local_character_bytes_reserved(); bytes.has_value()) {
+    state.counters["character_bytes_reserved"] = static_cast<double>(*bytes);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+
+template<
+    typename Index,
+    std::size_t Capacity,
+    bool Duplicate,
+    StringInternError ExpectedError = StringInternError::kIdExhausted>
+void BmCapacity(benchmark::State& state) {
+  RecordWidths<Index, 64>(state);
+  const auto inputs = MakeInputs(Capacity, static_cast<std::size_t>(state.range(0)), state.range(1) != 0, "key/");
+  const auto misses = MakeInputs(1, static_cast<std::size_t>(state.range(0)), state.range(1) != 0, "miss/");
+  Interner<Index> interner;
+  if (!Populate<Index>(state, interner, inputs)) {
+    return;
+  }
+  RunCapacity<Index, Duplicate, ExpectedError>(state, interner, Duplicate ? inputs.back() : misses.front(), Capacity);
+}
+
+template<bool Duplicate>
+void BmCharacterCapacity(benchmark::State& state) {
+  RecordWidths<BoundedCharacterProfile, 64>(state);
+  const auto length = static_cast<std::size_t>(state.range(0));
+  if (length == 0) {
+    state.SkipWithError("character exhaustion requires nonempty strings");
+    return;
+  }
+  const auto inputs = MakeInputs(4'096 / length + 1, length, state.range(1) != 0, "key/");
+  Interner<BoundedCharacterProfile> interner;
+  for (const auto& text : inputs) {
+    const auto result = interner.intern(text);
+    if (const auto* error = std::get_if<StringInternError>(&result); error != nullptr) {
+      if (*error != StringInternError::kCharacterStorageExhausted) {
+        state.SkipWithError("bounded character setup exhausted an unrelated resource");
+        return;
+      }
+      break;
+    }
+  }
+  const auto capacity = interner.size();
+  if (capacity == 0 || capacity == inputs.size()) {
+    state.SkipWithError("bounded character setup did not reach a populated exhaustion state");
+    return;
+  }
+  RunCapacity<BoundedCharacterProfile, Duplicate, StringInternError::kCharacterStorageExhausted>(
+      state, interner, inputs.at(Duplicate ? capacity - 1 : capacity), capacity);
 }
 
 template<typename Index>
@@ -152,7 +278,7 @@ class CascadeFixture final {
     const auto local_count = inputs.size() / depth;
     for (std::size_t level = 0; level < depth; ++level) {
       auto owner = std::make_unique<Interner<Index>>(levels_.empty() ? nullptr : levels_.back().get());
-      if (!Populate(state, *owner, inputs.subspan(level * local_count, local_count))) {
+      if (!Populate<Index>(state, *owner, inputs.subspan(level * local_count, local_count))) {
         return;
       }
       levels_.push_back(std::move(owner));
@@ -176,6 +302,8 @@ class CascadeFixture final {
 
   const Interner<Index>& Leaf() const noexcept { return *levels_.back(); }
 
+  Interner<Index>& Root() noexcept { return *levels_.front(); }
+
   std::size_t CharacterBytesReserved() const noexcept {
     std::size_t reserved = 0;
     for (const auto& owner : levels_) {
@@ -184,13 +312,187 @@ class CascadeFixture final {
     return reserved;
   }
 
+  void RecordStorageCounters(benchmark::State& state) const {
+    // All registered profiles use SegmentedSequence, which supplies these
+    // reservation measurements. Index and allocator overhead are not included.
+    std::size_t live_descriptors = 0;
+    std::size_t reserved_descriptors = 0;
+    std::size_t lookup_directory = 0;
+    std::size_t segment_directory = 0;
+    for (const auto& owner : levels_) {
+      const auto diagnostics = owner->local_entry_storage_diagnostics();
+      live_descriptors += diagnostics.live_descriptor_bytes;
+      reserved_descriptors += diagnostics.segment_bytes_reserved.value_or(0);
+      lookup_directory += diagnostics.lookup_directory_bytes_reserved.value_or(0);
+      segment_directory += diagnostics.segment_directory_bytes_reserved.value_or(0);
+    }
+    state.counters["descriptor_bytes_live"] = static_cast<double>(live_descriptors);
+    state.counters["descriptor_bytes_reserved"] = static_cast<double>(reserved_descriptors);
+    state.counters["lookup_directory_bytes_reserved"] = static_cast<double>(lookup_directory);
+    state.counters["segment_directory_bytes_reserved"] = static_cast<double>(segment_directory);
+  }
+
  private:
   std::vector<std::unique_ptr<Interner<Index>>> levels_;
   bool ready_ = false;
 };
 
 template<typename Index, bool Reverse, int HashBits>
+void BmLateParentLookup(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto length = static_cast<std::size_t>(state.range(1));
+  const auto depth = static_cast<std::size_t>(state.range(3));
+  const auto inputs = MakeInputs(count, length, state.range(2) != 0, "key/");
+  CascadeFixture<Index> fixture(state, inputs, depth);
+  if (!fixture.Ready()) {
+    return;
+  }
+  const auto local_count = count / depth;
+  const auto queries = MakeInputs(local_count, length, state.range(2) != 0, "late/");
+  if (!Populate<Index>(state, fixture.Root(), queries)) {
+    return;
+  }
+  const auto& child = fixture.Leaf();
+  const auto expected_size = depth == 1 ? count + local_count : count;
+  if (child.size() != expected_size || fixture.Root().size() != 2 * local_count) {
+    state.SkipWithError("late parent growth changed the wrong visible size");
+    return;
+  }
+  for (std::size_t pos = 0; pos < queries.size(); ++pos) {
+    const auto& text = queries.at(pos);
+    const auto forward = child.find(text);
+    const auto reverse = child.rfind(text);
+    if (forward.has_value() != (depth == 1) || reverse.has_value() != (depth == 1)) {
+      state.SkipWithError("late parent growth violated the captured child cutoff");
+      return;
+    }
+    if (forward.has_value() && reverse.has_value()
+        && (forward->value() != local_count + pos || reverse->value() != local_count + pos)) {
+      state.SkipWithError("root-only late insertion returned an incorrect dense ID");
+      return;
+    }
+  }
+  fixture.RecordStorageCounters(state);
+  for (auto iteration : state) {
+    (void)iteration;
+    for (const auto& text : queries) {
+      auto result = Reverse ? child.rfind(text) : child.find(text);
+      benchmark::DoNotOptimize(result);
+    }
+  }
+  state.counters["chain_depth"] = static_cast<double>(depth);
+  state.counters["late_parent_strings"] = static_cast<double>(local_count);
+  state.counters["visible_strings"] = static_cast<double>(child.size());
+  state.counters["hidden_parent_growth"] = depth == 1 ? 0 : 1;
+  state.counters["character_bytes_reserved"] = static_cast<double>(fixture.CharacterBytesReserved());
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
+}
+
+template<typename Index, bool Reverse, int HashBits>
+void BmCascadeIteration(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto depth = static_cast<std::size_t>(state.range(3));
+  const auto inputs = MakeInputs(count, static_cast<std::size_t>(state.range(1)), state.range(2) != 0, "key/");
+  const CascadeFixture<Index> fixture(state, inputs, depth);
+  if (!fixture.Ready()) {
+    return;
+  }
+  const auto& leaf = fixture.Leaf();
+  fixture.RecordStorageCounters(state);
+  std::size_t ordinal = 0;
+  for (const auto text : leaf) {
+    if (text != inputs.at(ordinal++)) {
+      state.SkipWithError("cascade iteration did not preserve dense-ID order");
+      return;
+    }
+  }
+  if (ordinal != count) {
+    state.SkipWithError("cascade iteration omitted visible strings");
+    return;
+  }
+  for (auto iterator = leaf.rbegin(); iterator != leaf.rend(); ++iterator) {
+    if (ordinal == 0 || *iterator != inputs.at(--ordinal)) {
+      state.SkipWithError("reverse cascade iteration did not preserve reverse dense-ID order");
+      return;
+    }
+  }
+  if (ordinal != 0) {
+    state.SkipWithError("reverse cascade iteration omitted visible strings");
+    return;
+  }
+  for (auto iteration : state) {
+    (void)iteration;
+    if constexpr (Reverse) {
+      for (auto iterator = leaf.rbegin(); iterator != leaf.rend(); ++iterator) {
+        auto text = *iterator;
+        benchmark::DoNotOptimize(text);
+      }
+    } else {
+      for (auto text : leaf) {
+        benchmark::DoNotOptimize(text);
+      }
+    }
+  }
+  state.counters["chain_depth"] = static_cast<double>(depth);
+  state.counters["character_bytes_reserved"] = static_cast<double>(fixture.CharacterBytesReserved());
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
+}
+
+struct StringSizeTotals final {
+  void operator()(std::size_t length) noexcept {
+    ++strings;
+    bytes += length;
+  }
+
+  std::size_t strings = 0;
+  std::size_t bytes = 0;
+};
+
+template<typename Index, int HashBits>
+void BmStringSizeDiagnostics(benchmark::State& state) {
+  RecordWidths<Index, HashBits>(state);
+  const auto count = static_cast<std::size_t>(state.range(0));
+  const auto length = static_cast<std::size_t>(state.range(1));
+  const auto depth = static_cast<std::size_t>(state.range(3));
+  const auto inputs = MakeInputs(count, length, state.range(2) != 0, "key/");
+  CascadeFixture<Index> fixture(state, inputs, depth);
+  if (!fixture.Ready()) {
+    return;
+  }
+  auto* child = std::addressof(fixture.Leaf());
+  StringSizeTotals preflight;
+  child->visit_string_sizes(preflight);
+  if (preflight.strings != count || preflight.bytes != count * length) {
+    state.SkipWithError("string-size diagnostic visitor lost visible strings or bytes");
+    return;
+  }
+  fixture.RecordStorageCounters(state);
+  benchmark::DoNotOptimize(child);
+  for (auto iteration : state) {
+    (void)iteration;
+    benchmark::ClobberMemory();
+    StringSizeTotals totals;
+    child->visit_string_sizes(totals);
+    benchmark::DoNotOptimize(totals);
+  }
+  state.counters["chain_depth"] = static_cast<double>(depth);
+  state.counters["string_bytes_reported"] = static_cast<double>(preflight.bytes);
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(count));
+}
+
+template<
+    typename Index,
+    bool Reverse,
+    int HashBits,
+    bool Shuffled = false,
+    std::size_t RootWeight = 1,
+    std::size_t LocalWeight = 1,
+    std::size_t MissWeight = 1>
 void BmCascadeMixedLookup(benchmark::State& state) {
+  static_assert(RootWeight > 0 && LocalWeight > 0 && MissWeight > 0);
+  constexpr std::size_t kQueriesPerString = RootWeight + LocalWeight + MissWeight;
   RecordWidths<Index, HashBits>(state);
   const auto count = static_cast<std::size_t>(state.range(0));
   const auto length = static_cast<std::size_t>(state.range(1));
@@ -204,20 +506,42 @@ void BmCascadeMixedLookup(benchmark::State& state) {
   const auto local_count = count / depth;
   const auto misses = MakeInputs(local_count, length, state.range(2) != 0, "miss/");
   const auto& child = fixture.Leaf();
+  fixture.RecordStorageCounters(state);
   std::vector<std::string_view> queries;
-  queries.reserve(local_count * 3);
+  queries.reserve(local_count * kQueriesPerString);
   for (std::size_t pos = 0; pos < local_count; ++pos) {
-    queries.push_back(views.subspan(pos).front());
-    queries.push_back(views.last(local_count).subspan(pos).front());
-    queries.push_back(std::span<const std::string>(misses).subspan(pos).front());
+    for (std::size_t repeat = 0; repeat < RootWeight; ++repeat) {
+      queries.push_back(views.subspan(pos).front());
+    }
+    for (std::size_t repeat = 0; repeat < LocalWeight; ++repeat) {
+      queries.push_back(views.last(local_count).subspan(pos).front());
+    }
+    for (std::size_t repeat = 0; repeat < MissWeight; ++repeat) {
+      queries.push_back(std::span<const std::string>(misses).subspan(pos).front());
+    }
   }
   for (std::size_t pos = 0; pos < queries.size(); ++pos) {
-    const bool expected = pos % 3 != 2;
+    const auto query_class = pos % kQueriesPerString;
+    const bool expected = query_class < RootWeight + LocalWeight;
     const auto text = std::span<const std::string_view>(queries).subspan(pos).front();
-    if (child.find(text).has_value() != expected || child.rfind(text).has_value() != expected) {
+    const auto forward = child.find(text);
+    const auto reverse = child.rfind(text);
+    if (forward.has_value() != expected || reverse.has_value() != expected) {
       state.SkipWithError("mixed lookup preflight disagrees with expected presence");
       return;
     }
+    if (forward.has_value() && reverse.has_value()) {
+      const auto ordinal = pos / kQueriesPerString;
+      const auto expected_id = query_class < RootWeight ? ordinal : count - local_count + ordinal;
+      if (forward->value() != expected_id || reverse->value() != expected_id) {
+        state.SkipWithError("mixed lookup preflight returned an incorrect dense ID");
+        return;
+      }
+    }
+  }
+  if constexpr (Shuffled) {
+    std::mt19937 generator(0x4d424f);
+    std::shuffle(queries.begin(), queries.end(), generator);
   }
   for (auto iteration : state) {
     (void)iteration;
@@ -229,6 +553,10 @@ void BmCascadeMixedLookup(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
   state.counters["chain_depth"] = static_cast<double>(depth);
   state.counters["strings_per_level"] = static_cast<double>(local_count);
+  state.counters["queries_per_iteration"] = static_cast<double>(queries.size());
+  state.counters["root_query_fraction"] = static_cast<double>(RootWeight) / kQueriesPerString;
+  state.counters["local_query_fraction"] = static_cast<double>(LocalWeight) / kQueriesPerString;
+  state.counters["miss_query_fraction"] = static_cast<double>(MissWeight) / kQueriesPerString;
   state.counters["character_bytes_reserved"] = static_cast<double>(fixture.CharacterBytesReserved());
 }
 
@@ -247,6 +575,7 @@ void BmCascadeLookup(benchmark::State& state) {
   }
   const auto local_count = count / depth;
   const auto& child = fixture.Leaf();
+  fixture.RecordStorageCounters(state);
   const auto misses = MakeInputs(local_count, length, embedded_nul, "miss/");
   const std::span<const std::string> queries = Missing ? std::span<const std::string>(misses)
                                                : Local ? views.last(local_count)
@@ -276,8 +605,8 @@ void BmCascadeLookup(benchmark::State& state) {
   state.counters["character_bytes_reserved"] = static_cast<double>(fixture.CharacterBytesReserved());
 }
 
-template<typename Index>
-bool PopulateEmpty(benchmark::State& state, Interner<Index>& interner) {
+template<typename InternerType>
+bool PopulateEmpty(benchmark::State& state, InternerType& interner) {
   const auto result = interner.try_intern_id(std::string_view{});
   if (!result || result->value() != 0 || interner.local_character_bytes_reserved().value_or(1) != 0) {
     state.SkipWithError("empty-string preflight expected valid ID zero and no character allocation");
@@ -388,11 +717,76 @@ void RegisterIndex(std::string_view name) {
   add("RfindMiss", BmCascadeLookup<Index, true, false, true, HashBits>, true);
   add("FindMixed", BmCascadeMixedLookup<Index, false, HashBits>, true);
   add("RfindMixed", BmCascadeMixedLookup<Index, true, HashBits>, true);
+  add("FindMixedShuffled", BmCascadeMixedLookup<Index, false, HashBits, true>, true);
+  add("RfindMixedShuffled", BmCascadeMixedLookup<Index, true, HashBits, true>, true);
+  add("FindRootHeavyShuffled", BmCascadeMixedLookup<Index, false, HashBits, true, 8, 1, 1>, true);
+  add("RfindRootHeavyShuffled", BmCascadeMixedLookup<Index, true, HashBits, true, 8, 1, 1>, true);
+  add("FindLocalHeavyShuffled", BmCascadeMixedLookup<Index, false, HashBits, true, 1, 8, 1>, true);
+  add("RfindLocalHeavyShuffled", BmCascadeMixedLookup<Index, true, HashBits, true, 1, 8, 1>, true);
+  add("FindMissHeavyShuffled", BmCascadeMixedLookup<Index, false, HashBits, true, 1, 1, 8>, true);
+  add("RfindMissHeavyShuffled", BmCascadeMixedLookup<Index, true, HashBits, true, 1, 1, 8>, true);
+  add("Iterate", BmCascadeIteration<Index, false, HashBits>, true);
+  add("ReverseIterate", BmCascadeIteration<Index, true, HashBits>, true);
+  add("VisitStringSizes", BmStringSizeDiagnostics<Index, HashBits>, true);
+  add("FindLateParent", BmLateParentLookup<Index, false, HashBits>, true);
+  add("RfindLateParent", BmLateParentLookup<Index, true, HashBits>, true);
 }
 
 [[maybe_unused]] const bool kRegistered = [] {
+  // Google Benchmark copies names supplied through its C-string API.
+  auto* exhausted = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Id8/IdExhaustion", BmCapacity<WidthIndex<std::uint8_t>, 256, false>);
+  auto* duplicate = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Id8/DuplicateAtIdCapacity", BmCapacity<WidthIndex<std::uint8_t>, 256, true>);
+  using BoundedEntries = StorageProfile<
+      FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {64}, .maximum_size = 64}>;
+  auto* entries_exhausted = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Entries64Bounded/EntryExhaustion",
+      BmCapacity<BoundedEntries, 64, false, StringInternError::kEntryStorageExhausted>);
+  auto* entries_duplicate = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Entries64Bounded/DuplicateAtEntryCapacity", BmCapacity<BoundedEntries, 64, true>);
+  auto* characters_exhausted = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Arena4096Bounded/CharacterExhaustion", BmCharacterCapacity<false>);
+  auto* characters_duplicate = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Arena4096Bounded/DuplicateAtCharacterCapacity", BmCharacterCapacity<true>);
+  using BoundedIndex =
+      HamtStringIndex<Id, Hash, std::equal_to<>, mbo::container::HamtOptions{.fragment_bits = 5, .maximum_size = 64}>;
+  auto* index_exhausted = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Index64Bounded/IndexExhaustion",
+      BmCapacity<BoundedIndex, 64, false, StringInternError::kIndexExhausted>);
+  auto* index_duplicate = benchmark::RegisterBenchmark(
+      "StringInterner/HamtFlat5Index64Bounded/DuplicateAtIndexCapacity", BmCapacity<BoundedIndex, 64, true>);
+  for (const auto length : std::to_array<std::int64_t>({16, 64, 512})) {
+    for (const auto nul_mode : std::to_array<std::int64_t>({0, 1})) {
+      exhausted->Args({length, nul_mode});
+      duplicate->Args({length, nul_mode});
+      entries_exhausted->Args({length, nul_mode});
+      entries_duplicate->Args({length, nul_mode});
+      characters_exhausted->Args({length, nul_mode});
+      characters_duplicate->Args({length, nul_mode});
+      index_exhausted->Args({length, nul_mode});
+      index_duplicate->Args({length, nul_mode});
+    }
+  }
+  exhausted->ArgNames({"bytes", "embedded_nul"});
+  duplicate->ArgNames({"bytes", "embedded_nul"});
+  entries_exhausted->ArgNames({"bytes", "embedded_nul"});
+  entries_duplicate->ArgNames({"bytes", "embedded_nul"});
+  characters_exhausted->ArgNames({"bytes", "embedded_nul"});
+  characters_duplicate->ArgNames({"bytes", "embedded_nul"});
+  index_exhausted->ArgNames({"bytes", "embedded_nul"});
+  index_duplicate->ArgNames({"bytes", "embedded_nul"});
   RegisterIndex<FlatIndex<4>>("HamtFlat4");
   RegisterIndex<FlatIndex<5>>("HamtFlat5");
+  RegisterIndex<StorageProfile<FlatIndex<5>, mbo::memory::ArenaOptions{.initial_block_size = 512}, {}>>(
+      "HamtFlat5Arena512");
+  RegisterIndex<StorageProfile<FlatIndex<5>, mbo::memory::ArenaOptions{.initial_block_size = 16'384}, {}>>(
+      "HamtFlat5Arena16384");
+  RegisterIndex<StorageProfile<FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {64}}>>(
+      "HamtFlat5Entries64");
+  RegisterIndex<
+      StorageProfile<FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {1'024}}>>(
+      "HamtFlat5Entries1024");
   RegisterIndex<FlatIndex<6>>("HamtFlat6");
   RegisterIndex<FlatIndex<7>>("HamtFlat7");
   RegisterIndex<NodeIndex<4>>("HamtNode4");

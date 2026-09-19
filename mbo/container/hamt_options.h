@@ -12,8 +12,11 @@ namespace mbo::container {
 struct HamtOptions final {
   std::size_t fragment_bits = 5;
   std::size_t maximum_size = std::numeric_limits<std::size_t>::max();
+  std::size_t maximum_collision_size = std::numeric_limits<std::size_t>::max();
 
-  constexpr bool IsValid() const noexcept { return fragment_bits >= 4 && fragment_bits <= 7 && maximum_size > 0; }
+  constexpr bool IsValid() const noexcept {
+    return fragment_bits >= 4 && fragment_bits <= 7 && maximum_size > 0 && maximum_collision_size > 0;
+  }
 };
 
 template<HamtOptions Options>
@@ -21,6 +24,7 @@ concept ValidHamtOptions = Options.IsValid();
 
 enum class HamtError {
   kAllocationExhausted,
+  kCollisionLimitExceeded,
   kMaxSizeExceeded,
 };
 

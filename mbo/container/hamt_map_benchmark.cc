@@ -272,12 +272,9 @@ void Register(const char* name) {
 template<typename Map>
 void RegisterCollision(const char* name) {
   const std::string prefix = std::string("HamtMap/FullHashCollision/") + name;
-  benchmark::RegisterBenchmark((prefix + "/FindHit").c_str(), &BmLookup<Map, false>)->Arg(16)->Arg(64)->Arg(256);
-  benchmark::RegisterBenchmark((prefix + "/FindMiss").c_str(), &BmLookup<Map, true>)->Arg(16)->Arg(64)->Arg(256);
-  benchmark::RegisterBenchmark((prefix + "/FillEraseFresh").c_str(), &BmFillEraseFresh<Map>)
-      ->Arg(16)
-      ->Arg(64)
-      ->Arg(256);
+  benchmark::RegisterBenchmark(prefix + "/FindHit", &BmLookup<Map, false>)->Arg(16)->Arg(64)->Arg(256);
+  benchmark::RegisterBenchmark(prefix + "/FindMiss", &BmLookup<Map, true>)->Arg(16)->Arg(64)->Arg(256);
+  benchmark::RegisterBenchmark(prefix + "/FillEraseFresh", &BmFillEraseFresh<Map>)->Arg(16)->Arg(64)->Arg(256);
 }
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)

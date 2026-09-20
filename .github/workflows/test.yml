@@ -80,7 +80,11 @@ jobs:
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
-          sudo apt install gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
+          # Ubuntu 24.04's standard repositories stop before GCC 15.
+          if [[ "${{inputs.gcc_version}}" -ge 15 ]]; then
+            sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          fi
+          sudo apt-get install --yes gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{inputs.gcc_version}} 100 --slave /usr/bin/g++ g++ /usr/bin/g++-${{inputs.gcc_version}} --slave /usr/bin/gcov gcov /usr/bin/gcov-${{inputs.gcc_version}}
           sudo update-alternatives --set gcc /usr/bin/gcc-${{inputs.gcc_version}}
       - name: Install coverage report tooling

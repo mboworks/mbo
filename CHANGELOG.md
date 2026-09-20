@@ -23,6 +23,9 @@
   `data()` is removed, set keys are immutable, and map keys are never modified through a
   `const_cast`.
 
+- Updated clang-format and its pre-commit mirror to 22.1.8, and kept opening braces with own-line
+  trailing `requires` clauses.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang

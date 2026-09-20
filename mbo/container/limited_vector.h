@@ -97,8 +97,7 @@ class LimitedVector final {
     = default;
 
     constexpr ~Data() noexcept
-    requires(!std::is_trivially_destructible_v<RawValue>)
-    {}
+    requires(!std::is_trivially_destructible_v<RawValue>) {}
 
     None none;
     // Store the non-const value type so that constexpr placement-`construct_at`
@@ -247,14 +246,12 @@ class LimitedVector final {
   = default;
 
   constexpr ~LimitedVector() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<RawValue>)
-  {
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<RawValue>) {
     clear();
   }
 
   constexpr ~LimitedVector() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<RawValue>)
-  {
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<RawValue>) {
     clear();
   }
 

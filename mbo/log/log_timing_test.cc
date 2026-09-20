@@ -78,8 +78,9 @@ TEST_F(StripFunctionNameTest, StdFunction) {
 
 TEST_F(StripFunctionNameTest, TemplateFunction) {
   EXPECT_THAT(
-      StripFunctionName("std::function<void(void)> Foo<int, std::function<void(int, bool)>>(bool x, "
-                        "std::function<void(bool)>) const &"),
+      StripFunctionName(
+          "std::function<void(void)> Foo<int, std::function<void(int, bool)>>(bool x, "
+          "std::function<void(bool)>) const &"),
       "Foo");
   EXPECT_THAT(
       StripFunctionName("std::function<void(void)> Foo<int, bool>(bool x, std::function<void(bool)>) const &"), "Foo");

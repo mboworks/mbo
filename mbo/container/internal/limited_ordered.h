@@ -106,8 +106,7 @@ class [[nodiscard]] LimitedOrdered {
     = default;
 
     constexpr ~Data() noexcept
-    requires(!std::is_trivially_destructible_v<RawValue>)
-    {}
+    requires(!std::is_trivially_destructible_v<RawValue>) {}
 
     RawValue data;
     None none;
@@ -236,8 +235,7 @@ class [[nodiscard]] LimitedOrdered {
     MBO_ALWAYS_INLINE static constexpr const Key& GetKey(const Key& key) noexcept { return key; }
 
     MBO_ALWAYS_INLINE static constexpr const Key& GetKey(const value_type& val) noexcept
-    requires(!kKeyOnly)
-    {
+    requires(!kKeyOnly) {
       return val.first;
     }
 
@@ -404,14 +402,12 @@ class [[nodiscard]] LimitedOrdered {
   = default;
 
   constexpr ~LimitedOrdered() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<RawValue>)
-  {
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<RawValue>) {
     clear();
   }
 
   ~LimitedOrdered() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<RawValue>)
-  {
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<RawValue>) {
     clear();
   }
 
@@ -638,8 +634,7 @@ class [[nodiscard]] LimitedOrdered {
   template<typename K = Key>
   requires(std::same_as<std::remove_cvref_t<K>, std::remove_cvref_t<Key>> || kIsForeignKey<K>)
   MBO_ALWAYS_INLINE constexpr std::size_t index_of(const K& key) const
-  requires(kOptimizeIndexOf && Capacity <= kUnrollMaxCapacity)
-  {
+  requires(kOptimizeIndexOf && Capacity <= kUnrollMaxCapacity) {
 #define MBO_CASE_LIMITED_POS_COMP(POS)                                     \
   static_assert((POS) + 1 <= kUnrollMaxCapacityLimit);                     \
   case ((POS) + 1):                                                        \
@@ -708,8 +703,7 @@ class [[nodiscard]] LimitedOrdered {
   MBO_ALWAYS_INLINE constexpr std::size_t index_of(const K& key) const
   requires(
       kOptimizeIndexOf && kCustomIndexOfBeyondUnroll
-      && mbo::types::IsCompareLess<Compare> && Capacity > kUnrollMaxCapacity)
-  {
+      && mbo::types::IsCompareLess<Compare> && Capacity > kUnrollMaxCapacity) {
     std::size_t left = 0;
     std::size_t right = size_;
     while (left < right) [[likely]] {
@@ -731,8 +725,7 @@ class [[nodiscard]] LimitedOrdered {
   MBO_ALWAYS_INLINE std::size_t index_of(const K& key) const
   requires(
       kOptimizeIndexOf && kCustomIndexOfBeyondUnroll
-      && !mbo::types::IsCompareLess<Compare> && Capacity > kUnrollMaxCapacity)
-  {
+      && !mbo::types::IsCompareLess<Compare> && Capacity > kUnrollMaxCapacity) {
     if (size_ == 0) {
       return npos;
     }
@@ -762,8 +755,7 @@ class [[nodiscard]] LimitedOrdered {
   template<typename K = Key>
   requires(std::same_as<std::remove_cvref_t<K>, std::remove_cvref_t<Key>> || kIsForeignKey<K>)
   MBO_ALWAYS_INLINE constexpr std::size_t index_of(const K& key) const
-  requires(!kOptimizeIndexOf || (kOptimizeIndexOf && !kCustomIndexOfBeyondUnroll && Capacity > kUnrollMaxCapacity))
-  {
+  requires(!kOptimizeIndexOf || (kOptimizeIndexOf && !kCustomIndexOfBeyondUnroll && Capacity > kUnrollMaxCapacity)) {
     const const_iterator it = lower_bound(key);
     return it == end() || key_comp_(key, GetKey(*it)) ? npos : it - begin();  // LCOV_MERGE_BR_LINE 4: templates.
   }
@@ -1207,8 +1199,7 @@ class [[nodiscard]] LimitedOrdered {
   static constexpr const Key& GetKey(const Key& key) noexcept { return key; }
 
   static constexpr const Key& GetKey(const Value& val) noexcept
-  requires(!kKeyOnly)
-  {
+  requires(!kKeyOnly) {
     return val.first;
   }
 

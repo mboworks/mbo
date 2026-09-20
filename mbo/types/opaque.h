@@ -91,8 +91,7 @@ struct OpaqueValue {
       : ptr_(MakeOpaquePtr<T>(*other.ptr_)) {}
 
   OpaqueValue& operator=(const OpaqueValue& other)
-  requires(std::is_copy_constructible_v<T>)
-  {
+  requires(std::is_copy_constructible_v<T>) {
     if (&other != this) {
       ptr_ = MakeOpaquePtr<T>(*other.ptr_);
     }
@@ -111,14 +110,12 @@ struct OpaqueValue {
   const T* operator->() const { return &*ptr_; }
 
   auto operator<=>(const OpaqueValue& other) const
-  requires std::three_way_comparable<T>
-  {
+  requires std::three_way_comparable<T> {
     return *ptr_ <=> *other.ptr_;
   }
 
   auto operator<=>(const T& other) const
-  requires std::three_way_comparable<T>
-  {
+  requires std::three_way_comparable<T> {
     return *ptr_ <=> other;
   }
 

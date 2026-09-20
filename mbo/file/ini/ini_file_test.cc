@@ -85,9 +85,9 @@ struct IniFileTest : ::testing::Test {
 
 TEST_F(IniFileTest, ParseStrictAcceptsGroupsCommentsAndWhitespace) {
   MBO_ASSERT_OK_AND_ASSIGN(
-      const IniFile ini,
-      IniFile::ParseStrict("  # full-line comment\nroot = value # retained\n[ group ]\n key = data ; retained\n"
-                           "[other]\nkey = same key in another group\n"));
+      const IniFile ini, IniFile::ParseStrict(
+                             "  # full-line comment\nroot = value # retained\n[ group ]\n key = data ; retained\n"
+                             "[other]\nkey = same key in another group\n"));
 
   EXPECT_THAT(ini.GetKeyOrDefault({.group = "", .key = "root"}), Eq("value # retained"));
   EXPECT_THAT(ini.GetKeyOrDefault({.group = "group", .key = "key"}), Eq("data ; retained"));

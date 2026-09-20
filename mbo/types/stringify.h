@@ -519,10 +519,11 @@ concept BadMboTypesStringifyOptions_6 =
 
 // Concept that identifies bad `MboTypesStringifyOptions` signatures.
 template<typename T>
-concept BadMboTypesStringifyOptions = (  //
-    types_internal::BadMboTypesStringifyOptions_1<T> || types_internal::BadMboTypesStringifyOptions_2<T>
-    || types_internal::BadMboTypesStringifyOptions_3<T> || types_internal::BadMboTypesStringifyOptions_4<T>
-    || types_internal::BadMboTypesStringifyOptions_5<T>);
+concept BadMboTypesStringifyOptions =
+    (  //
+        types_internal::BadMboTypesStringifyOptions_1<T> || types_internal::BadMboTypesStringifyOptions_2<T>
+        || types_internal::BadMboTypesStringifyOptions_3<T> || types_internal::BadMboTypesStringifyOptions_4<T>
+        || types_internal::BadMboTypesStringifyOptions_5<T>);
 
 // This breaks `MboTypesStringifyFieldNames` lookup within this namespace.
 void MboTypesStringifyFieldNames();  // Has no implementation!

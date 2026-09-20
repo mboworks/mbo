@@ -29,6 +29,8 @@ an AI assistant) can follow them without reverse-engineering the tooling.
 - `PointerAlignment: Left` (`int* p`), `QualifierAlignment: Left` (`const int`).
 - `IntegerLiteralSeparator` decimal every 3: write `1'000'000`.
 - `RemoveSemicolon`, `InsertBraces` (always brace bodies), `SeparateDefinitionBlocks`.
+- `RequiresClausePosition: OwnLineWithBrace`: a trailing `requires` clause starts on its own line,
+  with the opening brace kept on the clause rather than stranded on the following line.
 - **`InsertTrailingCommas` is deliberately OFF** (it would force every aggregate to
   never-bin-pack). That is the lever behind the trailing-comma rule below: a _manual_
   trailing comma opts a _single_ aggregate into one-element-per-line.

@@ -86,7 +86,7 @@ class RefWrap final {
 
   constexpr operator T&() noexcept { return *ptr_; }  // NOLINT(*-explicit-*)
 
-  constexpr operator const T &() const noexcept { return *ptr_; }  // NOLINT(*-explicit-*)
+  constexpr operator const T&() const noexcept { return *ptr_; }  // NOLINT(*-explicit-*)
 
   RefWrap& operator++() = delete;
   RefWrap& operator--() = delete;

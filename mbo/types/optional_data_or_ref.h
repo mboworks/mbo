@@ -72,15 +72,13 @@ class OptionalDataOrRef {
       : data_(std::in_place_index<kRefIndex>, std::ref(static_cast<RefT&>(v))) {}
 
   constexpr OptionalDataOrRef(const OptionalDataOrRef& other) noexcept(std::is_nothrow_copy_constructible_v<T>)
-  requires std::copy_constructible<T>
-  {
+  requires std::copy_constructible<T> {
     CopyFrom(other);
   }
 
   constexpr OptionalDataOrRef& operator=(const OptionalDataOrRef& other) noexcept(
       std::is_nothrow_copy_constructible_v<T>)
-  requires std::copy_constructible<T>
-  {
+  requires std::copy_constructible<T> {
     if (this == &other) {
       return *this;
     }
@@ -89,14 +87,12 @@ class OptionalDataOrRef {
   }
 
   constexpr OptionalDataOrRef(OptionalDataOrRef&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-  requires std::move_constructible<T>
-  {
+  requires std::move_constructible<T> {
     MoveFrom(other);
   }
 
   constexpr OptionalDataOrRef& operator=(OptionalDataOrRef&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-  requires std::move_constructible<T>
-  {
+  requires std::move_constructible<T> {
     if (this != &other) {
       MoveFrom(other);
     }
@@ -145,8 +141,7 @@ class OptionalDataOrRef {
   template<typename... Args>
   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.
   constexpr OptionalDataOrRef& emplace(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
-  requires(ConstructibleFrom<T, Args...>)
-  {
+  requires(ConstructibleFrom<T, Args...>) {
     // Make the public state empty before construction so a throwing replacement
     // cannot leave the previous alternative's lifetime ambiguous.
     reset();
@@ -177,8 +172,7 @@ class OptionalDataOrRef {
 
   // Returns `value()` if `holds_value()` is true, a reference to static defaults otherwise.
   constexpr const_reference get() const noexcept
-  requires std::is_default_constructible_v<T>
-  {
+  requires std::is_default_constructible_v<T> {
     static constexpr T kDefaults{};
     return has_value() ? value() : kDefaults;
   }
@@ -198,8 +192,7 @@ class OptionalDataOrRef {
   template<typename... Args>
   constexpr value_type& as_data(Args&&... args) noexcept(
       std::is_nothrow_constructible_v<T, reference> && std::is_nothrow_constructible_v<T, Args...>)
-  requires(ConstructibleFrom<T, reference> && ConstructibleFrom<T, Args...>)
-  {
+  requires(ConstructibleFrom<T, reference> && ConstructibleFrom<T, Args...>) {
     if (!HoldsData()) {
       if (HoldsReference()) {
         emplace(Reference());
@@ -327,8 +320,7 @@ class OptionalDataOrRef {
   constexpr reference Reference() const noexcept { return std::get<kRefIndex>(data_).get(); }
 
   constexpr void CopyFrom(const OptionalDataOrRef& other) noexcept(std::is_nothrow_copy_constructible_v<T>)
-  requires std::copy_constructible<T>
-  {
+  requires std::copy_constructible<T> {
     if (other.HoldsData()) {
       emplace(other.Data());
     } else if (other.HoldsReference()) {
@@ -339,8 +331,7 @@ class OptionalDataOrRef {
   }
 
   constexpr void MoveFrom(OptionalDataOrRef& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-  requires std::move_constructible<T>
-  {
+  requires std::move_constructible<T> {
     if (other.HoldsData()) {
       emplace(std::move(other.Data()));
       other.reset();

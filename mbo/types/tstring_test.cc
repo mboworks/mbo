@@ -739,8 +739,9 @@ TEST_F(TStringTest, AbseilHash) {
   constexpr TsVar kTsVarBar = kTsBar;
   constexpr TsVar kTsVarBaz = kTsBaz;
   constexpr TsVar kTsVarFoo = kTsFoo;
-  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly(
-      {kTsVarBar, kTsVarBaz, kTsVarFoo, TsVar("bar"), TsVar("baz"), TsVar("foo")}));
+  EXPECT_TRUE(
+      absl::VerifyTypeImplementsAbslHashCorrectly(
+          {kTsVarBar, kTsVarBaz, kTsVarFoo, TsVar("bar"), TsVar("baz"), TsVar("foo")}));
   // All 3 are different:
   EXPECT_THAT(absl::HashOf(kTsBar), Ne(absl::HashOf(kTsBaz)));
   EXPECT_THAT(absl::HashOf(kTsBar), Ne(absl::HashOf(kTsFoo)));

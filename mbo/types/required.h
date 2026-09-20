@@ -106,8 +106,7 @@ class Required {
   constexpr explicit Required(std::in_place_t /*unused*/, Args&&... args) : value_(std::forward<Args>(args)...) {}
 
   constexpr Required& emplace(T v) noexcept(std::is_nothrow_move_constructible_v<T>)  // NOLINT(*-identifier-naming)
-  requires(std::is_nothrow_move_constructible_v<T>)
-  {
+  requires(std::is_nothrow_move_constructible_v<T>) {
     std::destroy_at(std::addressof(value_));
     std::construct_at(std::addressof(value_), std::move(v));
     return *this;
@@ -137,7 +136,7 @@ class Required {
 
   constexpr operator T&() noexcept { return value_; }  // NOLINT(*-explicit-*)
 
-  constexpr operator const T &() const noexcept { return value_; }  // NOLINT(*-explicit-*)
+  constexpr operator const T&() const noexcept { return value_; }  // NOLINT(*-explicit-*)
 
   template<typename U>
   requires(std::three_way_comparable_with<T, U>)

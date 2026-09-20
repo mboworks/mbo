@@ -429,8 +429,7 @@ class AnyScanImpl {
     explicit iterator_impl(const AccessFuncs& funcs) : funcs_(funcs.iter()) {}
 
     reference operator*() const noexcept
-    requires kAccessByRef
-    {
+    requires kAccessByRef {
       // We check both the presence of `funcs_` as well as calling the actual `more` function.
       // That means we bypass any protection an iterator may have, but we can make this function
       // `noexcept` assuming the iterator is noexcept for access. On the other hand we expect that
@@ -443,8 +442,7 @@ class AnyScanImpl {
     }
 
     value_type operator*() const noexcept
-    requires(!kAccessByRef)
-    {
+    requires(!kAccessByRef) {
       // CHECK failures abort before GCC can flush coverage counters, so only the successful guard
       // path can appear in LCOV. The existing iterator tests exercise that path.
       ABSL_CHECK_NE(funcs_.curr, nullptr);  // NOLINT(*-missing-default-case) LCOV_EXCL_BR_LINE
@@ -453,8 +451,7 @@ class AnyScanImpl {
     }
 
     const_pointer operator->() const noexcept
-    requires kAccessByRef
-    {
+    requires kAccessByRef {
       return funcs_.curr != nullptr && funcs_.more() ? &funcs_.curr() : nullptr;
     }
 

@@ -142,27 +142,23 @@ class Json {
     // NOLINTBEGIN(cppcoreguidelines-rvalue-reference-param-not-moved,*explicit-*)
 
     value_iterator_t(const mutable_iterator& other) noexcept
-    requires std::same_as<value_iterator_t, const_iterator>
-    {
+    requires std::same_as<value_iterator_t, const_iterator> {
       std::visit([this](const auto& iterator) { it_ = iterator; }, other.it_);
     }
 
     value_iterator_t& operator=(const mutable_iterator& other) noexcept
-    requires std::same_as<value_iterator_t, const_iterator>
-    {
+    requires std::same_as<value_iterator_t, const_iterator> {
       std::visit([this](const auto& iterator) { it_ = iterator; }, other.it_);
       return *this;
     }
 
     value_iterator_t(mutable_iterator&& other) noexcept
-    requires std::same_as<value_iterator_t, const_iterator>
-    {
+    requires std::same_as<value_iterator_t, const_iterator> {
       std::visit([this](auto&& iterator) { it_ = std::forward<decltype(iterator)>(iterator); }, std::move(other.it_));
     }
 
     value_iterator_t& operator=(mutable_iterator&& other) noexcept
-    requires std::same_as<value_iterator_t, const_iterator>
-    {
+    requires std::same_as<value_iterator_t, const_iterator> {
       std::visit([this](auto&& iterator) { it_ = std::forward<decltype(iterator)>(iterator); }, std::move(other.it_));
       return *this;
     }

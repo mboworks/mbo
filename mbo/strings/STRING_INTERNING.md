@@ -68,33 +68,40 @@ only when crossing an interner boundary. A finite visible-parent-depth contract 
 a strict worst-case O(1) boundary crossing; unrestricted parent chains intentionally retain their
 general snapshot semantics instead of making a false real-time guarantee.
 
-The baseline API continues to require external synchronization. A separately selected concurrent
-profile may publish immutable HAMT roots and completed segmented entries to lock-free readers.
-Construction must precede release-publication of the visible size/root, directories read by those
-readers must remain immutable or use an explicit publication scheme, and reclamation must be
-deferred until no reader can observe the old snapshot. Lock-free lookup does not imply wait-free
+The baseline API requires external synchronization. Concurrent publication and reclamation are not
+part of the interner contract. A future, separately selected concurrent profile could publish
+immutable HAMT roots and completed segmented entries to lock-free readers, but that would be a
+distinct API with separately benchmarked ownership and reclamation semantics. Any such profile must
+complete construction before release-publication of the visible size/root, keep reader-visible
+directories immutable or use an explicit publication scheme, and defer reclamation until no reader
+can observe the old snapshot. Lock-free lookup does not imply wait-free
 snapshot copying: retrying atomic reference acquisition and general reclamation are outside the
 hard-real-time hot path unless a measured, bounded strategy proves otherwise.
 
 The implementation sequence is checked against the final contract explicitly:
 
-| Requirement                         | Implementation surface                                      | Remaining acceptance work                                      |
-| ----------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
-| Set semantics                       | `StringInterner`                                            | End-to-end configuration benchmarks                            |
-| Map semantics without set overhead  | `StringInternerMap`, parallel values, cascading iteration   | End-to-end API workload benchmarks                             |
-| Stable strings and mapped addresses | `ArenaStringStorage` plus `SegmentedSequence`               | Compare descriptor and inline-record layouts                   |
-| Average O(1) identity lookup        | Configurable flat or node HAMT string index                 | Select benchmark-backed defaults                               |
-| No general allocation after setup   | Finite sequence metadata, arena bytes, `ArenaBlockSource`   | Publish named provisioned profiles and whole-system budgets    |
-| Recoverable exhaustion              | Transactional storage rollback and `try_*` index operations | Sweep combined character, descriptor, mapped, and index limits |
-| Bounded HAMT routing                | Fixed-width hash path and `maximum_collision_size`          | Benchmark useful collision limits                              |
-| Bounded cascade work                | `maximum_parent_depth`, captured cutoffs, cached ownership  | Benchmark useful finite depths                                 |
-| Lock-free reads of held snapshots   | Immutable persistent HAMT nodes                             | Root publication and reclamation profile                       |
-| Pointer-stable forward storage      | Append-only segmented sequences                             | Concurrent release-publication profile                         |
-| Cold diagnostics                    | Unified local storage report plus detailed visitors         | Cross-chain and workload-level reporting                       |
+| Status      | Requirement                         | Implementation surface                                      | Evidence                                                                      | Remaining work                                            |
+| ----------- | ----------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Done        | Set semantics                       | `StringInterner`                                            | Retained lifecycle, lookup, iteration, storage, capacity, and cascade results | None                                                      |
+| Done        | Map semantics without set overhead  | `StringInternerMap`, parallel values, cascading iteration   | Retained lifecycle, lookup, iteration, stability, and bounded-storage tests   | None                                                      |
+| Done        | Stable strings and mapped addresses | `ArenaStringStorage` plus `SegmentedSequence`               | Pointer and view stability tests                                              | None                                                      |
+| Missing     | Inline-record layout comparison     | Benchmark-only prototype                                    | Separate-descriptor profiles retained                                         | Measure latency, bytes, alignment loss, and cache effects |
+| Done        | Average O(1) identity lookup        | Configurable flat or node HAMT string index                 | Retained 4- through 7-bit and conventional-container comparisons              | None                                                      |
+| Provisional | Cross-host default confirmation     | Retained benchmark matrix                                   | Apple M5 Pro measurements                                                     | Repeat on Zen 5 before finalizing defaults                |
+| Done        | No general allocation after setup   | Finite sequence metadata, arena bytes, `ArenaBlockSource`   | Fully caller-owned bounded composition test                                   | None                                                      |
+| Open        | Whole-profile allocation accounting | Fully caller-owned bounded composition                      | Component budgets and cold diagnostics                                        | Retain allocation-count and peak-memory measurements      |
+| Done        | Recoverable exhaustion              | Transactional storage rollback and `try_*` index operations | Isolated capacity benchmarks and fully bounded rollback tests                 | None                                                      |
+| Done        | Bounded HAMT routing                | Fixed-width hash path and `maximum_collision_size`          | Retained full-hash collision benchmarks; bound remains application-selected   | None                                                      |
+| Done        | Bounded cascade work                | `maximum_parent_depth`, captured cutoffs, cached ownership  | Retained depth 2, 8, and 32 workloads; bound remains application-selected     | None                                                      |
+| Deferred    | Lock-free reads of held snapshots   | Immutable persistent HAMT nodes                             | Not part of the externally synchronized baseline                              | Define a distinct publication and reclamation API         |
+| Done        | Pointer-stable forward storage      | Append-only segmented sequences                             | Stability tests for strings and mapped objects                                | None                                                      |
+| Done        | Cold diagnostics                    | Local reports, chain visitor, histograms, and lookup traces | Allocation-free primitives cover local and captured-chain state               | None                                                      |
 
-The entries in the last column are requirements, not optional polish. In particular, immutable HAMT
-lookup alone is not a claim that the mutable interner is concurrently usable, and arena backing alone
-is not proof that a complete insertion is allocation-free.
+The first column is the gate: `Done` is complete, `Missing` has no implementation or evidence yet,
+`Open` has partial evidence but unfinished acceptance work, `Provisional` has host-specific evidence
+awaiting confirmation, and `Deferred` is explicitly outside the baseline. Immutable HAMT lookup
+alone is not a claim that the mutable interner is concurrently usable. Arena backing alone is
+likewise not proof that a complete insertion is allocation-free.
 
 `StringInternerOptions::maximum_parent_depth` defaults to unrestricted compatibility. A finite value
 is a hard topology precondition checked when a child is constructed; roots have depth zero. Violating
@@ -770,9 +777,16 @@ index-byte, occupancy, collision, and depth accounting in one cold report.
 field remains local: inherited strings and shared ancestor indexes are deliberately excluded, and
 unsupported backend figures remain `nullopt`.
 This makes a fully provisioned configuration's independent budgets inspectable together without
-adding counters, branches, locks, or atomics to insertion and lookup. Cross-chain aggregation,
-histograms, lookup traces, and per-bucket collision analysis remain explicit visitor/workload operations
-because summing shared snapshots could otherwise double-count memory.
+adding counters, branches, locks, or atomics to insertion and lookup.
+
+`visit_storage_diagnostics(visitor)` walks the complete declared parent chain from the current node
+to the root without allocating. Each call reports the depth, the number of strings from that owner
+visible through the captured cutoff, and the owner's complete current local storage report. Keeping
+the visible count separate is essential: a parent may have grown after its child was created, so its
+current storage domain can be larger than the prefix visible to that child. The visitor deliberately
+does not sum reports, because backend snapshots may share storage and automatic aggregation could
+double-count it. Histograms, lookup traces, and per-bucket collision analysis remain explicit
+visitor/workload operations for the same reason.
 
 ## Language baseline and forward compatibility
 

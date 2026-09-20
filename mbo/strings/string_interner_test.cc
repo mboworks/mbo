@@ -18,8 +18,10 @@
 
 namespace mbo::strings {
 namespace {
+using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Field;
 using ::testing::Optional;
 using ::testing::VariantWith;
 
@@ -295,6 +297,41 @@ TEST_F(StringInternerTest, StorageDiagnosticsCombineEveryLocalStorageLayer) {
   EXPECT_THAT(measured.index_maximum_depth, Optional(std::size_t{0}));
   EXPECT_THAT(measured.index_node_bytes.has_value(), Eq(true));
   EXPECT_THAT(measured.index_entry_bytes, Optional(std::size_t{0}));
+}
+
+TEST_F(StringInternerTest, StorageDiagnosticsVisitCapturedChainWithoutHidingLaterParentGrowth) {
+  StringInterner<> root;
+  EXPECT_THAT(root.intern("root").index(), Eq(0));
+  StringInterner<> child(&root);
+  EXPECT_THAT(child.intern("child").index(), Eq(0));
+  StringInterner<> leaf(&child);
+  EXPECT_THAT(leaf.intern("leaf").index(), Eq(0));
+  EXPECT_THAT(root.intern("late").index(), Eq(0));
+
+  struct Measurement final {
+    std::size_t depth;
+    std::size_t visible_strings;
+    std::size_t stored_strings;
+  };
+
+  const auto measurement_is = [](Measurement expected) {
+    return AllOf(
+        Field("depth", &Measurement::depth, expected.depth),
+        Field("visible_strings", &Measurement::visible_strings, expected.visible_strings),
+        Field("stored_strings", &Measurement::stored_strings, expected.stored_strings));
+  };
+  std::array<Measurement, 3> measurements{};
+  std::size_t count = 0;
+  leaf.visit_storage_diagnostics([&](std::size_t depth, std::size_t visible_strings, const auto& storage) noexcept {
+    measurements.at(count++) = {
+        .depth = depth, .visible_strings = visible_strings, .stored_strings = storage.string_count};
+  });
+
+  EXPECT_THAT(
+      measurements, ElementsAre(
+                        measurement_is({.depth = 0, .visible_strings = 1, .stored_strings = 1}),
+                        measurement_is({.depth = 1, .visible_strings = 1, .stored_strings = 1}),
+                        measurement_is({.depth = 2, .visible_strings = 1, .stored_strings = 2})));
 }
 
 struct UnmeasuredEntries final {

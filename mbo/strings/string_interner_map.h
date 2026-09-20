@@ -197,6 +197,21 @@ class StringInternerMap final {
     return {.interner = core_.local_storage_diagnostics(), .mapped = local_mapped_storage_diagnostics()};
   }
 
+  // Reports each reachable ownership domain without conflating the captured
+  // visible prefix with storage added to an ancestor later.
+  template<typename Visitor>
+  requires(std::is_nothrow_invocable_r_v<void, Visitor&, size_type, size_type, const StorageDiagnostics&>)
+  void visit_storage_diagnostics(Visitor&& visitor) const noexcept {
+    auto&& callback = std::forward<Visitor>(visitor);
+    const auto* owner = this;
+    core_.visit_storage_diagnostics(
+        [&](size_type depth, size_type visible_strings, const Core::StorageDiagnostics& interner) noexcept {
+          const StorageDiagnostics storage{.interner = interner, .mapped = owner->local_mapped_storage_diagnostics()};
+          std::invoke(callback, depth, visible_strings, storage);
+          owner = owner->parent_;
+        });
+  }
+
   iterator begin() const noexcept { return iterator(this, 0); }
 
   iterator end() const noexcept { return iterator(this, size()); }

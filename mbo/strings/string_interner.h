@@ -377,6 +377,26 @@ class StringInterner final {
     return result;
   }
 
+  // Cold-path diagnostics for every storage domain reachable through this
+  // interner. `visible_strings` is restricted by the captured parent cutoff;
+  // `storage` describes the owner's complete current local allocation domain,
+  // which may also contain strings added after that cutoff.
+  template<typename Visitor>
+  requires(std::is_nothrow_invocable_r_v<void, Visitor&, size_type, size_type, const StorageDiagnostics&>)
+  void visit_storage_diagnostics(Visitor&& visitor) const noexcept {
+    auto&& callback = std::forward<Visitor>(visitor);
+    const auto* owner = this;
+    size_type visible_end = size();
+    size_type depth = 0;
+    while (owner != nullptr) {
+      const auto storage = owner->local_storage_diagnostics();
+      std::invoke(callback, depth, visible_end - owner->first_local_id_, storage);
+      visible_end = owner->first_local_id_;
+      owner = owner->parent_;
+      ++depth;
+    }
+  }
+
   std::optional<std::string_view> get(id_type identifier) const noexcept {
     if (std::cmp_greater_equal(identifier.value(), size())) {
       return std::nullopt;

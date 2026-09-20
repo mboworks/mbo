@@ -17,9 +17,13 @@
 namespace mbo::strings {
 namespace {
 
+using ::testing::AllOf;
+using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Field;
 using ::testing::NotNull;
 using ::testing::Optional;
+using ::testing::Pair;
 using ::testing::VariantWith;
 using Insertion = std::pair<StringId<>, bool>;
 
@@ -199,6 +203,44 @@ TEST_F(StringInternerMapTest, EveryStorageLayerCanUseCallerOwnedBoundedMemory) {
   EXPECT_THAT(complete_storage.interner.index_node_bytes.has_value(), Eq(true));
   EXPECT_THAT(complete_storage.mapped.objects, Eq(4));
   EXPECT_THAT(complete_storage.mapped.live_object_bytes, Eq(4 * sizeof(int)));
+}
+
+TEST_F(StringInternerMapTest, StorageDiagnosticsVisitCapturedChainAndMappedDomains) {
+  StringInternerMap<int> root;
+  EXPECT_THAT(root.try_emplace("root", 1), VariantWith<Insertion>(Pair(StringId<>(0), true)));
+  StringInternerMap<int> child(&root);
+  EXPECT_THAT(child.try_emplace("child", 2), VariantWith<Insertion>(Pair(StringId<>(1), true)));
+  EXPECT_THAT(root.try_emplace("late", 3), VariantWith<Insertion>(Pair(StringId<>(1), true)));
+
+  struct Measurement final {
+    std::size_t depth;
+    std::size_t visible_strings;
+    std::size_t stored_strings;
+    std::size_t mapped_objects;
+  };
+
+  const auto measurement_is = [](Measurement expected) {
+    return AllOf(
+        Field("depth", &Measurement::depth, expected.depth),
+        Field("visible_strings", &Measurement::visible_strings, expected.visible_strings),
+        Field("stored_strings", &Measurement::stored_strings, expected.stored_strings),
+        Field("mapped_objects", &Measurement::mapped_objects, expected.mapped_objects));
+  };
+  std::array<Measurement, 2> measurements{};
+  std::size_t count = 0;
+  child.visit_storage_diagnostics([&](std::size_t depth, std::size_t visible_strings, const auto& storage) noexcept {
+    measurements.at(count++) = {
+        .depth = depth,
+        .visible_strings = visible_strings,
+        .stored_strings = storage.interner.string_count,
+        .mapped_objects = storage.mapped.objects,
+    };
+  });
+
+  EXPECT_THAT(
+      measurements, ElementsAre(
+                        measurement_is({.depth = 0, .visible_strings = 1, .stored_strings = 1, .mapped_objects = 1}),
+                        measurement_is({.depth = 1, .visible_strings = 1, .stored_strings = 2, .mapped_objects = 2})));
 }
 
 }  // namespace

@@ -29,7 +29,6 @@
 #include "absl/log/absl_log.h"    // IWYU pragma: keep
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "mbo/container/limited_vector.h"
 #include "mbo/testing/matchers.h"
 #include "mbo/types/extend.h"
 #include "mbo/types/extender.h"
@@ -163,21 +162,21 @@ TEST_F(ExtenderStringifyTest, AddFieldVectorOfString) {
       << "  NOTE: Here we inject the field names and override any possibly compiler provided names.";
 }
 
-struct AddFieldNamesLimitedVector : ::Extend<AddFieldNamesLimitedVector> {
+struct AddFieldNamesArray : ::Extend<AddFieldNamesArray> {
   int one = 25;
   std::string_view two = "42";
 
-  friend auto MboTypesStringifyFieldNames(const AddFieldNamesLimitedVector&) {
-    return mbo::container::MakeLimitedVector("1", "2");
+  friend auto MboTypesStringifyFieldNames(const AddFieldNamesArray&) {
+    return std::array<std::string_view, 2>{"1", "2"};
   }
 };
 
-TEST_F(ExtenderStringifyTest, AddFieldNamesLimitedVector) {
+TEST_F(ExtenderStringifyTest, AddFieldNamesArray) {
   // Proves other types can be compatible.
-  ASSERT_FALSE(HasMboTypesStringifyDoNotPrintFieldNames<AddFieldNamesLimitedVector>);
-  ASSERT_TRUE(HasMboTypesStringifyFieldNames<AddFieldNamesLimitedVector>);
-  ASSERT_FALSE(HasMboTypesStringifyOptions<AddFieldNamesLimitedVector>);
-  EXPECT_THAT(AddFieldNamesLimitedVector{}.ToString(), R"({.1: 25, .2: "42"})")
+  ASSERT_FALSE(HasMboTypesStringifyDoNotPrintFieldNames<AddFieldNamesArray>);
+  ASSERT_TRUE(HasMboTypesStringifyFieldNames<AddFieldNamesArray>);
+  ASSERT_FALSE(HasMboTypesStringifyOptions<AddFieldNamesArray>);
+  EXPECT_THAT(AddFieldNamesArray{}.ToString(), R"({.1: 25, .2: "42"})")
       << "  NOTE: Here we inject the field names and override any possibly compiler provided names.";
 }
 

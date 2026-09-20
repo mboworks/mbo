@@ -21,6 +21,7 @@
 #include <concepts>  // IWYU pragma: keep
 #include <cstddef>
 #include <initializer_list>
+#include <iterator>
 #include <memory>
 #include <new>  // IWYU pragma: keep
 #include <type_traits>
@@ -49,6 +50,11 @@ concept LimitedVectorValid = std::move_constructible<std::remove_const_t<T>>;
 //
 // Unlike `std::array` this type can vary in size.
 //
+// Iterators are random-access but not contiguous: elements are active
+// subobjects of separate union slots, not elements of a `T[]` array.
+// Consequently, pointer arithmetic from the first element is not valid, so
+// `LimitedVector` does not expose `data()`.
+//
 // The type is fully `constexpr` compliant and can be used as a `static constexpr`.
 //
 // Can be constructed with helpers `MakeLimitedVector` or `ToLimitedVector`.
@@ -69,6 +75,8 @@ class LimitedVector final {
  private:
   struct None final {};
 
+  using RawValue = std::remove_const_t<T>;
+
   static_assert(IsLimitedOptionsOrSize<decltype(CapacityOrOptions)>);
   using Options = decltype(MakeLimitedOptions<CapacityOrOptions>());
   // static_assert(std::is_trivially_destructible_v<T> || Options::Has(LimitedOptionsFlag::kEmptyDestructor));
@@ -85,11 +93,11 @@ class LimitedVector final {
     constexpr Data& operator=(Data&&) noexcept = default;
 
     constexpr ~Data() noexcept
-    requires(std::is_trivially_destructible_v<T>)
+    requires(std::is_trivially_destructible_v<RawValue>)
     = default;
 
     constexpr ~Data() noexcept
-    requires(!std::is_trivially_destructible_v<T>)
+    requires(!std::is_trivially_destructible_v<RawValue>)
     {}
 
     None none;
@@ -97,7 +105,31 @@ class LimitedVector final {
     // does not modify a const-qualified object (clang 21 rejects that, even
     // through the `const_cast` below). Constness is reintroduced by the public
     // accessors via `reference`/`const_reference`/`pointer`/`const_pointer`.
-    std::remove_const_t<T> data;
+    RawValue data;
+  };
+
+  // A throwing constructor never runs `LimitedVector`'s destructor. Track the
+  // partially constructed container so its already-live elements are destroyed
+  // unless the constructor completes and releases the guard.
+  class ConstructionGuard final {
+   public:
+    constexpr explicit ConstructionGuard(LimitedVector* target) noexcept : target_(target) {}
+
+    constexpr ~ConstructionGuard() noexcept {
+      if (target_ != nullptr) {
+        target_->clear();
+      }
+    }
+
+    ConstructionGuard(const ConstructionGuard&) = delete;
+    ConstructionGuard& operator=(const ConstructionGuard&) = delete;
+    ConstructionGuard(ConstructionGuard&&) = delete;
+    ConstructionGuard& operator=(ConstructionGuard&&) = delete;
+
+    constexpr void Release() noexcept { target_ = nullptr; }
+
+   private:
+    LimitedVector* target_;
   };
 
   // Must declare each other as friends so that we can correctly move from other.
@@ -113,8 +145,99 @@ class LimitedVector final {
   using const_reference = const T&;
   using pointer = T*;
   using const_pointer = const T*;
-  using iterator = T*;
-  using const_iterator = const T*;
+
+  template<bool IsConst>
+  class Iterator final {
+   private:
+    template<bool>
+    friend class Iterator;
+
+    using DataPointer = std::conditional_t<IsConst, const Data*, Data*>;
+
+   public:
+    using iterator_category = std::random_access_iterator_tag;
+    using iterator_concept = std::random_access_iterator_tag;
+    using value_type = RawValue;
+    using difference_type = LimitedVector::difference_type;
+    using pointer = std::conditional_t<IsConst, LimitedVector::const_pointer, LimitedVector::pointer>;
+    using reference = std::conditional_t<IsConst, LimitedVector::const_reference, LimitedVector::reference>;
+
+    constexpr Iterator() noexcept = default;
+
+    constexpr explicit Iterator(DataPointer base, difference_type pos) noexcept : base_(base), pos_(pos) {}
+
+    template<bool OtherConst>
+    requires(IsConst && !OtherConst)
+    // Deliberately implicit: a mutable iterator must convert to const_iterator.
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr Iterator(const Iterator<OtherConst>& other) noexcept : base_(other.base_), pos_(other.pos_) {}
+
+    constexpr reference operator*() const noexcept { return base_[pos_].data; }
+
+    constexpr pointer operator->() const noexcept { return &base_[pos_].data; }
+
+    constexpr Iterator& operator++() noexcept {
+      ++pos_;
+      return *this;
+    }
+
+    constexpr Iterator operator++(int) noexcept {
+      const Iterator result = *this;
+      ++*this;
+      return result;
+    }
+
+    constexpr Iterator& operator--() noexcept {
+      --pos_;
+      return *this;
+    }
+
+    constexpr Iterator operator--(int) noexcept {
+      const Iterator result = *this;
+      --*this;
+      return result;
+    }
+
+    constexpr Iterator& operator+=(difference_type offset) noexcept {
+      pos_ += offset;
+      return *this;
+    }
+
+    constexpr Iterator& operator-=(difference_type offset) noexcept {
+      pos_ -= offset;
+      return *this;
+    }
+
+    constexpr reference operator[](difference_type offset) const noexcept { return base_[pos_ + offset].data; }
+
+    friend constexpr Iterator operator+(Iterator iter, difference_type offset) noexcept { return iter += offset; }
+
+    friend constexpr Iterator operator+(difference_type offset, Iterator iter) noexcept { return iter += offset; }
+
+    friend constexpr Iterator operator-(Iterator iter, difference_type offset) noexcept { return iter -= offset; }
+
+    template<bool OtherConst>
+    constexpr difference_type operator-(const Iterator<OtherConst>& other) const noexcept {
+      return pos_ - other.pos_;
+    }
+
+    template<bool OtherConst>
+    constexpr bool operator==(const Iterator<OtherConst>& other) const noexcept {
+      return base_ == other.base_ && pos_ == other.pos_;
+    }
+
+    template<bool OtherConst>
+    constexpr auto operator<=>(const Iterator<OtherConst>& other) const noexcept {
+      return pos_ <=> other.pos_;
+    }
+
+   private:
+    DataPointer base_{nullptr};
+    difference_type pos_{0};
+  };
+
+  using iterator = Iterator<false>;
+  using const_iterator = Iterator<true>;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -124,49 +247,59 @@ class LimitedVector final {
   = default;
 
   constexpr ~LimitedVector() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<T>)
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && std::is_trivially_destructible_v<RawValue>)
   {
     clear();
   }
 
-  ~LimitedVector() noexcept
-  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<T>)
+  constexpr ~LimitedVector() noexcept
+  requires(!Options::Has(LimitedOptionsFlag::kEmptyDestructor) && !std::is_trivially_destructible_v<RawValue>)
   {
     clear();
   }
 
   constexpr LimitedVector() noexcept = default;
 
-  constexpr LimitedVector(const LimitedVector& other) noexcept {
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[size_].data), other.values_[size_].data);
+  constexpr LimitedVector(const LimitedVector& other) noexcept(std::is_nothrow_copy_constructible_v<RawValue>) {
+    ConstructionGuard guard(this);
+    for (const_reference value : other) {
+      emplace_back(value);
     }
+    guard.Release();
   }
 
-  constexpr LimitedVector& operator=(const LimitedVector& other) noexcept {
+  constexpr LimitedVector& operator=(const LimitedVector& other) noexcept(
+      std::is_nothrow_copy_constructible_v<RawValue>) {
     if (this != &other) {
       clear();
-      size_ = other.size_;
-      values_ = other.values_;
+      for (const_reference value : other) {
+        emplace_back(value);
+      }
     }
     return *this;
   }
 
-  constexpr LimitedVector(LimitedVector&& other) noexcept {
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(
-          const_cast<std::remove_const_t<T>*>(&values_[size_].data), std::move(other.values_[size_].data));
+  constexpr LimitedVector(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>) {
+    ConstructionGuard guard(this);
+    // Must stay mutable for move-only types, even when scalar instantiations
+    // make clang-tidy believe const would be sufficient.
+    for (reference value : other) {  // NOLINT(misc-const-correctness)
+      emplace_back(std::move(value));
     }
-    other.size_ = 0;
+    guard.Release();
+    other.clear();
   }
 
-  constexpr LimitedVector& operator=(LimitedVector&& other) noexcept {
-    clear();
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(
-          const_cast<std::remove_const_t<T>*>(&values_[size_].data), std::move(other.values_[size_].data));
+  constexpr LimitedVector& operator=(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>) {
+    if (this != &other) {
+      clear();
+      // Must stay mutable for move-only types, even when scalar instantiations
+      // make clang-tidy believe const would be sufficient.
+      for (reference value : other) {  // NOLINT(misc-const-correctness)
+        emplace_back(std::move(value));
+      }
+      other.clear();
     }
-    other.size_ = 0;
     return *this;
   }
 
@@ -174,48 +307,48 @@ class LimitedVector final {
 
   template<std::forward_iterator It>
   requires types::ConstructibleFrom<T, mbo::types::ForwardIteratorValueType<It>>
-  constexpr LimitedVector(It begin, It end) noexcept {
-    while (begin < end) {
+  constexpr LimitedVector(It begin, It end) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, std::iter_reference_t<It>>) {
+    ConstructionGuard guard(this);
+    while (begin != end) {
       emplace_back(*begin++);
     }
+    guard.Release();
   }
 
-  constexpr LimitedVector(const std::initializer_list<T>& list) noexcept {
-    auto it = list.begin();
-    while (it < list.end()) {
-      emplace_back(*it++);
-    }
-  }
+  constexpr LimitedVector(const std::initializer_list<T>& list) noexcept(
+      !kRequireThrows && std::is_nothrow_copy_constructible_v<RawValue>)
+      : LimitedVector(list.begin(), list.end()) {}
 
   template<types::ConstructibleInto<T> U>
-  constexpr LimitedVector(const std::initializer_list<U>& list) noexcept {
-    auto it = list.begin();
-    while (it < list.end()) {
-      emplace_back(*it++);
-    }
-  }
+  constexpr LimitedVector(const std::initializer_list<U>& list) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>)
+      : LimitedVector(list.begin(), list.end()) {}
 
-  template<types::ConstructibleInto<T> U, auto OtherN>
-  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedVector& operator=(const std::initializer_list<U>& list) noexcept {
-    assign(list);
+  template<types::ConstructibleInto<T> U>
+  constexpr LimitedVector& operator=(const std::initializer_list<U>& list) {
+    assign(list.begin(), list.end());
     return *this;
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr explicit LimitedVector(const LimitedVector<U, OtherN>& other) noexcept {
-    for (; size_ < other.size(); ++size_) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[size_].data), other.at(size_));
+  constexpr explicit LimitedVector(const LimitedVector<U, OtherN>& other) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>) {
+    ConstructionGuard guard(this);
+    for (const auto& value : other) {
+      emplace_back(value);
     }
+    guard.Release();
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedVector& operator=(const LimitedVector<U, OtherN>& other) noexcept {
+  constexpr LimitedVector& operator=(const LimitedVector<U, OtherN>& other) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>) {
     clear();
-    for (; size_ < other.size(); ++size_) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[size_].data), other.at(size_));
+    for (const auto& value : other) {
+      emplace_back(value);
     }
     return *this;
   }
@@ -224,23 +357,27 @@ class LimitedVector final {
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
   // Moved element-wise below; `other` has a different type, so it cannot be moved as a whole.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
-  constexpr explicit LimitedVector(LimitedVector<U, OtherN>&& other) noexcept {
-    for (; size_ < other.size(); ++size_) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[size_].data), std::move(other.at(size_)));
+  constexpr explicit LimitedVector(LimitedVector<U, OtherN>&& other) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, U&&>) {
+    ConstructionGuard guard(this);
+    for (auto& value : other) {
+      emplace_back(std::move(value));
     }
-    other.size_ = 0;
+    guard.Release();
+    other.clear();
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
   // Moved element-wise below; `other` has a different type, so it cannot be moved as a whole.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
-  constexpr LimitedVector& operator=(LimitedVector<U, OtherN>&& other) noexcept {
+  constexpr LimitedVector& operator=(LimitedVector<U, OtherN>&& other) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, U&&>) {
     clear();
-    for (; size_ < other.size(); ++size_) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[size_].data), std::move(other.at(size_)));
+    for (auto& value : other) {
+      emplace_back(std::move(value));
     }
-    other.size_ = 0;
+    other.clear();
     return *this;
   }
 
@@ -252,12 +389,14 @@ class LimitedVector final {
     }
   }
 
-  constexpr void resize(std::size_t new_size) noexcept {
+  constexpr void resize(std::size_t new_size) noexcept(
+      !kRequireThrows && std::is_nothrow_default_constructible_v<RawValue>) {
+    MBO_CONFIG_REQUIRE(new_size <= Capacity, "Cannot resize beyond capacity.");
     while (new_size < size()) {
       pop_back();
     }
     while (new_size > size()) {
-      push_back({});
+      emplace_back();
     }
   }
 
@@ -271,88 +410,100 @@ class LimitedVector final {
 
   template<typename U, auto OtherN>
   requires(std::same_as<T, U> && MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr void swap(LimitedVector<U, OtherN>& other) noexcept {
-    std::size_t pos = 0;
-    for (; pos < size_ && pos < other.size(); ++pos) {
-      std::swap(values_[pos].data, other.at(pos));
+  constexpr void swap(LimitedVector<U, OtherN>& other) noexcept(
+      !kRequireThrows && std::is_nothrow_swappable_v<RawValue> && std::is_nothrow_move_constructible_v<RawValue>) {
+    if (static_cast<const void*>(this) == static_cast<const void*>(&other)) {
+      return;
     }
-    const std::size_t other_size = other.size_;
-    const std::size_t this_size = size_;
-    for (; pos < size_; ++pos) {
-      other.emplace_back(std::move(values_[pos].data));
+    MBO_CONFIG_REQUIRE(size_ <= other.capacity(), "Cannot swap beyond capacity.");
+    const size_type common_size = std::min(size_, other.size_);
+    for (size_type pos = 0; pos < common_size; ++pos) {
+      std::swap(values_[pos].data, other.values_[pos].data);
     }
-    for (; pos < other.size(); ++pos) {
-      emplace_back(std::move(other.at(pos)));
+    if (size_ > common_size) {
+      const size_type old_size = size_;
+      for (size_type pos = common_size; pos < old_size; ++pos) {
+        other.emplace_back(std::move(values_[pos].data));
+      }
+      while (size_ > common_size) {
+        pop_back();
+      }
+    } else {
+      const size_type old_other_size = other.size_;
+      for (size_type pos = common_size; pos < old_other_size; ++pos) {
+        emplace_back(std::move(other.values_[pos].data));
+      }
+      while (other.size_ > common_size) {
+        other.pop_back();
+      }
     }
-    size_ = other_size;
-    other.size_ = this_size;
   }
 
   template<typename... Args>
-  constexpr iterator emplace(const_iterator pos, Args&&... args) noexcept(!kRequireThrows) {
+  requires std::assignable_from<RawValue&, RawValue&&>
+  constexpr iterator emplace(const_iterator pos, Args&&... args) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, Args...>
+      && std::is_nothrow_move_constructible_v<RawValue> && std::is_nothrow_move_assignable_v<RawValue>) {
     MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `emplace` at capacity.");
-    MBO_CONFIG_REQUIRE(&values_[0].data <= pos && pos <= &values_[size_].data, "Invalid `pos`.");
-    iterator dst = end();
-    for (; dst > pos; --dst) {
-      *dst = std::move(*std::prev(dst));
+    MBO_CONFIG_REQUIRE(cbegin() <= pos && pos <= cend(), "Invalid `pos`.");
+    const auto index = static_cast<size_type>(pos - cbegin());
+    // Staged before mutation for alias safety, then moved into the container.
+    RawValue value(std::forward<Args>(args)...);  // NOLINT(misc-const-correctness)
+    if (index == size_) {
+      emplace_back(std::move(value));
+      return begin() + static_cast<difference_type>(index);
     }
-    std::construct_at(const_cast<std::remove_const_t<T>*>(dst), std::forward<Args>(args)...);
-    ++size_;
-    return dst;
+    const size_type old_size = size_;
+    emplace_back(std::move(values_[old_size - 1].data));
+    for (size_type dst = old_size - 1; dst > index; --dst) {
+      values_[dst].data = std::move(values_[dst - 1].data);
+    }
+    values_[index].data = std::move(value);
+    return begin() + static_cast<difference_type>(index);
   }
 
-  constexpr iterator erase(const_iterator pos) noexcept(!kRequireThrows) {
-    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
-    MBO_CONFIG_REQUIRE(&values_[0].data <= pos && pos < &values_[size_].data, "Invalid `pos`.");
-    auto dst = const_cast<iterator>(pos);
-    --size_;
-    std::destroy_at(dst);
-    for (; dst < end(); ++dst) {
-      *dst = std::move(*std::next(dst));
+  constexpr iterator erase(const_iterator pos) noexcept(
+      !kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>) {
+    MBO_CONFIG_REQUIRE(cbegin() <= pos && pos < cend(), "Invalid `pos`.");
+    const auto index = static_cast<size_type>(pos - cbegin());
+    for (size_type dst = index; dst + 1 < size_; ++dst) {
+      values_[dst].data = std::move(values_[dst + 1].data);
     }
-    return pos > end() ? end() : const_cast<iterator>(pos);
-    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    pop_back();
+    return begin() + static_cast<difference_type>(index);
   }
 
-  constexpr iterator erase(const_iterator first, const_iterator last) noexcept(!kRequireThrows) {
-    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
-    MBO_CONFIG_REQUIRE(
-        &values_[0].data <= first && first <= last && last <= &values_[size_].data, "Invalid `first` or `last`.");
-    std::size_t deleted = 0;
-    for (const_iterator it = first; it < last; ++it) {
-      std::destroy_at(it);
-      ++deleted;
+  constexpr iterator erase(const_iterator first, const_iterator last) noexcept(
+      !kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>) {
+    MBO_CONFIG_REQUIRE(cbegin() <= first && first <= last && last <= cend(), "Invalid `first` or `last`.");
+    const auto first_index = static_cast<size_type>(first - cbegin());
+    const auto deleted = static_cast<size_type>(last - first);
+    for (size_type dst = first_index; dst + deleted < size_; ++dst) {
+      values_[dst].data = std::move(values_[dst + deleted].data);
     }
-    auto dst = const_cast<iterator>(first);
-    auto src = const_cast<iterator>(last);
-    for (; src < end(); ++src, ++dst) {
-      *dst = std::move(*src);
+    for (size_type count = 0; count < deleted; ++count) {
+      pop_back();
     }
-    size_ -= deleted;
-    return const_cast<iterator>(first);
-    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    return begin() + static_cast<difference_type>(first_index);
   }
 
   template<typename... Args>
-  constexpr reference emplace_back(Args&&... args) noexcept(!kRequireThrows) {
+  constexpr reference emplace_back(Args&&... args) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, Args...>) {
     MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `emplace_back` at capacity.");
-    auto& data_ref{values_[size_++]};
-    std::construct_at(const_cast<std::remove_const_t<T>*>(&data_ref.data), std::forward<Args>(args)...);
+    auto& data_ref = values_[size_];
+    std::construct_at(&data_ref.data, std::forward<Args>(args)...);
+    ++size_;
     return data_ref.data;
   }
 
-  constexpr reference push_back(T&& val) noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `push_back` at capacity.");
-    auto& data_ref{values_[size_++]};
-    std::construct_at(const_cast<std::remove_const_t<T>*>(&data_ref.data), std::move(val));
-    return data_ref.data;
+  constexpr reference push_back(T&& val) noexcept(!kRequireThrows && std::is_nothrow_constructible_v<RawValue, T&&>) {
+    return emplace_back(std::move(val));
   }
 
-  constexpr reference push_back(const T& val) noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `push_back` at capacity.");
-    auto& data_ref{values_[size_++]};
-    std::construct_at(const_cast<std::remove_const_t<T>*>(&data_ref.data), val);
-    return data_ref.data;
+  constexpr reference push_back(const T& val) noexcept(
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const T&>) {
+    return emplace_back(val);
   }
 
   constexpr void pop_back() noexcept(!kRequireThrows) {
@@ -360,79 +511,72 @@ class LimitedVector final {
     std::destroy_at(&values_[--size_].data);
   }
 
-  constexpr void assign(std::size_t num, const T& value) noexcept {
+  constexpr void assign(std::size_t num, const T& value) {
+    MBO_CONFIG_REQUIRE(num <= Capacity, "Called `assign` beyond capacity.");
+    const RawValue value_copy(value);
     clear();
     for (; num > 0; --num) {
-      push_back(value);
+      push_back(value_copy);
     }
   }
 
   template<std::forward_iterator It>
-  constexpr void assign(It begin, It end) noexcept {
+  constexpr void assign(It begin, It end) {
+    // Staged before clear for alias safety, then moved into this container.
+    LimitedVector<RawValue, Capacity> values(begin, end);  // NOLINT(misc-const-correctness)
     clear();
-    while (begin < end) {
-      emplace_back(std::forward<mbo::types::ForwardIteratorValueType<It>>(*begin++));
+    for (auto& value : values) {
+      emplace_back(std::move(value));
     }
   }
 
-  constexpr void assign(const std::initializer_list<T>& list) noexcept(!kRequireThrows) {
+  constexpr void assign(const std::initializer_list<T>& list) {
     MBO_CONFIG_REQUIRE(list.size() <= Capacity, "Called `assign` at capacity.");
-    clear();
-    auto it = list.begin();
-    while (it < list.end()) {
-      emplace_back(*it++);
-    }
+    assign(list.begin(), list.end());
   }
 
   template<types::ConstructibleInto<T> U>
   constexpr iterator insert(const_iterator pos, U&& value) {
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `insert` at capacity.");
-    MBO_CONFIG_REQUIRE(begin() <= pos && pos <= end(), "Invalid `pos`.");
-    // Clang does not like `std::distance`. The issue is that the iterators point into the union.
-    // That makes them technically not point into an array AND that is indeed not allowed by C++.
-    const auto dst = const_cast<iterator>(pos);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
-    move_backward(dst, 1);
-    std::construct_at(const_cast<std::remove_const_t<T>*>(&*dst), std::forward<U>(value));
-    return dst;
+    return emplace(pos, std::forward<U>(value));
   }
 
   constexpr iterator insert(const_iterator pos, size_type count, const T& value) {
     MBO_CONFIG_REQUIRE(size_ + count <= Capacity, "Called `insert` at capacity.");
-    MBO_CONFIG_REQUIRE(begin() <= pos && pos <= end(), "Invalid `pos`.");
-    const auto dst = const_cast<iterator>(pos);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
+    MBO_CONFIG_REQUIRE(cbegin() <= pos && pos <= cend(), "Invalid `pos`.");
+    const auto index = static_cast<size_type>(pos - cbegin());
     if (count == 0) {
-      return dst;
+      return begin() + static_cast<difference_type>(index);
     }
-    std::size_t index = move_backward(dst, count);
-    while (count > 0) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[index].data), value);
-      ++index;
-      --count;
+    const RawValue value_copy(value);
+    iterator dst = begin() + static_cast<difference_type>(index);
+    for (size_type inserted = 0; inserted < count; ++inserted) {
+      dst = emplace(dst, value_copy);
+      ++dst;
     }
-    return dst;
+    return begin() + static_cast<difference_type>(index);
   }
 
   constexpr iterator insert(const_iterator pos, const T& value) { return insert(pos, 1, value); }
 
-  template<typename InputIt>
-  requires(types::ConstructibleFrom<T, decltype(*std::declval<InputIt>())>)
+  template<std::input_iterator InputIt>
+  requires(types::ConstructibleFrom<T, std::iter_reference_t<InputIt>>)
   constexpr iterator insert(const_iterator pos, InputIt first, InputIt last) {
-    MBO_CONFIG_REQUIRE(begin() <= pos && pos <= end(), "Invalid `pos`.");
-    MBO_CONFIG_REQUIRE(first <= last, "First > Last.");
-    std::size_t count = std::distance(first, last);
-    MBO_CONFIG_REQUIRE(size_ + count <= Capacity, "Called `insert` at capacity.");
-    const auto dst = const_cast<iterator>(pos);  // NOLINT(*-pro-type-const-cast)
-    if (count == 0) {
-      return dst;
+    MBO_CONFIG_REQUIRE(cbegin() <= pos && pos <= cend(), "Invalid `pos`.");
+    const auto index = static_cast<size_type>(pos - cbegin());
+    LimitedVector<RawValue, Capacity> incoming;
+    while (first != last) {
+      incoming.emplace_back(*first++);
     }
-    std::size_t index = move_backward(dst, count);
-    while (count) {
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[index].data), *first);
-      ++index;
-      --count;
-      ++first;
+    MBO_CONFIG_REQUIRE(size_ + incoming.size() <= Capacity, "Called `insert` at capacity.");
+    if (incoming.empty()) {
+      return begin() + static_cast<difference_type>(index);
     }
-    return dst;
+    iterator dst = begin() + static_cast<difference_type>(index);
+    for (auto& value : incoming) {
+      dst = emplace(dst, std::move(value));
+      ++dst;
+    }
+    return begin() + static_cast<difference_type>(index);
   }
 
   template<types::ConstructibleInto<T> U>
@@ -458,17 +602,19 @@ class LimitedVector final {
 
   constexpr const_reference back() const noexcept { return values_[size_ > 0 ? size_ - 1 : 0].data; }
 
-  constexpr iterator begin() noexcept { return &values_[0].data; }
+  constexpr iterator begin() noexcept { return iterator(values_, 0); }
 
-  constexpr const_iterator begin() const noexcept { return &values_[0].data; }
+  constexpr const_iterator begin() const noexcept { return const_iterator(values_, 0); }
 
-  constexpr const_iterator cbegin() const noexcept { return &values_[0].data; }
+  constexpr const_iterator cbegin() const noexcept { return const_iterator(values_, 0); }
 
-  constexpr iterator end() noexcept { return &values_[size_].data; }
+  constexpr iterator end() noexcept { return iterator(values_, static_cast<difference_type>(size_)); }
 
-  constexpr const_iterator end() const noexcept { return &values_[size_].data; }
+  constexpr const_iterator end() const noexcept { return const_iterator(values_, static_cast<difference_type>(size_)); }
 
-  constexpr const_iterator cend() const noexcept { return &values_[size_].data; }
+  constexpr const_iterator cend() const noexcept {
+    return const_iterator(values_, static_cast<difference_type>(size_));
+  }
 
   constexpr reverse_iterator rbegin() noexcept { return std::make_reverse_iterator(end()); }
 
@@ -502,19 +648,7 @@ class LimitedVector final {
     return values_[index].data;
   }
 
-  constexpr const_pointer data() const noexcept { return &values_[0].data; }
-
  private:
-  constexpr std::size_t move_backward(iterator dst, std::size_t count) {
-    std::size_t pos = size_;
-    while (dst < &values_[pos].data) {
-      --pos;
-      std::construct_at(const_cast<std::remove_const_t<T>*>(&values_[pos + count].data), std::move(values_[pos].data));
-    }
-    size_ += count;
-    return pos;
-  }
-
   std::size_t size_{0};
   // Array would be better but that does not work with ASAN builds.
   // std::array<Data, Capacity == 0 ? 1 : Capacity> values_;
@@ -530,7 +664,7 @@ LimitedVector(T&&... v) -> LimitedVector<std::common_type_t<T...>, sizeof...(T)>
 // and going through the checked operator[] would re-verify that per element.
 template<auto LN, auto RN, typename LHS, typename RHS>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline auto operator<=>(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) noexcept {
+constexpr inline auto operator<=>(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) {
   const std::size_t minsize = std::min(lhs.size(), rhs.size());
   for (std::size_t index = 0; index < minsize; ++index) {
     const auto comp = lhs[index] <=> rhs[index];
@@ -543,7 +677,7 @@ constexpr inline auto operator<=>(const LimitedVector<LHS, LN>& lhs, const Limit
 
 template<auto LN, auto RN, typename LHS, typename RHS>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline bool operator==(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) noexcept {
+constexpr inline bool operator==(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) {
   if (lhs.size() != rhs.size()) {
     return false;
   }
@@ -559,7 +693,7 @@ constexpr inline bool operator==(const LimitedVector<LHS, LN>& lhs, const Limite
 
 template<auto LN, auto RN, typename LHS, typename RHS>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline bool operator<(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) noexcept {
+constexpr inline bool operator<(const LimitedVector<LHS, LN>& lhs, const LimitedVector<RHS, RN>& rhs) {
   const std::size_t minsize = std::min(lhs.size(), rhs.size());
   for (std::size_t index = 0; index < minsize; ++index) {
     const auto comp = lhs[index] <=> rhs[index];
@@ -578,7 +712,9 @@ inline constexpr auto MakeLimitedVector() noexcept {
 }
 
 template<std::size_t N, LimitedOptionsFlag... Flags, std::forward_iterator It>
-inline constexpr auto MakeLimitedVector(It&& begin, It&& end) noexcept {
+inline constexpr auto MakeLimitedVector(It&& begin, It&& end) noexcept(
+    !::mbo::config::kRequireThrows
+    && std::is_nothrow_constructible_v<mbo::types::ForwardIteratorValueType<It>, std::iter_reference_t<It>>) {
   return LimitedVector<mbo::types::ForwardIteratorValueType<It>, LimitedOptions<N, Flags...>{}>(
       std::forward<It>(begin), std::forward<It>(end));
 }
@@ -591,7 +727,8 @@ inline constexpr auto MakeLimitedVector(const std::initializer_list<T>& data) {
 
 template<std::size_t N, typename T, LimitedOptionsFlag... Flags>
 requires(N > 0 && mbo::types::NotInitializerList<T>)
-inline constexpr auto MakeLimitedVector(const T& value) noexcept {
+inline constexpr auto MakeLimitedVector(const T& value) noexcept(
+    !::mbo::config::kRequireThrows && std::is_nothrow_copy_constructible_v<T>) {
   auto result = LimitedVector<T, LimitedOptions<N, Flags...>{}>();
   result.assign(N, value);
   return result;
@@ -599,10 +736,11 @@ inline constexpr auto MakeLimitedVector(const T& value) noexcept {
 
 template<typename... Args>
 requires((types::NotInitializerList<Args> && !std::forward_iterator<Args> && !types::IsCharArray<Args>) && ...)
-inline constexpr auto MakeLimitedVector(Args&&... args) noexcept {
+inline constexpr auto MakeLimitedVector(Args&&... args) noexcept(
+    !::mbo::config::kRequireThrows && (std::is_nothrow_constructible_v<std::common_type_t<Args...>, Args&&> && ...)) {
   using T = std::common_type_t<Args...>;
   auto result = LimitedVector<T, sizeof...(Args)>();
-  (result.emplace_back(std::forward<T>(args)), ...);
+  (result.emplace_back(std::forward<Args>(args)), ...);
   return result;
 }
 
@@ -616,7 +754,8 @@ inline constexpr auto MakeLimitedVector(Args... args) noexcept {
 }
 
 template<types::NotIsCharArray T, int&..., types::IsCharArray... Args>
-inline constexpr auto MakeLimitedVector(Args... args) noexcept {
+inline constexpr auto MakeLimitedVector(Args... args) noexcept(
+    !::mbo::config::kRequireThrows && (std::is_nothrow_constructible_v<T, Args> && ...)) {
   auto result = LimitedVector<T, sizeof...(Args)>();
   (result.emplace_back(T(args)), ...);
   return result;

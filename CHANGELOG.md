@@ -15,6 +15,10 @@
 - Made the `tstring` literal use the standard structural class non-type template parameter form,
   preserving embedded NUL characters without compiler-specific literal-operator extensions.
 
+- Repaired `LimitedVector` element lifetimes across copy, move, swap, insertion, erasure, and
+  destruction. Its iterators now correctly model random access rather than contiguous storage, and
+  the invalid `data()` API has been removed.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang

@@ -15,11 +15,14 @@
 
 #include "mbo/container/limited_vector.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
+#include <memory>
 #include <ranges>  // IWYU pragma: keep
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>  // IWYU pragma: keep
@@ -48,12 +51,76 @@ using ::testing::Not;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedVector<int, 3>>);
-static_assert(std::contiguous_iterator<LimitedVector<int, 3>::iterator>);
-static_assert(std::contiguous_iterator<LimitedVector<int, 3>::const_iterator>);
+static_assert(std::random_access_iterator<LimitedVector<int, 3>::iterator>);
+static_assert(std::random_access_iterator<LimitedVector<int, 3>::const_iterator>);
+static_assert(!std::contiguous_iterator<LimitedVector<int, 3>::iterator>);
+static_assert(!std::contiguous_iterator<LimitedVector<int, 3>::const_iterator>);
+
+constexpr LimitedVector<std::string, 2> kConstexprStrings{"one", "two"};
+static_assert(kConstexprStrings.size() == 2);
+static_assert(kConstexprStrings.at(0) == "one");
+static_assert(kConstexprStrings.at(1) == "two");
 
 struct LimitedVectorTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+struct TrackedValue {
+  constexpr TrackedValue(int new_value, int& live_count) noexcept : value(new_value), live_count(&live_count) {
+    ++*this->live_count;
+  }
+
+  constexpr TrackedValue(const TrackedValue& other) noexcept : value(other.value), live_count(other.live_count) {
+    ++*live_count;
+  }
+
+  constexpr TrackedValue(TrackedValue&& other) noexcept : value(other.value), live_count(other.live_count) {
+    ++*live_count;
+  }
+
+  constexpr TrackedValue& operator=(const TrackedValue& other) noexcept {
+    if (this != &other) {
+      value = other.value;
+    }
+    return *this;
+  }
+
+  constexpr TrackedValue& operator=(TrackedValue&& other) noexcept {
+    value = other.value;
+    return *this;
+  }
+
+  constexpr ~TrackedValue() noexcept { --*live_count; }
+
+  constexpr operator int() const noexcept { return value; }  // NOLINT(*-explicit-*)
+
+  int value;
+  int* live_count;
+};
+
+struct CopyConstructOnly {
+  constexpr explicit CopyConstructOnly(int new_value) noexcept : value(new_value) {}
+
+  constexpr CopyConstructOnly(const CopyConstructOnly&) noexcept = default;
+  constexpr CopyConstructOnly(CopyConstructOnly&&) noexcept = default;
+  constexpr CopyConstructOnly& operator=(const CopyConstructOnly&) = delete;
+  constexpr CopyConstructOnly& operator=(CopyConstructOnly&&) = delete;
+  constexpr ~CopyConstructOnly() noexcept = default;
+
+  constexpr operator int() const noexcept { return value; }  // NOLINT(*-explicit-*)
+
+  int value;
+};
+
+template<typename T>
+void CopyAssign(T& lhs, const T& rhs) {
+  lhs = rhs;
+}
+
+template<typename T>
+void MoveAssign(T& lhs, T& rhs) {
+  lhs = std::move(rhs);
+}
 
 TEST_F(LimitedVectorTest, MakeNoArg) {
   constexpr auto kTest = MakeLimitedVector<int>();
@@ -294,9 +361,9 @@ TEST_F(LimitedVectorTest, EraseRange) {
   EXPECT_THAT(test, SizeIs(10));
   EXPECT_THAT(test, CapacityIs(10));
   ASSERT_THAT(test, ElementsAre(0, 1, 20, 3, 40, 50, 60, 70, 8, 9));
-  Type::const_iterator first = test.begin() + 4;
-  Type::const_iterator last = test.begin() + 8;
-  Type::const_iterator it = test.erase(first, last);
+  const Type::const_iterator first = test.begin() + 4;
+  const Type::const_iterator last = test.begin() + 8;
+  const Type::const_iterator it = test.erase(first, last);
   EXPECT_THAT(it, test.begin() + 4);
   EXPECT_THAT(test, SizeIs(6));
   EXPECT_THAT(test, ElementsAre(0, 1, 20, 3, 8, 9));
@@ -337,6 +404,134 @@ TEST_F(LimitedVectorTest, Iterators) {
   // Restrictions apply: The two following cannot be constexpr.
   EXPECT_THAT((MakeLimitedVector<3>(kTest.begin(), kTest.end())), ElementsAre(0, 1, 2));
   EXPECT_THAT((MakeLimitedVector<3>(kTest.rbegin(), kTest.rend())), ElementsAre(2, 1, 0));
+}
+
+TEST_F(LimitedVectorTest, IteratorsTraverseSlotsWithoutClaimingContiguousStorage) {
+  LimitedVector<int, 4> values{3, 1, 2};
+  EXPECT_THAT(values.end() - values.begin(), 3);
+  EXPECT_THAT(&*values.begin(), &values.front());
+  EXPECT_THAT(&*(values.begin() + 2), &values.back());
+  // Intentionally exercise the iterator's checked-by-test random-access operation.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+  EXPECT_THAT(values.begin()[1], 1);
+  LimitedVector<int, 4> other;
+  EXPECT_THAT(values.begin() == other.begin(), false);
+  std::ranges::sort(values);
+  EXPECT_THAT(values, ElementsAre(1, 2, 3));
+
+  const LimitedVector<int, 0> empty;
+  EXPECT_THAT(empty.begin(), empty.end());
+  EXPECT_THAT(empty.end() - empty.begin(), 0);
+
+  LimitedVector<const int, 2> immutable;
+  immutable.emplace_back(1);
+  immutable.emplace_back(2);
+  EXPECT_THAT(immutable, ElementsAre(1, 2));
+}
+
+TEST_F(LimitedVectorTest, MoveAssignmentAndSelfSwapPreserveValues) {
+  LimitedVector<int, 4> source{1, 2};
+  LimitedVector<int, 4> target{3};
+  target = std::move(source);
+  // Verifying the container's documented empty moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_THAT(source, IsEmpty());
+  EXPECT_THAT(target, ElementsAre(1, 2));
+  target.swap(target);
+  EXPECT_THAT(target, ElementsAre(1, 2));
+}
+
+TEST_F(LimitedVectorTest, InsertsInitializerList) {
+  LimitedVector<int, 5> values{1, 4};
+  values.insert(values.begin() + 1, {2, 3});
+  EXPECT_THAT(values, ElementsAre(1, 2, 3, 4));
+}
+
+TEST_F(LimitedVectorTest, MaintainsObjectLifetimesAcrossCopyMoveSwapInsertAndErase) {
+  int live_count = 0;
+  {
+    LimitedVector<TrackedValue, 6> values;
+    values.emplace_back(1, live_count);
+    values.emplace_back(2, live_count);
+    values.emplace_back(3, live_count);
+    EXPECT_THAT(live_count, 3);
+
+    values.emplace(values.begin() + 1, 4, live_count);
+    EXPECT_THAT(values, ElementsAre(1, 4, 2, 3));
+    EXPECT_THAT(live_count, 4);
+    values.erase(values.begin() + 2);
+    EXPECT_THAT(values, ElementsAre(1, 4, 3));
+    EXPECT_THAT(live_count, 3);
+
+    LimitedVector<TrackedValue, 6> copied(values);
+    EXPECT_THAT(live_count, 6);
+    copied = values;
+    EXPECT_THAT(live_count, 6);
+    CopyAssign(copied, copied);
+    MoveAssign(copied, copied);
+    EXPECT_THAT(copied, ElementsAre(1, 4, 3));
+    EXPECT_THAT(live_count, 6);
+
+    LimitedVector<TrackedValue, 6> moved(std::move(copied));
+    // Verifying the container's documented empty moved-from state.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    EXPECT_THAT(copied, IsEmpty());
+    EXPECT_THAT(moved, ElementsAre(1, 4, 3));
+    EXPECT_THAT(live_count, 6);
+
+    LimitedVector<TrackedValue, 6> other;
+    other.emplace_back(8, live_count);
+    moved.swap(other);
+    EXPECT_THAT(moved, ElementsAre(8));
+    EXPECT_THAT(other, ElementsAre(1, 4, 3));
+    EXPECT_THAT(live_count, 7);
+  }
+  EXPECT_THAT(live_count, 0);
+}
+
+TEST_F(LimitedVectorTest, StagesAliasedValuesAndRangesBeforeInsertionOrAssignment) {
+  LimitedVector<std::string, 8> values{"one", "two", "three"};
+  values.insert(values.begin() + 1, values.front());
+  EXPECT_THAT(values, ElementsAre("one", "one", "two", "three"));
+
+  values.insert(values.begin() + 2, values.begin(), values.begin() + 2);
+  EXPECT_THAT(values, ElementsAre("one", "one", "one", "one", "two", "three"));
+
+  values.assign(values.begin() + 1, values.begin() + 4);
+  EXPECT_THAT(values, ElementsAre("one", "one", "one"));
+}
+
+TEST_F(LimitedVectorTest, SupportsMoveOnlyResourceValues) {
+  LimitedVector<std::unique_ptr<int>, 4> values;
+  values.emplace_back(std::make_unique<int>(1));
+  values.emplace_back(std::make_unique<int>(3));
+  values.emplace(values.begin() + 1, std::make_unique<int>(2));
+  ASSERT_THAT(values, SizeIs(3));
+  EXPECT_THAT(*values.at(0), 1);
+  EXPECT_THAT(*values.at(1), 2);
+  EXPECT_THAT(*values.at(2), 3);
+  values.erase(values.begin());
+  ASSERT_THAT(values, SizeIs(2));
+  EXPECT_THAT(*values.at(0), 2);
+  EXPECT_THAT(*values.at(1), 3);
+}
+
+TEST_F(LimitedVectorTest, CopyAssignmentReconstructsNonassignableElements) {
+  const LimitedVector<CopyConstructOnly, 3> source{CopyConstructOnly(1), CopyConstructOnly(2)};
+  LimitedVector<CopyConstructOnly, 3> target{CopyConstructOnly(3)};
+  target = source;
+  EXPECT_THAT(target, ElementsAre(1, 2));
+}
+
+TEST_F(LimitedVectorTest, RangeInsertionAcceptsSinglePassIterators) {
+  LimitedVector<int, 6> values{1, 4};
+  std::istringstream input("2 3");
+  values.insert(values.begin() + 1, std::istream_iterator<int>(input), std::istream_iterator<int>());
+  EXPECT_THAT(values, ElementsAre(1, 2, 3, 4));
+
+  LimitedVector<std::int64_t, 3> assigned;
+  assigned = {1, 2, 3};
+  EXPECT_THAT(assigned, ElementsAre(1, 2, 3));
 }
 
 TEST_F(LimitedVectorTest, Compare) {
@@ -419,6 +614,8 @@ TEST_F(LimitedVectorTest, CompareDifferentType) {
   constexpr auto k42o25 = MakeLimitedVector<std::string_view>("42", "25");
   constexpr auto k42v33 = MakeLimitedVector("42", "33");
   constexpr auto k42 = MakeLimitedVector("42");
+  const auto runtime_string_views = MakeLimitedVector("42", "33");
+  EXPECT_THAT(runtime_string_views, ElementsAre("42", "33"));
   EXPECT_THAT(k42v25 == k42o25, true);
   EXPECT_THAT(k42v25, k42o25);
   EXPECT_THAT(k42v25, Eq(k42o25));
@@ -593,7 +790,7 @@ TEST_F(LimitedVectorTest, Insert1Moving) {
     static constexpr auto kData = [] {
       LimitedVector<int, 5> result({1, 2});
       result.insert(result.begin(), 25);
-      result.insert(&result.at(2), 33);
+      result.insert(result.begin() + 2, 33);
       result.insert(result.end(), 42);
       return result;
     }();
@@ -602,9 +799,8 @@ TEST_F(LimitedVectorTest, Insert1Moving) {
 }
 
 TEST_F(LimitedVectorTest, Insert1ComplexType) {
-  // The test uses the non trivial type `std::string` which cannot be handled at compile time in a constexpr (in C++20).
-  // It verifies that element moving is performed correctly by employing `std::construct_at(dst, std::move(src))` in
-  // `LimitedVector::move_backward()` just as is done in `LimitedOrdered`.
+  // The test uses the nontrivial type `std::string` to verify that insertion moves
+  // live elements without constructing over them or leaking their resources.
   // Each test string uses an identification char (e.g. `1`), 16 dots and a comma in order to force memory allocation.
   static constexpr std::string_view kStr1 = "1................,";
   static constexpr std::string_view kStr2 = "2................,";
@@ -627,7 +823,7 @@ TEST_F(LimitedVectorTest, Insert1ComplexType) {
     static const auto kData = [] {
       LimitedVector<std::string, 6> result(std::initializer_list<std::string_view>{kStr1, kStr2});
       result.insert(result.begin(), kStrA);
-      result.insert(&result.at(2), kStrB);
+      result.insert(result.begin() + 2, kStrB);
       result.insert(result.end(), std::initializer_list<std::string_view>{kStrC, kStrD});
       return result;
     }();
@@ -664,7 +860,7 @@ TEST_F(LimitedVectorTest, Insert2) {
     static constexpr auto kData = [] {
       LimitedVector<int, 10> result({1, 2});
       result.insert(result.begin(), 2, 25);
-      result.insert(&result.at(3), 3, 33);
+      result.insert(result.begin() + 3, 3, 33);
       result.insert(result.end(), 3, 42);
       return result;
     }();
@@ -705,7 +901,7 @@ TEST_F(LimitedVectorTest, Insert3) {
     static constexpr auto kData = [] {
       LimitedVector<int, 8> result({1, 2});
       result.insert(result.begin(), {21, 22});
-      result.insert(&result.at(3), {31, 32});
+      result.insert(result.begin() + 3, {31, 32});
       result.insert(result.end(), {41, 42});
       return result;
     }();

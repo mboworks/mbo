@@ -54,8 +54,14 @@ namespace mbo::container {
 // The above example infers the value_type to be `int` as it is the common type of the arguments.
 // The resulting `LimitedSet` has a capacity of 4 and the elements {1, 2, 3, 4}.
 //
-// Internally a C-array is used and elements are moved as needed. That means that element
-// addresses are not stable.
+// Internally slot storage is used and elements are moved as needed. That means
+// that element addresses are not stable. Iterators are random access but not
+// contiguous, there is no `data()` member, and every iterator exposes keys as
+// const so callers cannot invalidate the ordering.
+//
+// Insertions and erasures provide the basic exception guarantee. If relocating
+// an existing element throws, the container remains valid and destructible but
+// may be empty.
 //
 // Note that construction from char-arrays results in a container of `std::string_view` as opposed to `const char*`.
 template<typename Key, auto CapacityOrOptions, typename Compare = std::less<Key>>
@@ -69,20 +75,24 @@ class LimitedSet final : public container_internal::LimitedOrdered<Key, Key, Key
 
   constexpr ~LimitedSet() noexcept = default;
 
-  constexpr explicit LimitedSet(const Compare& key_comp) noexcept : LimitedBase(key_comp) {}
+  constexpr explicit LimitedSet(const Compare& key_comp) : LimitedBase(key_comp) {}
 
-  constexpr LimitedSet(const LimitedSet& other) noexcept : LimitedBase(other) {}
+  constexpr LimitedSet(const LimitedSet& other) : LimitedBase(other) {}
 
-  constexpr LimitedSet& operator=(const LimitedSet& other) noexcept {
+  constexpr LimitedSet& operator=(const LimitedSet& other) {
     if (this != &other) {
       LimitedBase::operator=(other);
     }
     return *this;
   }
 
-  constexpr LimitedSet(LimitedSet&& other) noexcept : LimitedBase(std::move(other)) {}
+  // The base move may propagate comparator or element exceptions.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+  constexpr LimitedSet(LimitedSet&& other) : LimitedBase(std::move(other)) {}
 
-  constexpr LimitedSet& operator=(LimitedSet&& other) noexcept {
+  // The base move may propagate comparator or element exceptions.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+  constexpr LimitedSet& operator=(LimitedSet&& other) {
     if (this != &other) {
       LimitedBase::operator=(std::move(other));
     }
@@ -93,39 +103,37 @@ class LimitedSet final : public container_internal::LimitedOrdered<Key, Key, Key
 
   template<std::forward_iterator It>
   requires types::ConstructibleFrom<Key, mbo::types::ForwardIteratorValueType<It>>
-  constexpr LimitedSet(It begin, It end, const Compare& key_comp = Compare()) noexcept
-      : LimitedBase(begin, end, key_comp) {}
+  constexpr LimitedSet(It begin, It end, const Compare& key_comp = Compare()) : LimitedBase(begin, end, key_comp) {}
 
-  constexpr LimitedSet(const std::initializer_list<Key>& list, const Compare& key_comp = Compare()) noexcept
+  constexpr LimitedSet(const std::initializer_list<Key>& list, const Compare& key_comp = Compare())
       : LimitedBase(list, key_comp) {}
 
   template<types::ConstructibleInto<Key> U>
   requires(!std::same_as<U, Key>)
-  constexpr LimitedSet(const std::initializer_list<U>& list, const Compare& key_comp = Compare()) noexcept
+  constexpr LimitedSet(const std::initializer_list<U>& list, const Compare& key_comp = Compare())
       : LimitedBase(list, key_comp) {}
 
   template<types::ConstructibleInto<Key> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= kCapacity)
-  constexpr LimitedSet& operator=(const std::initializer_list<U>& list) noexcept {
+  constexpr LimitedSet& operator=(const std::initializer_list<U>& list) {
     LimitedBase::operator=(list);
     return *this;
   }
 
   template<types::ConstructibleInto<Key> OK, auto OtherN, typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= kCapacity)
-  constexpr explicit LimitedSet(const LimitedSet<OK, OtherN, OtherCompare>& other) noexcept : LimitedBase(other) {}
+  constexpr explicit LimitedSet(const LimitedSet<OK, OtherN, OtherCompare>& other) : LimitedBase(other) {}
 
   template<types::ConstructibleInto<Key> OK, auto OtherN, typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= kCapacity)
-  constexpr LimitedSet& operator=(const LimitedSet<OK, OtherN, OtherCompare>& other) noexcept {
+  constexpr LimitedSet& operator=(const LimitedSet<OK, OtherN, OtherCompare>& other) {
     LimitedBase::operator=(other);
     return *this;
   }
 
   template<types::ConstructibleInto<Key> OK, auto OtherN, typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= kCapacity)
-  constexpr explicit LimitedSet(LimitedSet<OK, OtherN, OtherCompare>&& other) noexcept
-      : LimitedBase(std::move(other)) {}
+  constexpr explicit LimitedSet(LimitedSet<OK, OtherN, OtherCompare>&& other) : LimitedBase(std::move(other)) {}
 
   // Find and search: lower_bound, upper_bound, equal_range, find, contains, count
 
@@ -164,7 +172,6 @@ class LimitedSet final : public container_internal::LimitedOrdered<Key, Key, Key
   using LimitedBase::cend;
   using LimitedBase::crbegin;
   using LimitedBase::crend;
-  using LimitedBase::data;
   using LimitedBase::end;
   using LimitedBase::rbegin;
   using LimitedBase::rend;
@@ -183,9 +190,7 @@ LimitedSet(T&&... data) -> LimitedSet<std::string_view, sizeof...(T)>;
 
 template<auto LN, auto RN, typename LHS, typename RHS, typename LCompare, typename RCompare>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline auto operator<=>(
-    const LimitedSet<LHS, LN, LCompare>& lhs,
-    const LimitedSet<RHS, RN, RCompare>& rhs) noexcept {
+constexpr inline auto operator<=>(const LimitedSet<LHS, LN, LCompare>& lhs, const LimitedSet<RHS, RN, RCompare>& rhs) {
   auto lhs_it = lhs.begin();
   auto rhs_it = rhs.begin();
   while (lhs_it != lhs.end() && rhs_it != rhs.end()) {
@@ -201,9 +206,7 @@ constexpr inline auto operator<=>(
 
 template<auto LN, auto RN, typename LHS, typename RHS, typename LCompare, typename RCompare>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline bool operator==(
-    const LimitedSet<LHS, LN, LCompare>& lhs,
-    const LimitedSet<RHS, RN, RCompare>& rhs) noexcept {
+constexpr inline bool operator==(const LimitedSet<LHS, LN, LCompare>& lhs, const LimitedSet<RHS, RN, RCompare>& rhs) {
   if (lhs.size() != rhs.size()) {
     return false;
   }
@@ -222,9 +225,7 @@ constexpr inline bool operator==(
 
 template<auto LN, auto RN, typename LHS, typename RHS, typename LCompare, typename RCompare>
 requires std::three_way_comparable_with<LHS, RHS>
-constexpr inline bool operator<(
-    const LimitedSet<LHS, LN, LCompare>& lhs,
-    const LimitedSet<RHS, RN, RCompare>& rhs) noexcept {
+constexpr inline bool operator<(const LimitedSet<LHS, LN, LCompare>& lhs, const LimitedSet<RHS, RN, RCompare>& rhs) {
   auto lhs_it = lhs.begin();
   auto rhs_it = rhs.begin();
   while (lhs_it != lhs.end() && rhs_it != rhs.end()) {
@@ -240,19 +241,19 @@ constexpr inline bool operator<(
 
 template<typename Key, typename... Args>
 requires((types::NotInitializerList<Args> && types::ConstructibleFrom<Key, Args>) && ...)
-inline constexpr auto MakeLimitedSetOf(Args&&... args) noexcept {
+inline constexpr auto MakeLimitedSetOf(Args&&... args) {
   auto result = LimitedSet<Key, sizeof...(Args)>();
   (result.emplace(std::forward<Args>(args)), ...);
   return result;
 }
 
 template<typename Key, auto N = 0, typename Compare = std::less<Key>>
-inline constexpr auto MakeLimitedSet() noexcept {  // Parameter `key_comp` would create a conflict.
+inline constexpr auto MakeLimitedSet() {  // Parameter `key_comp` would create a conflict.
   return LimitedSet<Key, N, Compare>();
 }
 
 template<auto N, std::forward_iterator It, typename Compare = std::less<mbo::types::ForwardIteratorValueType<It>>>
-inline constexpr auto MakeLimitedSet(It begin, It end, const Compare& key_comp = Compare()) noexcept {
+inline constexpr auto MakeLimitedSet(It begin, It end, const Compare& key_comp = Compare()) {
   return LimitedSet<mbo::types::ForwardIteratorValueType<It>, N, Compare>(begin, end, key_comp);
 }
 
@@ -263,7 +264,7 @@ inline constexpr auto MakeLimitedSet(const std::initializer_list<Key>& data, con
 
 template<typename... Args>
 requires((types::NotInitializerList<Args> && !std::forward_iterator<Args> && !types::IsCharArray<Args>) && ...)
-inline constexpr auto MakeLimitedSet(Args&&... args) noexcept {
+inline constexpr auto MakeLimitedSet(Args&&... args) {
   using T = std::common_type_t<Args...>;
   auto result = LimitedSet<T, sizeof...(Args)>();
   (result.emplace(std::forward<T>(args)), ...);
@@ -273,14 +274,14 @@ inline constexpr auto MakeLimitedSet(Args&&... args) noexcept {
 // This specialization takes `const char*` and `const char(&)[N]` arguments and creates an appropriately sized container
 // of type `LimitedSet<std::string_view>`.
 template<int&..., types::IsCharArray... Args>
-inline constexpr auto MakeLimitedSet(Args... args) noexcept {
+inline constexpr auto MakeLimitedSet(Args... args) {
   auto result = LimitedSet<std::string_view, sizeof...(Args)>();
   (result.emplace(std::string_view(args)), ...);
   return result;
 }
 
 template<types::NotIsCharArray Key, int&..., types::IsCharArray... Args>
-inline constexpr auto MakeLimitedSet(Args... args) noexcept {
+inline constexpr auto MakeLimitedSet(Args... args) {
   auto result = LimitedSet<Key, sizeof...(Args)>();
   (result.emplace(Key(args)), ...);
   return result;

@@ -18,7 +18,9 @@
 #include <array>
 #include <cstddef>
 #include <functional>
-#include <ranges>     // IWYU pragma: keep
+#include <iterator>
+#include <ranges>  // IWYU pragma: keep
+#include <sstream>
 #include <stdexcept>  // IWYU pragma: keep
 #include <string>
 #include <string_view>
@@ -66,12 +68,73 @@ using ::testing::Pair;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedSet<int, 1>>);
-static_assert(std::contiguous_iterator<LimitedSet<int, 2>::iterator>);
-static_assert(std::contiguous_iterator<LimitedSet<int, 3>::const_iterator>);
+static_assert(std::random_access_iterator<LimitedSet<int, 2>::iterator>);
+static_assert(std::random_access_iterator<LimitedSet<int, 3>::const_iterator>);
+static_assert(!std::contiguous_iterator<LimitedSet<int, 2>::iterator>);
+static_assert(!std::contiguous_iterator<LimitedSet<int, 3>::const_iterator>);
+static_assert(std::is_const_v<std::remove_reference_t<std::iter_reference_t<LimitedSet<int, 2>::iterator>>>);
+
+template<typename T>
+concept HasData = requires(T& value) { value.data(); };
+
+static_assert(!HasData<LimitedSet<int, 2>>);
+
+struct Tracked final {
+  static inline int live = 0;
+
+  explicit Tracked(int value_arg = 0) : value(value_arg) { ++live; }
+
+  Tracked(const Tracked& other) : value(other.value) { ++live; }
+
+  Tracked(Tracked&& other) noexcept : value(other.value) { ++live; }
+
+  Tracked& operator=(const Tracked&) = default;
+  Tracked& operator=(Tracked&&) = default;
+
+  ~Tracked() { --live; }
+
+  friend auto operator<=>(const Tracked&, const Tracked&) = default;
+
+  int value;
+};
 
 struct LimitedSetTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+TEST_F(LimitedSetTest, ManagesNonTrivialKeyLifetimes) {
+  EXPECT_THAT(Tracked::live, Eq(0));
+  {
+    LimitedSet<Tracked, 4> first;
+    first.emplace(3);
+    first.emplace(1);
+    EXPECT_THAT(Tracked::live, Eq(2));
+
+    auto copied = first;
+    EXPECT_THAT(Tracked::live, Eq(4));
+    auto moved = std::move(copied);
+    // Verifying the container's documented empty moved-from state.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    EXPECT_THAT(copied, IsEmpty());
+    EXPECT_THAT(Tracked::live, Eq(4));
+
+    moved.erase(moved.begin());
+    EXPECT_THAT(Tracked::live, Eq(3));
+    first.swap(moved);
+    EXPECT_THAT(first, SizeIs(1));
+    EXPECT_THAT(moved, SizeIs(2));
+    EXPECT_THAT(Tracked::live, Eq(3));
+  }
+  EXPECT_THAT(Tracked::live, Eq(0));
+}
+
+TEST_F(LimitedSetTest, InsertsFromSinglePassInputIterator) {
+  std::istringstream input("3 1 2");
+  LimitedSet<int, 3> set;
+  set.insert(std::istream_iterator<int>(input), std::istream_iterator<int>());
+
+  EXPECT_THAT(set, ElementsAre(1, 2, 3));
+}
 
 TEST_F(LimitedSetTest, MakeNoArg) {
   constexpr auto kTest = MakeLimitedSet<int>();
@@ -561,9 +624,8 @@ TEST_F(LimitedSetTest, AtIndex) {
   static constexpr auto kTest = LimitedSet<int, 2>{25, 42};
   EXPECT_THAT(kTest.at_index(0), 25);
   EXPECT_THAT(kTest.at_index(1), 42);
-  auto test = LimitedSet<int, 2>{25, 42};
-  test.at_index(1) = 99;
-  EXPECT_THAT(test, ElementsAre(25, 99));
+  const auto test = LimitedSet<int, 2>{25, 42};
+  EXPECT_THAT(test.at_index(1), 42);
 }
 
 TEST_F(LimitedSetTest, AtIndexNonExistingThrows) {

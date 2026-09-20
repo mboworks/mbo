@@ -18,6 +18,7 @@
 #include <iterator>
 #include <ranges>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include "absl/log/initialize.h"
@@ -42,8 +43,10 @@ using ::testing::IsTrue;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedOrdered<int, int, int, 1>>);
-static_assert(std::contiguous_iterator<LimitedOrdered<int, int, int, 2>::iterator>);
-static_assert(std::contiguous_iterator<LimitedOrdered<int, int, int, 3>::const_iterator>);
+static_assert(std::random_access_iterator<LimitedOrdered<int, int, int, 2>::iterator>);
+static_assert(std::random_access_iterator<LimitedOrdered<int, int, int, 3>::const_iterator>);
+static_assert(!std::contiguous_iterator<LimitedOrdered<int, int, int, 2>::iterator>);
+static_assert(!std::contiguous_iterator<LimitedOrdered<int, int, int, 3>::const_iterator>);
 static_assert(IsLimitedOptions<LimitedOptions<4>>);
 static_assert(std::ranges::range<LimitedOrdered<int, int, int, LimitedOptions<4>{}>>);
 static_assert(IsLimitedOptions<LimitedOptions<5, LimitedOptionsFlag::kDefault>>);
@@ -65,6 +68,18 @@ static_assert(std::ranges::range<LimitedOrdered<
 struct LimitedOrderedTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+template<typename T>
+void MoveAssign(T& lhs, T& rhs) {
+  lhs = std::move(rhs);
+}
+
+TEST_F(LimitedOrderedTest, SelfMoveAssignmentPreservesValues) {
+  LimitedOrdered<int, int, int, 3> test{1, 2};
+
+  MoveAssign(test, test);
+  EXPECT_THAT(test, ElementsAre(1, 2));
+}
 
 TEST_F(LimitedOrderedTest, LimitedOptionsPublicHelpersRunAtRuntime) {
   const auto first = MakeLimitedOptions<3, LimitedOptionsFlag::kEmptyDestructor>();

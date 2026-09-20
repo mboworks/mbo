@@ -177,7 +177,7 @@ TEST_F(ConstScanTest, CallFunction) {
 TEST_F(AnyScanTest, CallFunctionString) {
   using Values = std::string;
   EXPECT_THAT(Tester<Values>(MakeAnyScan(std::array<Values, 2>{"a", "b"})), ElementsAre("a", "b"));
-  EXPECT_THAT(Tester<Values>(MakeAnyScan(LimitedSet<Values, 3>{"a", "b"})), ElementsAre("a", "b"));
+  EXPECT_THAT(Tester<const Values>(MakeAnyScan(LimitedSet<Values, 3>{"a", "b"})), ElementsAre("a", "b"));
   EXPECT_THAT(Tester<Values>(MakeAnyScan(LimitedVector<Values, 3>{"a", "b"})), ElementsAre("a", "b"));
   EXPECT_THAT(Tester<Values>(MakeAnyScan(std::list<Values>{"a", "b"})), ElementsAre("a", "b"));
   EXPECT_THAT(Tester<Values>(MakeAnyScan(std::vector<Values>{"a", "b"})), ElementsAre("a", "b"));
@@ -209,7 +209,7 @@ TEST_F(AnyScanTest, CallFunctionPairOfStrings) {
       Tester<Values>(MakeAnyScan(std::array<Values, 2>{{{"1", "a"}, {"2", "b"}}})),
       ElementsAre(Pair("1", "a"), Pair("2", "b")));
   EXPECT_THAT(
-      Tester<Values>(MakeAnyScan(LimitedSet<Values, 3>{{"1", "a"}, {"2", "b"}})),
+      Tester<const Values>(MakeAnyScan(LimitedSet<Values, 3>{{"1", "a"}, {"2", "b"}})),
       ElementsAre(Pair("1", "a"), Pair("2", "b")));
   EXPECT_THAT(
       Tester<Values>(MakeAnyScan(LimitedVector<Values, 3>{{"1", "a"}, {"2", "b"}})),

@@ -63,12 +63,90 @@ using ::testing::Pair;
 using ::testing::SizeIs;
 
 static_assert(std::ranges::range<LimitedMap<int, int, 3>>);
-static_assert(std::contiguous_iterator<LimitedMap<int, int, 3>::iterator>);
-static_assert(std::contiguous_iterator<LimitedMap<int, int, 3>::const_iterator>);
+static_assert(std::random_access_iterator<LimitedMap<int, int, 3>::iterator>);
+static_assert(std::random_access_iterator<LimitedMap<int, int, 3>::const_iterator>);
+static_assert(!std::contiguous_iterator<LimitedMap<int, int, 3>::iterator>);
+static_assert(!std::contiguous_iterator<LimitedMap<int, int, 3>::const_iterator>);
+static_assert(
+    std::is_const_v<std::remove_reference_t<decltype(std::declval<LimitedMap<int, int, 3>::iterator>()->first)>>);
+static_assert(
+    !std::is_const_v<std::remove_reference_t<decltype(std::declval<LimitedMap<int, int, 3>::iterator>()->second)>>);
+
+template<typename T>
+concept HasData = requires(T& value) { value.data(); };
+
+static_assert(!HasData<LimitedMap<int, int, 3>>);
+
+struct Tracked final {
+  static inline int live = 0;
+
+  explicit Tracked(int value_arg = 0) : value(value_arg) { ++live; }
+
+  Tracked(const Tracked& other) : value(other.value) { ++live; }
+
+  Tracked(Tracked&& other) noexcept : value(other.value) { ++live; }
+
+  Tracked& operator=(const Tracked&) = default;
+  Tracked& operator=(Tracked&&) = default;
+
+  ~Tracked() { --live; }
+
+  friend auto operator<=>(const Tracked&, const Tracked&) = default;
+
+  int value;
+};
 
 struct LimitedMapTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+template<typename T>
+void MoveAssign(T& lhs, T& rhs) {
+  lhs = std::move(rhs);
+}
+
+TEST_F(LimitedMapTest, ManagesNonTrivialKeyAndMappedLifetimes) {
+  EXPECT_THAT(Tracked::live, Eq(0));
+  {
+    LimitedMap<Tracked, Tracked, 4> first;
+    first.try_emplace(Tracked(3), 30);
+    first.try_emplace(Tracked(1), 10);
+    EXPECT_THAT(Tracked::live, Eq(4));
+
+    auto copied = first;
+    EXPECT_THAT(Tracked::live, Eq(8));
+    auto moved = std::move(copied);
+    // Verifying the container's documented empty moved-from state.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    EXPECT_THAT(copied, IsEmpty());
+    EXPECT_THAT(Tracked::live, Eq(8));
+
+    moved.erase(moved.begin());
+    EXPECT_THAT(Tracked::live, Eq(6));
+    first.swap(moved);
+    EXPECT_THAT(first, SizeIs(1));
+    EXPECT_THAT(moved, SizeIs(2));
+    EXPECT_THAT(Tracked::live, Eq(6));
+  }
+  EXPECT_THAT(Tracked::live, Eq(0));
+}
+
+TEST_F(LimitedMapTest, StagesAliasedMappedValueBeforeInsertionShift) {
+  LimitedMap<int, std::string, 3> map{{1, "one"}, {3, "three"}};
+  const auto [position, inserted] = map.insert_or_assign(2, map.at(3));
+
+  EXPECT_THAT(inserted, Eq(true));
+  EXPECT_THAT(position->second, Eq("three"));
+  EXPECT_THAT(map, ElementsAre(Pair(1, "one"), Pair(2, "three"), Pair(3, "three")));
+}
+
+TEST_F(LimitedMapTest, TryEmplaceLeavesExistingMappedValueUnchanged) {
+  LimitedMap<int, std::string, 2> map{{1, "one"}};
+  const auto [position, inserted] = map.try_emplace(1, "replacement");
+
+  EXPECT_THAT(inserted, Eq(false));
+  EXPECT_THAT(position->second, Eq("one"));
+}
 
 TEST_F(LimitedMapTest, ConstructEmpty) {
   constexpr auto kTest = LimitedMap<int, int, 0>();
@@ -473,6 +551,22 @@ TEST_F(LimitedMapTest, Swap) {
   test1.swap(test2);
   EXPECT_THAT(test1, ElementsAre());
   EXPECT_THAT(test2, ElementsAre());
+}
+
+TEST_F(LimitedMapTest, MoveAssignmentAndSelfOperationsPreserveValues) {
+  LimitedMap<int, int, 3> source{{0, 0}, {1, 1}};
+  LimitedMap<int, int, 3> target{{2, 2}};
+
+  target = std::move(source);
+  // Verifying the container's documented empty moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_THAT(source, IsEmpty());
+  EXPECT_THAT(target, ElementsAre(Pair(0, 0), Pair(1, 1)));
+
+  MoveAssign(target, target);
+  EXPECT_THAT(target, ElementsAre(Pair(0, 0), Pair(1, 1)));
+  target.swap(target);
+  EXPECT_THAT(target, ElementsAre(Pair(0, 0), Pair(1, 1)));
 }
 
 TEST_F(LimitedMapTest, Iterators) {

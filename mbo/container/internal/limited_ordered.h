@@ -20,8 +20,10 @@
 #include <compare>   // IWYU pragma: keep
 #include <concepts>  // IWYU pragma: keep
 #include <initializer_list>
+#include <iterator>
 #include <memory>
 #include <new>  // IWYU pragma: keep
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -60,7 +62,7 @@ concept LimitedOrderedValidImpl =
 template<typename Key, typename Mapped, typename Value>
 concept LimitedOrderedValid =  //
     std::move_constructible<std::remove_const_t<Key>> && std::move_constructible<Mapped>
-    && LimitedOrderedValidImpl<Key, Mapped, Value>;
+    && std::move_constructible<std::remove_const_t<Value>> && LimitedOrderedValidImpl<Key, Mapped, Value>;
 
 template<typename Key, typename Mapped, typename Value, auto options, typename Compare = std::less<Key>>
 requires(LimitedOrderedValid<Key, Mapped, Value>)
@@ -84,8 +86,6 @@ class [[nodiscard]] LimitedOrdered {
       kUnrollMaxCapacity >= 4 && kUnrollMaxCapacity <= kUnrollMaxCapacityLimit,
       "Check documentation for `::mbo::config::kUnrollMaxCapacityDefault`.");
 
-  static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
-
   // Must declare each other as friends so that we can correctly move from other.
   template<typename OK, typename OM, typename OV, auto OtherN, typename Comp>
   requires(LimitedOrderedValid<OK, OM, OV>)
@@ -105,12 +105,104 @@ class [[nodiscard]] LimitedOrdered {
     requires(std::is_trivially_destructible_v<RawValue>)
     = default;
 
-    ~Data() noexcept
+    constexpr ~Data() noexcept
     requires(!std::is_trivially_destructible_v<RawValue>)
     {}
 
     RawValue data;
     None none;
+  };
+
+  // A throwing constructor never runs `LimitedOrdered`'s destructor. Track the
+  // partially constructed container so its already-live elements are destroyed
+  // unless the constructor completes and releases the guard.
+  class ConstructionGuard final {
+   public:
+    constexpr explicit ConstructionGuard(LimitedOrdered* target) noexcept : target_(target) {}
+
+    constexpr ~ConstructionGuard() noexcept {
+      if (target_ != nullptr) {
+        target_->clear();
+      }
+    }
+
+    ConstructionGuard(const ConstructionGuard&) = delete;
+    ConstructionGuard& operator=(const ConstructionGuard&) = delete;
+    ConstructionGuard(ConstructionGuard&&) = delete;
+    ConstructionGuard& operator=(ConstructionGuard&&) = delete;
+
+    constexpr void Release() noexcept { target_ = nullptr; }
+
+   private:
+    LimitedOrdered* target_;
+  };
+
+  class RightShiftGuard final {
+   public:
+    constexpr RightShiftGuard(LimitedOrdered* target, std::size_t old_size) noexcept
+        : target_(target), old_size_(old_size), hole_(old_size) {
+      target_->size_ = 0;
+    }
+
+    constexpr ~RightShiftGuard() noexcept {
+      if (target_ == nullptr) {
+        return;
+      }
+      for (std::size_t pos = 0; pos < hole_; ++pos) {
+        std::destroy_at(&target_->values_[pos].data);
+      }
+      for (std::size_t pos = hole_ + 1; pos <= old_size_; ++pos) {
+        std::destroy_at(&target_->values_[pos].data);
+      }
+    }
+
+    RightShiftGuard(const RightShiftGuard&) = delete;
+    RightShiftGuard& operator=(const RightShiftGuard&) = delete;
+    RightShiftGuard(RightShiftGuard&&) = delete;
+    RightShiftGuard& operator=(RightShiftGuard&&) = delete;
+
+    constexpr void SetHole(std::size_t hole) noexcept { hole_ = hole; }
+
+    constexpr void Release() noexcept { target_ = nullptr; }
+
+   private:
+    LimitedOrdered* target_;
+    std::size_t old_size_;
+    std::size_t hole_;
+  };
+
+  class LeftShiftGuard final {
+   public:
+    constexpr LeftShiftGuard(LimitedOrdered* target, std::size_t old_size, std::size_t hole) noexcept
+        : target_(target), old_size_(old_size), hole_(hole) {
+      target_->size_ = 0;
+    }
+
+    constexpr ~LeftShiftGuard() noexcept {
+      if (target_ == nullptr) {
+        return;
+      }
+      for (std::size_t pos = 0; pos < hole_; ++pos) {
+        std::destroy_at(&target_->values_[pos].data);
+      }
+      for (std::size_t pos = hole_ + 1; pos < old_size_; ++pos) {
+        std::destroy_at(&target_->values_[pos].data);
+      }
+    }
+
+    LeftShiftGuard(const LeftShiftGuard&) = delete;
+    LeftShiftGuard& operator=(const LeftShiftGuard&) = delete;
+    LeftShiftGuard(LeftShiftGuard&&) = delete;
+    LeftShiftGuard& operator=(LeftShiftGuard&&) = delete;
+
+    constexpr void SetHole(std::size_t hole) noexcept { hole_ = hole; }
+
+    constexpr void Release() noexcept { target_ = nullptr; }
+
+   private:
+    LimitedOrdered* target_;
+    std::size_t old_size_;
+    std::size_t hole_;
   };
 
  public:
@@ -119,9 +211,9 @@ class [[nodiscard]] LimitedOrdered {
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
   using key_compare = Compare;
-  using reference = Value&;
+  using reference = std::conditional_t<kKeyOnly, const Value&, Value&>;
   using const_reference = const Value&;
-  using pointer = Value*;
+  using pointer = std::conditional_t<kKeyOnly, const Value*, Value*>;
   using const_pointer = const Value*;
 
   static constexpr size_type npos = static_cast<size_type>(-1);  // Result of `index_of` if not found.
@@ -175,12 +267,12 @@ class [[nodiscard]] LimitedOrdered {
 
     constexpr explicit ValueCompare() noexcept = default;
 
-    constexpr explicit ValueCompare(const key_compare& comp) noexcept : key_comp(comp) {}
+    constexpr explicit ValueCompare(const key_compare& comp) : key_comp(comp) {}
 
-    constexpr ValueCompare(const ValueCompare&) noexcept = default;
-    constexpr ValueCompare& operator=(const ValueCompare&) noexcept = default;
-    constexpr ValueCompare(ValueCompare&&) noexcept = default;
-    constexpr ValueCompare& operator=(ValueCompare&&) noexcept = default;
+    constexpr ValueCompare(const ValueCompare&) = default;
+    constexpr ValueCompare& operator=(const ValueCompare&) = default;
+    constexpr ValueCompare(ValueCompare&&) = default;
+    constexpr ValueCompare& operator=(ValueCompare&&) = default;
 
     // A side of the comparison is acceptable if it is the key, a stored value, or -
     // when the comparator is transparent - any type it can order against the key.
@@ -192,197 +284,108 @@ class [[nodiscard]] LimitedOrdered {
 
     template<typename L, typename R>
     requires(kComparableSide<L> && kComparableSide<R>)
-    MBO_FORCE_INLINE constexpr bool operator()(const L& lhs, const R& rhs) const noexcept {
+    MBO_FORCE_INLINE constexpr bool operator()(const L& lhs, const R& rhs) const {
       return key_comp(GetKey(lhs), GetKey(rhs));
     }
 
-    const key_compare key_comp;
+    key_compare key_comp;
   };
 
   // NOTE: The name is misleading but must adhere to the STL: The comparator only
   // compares the `first` part (the key) of mapped values.
   using value_compare = std::conditional_t<kKeyOnly, Compare, ValueCompare>;
 
-  class const_iterator {
+  template<bool IsConst>
+  class Iterator final {
+   private:
+    template<bool>
+    friend class Iterator;
+
+    using DataPointer = std::conditional_t<IsConst, const Data*, Data*>;
+
    public:
-    using iterator_category = std::contiguous_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using iterator_concept = std::random_access_iterator_tag;
     using difference_type = LimitedOrdered::difference_type;
     using value_type = LimitedOrdered::value_type;
-    using pointer = LimitedOrdered::const_pointer;
-    using reference = LimitedOrdered::const_reference;
-    using element_type = LimitedOrdered::value_type;  // Clang 16
+    using pointer = std::conditional_t<IsConst, LimitedOrdered::const_pointer, LimitedOrdered::pointer>;
+    using reference = std::conditional_t<IsConst, LimitedOrdered::const_reference, LimitedOrdered::reference>;
 
-    constexpr const_iterator() noexcept : pos_(nullptr) {}  // Needed for STL
+    constexpr Iterator() noexcept = default;
 
-    MBO_ALWAYS_INLINE constexpr explicit const_iterator(const Data* pos) noexcept : pos_(pos) {}
+    MBO_ALWAYS_INLINE constexpr explicit Iterator(DataPointer pos) noexcept : pos_(pos) {}
 
-    MBO_ALWAYS_INLINE constexpr explicit operator reference() const noexcept { return pos_->data; }
+    template<bool OtherConst>
+    requires(IsConst && !OtherConst)
+    // Deliberately implicit: a mutable iterator must convert to const_iterator.
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr Iterator(const Iterator<OtherConst>& other) noexcept : pos_(other.pos_) {}
 
     MBO_ALWAYS_INLINE constexpr reference operator*() const noexcept { return pos_->data; }
 
     MBO_ALWAYS_INLINE constexpr pointer operator->() const noexcept { return &pos_->data; }
 
-    constexpr const_iterator& operator++() noexcept {
-      ++pos_;  // NOLINT(*-pointer-arithmetic)
+    constexpr Iterator& operator++() noexcept {
+      ++pos_;
       return *this;
     }
 
-    constexpr const_iterator& operator--() noexcept {
-      --pos_;  // NOLINT(*-pointer-arithmetic)
+    constexpr Iterator operator++(int) noexcept {
+      const Iterator result = *this;
+      ++*this;
+      return result;
+    }
+
+    constexpr Iterator& operator--() noexcept {
+      --pos_;
       return *this;
     }
 
-    constexpr const_iterator operator++(int) noexcept {  // NOLINT(cert-dcl21-cpp)
-      const auto it = *this;
-      ++pos_;  // NOLINT(*-pointer-arithmetic)
-      return it;
+    constexpr Iterator operator--(int) noexcept {
+      const Iterator result = *this;
+      --*this;
+      return result;
     }
 
-    constexpr const_iterator operator--(int) noexcept {  // NOLINT(cert-dcl21-cpp)
-      const auto it = *this;
-      --pos_;  // NOLINT(*-pointer-arithmetic)
-      return it;
-    }
-
-    constexpr const_iterator& operator+=(difference_type ofs) noexcept {
-      pos_ += ofs;
+    constexpr Iterator& operator+=(difference_type offset) noexcept {
+      pos_ += offset;
       return *this;
     }
 
-    constexpr const_iterator& operator-=(difference_type ofs) noexcept {
-      pos_ -= ofs;
+    constexpr Iterator& operator-=(difference_type offset) noexcept {
+      pos_ -= offset;
       return *this;
     }
 
-    constexpr reference operator[](difference_type ofs) const noexcept {
-      return pos_[ofs].data;  // NOLINT(*-pointer-arithmetic)
+    constexpr reference operator[](difference_type offset) const noexcept { return pos_[offset].data; }
+
+    friend constexpr Iterator operator+(Iterator iter, difference_type offset) noexcept { return iter += offset; }
+
+    friend constexpr Iterator operator+(difference_type offset, Iterator iter) noexcept { return iter += offset; }
+
+    friend constexpr Iterator operator-(Iterator iter, difference_type offset) noexcept { return iter -= offset; }
+
+    template<bool OtherConst>
+    constexpr difference_type operator-(const Iterator<OtherConst>& other) const noexcept {
+      return pos_ - other.pos_;
     }
 
-    friend constexpr difference_type operator-(const_iterator lhs, const_iterator rhs) noexcept {
-      return lhs.pos_ - rhs.pos_;
+    template<bool OtherConst>
+    constexpr bool operator==(const Iterator<OtherConst>& other) const noexcept {
+      return pos_ == other.pos_;
     }
 
-    friend constexpr difference_type operator+(const_iterator lhs, const_iterator rhs) noexcept {
-      return lhs.pos_ + rhs.pos_;
-    }
-
-    friend constexpr const_iterator operator-(const_iterator lhs, difference_type rhs) noexcept {
-      return const_iterator(lhs.pos_ - rhs);
-    }
-
-    friend constexpr const_iterator operator+(const_iterator lhs, difference_type rhs) noexcept {
-      return const_iterator(lhs.pos_ + rhs);
-    }
-
-    friend constexpr const_iterator operator-(difference_type lhs, const_iterator rhs) noexcept {
-      return const_iterator(lhs - rhs.pos_);
-    }
-
-    friend constexpr const_iterator operator+(difference_type lhs, const_iterator rhs) noexcept {
-      return const_iterator(lhs + rhs.pos_);
-    }
-
-    MBO_ALWAYS_INLINE friend constexpr auto operator<=>(const_iterator lhs, const_iterator rhs) noexcept {
-      return lhs.pos_ <=> rhs.pos_;  // LCOV_EXCL_BR_LINE: GCC expands this once per iterator instantiation.
-    }
-
-    MBO_ALWAYS_INLINE friend constexpr bool operator<(const_iterator lhs, const_iterator rhs) noexcept {
-      return lhs.pos_ < rhs.pos_;
-    }
-
-    MBO_ALWAYS_INLINE friend constexpr bool operator==(const_iterator lhs, const_iterator rhs) noexcept {
-      return lhs.pos_ == rhs.pos_;
+    template<bool OtherConst>
+    constexpr auto operator<=>(const Iterator<OtherConst>& other) const noexcept {
+      return pos_ <=> other.pos_;
     }
 
    private:
-    const Data* pos_;
+    DataPointer pos_{nullptr};
   };
 
-  class iterator {
-   public:
-    using iterator_category = std::contiguous_iterator_tag;
-    using difference_type = LimitedOrdered::difference_type;
-    using value_type = LimitedOrdered::value_type;
-    using pointer = LimitedOrdered::pointer;
-    using reference = LimitedOrdered::reference;
-    using element_type = LimitedOrdered::value_type;  // Clang 16
-
-    constexpr iterator() noexcept : pos_(nullptr) {}  // Needed for STL
-
-    MBO_ALWAYS_INLINE constexpr explicit iterator(Data* pos) noexcept : pos_(pos) {}
-
-    MBO_ALWAYS_INLINE constexpr explicit operator reference() const noexcept { return pos_->data; }
-
-    MBO_ALWAYS_INLINE constexpr reference operator*() const noexcept { return pos_->data; }
-
-    MBO_ALWAYS_INLINE constexpr pointer operator->() const noexcept { return &pos_->data; }
-
-    MBO_ALWAYS_INLINE constexpr explicit operator const_iterator() const noexcept { return const_iterator(pos_); }
-
-    constexpr iterator& operator++() noexcept {
-      ++pos_;  // NOLINT(*-pointer-arithmetic)
-      return *this;
-    }
-
-    // LCOV_MERGE_FUNC_LINE: repeated for every container specialization.
-    constexpr iterator& operator--() noexcept {
-      --pos_;  // NOLINT(*-pointer-arithmetic)
-      return *this;
-    }
-
-    constexpr iterator operator++(int) noexcept {  // NOLINT(cert-dcl21-cpp)
-      const auto it = *this;
-      ++pos_;  // NOLINT(*-pointer-arithmetic)
-      return it;
-    }
-
-    constexpr iterator operator--(int) noexcept {  // NOLINT(cert-dcl21-cpp)
-      const auto it = *this;
-      --pos_;  // NOLINT(*-pointer-arithmetic)
-      return it;
-    }
-
-    constexpr iterator& operator+=(difference_type ofs) noexcept {
-      pos_ += ofs;
-      return *this;
-    }
-
-    constexpr iterator& operator-=(difference_type ofs) noexcept {
-      pos_ -= ofs;
-      return *this;
-    }
-
-    constexpr reference operator[](difference_type ofs) const noexcept {
-      return pos_[ofs].data;  // NOLINT(*-pointer-arithmetic)
-    }
-
-    friend constexpr difference_type operator-(iterator lhs, iterator rhs) noexcept { return lhs.pos_ - rhs.pos_; }
-
-    friend constexpr difference_type operator+(iterator lhs, iterator rhs) noexcept { return lhs.pos_ + rhs.pos_; }
-
-    friend constexpr iterator operator-(iterator lhs, difference_type rhs) noexcept { return iterator(lhs.pos_ - rhs); }
-
-    friend constexpr iterator operator+(iterator lhs, difference_type rhs) noexcept { return iterator(lhs.pos_ + rhs); }
-
-    friend constexpr iterator operator-(difference_type lhs, iterator rhs) noexcept { return iterator(lhs - rhs.pos_); }
-
-    friend constexpr iterator operator+(difference_type lhs, iterator rhs) noexcept { return iterator(lhs + rhs.pos_); }
-
-    MBO_ALWAYS_INLINE friend constexpr auto operator<=>(iterator lhs, iterator rhs) noexcept {
-      return lhs.pos_ <=> rhs.pos_;  // LCOV_MERGE_BR_LINE 4: repeated for every iterator specialization.
-    }
-
-    MBO_ALWAYS_INLINE friend constexpr bool operator<(iterator lhs, iterator rhs) noexcept {
-      return lhs.pos_ < rhs.pos_;
-    }
-
-    MBO_ALWAYS_INLINE friend constexpr bool operator==(iterator lhs, iterator rhs) noexcept {
-      return lhs.pos_ == rhs.pos_;
-    }
-
-   private:
-    Data* pos_;
-  };
+  using iterator = Iterator<false>;
+  using const_iterator = Iterator<true>;
 
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -412,40 +415,53 @@ class [[nodiscard]] LimitedOrdered {
     clear();
   }
 
-  constexpr LimitedOrdered() noexcept = default;
+  constexpr LimitedOrdered() = default;
 
-  constexpr explicit LimitedOrdered(const Compare& key_comp) noexcept : key_comp_(key_comp) {}
+  constexpr explicit LimitedOrdered(const Compare& key_comp) : key_comp_(key_comp) {}
 
-  // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
-
-  constexpr LimitedOrdered(const LimitedOrdered& other) noexcept {
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(const_cast<RawValue*>(&values_[size_].data), other.values_[size_].data);
+  constexpr LimitedOrdered(const LimitedOrdered& other) : key_comp_(other.key_comp_) {
+    ConstructionGuard guard(this);
+    for (const_reference value : other) {
+      Append(value);
     }
+    guard.Release();
   }
 
-  constexpr LimitedOrdered& operator=(const LimitedOrdered& other) noexcept {
+  constexpr LimitedOrdered& operator=(const LimitedOrdered& other) {
     if (this != &other) {
       clear();
-      size_ = other.size_;
-      values_ = other.values_;
+      key_comp_ = other.key_comp_;
+      val_comp_ = value_compare(key_comp_);
+      for (const_reference value : other) {
+        Append(value);
+      }
     }
     return *this;
   }
 
-  constexpr LimitedOrdered(LimitedOrdered&& other) noexcept {
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(const_cast<RawValue*>(&values_[size_].data), std::move(other.values_[size_].data));
+  // Element or comparator moves may throw and must propagate.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+  constexpr LimitedOrdered(LimitedOrdered&& other) : key_comp_(std::move(other.key_comp_)) {
+    ConstructionGuard guard(this);
+    for (std::size_t pos = 0; pos < other.size_; ++pos) {
+      Append(std::move(other.values_[pos].data));
     }
-    other.size_ = 0;
+    guard.Release();
+    other.clear();
   }
 
-  constexpr LimitedOrdered& operator=(LimitedOrdered&& other) noexcept {
-    clear();
-    for (; size_ < other.size_; ++size_) {
-      std::construct_at(const_cast<RawValue*>(&values_[size_].data), std::move(other.values_[size_].data));
+  // Element or comparator moves may throw and must propagate.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+  constexpr LimitedOrdered& operator=(LimitedOrdered&& other) {
+    if (this != &other) {
+      clear();
+      key_comp_ = std::move(other.key_comp_);
+      val_comp_ = value_compare(key_comp_);
+      for (std::size_t pos = 0; pos < other.size_; ++pos) {
+        Append(std::move(other.values_[pos].data));
+      }
+      other.clear();
     }
-    other.size_ = 0;
     return *this;
   }
 
@@ -453,33 +469,35 @@ class [[nodiscard]] LimitedOrdered {
 
   template<std::forward_iterator It>
   requires types::ConstructibleFrom<RawValue, mbo::types::ForwardIteratorValueType<It>>
-  constexpr LimitedOrdered(It first, It last, const Compare& key_comp = Compare()) noexcept(!kRequireThrows)
-      : key_comp_(key_comp) {
+  constexpr LimitedOrdered(It first, It last, const Compare& key_comp = Compare()) : key_comp_(key_comp) {
+    ConstructionGuard guard(this);
     if constexpr (Options::Has(LimitedOptionsFlag::kRequireSortedInput)) {
       MBO_CONFIG_REQUIRE(std::is_sorted(first, last, key_comp_), "Flag `kRequireSortedInput` violated.");
     }
-    while (first < last) {
+    while (first != last) {
       if constexpr (Options::Has(LimitedOptionsFlag::kRequireSortedInput)) {
-        std::construct_at(const_cast<RawValue*>(&values_[size_++].data), *first);
+        Append(*first);
       } else {
         emplace(*first);
       }
       ++first;
     }
+    guard.Release();
   }
 
-  constexpr LimitedOrdered(const std::initializer_list<value_type>& list, const Compare& key_comp = Compare()) noexcept
+  constexpr LimitedOrdered(const std::initializer_list<value_type>& list, const Compare& key_comp = Compare())
       : LimitedOrdered(list.begin(), list.end(), key_comp) {}
 
   template<types::ConstructibleInto<value_type> U>
   requires(!std::same_as<U, value_type>)
-  constexpr LimitedOrdered(const std::initializer_list<U>& list, const Compare& key_comp = Compare()) noexcept
+  constexpr LimitedOrdered(const std::initializer_list<U>& list, const Compare& key_comp = Compare())
       : LimitedOrdered(list.begin(), list.end(), key_comp) {}
 
   template<types::ConstructibleInto<value_type> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedOrdered& operator=(const std::initializer_list<U>& list) noexcept {
-    assign(list);
+  constexpr LimitedOrdered& operator=(const std::initializer_list<U>& list) {
+    LimitedOrdered replacement(list, key_comp_);
+    *this = std::move(replacement);
     return *this;
   }
 
@@ -490,7 +508,8 @@ class [[nodiscard]] LimitedOrdered {
       auto OtherN,
       typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr explicit LimitedOrdered(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) noexcept {
+  constexpr explicit LimitedOrdered(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) {
+    ConstructionGuard guard(this);
     for (auto it = other.begin(); it < other.end(); ++it) {
       if constexpr (kKeyOnly) {
         emplace(*it);
@@ -498,6 +517,7 @@ class [[nodiscard]] LimitedOrdered {
         emplace(it->first, it->second);
       }
     }
+    guard.Release();
   }
 
   template<
@@ -507,7 +527,7 @@ class [[nodiscard]] LimitedOrdered {
       auto OtherN,
       typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedOrdered& operator=(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) noexcept {
+  constexpr LimitedOrdered& operator=(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) {
     clear();
     for (auto it = other.begin(); it < other.end(); ++it) {
       if constexpr (kKeyOnly) {
@@ -516,6 +536,50 @@ class [[nodiscard]] LimitedOrdered {
         emplace(it->first, it->second);
       }
     }
+    return *this;
+  }
+
+  template<
+      types::ConstructibleInto<Key> OK,
+      types::ConstructibleInto<Mapped> OM,
+      typename OV,
+      auto OtherN,
+      typename OtherCompare>
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  // The source is consumed element by element because its stored type differs.
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  constexpr explicit LimitedOrdered(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) {
+    ConstructionGuard guard(this);
+    for (std::size_t pos = 0; pos < other.size_; ++pos) {
+      if constexpr (kKeyOnly) {
+        emplace(std::move(other.values_[pos].data));
+      } else {
+        emplace(other.values_[pos].data.first, std::move(other.values_[pos].data.second));
+      }
+    }
+    guard.Release();
+    other.clear();
+  }
+
+  template<
+      types::ConstructibleInto<Key> OK,
+      types::ConstructibleInto<Mapped> OM,
+      typename OV,
+      auto OtherN,
+      typename OtherCompare>
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  // The source is consumed element by element because its stored type differs.
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  constexpr LimitedOrdered& operator=(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) {
+    clear();
+    for (std::size_t pos = 0; pos < other.size_; ++pos) {
+      if constexpr (kKeyOnly) {
+        emplace(std::move(other.values_[pos].data));
+      } else {
+        emplace(other.values_[pos].data.first, std::move(other.values_[pos].data.second));
+      }
+    }
+    other.clear();
     return *this;
   }
 
@@ -704,7 +768,7 @@ class [[nodiscard]] LimitedOrdered {
     return it == end() || key_comp_(key, GetKey(*it)) ? npos : it - begin();  // LCOV_MERGE_BR_LINE 4: templates.
   }
 
-  MBO_FORCE_INLINE constexpr value_type& at_index(size_type pos) {
+  MBO_FORCE_INLINE constexpr reference at_index(size_type pos) {
     MBO_CONFIG_REQUIRE(pos < size_, "Out of range");
     return values_[pos].data;
   }
@@ -878,78 +942,43 @@ class [[nodiscard]] LimitedOrdered {
     }
   }
 
-  template<
-      types::ConstructibleInto<Key> OK,
-      types::ConstructibleInto<Mapped> OM,
-      typename OV,
-      auto OtherN,
-      typename OtherCompare>
-  requires(MakeLimitedOptions<OtherN>().kCapacity == Capacity && std::same_as<OtherCompare, Compare>)
-  constexpr void swap(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) noexcept {
-    std::size_t pos = 0;
-    for (; pos < size_ && pos < other.size(); ++pos) {
-      if constexpr (kKeyOnly) {
-        std::swap(values_[pos].data, other.values_[pos].data);
-      } else {
-        std::swap(const_cast<Key&>(values_[pos].data.first), const_cast<Key&>(other.values_[pos].data.first));
-        std::swap(values_[pos].data.second, other.values_[pos].data.second);
-      }
+  template<auto OtherN>
+  requires(MakeLimitedOptions<OtherN>().kCapacity == Capacity)
+  constexpr void swap(LimitedOrdered<Key, Mapped, Value, OtherN, Compare>& other) {
+    if (static_cast<const void*>(this) == static_cast<const void*>(&other)) {
+      return;
     }
-    const std::size_t other_size = other.size_;
-    const std::size_t this_size = size_;
-    for (; pos < size_; ++pos) {
-      other.emplace(std::move(values_[pos].data));
-    }
-    for (; pos < other.size(); ++pos) {
-      emplace(std::move(other.values_[pos].data));
-    }
-    size_ = other_size;
-    other.size_ = this_size;
+    LimitedOrdered temporary(std::move(*this));
+    *this = std::move(other);
+    other = std::move(temporary);
   }
 
   template<typename... Args>
-  constexpr std::pair<iterator, bool> emplace(Args&&... args) noexcept(!kRequireThrows) {
-    const RawValue new_val(std::forward<Args>(args)...);
+  constexpr std::pair<iterator, bool> emplace(Args&&... args) {
+    RawValue new_val(std::forward<Args>(args)...);  // NOLINT(misc-const-correctness)
     const iterator dst = lower_bound(GetKey(new_val));
     if (dst != end() && !key_comp_(GetKey(*dst), GetKey(new_val)) && !key_comp_(GetKey(new_val), GetKey(*dst))) {
       return std::make_pair(dst, false);
     }
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `emplace` at capacity.");
-    for (iterator next = end(); next > dst; --next) {
-      std::construct_at(const_cast<RawValue*>(&*next), std::move(*std::prev(next)));
-    }
-    std::construct_at(const_cast<RawValue*>(&*dst), std::move(new_val));
-    ++size_;
-    return std::make_pair(dst, true);
+    const auto index = static_cast<size_type>(dst - begin());
+    return std::make_pair(InsertStaged(index, std::move(new_val)), true);
   }
 
   template<typename It>
   requires IsIterator<It>::value
-  constexpr iterator erase(It pos) noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(begin() <= pos && pos < end(), "Invalid `pos`.");
-    auto dst = to_iterator(pos);
-    --size_;
-    std::destroy_at(&*dst);
-    for (; dst < end(); ++dst) {
-      std::construct_at(const_cast<RawValue*>(&*dst), std::move(*std::next(dst)));
-    }
-    return pos > end() ? end() : to_iterator(pos);
+  constexpr iterator erase(It pos) {
+    MBO_CONFIG_REQUIRE(cbegin() <= pos && pos < cend(), "Invalid `pos`.");
+    return EraseIndex(static_cast<size_type>(pos - cbegin()));
   }
 
-  constexpr iterator erase(const_iterator first, const_iterator last) noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(begin() <= first && first <= last && last <= end(), "Invalid `first` or `last`.");
-    std::size_t deleted = 0;
-    for (const_iterator it = first; it < last; ++it) {
-      std::destroy_at(it);
-      ++deleted;
+  constexpr iterator erase(const_iterator first, const_iterator last) {
+    MBO_CONFIG_REQUIRE(cbegin() <= first && first <= last && last <= cend(), "Invalid `first` or `last`.");
+    const auto index = static_cast<size_type>(first - cbegin());
+    const auto count = static_cast<size_type>(last - first);
+    for (size_type erased = 0; erased < count; ++erased) {
+      EraseIndex(index);
     }
-    auto dst = to_iterator(first);
-    auto src = to_iterator(last);
-    for (; src < end(); ++src, ++dst) {
-      *dst = std::move(*src);
-    }
-    size_ -= deleted;
-    return to_iterator(first);
+    return begin() + static_cast<difference_type>(index);
   }
 
   constexpr size_type erase(const Key& key) {
@@ -1023,11 +1052,14 @@ class [[nodiscard]] LimitedOrdered {
 
   constexpr std::pair<iterator, bool> insert(value_type&& value) { return emplace(std::move(value)); }
 
-  template<typename InputIt>
+  template<std::input_iterator InputIt>
   constexpr void insert(InputIt first, InputIt last) {
-    while (first < last) {
-      emplace(*first);
-      ++first;
+    LimitedOrdered incoming(key_comp_);
+    while (first != last) {
+      incoming.emplace(*first++);
+    }
+    for (size_type pos = 0; pos < incoming.size_; ++pos) {
+      emplace(std::move(incoming.values_[pos].data));
     }
   }
 
@@ -1038,18 +1070,12 @@ class [[nodiscard]] LimitedOrdered {
   constexpr std::pair<iterator, bool> try_emplace(const Key& key, Args&&... args) {
     const iterator dst = lower_bound(key);
     if (dst != end() && !key_comp_(dst->first, key) && !key_comp_(key, dst->first)) {
-      dst->second = Mapped(args...);
       return std::make_pair(dst, false);
     }
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `try_emplace` at capacity.");
-    for (iterator next = end(); next > dst; --next) {
-      std::construct_at(const_cast<RawValue*>(&*next), std::move(*std::prev(next)));
-    }
-    std::construct_at(
-        const_cast<RawValue*>(&*dst), std::piecewise_construct, std::forward_as_tuple(key),
-        std::forward_as_tuple(std::forward<Args>(args)...));
-    ++size_;
-    return std::make_pair(dst, true);
+    RawValue new_val(
+        std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(std::forward<Args>(args)...));
+    const auto index = static_cast<size_type>(dst - begin());
+    return std::make_pair(InsertStaged(index, std::move(new_val)), true);
   }
 
   template<typename... Args>
@@ -1057,18 +1083,13 @@ class [[nodiscard]] LimitedOrdered {
   constexpr std::pair<iterator, bool> try_emplace(Key&& key, Args&&... args) {
     const iterator dst = lower_bound(key);
     if (dst != end() && !key_comp_(dst->first, key) && !key_comp_(key, dst->first)) {
-      dst->second = Mapped(args...);
       return std::make_pair(dst, false);
     }
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `try_emplace` at capacity.");
-    for (iterator next = end(); next > dst; --next) {
-      std::construct_at(const_cast<RawValue*>(&*next), std::move(*std::prev(next)));
-    }
-    // Should possibly use: std::piecewise_construct, std::move(key), std::forward_as_tuple(std::forward<Args>(args)...)
-    // But that creates issues with conversion. However, we know the two types, so we do not need piecewise.
-    std::construct_at(const_cast<RawValue*>(&*dst), std::move(key), Mapped(std::forward<Args>(args)...));
-    ++size_;
-    return std::make_pair(dst, true);
+    RawValue new_val(
+        std::piecewise_construct, std::forward_as_tuple(std::move(key)),
+        std::forward_as_tuple(std::forward<Args>(args)...));
+    const auto index = static_cast<size_type>(dst - begin());
+    return std::make_pair(InsertStaged(index, std::move(new_val)), true);
   }
 
   template<class V>
@@ -1079,13 +1100,9 @@ class [[nodiscard]] LimitedOrdered {
       dst->second = std::forward<V>(value);
       return std::make_pair(dst, false);
     }
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `insert_or_assign` at capacity.");
-    for (iterator next = end(); next > dst; --next) {
-      std::construct_at(const_cast<RawValue*>(&*next), std::move(*std::prev(next)));
-    }
-    std::construct_at(const_cast<RawValue*>(&*dst), key, std::forward<V>(value));
-    ++size_;
-    return std::make_pair(dst, true);
+    RawValue new_val(key, std::forward<V>(value));
+    const auto index = static_cast<size_type>(dst - begin());
+    return std::make_pair(InsertStaged(index, std::move(new_val)), true);
   }
 
   template<class V>
@@ -1096,16 +1113,10 @@ class [[nodiscard]] LimitedOrdered {
       dst->second = std::forward<V>(value);
       return std::make_pair(dst, false);
     }
-    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `emplace` at capacity.");
-    for (iterator next = end(); next > dst; --next) {
-      std::construct_at(const_cast<RawValue*>(&*next), std::move(*std::prev(next)));
-    }
-    std::construct_at(const_cast<RawValue*>(&*dst), std::move(key), std::forward<V>(value));
-    ++size_;
-    return std::make_pair(dst, true);
+    RawValue new_val(std::move(key), std::forward<V>(value));
+    const auto index = static_cast<size_type>(dst - begin());
+    return std::make_pair(InsertStaged(index, std::move(new_val)), true);
   }
-
-  // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
   // Read/write access
 
@@ -1147,20 +1158,50 @@ class [[nodiscard]] LimitedOrdered {
     return std::make_reverse_iterator(cbegin());
   }
 
-  constexpr const_pointer data() const noexcept { return &values_[0].data; }
-
   // NOLINTEND(readability-container-data-pointer)
 
   // Observers
 
-  constexpr key_compare key_comp() const noexcept { return key_comp; }
+  constexpr key_compare key_comp() const { return key_comp_; }
 
-  constexpr value_compare value_comp() const noexcept { return val_comp_; }
+  constexpr value_compare value_comp() const { return val_comp_; }
 
  protected:
-  static constexpr iterator to_iterator(iterator pos) noexcept { return pos; }
+  template<typename U>
+  constexpr void Append(U&& value) {
+    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `insert` at capacity.");
+    std::construct_at(&values_[size_].data, std::forward<U>(value));
+    ++size_;
+  }
 
-  static constexpr iterator to_iterator(const const_iterator& pos) noexcept { return iterator(pos.pos); }
+  constexpr iterator InsertStaged(size_type index, RawValue&& value) {
+    MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `insert` at capacity.");
+    const size_type old_size = size_;
+    RightShiftGuard guard(this, old_size);
+    for (size_type src = old_size; src > index; --src) {
+      std::construct_at(&values_[src].data, std::move(values_[src - 1].data));
+      std::destroy_at(&values_[src - 1].data);
+      guard.SetHole(src - 1);
+    }
+    std::construct_at(&values_[index].data, std::move(value));
+    size_ = old_size + 1;
+    guard.Release();
+    return begin() + static_cast<difference_type>(index);
+  }
+
+  constexpr iterator EraseIndex(size_type index) {
+    const size_type old_size = size_;
+    std::destroy_at(&values_[index].data);
+    LeftShiftGuard guard(this, old_size, index);
+    for (size_type src = index + 1; src < old_size; ++src) {
+      std::construct_at(&values_[src - 1].data, std::move(values_[src].data));
+      std::destroy_at(&values_[src].data);
+      guard.SetHole(src);
+    }
+    size_ = old_size - 1;
+    guard.Release();
+    return begin() + static_cast<difference_type>(index);
+  }
 
   // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
   static constexpr const Key& GetKey(const Key& key) noexcept { return key; }
@@ -1184,10 +1225,10 @@ class [[nodiscard]] LimitedOrdered {
 
   // Array would be better but that does not work with ASAN builds.
   // std::array<Data, Capacity == 0 ? 1 : Capacity> values_;
-  Data values_[Capacity == 0 ? 1 : Capacity];  // NOLINT(*-avoid-c-arrays)
+  Data values_[Capacity + 1];  // NOLINT(*-avoid-c-arrays)
 
-  const key_compare key_comp_ = {};
-  const value_compare val_comp_ = value_compare(key_comp_);
+  key_compare key_comp_ = {};
+  value_compare val_comp_ = value_compare(key_comp_);
 };
 
 // NOLINTEND(readability-identifier-naming)

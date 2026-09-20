@@ -18,6 +18,10 @@
 - Repaired `LimitedVector` element lifetimes across copy, move, swap, insertion, erasure, and
   destruction. Its iterators now correctly model random access rather than contiguous storage, and
   the invalid `data()` API has been removed.
+- Repaired `LimitedMap` and `LimitedSet` element lifetimes during insertion, erasure, copying,
+  moving, and swapping. Their iterators are now correctly random access rather than contiguous,
+  `data()` is removed, set keys are immutable, and map keys are never modified through a
+  `const_cast`.
 
 # 0.15.0
 

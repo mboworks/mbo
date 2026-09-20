@@ -84,14 +84,12 @@ MBO_FORCE_INLINE constexpr uint64_t Load64(const char* ptr) noexcept {
 // plus a byteswap on little-endian targets (same rationale as `Load64`).
 MBO_FORCE_INLINE constexpr uint32_t Load32BE(const char* ptr) noexcept {
   if (!std::is_constant_evaluated()) {
-#if defined(__GNUC__) || defined(__clang__)
     uint32_t result = 0;
     std::memcpy(&result, ptr, 4);
     if constexpr (std::endian::native == std::endian::little) {
-      result = __builtin_bswap32(result);
+      result = std::byteswap(result);
     }
     return result;
-#endif  // defined(__GNUC__) || defined(__clang__)
   }
   return (static_cast<uint32_t>(static_cast<uint8_t>(ptr[0])) << 24U)
          | (static_cast<uint32_t>(static_cast<uint8_t>(ptr[1])) << 16U)
@@ -103,14 +101,12 @@ MBO_FORCE_INLINE constexpr uint32_t Load32BE(const char* ptr) noexcept {
 // used by the 64-bit-word digest specifications, e.g. SHA-512).
 MBO_FORCE_INLINE constexpr uint64_t Load64BE(const char* ptr) noexcept {
   if (!std::is_constant_evaluated()) {
-#if defined(__GNUC__) || defined(__clang__)
     uint64_t result = 0;
     std::memcpy(&result, ptr, 8);
     if constexpr (std::endian::native == std::endian::little) {
-      result = __builtin_bswap64(result);
+      result = std::byteswap(result);
     }
     return result;
-#endif  // defined(__GNUC__) || defined(__clang__)
   }
   uint64_t result = 0;
   for (std::size_t i = 0; i < 8; ++i) {

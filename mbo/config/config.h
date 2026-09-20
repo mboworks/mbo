@@ -50,15 +50,9 @@
 # include "mbo/config/config_gen.h"  // IWYU pragma: export
 #else
 # include "mbo/config/internal/config.h.in"  // IWYU pragma: export
-# if __STDC_VERSION__ >= (20L * 100 + 23) * 100 + 11
-#  if !defined(IS_CLANGD)
-#   warning "The correctly generated header is not available. Falling back to template."
-#  endif  // __STDC_VERSION__ >= 202311L
-# endif   // !defined(IS_CLANGD)
+# if !defined(IS_CLANGD)
+#  warning "The correctly generated header is not available. Falling back to template."
+# endif  // !defined(IS_CLANGD)
 #endif
-
-// Preserve the public spelling while the migration removes conditional C++20
-// support from its call sites.
-#define MBO_CONFIG_CONSTEXPR_23 constexpr
 
 #endif  // MBO_CONFIG_CONFIG_H_

@@ -161,7 +161,7 @@ The C++ library is organized in functional groups each residing in their own dir
 - Strings
   - `namespace mbo::strings`
   - mbo/strings:contains_cc, mbo/strings/contains.h
-    - function `Contains`: A constexpr C++20 counterpart to `absl::StrContains` for string and character needles.
+    - function `Contains`: A constexpr wrapper around C++23 string-view containment for string and character needles.
   - mbo/strings:indent_cc, mbo/strings/indent.h
     - function `DropIndent`: Converts a raw-string text block as if it had no indent.
     - function `DropIndentAndSplit`: Variant of `DropIndent` that returns the result as lines.

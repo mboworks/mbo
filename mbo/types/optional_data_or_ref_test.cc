@@ -69,6 +69,7 @@ TEST_F(OptionalDataOrRefTest, Constexpr) {
     EXPECT_THAT(kRef.HoldsData(), false);
     EXPECT_THAT(kRef.HoldsNullopt(), true);
     EXPECT_THAT(kRef.HoldsReference(), false);
+    static_assert(kRef.get() == 0);
   }
   {
     static constexpr std::string_view kStr = "test";

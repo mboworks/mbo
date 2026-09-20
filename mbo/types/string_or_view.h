@@ -184,17 +184,11 @@ class StringOrView {
 
   [[nodiscard]] constexpr bool ends_with(const char* suffix) const { return view().ends_with(suffix); }
 
-  [[nodiscard]] constexpr bool contains(std::string_view text) const noexcept {
-    return find(text) != npos;  // NOLINT(readability-container-contains): C++20 compatibility implementation.
-  }
+  [[nodiscard]] constexpr bool contains(std::string_view text) const noexcept { return view().contains(text); }
 
-  [[nodiscard]] constexpr bool contains(char ch) const noexcept {
-    return find(ch) != npos;  // NOLINT(readability-container-contains): C++20 compatibility implementation.
-  }
+  [[nodiscard]] constexpr bool contains(char ch) const noexcept { return view().contains(ch); }
 
-  [[nodiscard]] constexpr bool contains(const char* text) const {
-    return find(text) != npos;  // NOLINT(readability-container-contains): C++20 compatibility implementation.
-  }
+  [[nodiscard]] constexpr bool contains(const char* text) const { return view().contains(text); }
 
 #define MBO_STRING_OR_VIEW_FIND_OVERLOADS(name, default_pos)                                                    \
   [[nodiscard]] constexpr size_type name(std::string_view text, size_type pos = (default_pos)) const noexcept { \

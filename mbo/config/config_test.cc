@@ -69,15 +69,6 @@ TEST_F(ConfigTest, ValuesAreUsableInAConstantExpression) {
   static_assert(kThrows == kRequireThrows);
 }
 
-TEST_F(ConfigTest, Constexpr23MacroIsDefined) {
-  // Keep the compatibility macro defined while callers migrate to plain `constexpr`.
-#ifndef MBO_CONFIG_CONSTEXPR_23
-  FAIL() << "MBO_CONFIG_CONSTEXPR_23 is not defined";
-#endif
-  MBO_CONFIG_CONSTEXPR_23 const int value = 42;  // NOLINT(*-magic-numbers)
-  EXPECT_THAT(value, 42);                        // NOLINT(*-magic-numbers)
-}
-
 TEST_F(ConfigTest, RequiresSelectedCxx23LanguageAndLibraryFacilities) {
   static_assert(__cplusplus >= 202'302L);
   static_assert(StaticLocalProbe() == 7);  // NOLINT(*-magic-numbers)

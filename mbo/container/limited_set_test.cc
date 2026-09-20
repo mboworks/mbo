@@ -16,6 +16,7 @@
 #include "mbo/container/limited_set.h"
 
 #include <array>
+#include <compare>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -78,6 +79,68 @@ template<typename T>
 concept HasData = requires(T& value) { value.data(); };
 
 static_assert(!HasData<LimitedSet<int, 2>>);
+
+struct PotentiallyThrowingValue final {
+  PotentiallyThrowingValue() = default;
+
+  PotentiallyThrowingValue(const PotentiallyThrowingValue&) noexcept(false) = default;
+
+  PotentiallyThrowingValue& operator=(const PotentiallyThrowingValue& other) noexcept(false) {
+    if (this != &other) {
+      value = other.value;
+    }
+    return *this;
+  }
+
+  PotentiallyThrowingValue(PotentiallyThrowingValue&& other) noexcept(false) : value(other.value) {}
+
+  PotentiallyThrowingValue& operator=(PotentiallyThrowingValue&& other) noexcept(false) {
+    if (this != &other) {
+      value = other.value;
+    }
+    return *this;
+  }
+
+  ~PotentiallyThrowingValue() = default;
+
+  [[maybe_unused]] friend std::strong_ordering operator<=>(
+      const PotentiallyThrowingValue& lhs,
+      const PotentiallyThrowingValue& rhs) noexcept(false) {
+    return lhs.value <=> rhs.value;
+  }
+
+  [[maybe_unused]] friend bool operator==(
+      const PotentiallyThrowingValue& lhs,
+      const PotentiallyThrowingValue& rhs) noexcept(false) {
+    return lhs.value == rhs.value;
+  }
+
+  int value = 0;
+};
+
+using NothrowSet = LimitedSet<int, 3>;
+using NothrowCompareSet = LimitedSet<int, 3, types::CompareLess<int>>;
+using PotentiallyThrowingSet = LimitedSet<PotentiallyThrowingValue, 3>;
+
+static_assert(std::is_nothrow_default_constructible_v<NothrowSet>);
+static_assert(std::is_nothrow_copy_constructible_v<NothrowSet>);
+static_assert(std::is_nothrow_copy_assignable_v<NothrowSet>);
+static_assert(std::is_nothrow_move_constructible_v<NothrowSet>);
+static_assert(std::is_nothrow_move_assignable_v<NothrowSet>);
+static_assert(noexcept(std::declval<NothrowCompareSet&>().emplace(1)));
+static_assert(noexcept(std::declval<NothrowSet&>().erase(std::declval<NothrowSet::iterator>())));
+static_assert(noexcept(std::declval<NothrowSet&>().swap(std::declval<NothrowSet&>())));
+static_assert(noexcept(std::declval<const NothrowSet&>() == std::declval<const NothrowSet&>()));
+static_assert(!std::is_nothrow_copy_constructible_v<PotentiallyThrowingSet>);
+static_assert(!std::is_nothrow_copy_assignable_v<PotentiallyThrowingSet>);
+static_assert(!std::is_nothrow_move_constructible_v<PotentiallyThrowingSet>);
+static_assert(!std::is_nothrow_move_assignable_v<PotentiallyThrowingSet>);
+static_assert(!noexcept(std::declval<PotentiallyThrowingSet&>().emplace(PotentiallyThrowingValue{})));
+static_assert(
+    !noexcept(std::declval<PotentiallyThrowingSet&>().erase(std::declval<PotentiallyThrowingSet::iterator>())));
+static_assert(!noexcept(std::declval<PotentiallyThrowingSet&>().swap(std::declval<PotentiallyThrowingSet&>())));
+static_assert(
+    !noexcept(std::declval<const PotentiallyThrowingSet&>() == std::declval<const PotentiallyThrowingSet&>()));
 
 struct Tracked final {
   static inline int live = 0;

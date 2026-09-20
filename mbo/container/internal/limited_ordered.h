@@ -76,6 +76,7 @@ class [[nodiscard]] LimitedOrdered {
   using Options = decltype(MakeLimitedOptions<options>());
   static_assert(std::is_trivially_destructible_v<RawValue> || !Options::Has(LimitedOptionsFlag::kEmptyDestructor));
   static constexpr std::size_t Capacity = Options::kCapacity;
+  static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
 
   static constexpr bool kOptimizeIndexOf = !Options::Has(LimitedOptionsFlag::kNoOptimizeIndexOf);
   static constexpr bool kCustomIndexOfBeyondUnroll = Options::Has(LimitedOptionsFlag::kCustomIndexOfBeyondUnroll);
@@ -263,9 +264,10 @@ class [[nodiscard]] LimitedOrdered {
 
     constexpr ~ValueCompare() noexcept = default;
 
-    constexpr explicit ValueCompare() noexcept = default;
+    constexpr explicit ValueCompare() noexcept(std::is_nothrow_default_constructible_v<key_compare>) = default;
 
-    constexpr explicit ValueCompare(const key_compare& comp) : key_comp(comp) {}
+    constexpr explicit ValueCompare(const key_compare& comp) noexcept(std::is_nothrow_copy_constructible_v<key_compare>)
+        : key_comp(comp) {}
 
     constexpr ValueCompare(const ValueCompare&) = default;
     constexpr ValueCompare& operator=(const ValueCompare&) = default;
@@ -281,8 +283,15 @@ class [[nodiscard]] LimitedOrdered {
         || std::same_as<std::remove_cvref_t<T>, Data> || kTransparent;
 
     template<typename L, typename R>
+    static constexpr bool kNothrowCall = std::is_nothrow_invocable_r_v<
+        bool,
+        const key_compare&,
+        decltype(GetKey(std::declval<const L&>())),
+        decltype(GetKey(std::declval<const R&>()))>;
+
+    template<typename L, typename R>
     requires(kComparableSide<L> && kComparableSide<R>)
-    MBO_FORCE_INLINE constexpr bool operator()(const L& lhs, const R& rhs) const {
+    MBO_FORCE_INLINE constexpr bool operator()(const L& lhs, const R& rhs) const noexcept(kNothrowCall<L, R>) {
       return key_comp(GetKey(lhs), GetKey(rhs));
     }
 
@@ -394,6 +403,50 @@ class [[nodiscard]] LimitedOrdered {
       : std::bool_constant<
             std::same_as<std::remove_cvref_t<T>, iterator> || std::same_as<std::remove_cvref_t<T>, const_iterator>> {};
 
+  static constexpr bool kNothrowValueCompareFromKeyCompare =
+      std::is_nothrow_constructible_v<value_compare, const key_compare&>;
+  static constexpr bool kNothrowKeyCompare =
+      std::is_nothrow_invocable_r_v<bool, const key_compare&, const Key&, const Key&>;
+  static constexpr bool kNothrowCopyConstruct = std::is_nothrow_copy_constructible_v<key_compare>
+                                                && kNothrowValueCompareFromKeyCompare
+                                                && std::is_nothrow_copy_constructible_v<RawValue>;
+  static constexpr bool kNothrowCopyAssign =
+      std::is_nothrow_copy_assignable_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && std::is_nothrow_move_assignable_v<value_compare> && std::is_nothrow_copy_constructible_v<RawValue>;
+  static constexpr bool kNothrowMoveConstruct = std::is_nothrow_move_constructible_v<key_compare>
+                                                && kNothrowValueCompareFromKeyCompare
+                                                && std::is_nothrow_move_constructible_v<RawValue>;
+  static constexpr bool kNothrowMoveAssign =
+      std::is_nothrow_move_assignable_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && std::is_nothrow_move_assignable_v<value_compare> && std::is_nothrow_move_constructible_v<RawValue>;
+
+  template<typename... Args>
+  static constexpr bool kNothrowEmplace =
+      !kRequireThrows && kNothrowKeyCompare
+      && std::is_nothrow_constructible_v<RawValue, Args...> && std::is_nothrow_move_constructible_v<RawValue>;
+
+  template<typename OK, typename OM, typename OV>
+  static constexpr bool kNothrowCopyElementsFrom =
+      !kRequireThrows && kNothrowKeyCompare && std::is_nothrow_move_constructible_v<RawValue>
+      && (kKeyOnly ? std::is_nothrow_constructible_v<RawValue, const OV&>
+                   : std::is_nothrow_constructible_v<RawValue, const OK&, const OM&>);
+
+  template<typename OK, typename OM, typename OV>
+  static constexpr bool kNothrowMoveElementsFrom =
+      !kRequireThrows && kNothrowKeyCompare && std::is_nothrow_move_constructible_v<RawValue>
+      && (kKeyOnly ? std::is_nothrow_constructible_v<RawValue, OV&&>
+                   : std::is_nothrow_constructible_v<RawValue, const OK&, OM&&>);
+
+  template<typename OK, typename OM, typename OV>
+  static constexpr bool kNothrowCopyConstructFrom =
+      std::is_nothrow_default_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowCopyElementsFrom<OK, OM, OV>;
+
+  template<typename OK, typename OM, typename OV>
+  static constexpr bool kNothrowMoveConstructFrom =
+      std::is_nothrow_default_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowMoveElementsFrom<OK, OM, OV>;
+
  public:
   // Destructor and constructors from same type.
 
@@ -411,11 +464,14 @@ class [[nodiscard]] LimitedOrdered {
     clear();
   }
 
-  constexpr LimitedOrdered() = default;
+  constexpr LimitedOrdered() noexcept(
+      std::is_nothrow_default_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare) = default;
 
-  constexpr explicit LimitedOrdered(const Compare& key_comp) : key_comp_(key_comp) {}
+  constexpr explicit LimitedOrdered(const Compare& key_comp) noexcept(
+      std::is_nothrow_copy_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare)
+      : key_comp_(key_comp) {}
 
-  constexpr LimitedOrdered(const LimitedOrdered& other) : key_comp_(other.key_comp_) {
+  constexpr LimitedOrdered(const LimitedOrdered& other) noexcept(kNothrowCopyConstruct) : key_comp_(other.key_comp_) {
     ConstructionGuard guard(this);
     for (const_reference value : other) {
       Append(value);
@@ -423,7 +479,7 @@ class [[nodiscard]] LimitedOrdered {
     guard.Release();
   }
 
-  constexpr LimitedOrdered& operator=(const LimitedOrdered& other) {
+  constexpr LimitedOrdered& operator=(const LimitedOrdered& other) noexcept(kNothrowCopyAssign) {
     if (this != &other) {
       clear();
       key_comp_ = other.key_comp_;
@@ -435,9 +491,8 @@ class [[nodiscard]] LimitedOrdered {
     return *this;
   }
 
-  // Element or comparator moves may throw and must propagate.
-  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
-  constexpr LimitedOrdered(LimitedOrdered&& other) : key_comp_(std::move(other.key_comp_)) {
+  constexpr LimitedOrdered(LimitedOrdered&& other) noexcept(kNothrowMoveConstruct)
+      : key_comp_(std::move(other.key_comp_)) {
     ConstructionGuard guard(this);
     for (std::size_t pos = 0; pos < other.size_; ++pos) {
       Append(std::move(other.values_[pos].data));
@@ -446,9 +501,7 @@ class [[nodiscard]] LimitedOrdered {
     other.clear();
   }
 
-  // Element or comparator moves may throw and must propagate.
-  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
-  constexpr LimitedOrdered& operator=(LimitedOrdered&& other) {
+  constexpr LimitedOrdered& operator=(LimitedOrdered&& other) noexcept(kNothrowMoveAssign) {
     if (this != &other) {
       clear();
       key_comp_ = std::move(other.key_comp_);
@@ -465,7 +518,11 @@ class [[nodiscard]] LimitedOrdered {
 
   template<std::forward_iterator It>
   requires types::ConstructibleFrom<RawValue, mbo::types::ForwardIteratorValueType<It>>
-  constexpr LimitedOrdered(It first, It last, const Compare& key_comp = Compare()) : key_comp_(key_comp) {
+  constexpr LimitedOrdered(It first, It last, const Compare& key_comp = Compare()) noexcept(
+      !kRequireThrows && std::is_nothrow_copy_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowKeyCompare && std::is_nothrow_constructible_v<RawValue, std::iter_reference_t<It>>
+      && std::is_nothrow_move_constructible_v<RawValue>)
+      : key_comp_(key_comp) {
     ConstructionGuard guard(this);
     if constexpr (Options::Has(LimitedOptionsFlag::kRequireSortedInput)) {
       MBO_CONFIG_REQUIRE(std::is_sorted(first, last, key_comp_), "Flag `kRequireSortedInput` violated.");
@@ -481,17 +538,26 @@ class [[nodiscard]] LimitedOrdered {
     guard.Release();
   }
 
-  constexpr LimitedOrdered(const std::initializer_list<value_type>& list, const Compare& key_comp = Compare())
+  constexpr LimitedOrdered(const std::initializer_list<value_type>& list, const Compare& key_comp = Compare()) noexcept(
+      !kRequireThrows && std::is_nothrow_copy_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowKeyCompare
+      && std::is_nothrow_copy_constructible_v<RawValue> && std::is_nothrow_move_constructible_v<RawValue>)
       : LimitedOrdered(list.begin(), list.end(), key_comp) {}
 
   template<types::ConstructibleInto<value_type> U>
   requires(!std::same_as<U, value_type>)
-  constexpr LimitedOrdered(const std::initializer_list<U>& list, const Compare& key_comp = Compare())
+  constexpr LimitedOrdered(const std::initializer_list<U>& list, const Compare& key_comp = Compare()) noexcept(
+      !kRequireThrows && std::is_nothrow_copy_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowKeyCompare
+      && std::is_nothrow_constructible_v<RawValue, const U&> && std::is_nothrow_move_constructible_v<RawValue>)
       : LimitedOrdered(list.begin(), list.end(), key_comp) {}
 
   template<types::ConstructibleInto<value_type> U, auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedOrdered& operator=(const std::initializer_list<U>& list) {
+  constexpr LimitedOrdered& operator=(const std::initializer_list<U>& list) noexcept(
+      !kRequireThrows && std::is_nothrow_copy_constructible_v<key_compare> && kNothrowValueCompareFromKeyCompare
+      && kNothrowKeyCompare && std::is_nothrow_constructible_v<RawValue, const U&>
+      && std::is_nothrow_move_constructible_v<RawValue> && kNothrowMoveAssign) {
     LimitedOrdered replacement(list, key_comp_);
     *this = std::move(replacement);
     return *this;
@@ -504,7 +570,8 @@ class [[nodiscard]] LimitedOrdered {
       auto OtherN,
       typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr explicit LimitedOrdered(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) {
+  constexpr explicit LimitedOrdered(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) noexcept(
+      kNothrowCopyConstructFrom<OK, OM, OV>) {
     ConstructionGuard guard(this);
     for (auto it = other.begin(); it < other.end(); ++it) {
       if constexpr (kKeyOnly) {
@@ -523,7 +590,8 @@ class [[nodiscard]] LimitedOrdered {
       auto OtherN,
       typename OtherCompare>
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
-  constexpr LimitedOrdered& operator=(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) {
+  constexpr LimitedOrdered& operator=(const LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>& other) noexcept(
+      kNothrowCopyElementsFrom<OK, OM, OV>) {
     clear();
     for (auto it = other.begin(); it < other.end(); ++it) {
       if constexpr (kKeyOnly) {
@@ -544,7 +612,8 @@ class [[nodiscard]] LimitedOrdered {
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
   // The source is consumed element by element because its stored type differs.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
-  constexpr explicit LimitedOrdered(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) {
+  constexpr explicit LimitedOrdered(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) noexcept(
+      kNothrowMoveConstructFrom<OK, OM, OV>) {
     ConstructionGuard guard(this);
     for (std::size_t pos = 0; pos < other.size_; ++pos) {
       if constexpr (kKeyOnly) {
@@ -566,7 +635,8 @@ class [[nodiscard]] LimitedOrdered {
   requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
   // The source is consumed element by element because its stored type differs.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
-  constexpr LimitedOrdered& operator=(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) {
+  constexpr LimitedOrdered& operator=(LimitedOrdered<OK, OM, OV, OtherN, OtherCompare>&& other) noexcept(
+      kNothrowMoveElementsFrom<OK, OM, OV>) {
     clear();
     for (std::size_t pos = 0; pos < other.size_; ++pos) {
       if constexpr (kKeyOnly) {
@@ -936,7 +1006,8 @@ class [[nodiscard]] LimitedOrdered {
 
   template<auto OtherN>
   requires(MakeLimitedOptions<OtherN>().kCapacity == Capacity)
-  constexpr void swap(LimitedOrdered<Key, Mapped, Value, OtherN, Compare>& other) {
+  constexpr void swap(LimitedOrdered<Key, Mapped, Value, OtherN, Compare>& other) noexcept(
+      kNothrowMoveConstruct && kNothrowMoveAssign) {
     if (static_cast<const void*>(this) == static_cast<const void*>(&other)) {
       return;
     }
@@ -946,7 +1017,7 @@ class [[nodiscard]] LimitedOrdered {
   }
 
   template<typename... Args>
-  constexpr std::pair<iterator, bool> emplace(Args&&... args) {
+  constexpr std::pair<iterator, bool> emplace(Args&&... args) noexcept(kNothrowEmplace<Args...>) {
     RawValue new_val(std::forward<Args>(args)...);  // NOLINT(misc-const-correctness)
     const iterator dst = lower_bound(GetKey(new_val));
     if (dst != end() && !key_comp_(GetKey(*dst), GetKey(new_val)) && !key_comp_(GetKey(new_val), GetKey(*dst))) {
@@ -958,12 +1029,13 @@ class [[nodiscard]] LimitedOrdered {
 
   template<typename It>
   requires IsIterator<It>::value
-  constexpr iterator erase(It pos) {
+  constexpr iterator erase(It pos) noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<RawValue>) {
     MBO_CONFIG_REQUIRE(cbegin() <= pos && pos < cend(), "Invalid `pos`.");
     return EraseIndex(static_cast<size_type>(pos - cbegin()));
   }
 
-  constexpr iterator erase(const_iterator first, const_iterator last) {
+  constexpr iterator erase(const_iterator first, const_iterator last) noexcept(
+      !kRequireThrows && std::is_nothrow_move_constructible_v<RawValue>) {
     MBO_CONFIG_REQUIRE(cbegin() <= first && first <= last && last <= cend(), "Invalid `first` or `last`.");
     const auto index = static_cast<size_type>(first - cbegin());
     const auto count = static_cast<size_type>(last - first);
@@ -1154,9 +1226,13 @@ class [[nodiscard]] LimitedOrdered {
 
   // Observers
 
-  constexpr key_compare key_comp() const { return key_comp_; }
+  constexpr key_compare key_comp() const noexcept(std::is_nothrow_copy_constructible_v<key_compare>) {
+    return key_comp_;
+  }
 
-  constexpr value_compare value_comp() const { return val_comp_; }
+  constexpr value_compare value_comp() const noexcept(std::is_nothrow_copy_constructible_v<value_compare>) {
+    return val_comp_;
+  }
 
  protected:
   template<typename U>

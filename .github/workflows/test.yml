@@ -354,8 +354,8 @@ jobs:
             --policy coverage_policy.json \
             --source-root coverage-source-tree
           python3 tools/coverage_lcovrc.py coverage_policy.json coverage.lcovrc
-          # LLVM can mark a hit line whose branches remain unevaluated, and GCC 14
-          # cannot provide function-end exclusions. LCOV 2.5 classifies these as
+          # LLVM can mark a hit line whose branches remain unevaluated, and GCC's
+          # coverage data cannot provide function-end exclusions. LCOV 2.5 classifies these as
           # inconsistent/corrupt and unsupported; repeated categories also suppress
           # their expected warning summaries.
           genhtml coverage-html.lcov \

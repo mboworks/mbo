@@ -52,7 +52,7 @@ lint:
   # mis-parses this C++23 codebase, and its `--export-fixes` runs then rewrote the
   # working tree with build-breaking "fixes". trunk.io 403s any modern clang-tidy
   # download, so a version bump here is not possible. It now lives in the local-only
-  # `clang-tidy` pre-commit hook (tools/clang_tidy.sh, hermetic clang >= 18); CI's
+  # `clang-tidy` pre-commit hook (tools/clang_tidy.sh, hermetic clang >= 22); CI's
   # hard gate stays the bazel -Werror matrix. Do not re-add it here.
   enabled:
     - buildifier@8.5.1

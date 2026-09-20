@@ -12,6 +12,7 @@ tasks:
     bazel: ${{ bazel }}
     build_flags:
       - "--cxxopt=-std=c++23"
+      - "--host_cxxopt=-std=c++23"
     build_targets:
       - "@mboworks_mbo//mbo/container:limited_set_benchmark"
       - "@mboworks_mbo//mbo/diff:diff"

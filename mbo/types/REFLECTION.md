@@ -137,7 +137,7 @@ does not imply discovering or safely reading the active alternative inside that 
 | **field-reflection** | Yes       | Yes                              | No                              | Likely as an ordinary outer field        | Type inspection may work; ordinary field access is restricted | Explicitly not field-nameable            | No                | None                                                            | Fake object/address and signature parsing               |
 | **qlibs/reflect**    | Yes       | Yes                              | Limited by aggregate visitation | Likely as an opaque outer field          | Limited by automatic aggregate visitation                     | Implementation-dependent                 | No                | Custom visitation can replace automatic visitation              | Signature parsing and aggregate visitation              |
 
-These entries describe the pre-C++26 backends relevant to mbo's GCC 14 baseline. Some projects also
+These entries describe the pre-C++26 backends relevant to mbo's GCC 15 baseline. Some projects also
 have experimental C++26 standard-reflection backends with different capabilities.
 
 ### Google Gloop
@@ -323,7 +323,7 @@ public behavior already exercised by `struct_names_test.cc` and `stringify_test.
 | Inheritance               | Empty CRTP bases used by `Extend`, multiple empty bases, and rejected non-empty bases.                    |
 | Parser integrity          | Sentinel success, punctuation in template spellings, long qualified types, and no full-signature leakage. |
 | mbo policy                | Manual replacement, suppression, verify/overwrite modes, dynamic key overrides, and numeric fallback.     |
-| Toolchains                | GCC 14 in every supported optimization/sanitizer mode; Clang behavior unchanged.                          |
+| Toolchains                | GCC 15 in every supported optimization/sanitizer mode; Clang behavior unchanged.                          |
 | Diagnostics               | Unsupported shapes fail concepts cleanly; parser-format changes produce a targeted assertion.             |
 
 The GCC tests must be compile-time assertions wherever the contract promises constexpr names. A

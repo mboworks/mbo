@@ -498,10 +498,7 @@ cc_library(
     srcs = ["tstring.h"],
     hdrs = ["tstring.h"],
     visibility = ["//visibility:public"],
-    deps = [
-        "//mbo/hash:hash_cc",
-        "//mbo/strings:contains_cc",
-    ],
+    deps = ["//mbo/hash:hash_cc"],
 )
 
 cc_test(

@@ -22,25 +22,17 @@
 #include <cstddef>  // IWYU pragma: keep
 #include <functional>
 #include <string_view>
+#include <type_traits>
 
 #include "mbo/hash/hash.h"
-#include "mbo/strings/contains.h"
 
 namespace mbo::types {
 
-// NOLINTBEGIN(readability-identifier-naming,readability-avoid-unconditional-preprocessor-if)
+// NOLINTBEGIN(readability-identifier-naming)
 
 // NOLINTBEGIN(*-avoid-unchecked-container-access,*-constant-array-index): compile-time string type -
 // its subscripts are constant-evaluated or bounded by the length template
 // parameter, and an out-of-range index is a compile error, not UB.
-
-#if defined(__clang__)
-# pragma clang diagnostic push
-# pragma clang diagnostic ignored "-Wgnu-string-literal-operator-template"
-#elif defined(__GNUC__)
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wpedantic"
-#endif  // defined(__clang__)
 
 // Implements type `tstring` a compile time string-literal type.
 //
@@ -61,14 +53,9 @@ namespace mbo::types {
 //   static_assert(kFull.size() == 9);  // 'First'=5 + ' '=1 + 'Last'=4, no '\0'
 // ```
 //
-// This works great when compiling on Clang, GCC or a derived compiler. For
-// MSVC and other compilers a C++20 compatible version is used that creates a
-// helper type that provides an otherwise unnecessary conversion operator form
-// `const char(&)[]`.
-//
-// In absence of the GNU extension, function `make_tstring` or the macro
-// `MBO_MAKE_TSTRING` can be used. The former requires a constexr variable
-// due to C++20 limitations. The latter takes a literal string.
+// Function `make_tstring` and macro `MBO_MAKE_TSTRING` support existing code
+// that forms a compile-time string from an externally linked character array
+// or a macro argument. Prefer the standard `_ts` literal for new code.
 //
 // If instantiated, the size of the generated types is 1 (c++ minimum size).
 // The types do not have non-static member fields.
@@ -180,9 +167,8 @@ struct tstring final {
   // Further, if `pos` >= `size())` also return `""_ts`. This is different from
   // `std::string_view::substr` which would throw an exception on `pos` overrun.
   //
-  // Since C++20 does not allow function parameters to be identified as compile
-  // time constants, this function takes the values for `pos` and `count` as
-  // template arguments.
+  // Function parameters cannot become template arguments, so this function
+  // takes `pos` and `count` as template arguments.
   //
   // If the parameter `pos` or `count` cannot be provided at compile-time, then
   // the run-time alternative `str_substr(pos, count)` has to be used instead.
@@ -297,7 +283,7 @@ struct tstring final {
 
   static constexpr size_type find_first_of(std::string_view charset, size_type pos = 0) noexcept {
     for (; pos < num_chars; ++pos) {
-      if (mbo::strings::Contains(charset, data[pos])) {
+      if (charset.contains(data[pos])) {
         return pos;
       }
     }
@@ -331,7 +317,7 @@ struct tstring final {
       pos = num_chars - 1;
     }
     while (true) {
-      if (mbo::strings::Contains(charset, data[pos])) {
+      if (charset.contains(data[pos])) {
         return pos;
       }
       if (pos-- == 0) {
@@ -392,7 +378,8 @@ struct tstring final {
 
   // Concatenation.
   //
-  // TODO(helly25): With static call operator support this could maybe become a static operator.
+  // This remains an instance operator: C++23 permits static operator() and
+  // operator[], not static binary arithmetic operators.
   template<char... Other>
   constexpr auto operator+(tstring<Other...> /* other */) const noexcept {
     return tstring<chars..., Other...>();
@@ -455,52 +442,21 @@ class MakeTstringHelper {
   static constexpr std::size_t size() { return str().size(); }
 };
 
-#if !defined(__clang__) && !defined(__GNUC__)
-// This helper is necessary for some compilers, e.g. MSVC.
-// It is not needed for Clang, GCC or compilers derived from these such as ICC.
-// This is not default available as it introduces a type that has a public
-// conversion constructor. This cannot be prevented with a friend declaration
-// as the type will be initiated by the compiler as a template parameter, and
-// therefore declaring the `operator"" _ts` as a friend is not enough.
 template<std::size_t N>
-struct MakeTstringLiteralHelper {
-  MakeTstringLiteralHelper() = delete;
+struct TstringLiteral final {
+  // NOLINTNEXTLINE(*-avoid-c-arrays,google-explicit-constructor): required literal-operator shape.
+  consteval TstringLiteral(const char (&literal)[N]) noexcept {
+    for (std::size_t pos = 0; pos < N; ++pos) {
+      data[pos] = literal[pos];
+    }
+  }
 
-  // NOLINTBEGIN(*-avoid-c-arrays)
-  // NOLINTBEGIN(google-explicit-constructor)
-  constexpr MakeTstringLiteralHelper(const char (&str)[N]) noexcept
-      : MakeTstringLiteralHelper(
-            std::string_view{str, Length(N)},
-            std::make_integer_sequence<std::size_t, Length(N)>()) {}
-
-  // NOLINTEND(google-explicit-constructor)
-  // NOLINTEND(*-avoid-c-arrays)
-
-  ~MakeTstringLiteralHelper() = default;
-  MakeTstringLiteralHelper(const MakeTstringLiteralHelper&) = delete;
-  MakeTstringLiteralHelper& operator=(const MakeTstringLiteralHelper&) = delete;
-  MakeTstringLiteralHelper(MakeTstringLiteralHelper&&) = delete;
-  MakeTstringLiteralHelper& operator=(MakeTstringLiteralHelper&&) = delete;
-
-  constexpr std::string_view str() const noexcept { return {data.data(), Length(data.size())}; }
-
-  std::array<char, N> data;
-
- private:
-  static constexpr std::size_t Length(std::size_t len) noexcept { return len > 0 ? len - 1 : len; }
-
-  template<std::size_t... Is>
-  constexpr explicit MakeTstringLiteralHelper(
-      std::string_view str,
-      std::integer_sequence<std::size_t, Is...> /* indices */) noexcept
-      : data{str[Is]..., 0} {}
+  std::array<char, N> data{};
 };
-#endif
 
 }  // namespace types_internal
 
-#if defined(__clang__) || defined(__GNUC__)
-// String literal support for Clang, GCC and derived compilers. Enables:
+// Standard C++20 class-NTTP string literal support. Enables:
 //   constexpr auto my_constexpr_string = "foo"_ts;
 //
 // In order to import the string-literal-operator into another namespace use:
@@ -509,57 +465,12 @@ struct MakeTstringLiteralHelper {
 // using mbo::types::operator""_ts;
 // ```
 //
-// String literal operator templates are a GNU extension
-// [-Wgnu-string-literal-operator-template]
-template<typename T, T... chars>
-requires std::is_same_v<T, char>
-constexpr tstring<chars...> operator""_ts() {
-  return {};
+template<types_internal::TstringLiteral Literal>
+constexpr auto operator""_ts() noexcept {
+  return []<std::size_t... Is>(std::index_sequence<Is...>) constexpr noexcept {
+    return tstring<Literal.data[Is]...>{};
+  }(std::make_index_sequence<Literal.data.size() - 1>{});
 }
-#else
-// String literal support for Clang, GCC and derived compilers. Enables:
-//   constexpr auto my_constexpr_string = "foo"_ts;
-template<types_internal::MakeTstringLiteralHelper Helper>
-constexpr auto operator"" _ts() noexcept {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return tstring<Helper.str()[Is]...>{};
-  }(std::make_index_sequence<Helper.str().size()>{});
-}
-#endif
-
-// The C++20 standard does not allow static constexpr types string literals.
-// Below are various forms of solutions and how they fail.
-#if 0  // no matching literal operator for call to 'operator""_ts' with
-       // arguments of types 'const char *' and 'unsigned long', and no matching
-       // literal operator template
-// For an additional helper the issue is in matching the provided parameters
-// `const char*, std::size_t` in a way that can be used in a constexpr function.
-template<tstring Str>
-constexpr auto operator"" _ts() {
-    return Str;
-}
-#endif
-#if 0  // template parameter list for literal operator must be either 'char...'
-       // or 'typename T, T...'
-template<const char* str> constexpr auto operator ""_ts() {
-  return types_internal::make_tstring_helper<str>();
-}
-#endif
-#if 0  // No matching literal operator for call to 'operator""_ts' with
-       // arguments of types 'const char *' and 'unsigned long', and no matching
-       // literal operator template
-template<char... c> constexpr tstring<c...> operator ""_ts() {
-  return {};
-}
-#endif
-#if 0  // Non-type template argument is not a constant
-       // expressionclang(expr_not_cce)
-       // Function parameter 'str' with unknown value cannot be used in a
-       // constant expression
-constexpr auto operator ""_ts(const char* str, std::size_t n) {
-  return types_internal::make_tstring_helper<str>::tstr();
-}
-#endif
 
 // Constructs a `tstring` from `const char*` template arguments.
 //
@@ -585,20 +496,6 @@ constexpr auto make_tstring() noexcept {
   return types_internal::MakeTstringHelper<Str>::tstr();
 }
 
-#if 0  // The below follows `std::to_array` but cases clang/gcc to crash.
-template<std::size_t N>
-constexpr auto make_ts(const char(&str)[N]) noexcept {
-  if constexpr (N == 0) {
-    return tstring<>();
-  } else {
-    return [str]<std::size_t... Is>(std::index_sequence<Is...>) constexpr noexcept
-            -> tstring<static_cast<char>(str[Is])...> {
-      return {};
-    }(std::make_index_sequence<N - 1>{});
-  }
-}
-#endif
-
 // Macro form of defining `tstring` type-instances.
 // The macro uses helper function `tstring_input_len` that ensures that the
 // provided input is a char array (e.g. `const char(&)[N]`). This is done so
@@ -610,14 +507,8 @@ constexpr auto make_ts(const char(&str)[N]) noexcept {
     return {};                                                                                    \
   }(std::make_index_sequence<types_internal::tstring_input_len(str)>{})
 
-#if defined(__clang__)
-# pragma clang diagnostic pop
-#elif defined(__GNUC__)
-# pragma GCC diagnostic pop
-#endif  // defined(__clang__)
-
 // NOLINTEND(*-avoid-unchecked-container-access,*-constant-array-index)
-// NOLINTEND(readability-identifier-naming,readability-avoid-unconditional-preprocessor-if)
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::types
 

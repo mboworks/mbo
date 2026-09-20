@@ -23,15 +23,11 @@ namespace mbo::strings {
 // `constexpr` counterparts to `absl::StrContains`.
 //
 // `absl::StrContains` is not usable in a constant expression, so constexpr code -
-// `mbo::types::tstring`, compile-time tables - cannot call it and has to spell out
-// `haystack.find(needle) != npos`. That form reads worse and is what
-// `abseil-string-find-str-contains` flags, with a fix that would not compile here.
-// These have the same meaning and are constexpr, so the check is satisfied without
-// giving up compile-time evaluation.
+// `mbo::types::tstring`, compile-time tables - cannot call it. These wrappers use
+// C++23's constexpr `std::string_view::contains` with the same meaning, preserving
+// compile-time evaluation.
 //
-// These wrappers preserve mbo's existing public API while remaining usable
-// with C++20. `std::string_view::find` is constexpr and has the same required
-// semantics as newer standard libraries' `std::string_view::contains`.
+// These wrappers preserve mbo's existing public API.
 //
 // This header deliberately has no dependencies beyond <string_view>, so that
 // `mbo/types` can use it without creating a cycle (`mbo/strings` depends on
@@ -39,17 +35,17 @@ namespace mbo::strings {
 //
 // Semantics match `absl::StrContains` exactly, including the edge cases:
 //   * An EMPTY needle is contained in everything - `Contains(str, "")` is true for
-//     any `str`, including an empty one, because `find` returns 0 rather than npos.
+//     any `str`, including an empty one.
 //   * An empty haystack contains only an empty needle.
 //   * The `char` overload looks for that character, so `Contains(str, '\0')` asks
 //     whether `str` holds an embedded NUL - it does not mean "empty needle".
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, std::string_view needle) noexcept {
-  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
+  return haystack.contains(needle);
 }
 
 [[nodiscard]] constexpr bool Contains(std::string_view haystack, char needle) noexcept {
-  return haystack.find(needle) != std::string_view::npos;  // NOLINT(abseil-string-find-str-contains)
+  return haystack.contains(needle);
 }
 
 }  // namespace mbo::strings

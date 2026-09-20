@@ -294,9 +294,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         compiler: [gcc]
-        # GCC 14 is the minimum supported GCC and gets the sanitizer and
+        # GCC 15 is the minimum supported GCC and gets the sanitizer and
         # optimized configurations here, early.
-        gcc_version: [14]
+        gcc_version: [15]
         bazel_config: [asan, opt]
 
     uses: ./.github/workflows/test.yml
@@ -325,7 +325,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-26]
         compiler: [gcc, native, clang]
-        gcc_version: [14]
+        gcc_version: [15]
         # The pinned default toolchain (see bazelmod/llvm.MODULE.bazel).
         llvm_version: [22.1.8]
         bazel_config: [opt]
@@ -337,7 +337,7 @@ jobs:
             compiler: native
           - os: macos-26
             compiler: gcc
-          # test-gcc already covers GCC 14, opt, and the default Bazel 9.2.
+          # test-gcc already covers GCC 15, opt, and the default Bazel 9.2.
           # Keep only the Bazel 8 GCC cell here as a compatibility check.
           - os: ubuntu-latest
             compiler: gcc

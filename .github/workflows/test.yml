@@ -80,7 +80,11 @@ jobs:
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
-          sudo apt install gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
+          # Ubuntu 24.04's standard repositories stop before GCC 15.
+          if [[ "${{inputs.gcc_version}}" -ge 15 ]]; then
+            sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          fi
+          sudo apt-get install --yes gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{inputs.gcc_version}} 100 --slave /usr/bin/g++ g++ /usr/bin/g++-${{inputs.gcc_version}} --slave /usr/bin/gcov gcov /usr/bin/gcov-${{inputs.gcc_version}}
           sudo update-alternatives --set gcc /usr/bin/gcc-${{inputs.gcc_version}}
       - name: Install coverage report tooling
@@ -354,8 +358,8 @@ jobs:
             --policy coverage_policy.json \
             --source-root coverage-source-tree
           python3 tools/coverage_lcovrc.py coverage_policy.json coverage.lcovrc
-          # LLVM can mark a hit line whose branches remain unevaluated, and GCC 14
-          # cannot provide function-end exclusions. LCOV 2.5 classifies these as
+          # LLVM can mark a hit line whose branches remain unevaluated, and GCC's
+          # coverage data cannot provide function-end exclusions. LCOV 2.5 classifies these as
           # inconsistent/corrupt and unsupported; repeated categories also suppress
           # their expected warning summaries.
           genhtml coverage-html.lcov \

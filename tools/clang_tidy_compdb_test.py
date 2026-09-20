@@ -14,7 +14,7 @@ def entry(path: str, configuration: str, *extra: str) -> dict[str, object]:
         "file": path,
         "arguments": [
             "clang++",
-            "-std=c++20",
+            "-std=c++23",
             *extra,
             f"-frandom-seed=bazel-out/{configuration}/bin/object.o",
             "-iquote",

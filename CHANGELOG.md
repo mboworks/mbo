@@ -6,8 +6,8 @@
 - Retain complete coverage reports per CI run and attempt, order the overview by actual PR merge/tag
   timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
 
-- Restored C++20 as the project baseline while continuing to use newer standard-library features
-  when they are available.
+- Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
+  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.9.1`.
 
 # 0.15.0
 

@@ -47,4 +47,6 @@ SeparateDefinitionBlocks: Always
 SortUsingDeclarations: Lexicographic
 SpaceAfterTemplateKeyword: false
 SpaceAroundPointerQualifiers: After
+# clang-format 22 has no distinct C++23 parser mode; c++20 is its newest
+# explicit standard. This is a formatter setting, not the compilation mode.
 Standard: c++20

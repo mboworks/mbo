@@ -54,7 +54,7 @@ TEST_F(ContainsTest, Char) {
 }
 
 TEST_F(ContainsTest, EmptyNeedleIsAlwaysContained) {
-  // Matches absl::StrContains: `find` returns 0 for an empty needle, not npos.
+  // Matches absl::StrContains.
   EXPECT_TRUE(Contains("haystack", ""));
   EXPECT_TRUE(Contains("haystack", std::string_view()));
   EXPECT_TRUE(Contains(std::string_view(), ""));

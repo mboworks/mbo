@@ -16,6 +16,36 @@
 #ifndef MBO_CONFIG_CONFIG_H_
 #define MBO_CONFIG_CONFIG_H_
 
+#include <version>
+
+#if !defined(__cplusplus) || __cplusplus < 202'302L
+# error "mbo requires C++23 (__cplusplus >= 202302L)"
+#endif
+
+#if !defined(__cpp_constexpr) || __cpp_constexpr < 202'211L
+# error "mbo requires C++23 constexpr support (__cpp_constexpr >= 202211L)"
+#endif
+
+#if !defined(__cpp_if_consteval) || __cpp_if_consteval < 202'106L
+# error "mbo requires if consteval support (__cpp_if_consteval >= 202106L)"
+#endif
+
+#if !defined(__cpp_lib_expected) || __cpp_lib_expected < 202'211L
+# error "mbo requires C++23 std::expected monadic operations (__cpp_lib_expected >= 202211L)"
+#endif
+
+#if !defined(__cpp_lib_containers_ranges) || __cpp_lib_containers_ranges < 202'202L
+# error "mbo requires C++23 container range support (__cpp_lib_containers_ranges >= 202202L)"
+#endif
+
+#if !defined(__cpp_lib_string_contains) || __cpp_lib_string_contains < 202'011L
+# error "mbo requires string contains support (__cpp_lib_string_contains >= 202011L)"
+#endif
+
+#if !defined(__cpp_lib_byteswap) || __cpp_lib_byteswap < 202'110L
+# error "mbo requires std::byteswap support (__cpp_lib_byteswap >= 202110L)"
+#endif
+
 #if __has_include("mbo/config/config_gen.h")
 # include "mbo/config/config_gen.h"  // IWYU pragma: export
 #else
@@ -27,10 +57,8 @@
 # endif   // !defined(IS_CLANGD)
 #endif
 
-#if __cplusplus >= (20L * 100 + 23) * 100 + 2
-# define MBO_CONFIG_CONSTEXPR_23 constexpr
-#else  // __cplusplus >= 202302L
-# define MBO_CONFIG_CONSTEXPR_23
-#endif  // __cplusplus >= 202302L
+// Preserve the public spelling while the migration removes conditional C++20
+// support from its call sites.
+#define MBO_CONFIG_CONSTEXPR_23 constexpr
 
 #endif  // MBO_CONFIG_CONFIG_H_

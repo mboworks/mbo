@@ -24,7 +24,8 @@
 # clang-tidy resolution prefers the hermetic toolchains_llvm binary (so it matches
 # the compile DB's clang flags and understands the codebase), then a versioned system
 # clang-tidy on PATH. A resolved clang-tidy older than the minimum below is treated
-# as "not installed" and skipped - clang-tidy 16/17 mis-parse this codebase
+# as unusable because the lint parser must match the supported Clang baseline.
+# In particular, clang-tidy 16/17 mis-parse this codebase
 # and emit false positives whose fixes break the build. That is not hypothetical:
 # trunk pinned clang-tidy 16 and its `--export-fixes` runs rewrote the working tree
 # with build-breaking "fixes", which is why clang-tidy moved here out of trunk.
@@ -34,8 +35,8 @@
 
 set -euo pipefail
 
-# The minimum clang-tidy major version. Below this, parsing the codebase is unreliable.
-readonly MIN_MAJOR=18
+# Keep the lint parser aligned with the minimum supported Clang/LLVM release.
+readonly MIN_MAJOR=22
 
 # clang-tidy is an automatic commit gate, so a missing prerequisite is a setup
 # ERROR rather than a reason to wave the commit through. Silently skipping would
@@ -82,11 +83,6 @@ declare -a CLANG_TIDY_LOCS=(
   #    listed - such a binary would be rejected by the version gate anyway.
   "$(which "clang-tidy-23" 2>/dev/null || true)"
   "$(which "clang-tidy-22" 2>/dev/null || true)"
-  "$(which "clang-tidy-21" 2>/dev/null || true)"
-  "$(which "clang-tidy-20" 2>/dev/null || true)"
-  "$(which "clang-tidy-19" 2>/dev/null || true)"
-  "$(which "clang-tidy-18" 2>/dev/null || true)"
-
   # 4) LLVM_PATH or a plain clang-tidy on PATH.
   "${LLVM_PATH:-/usr}/bin/clang-tidy"
   "$(which clang-tidy 2>/dev/null || true)"

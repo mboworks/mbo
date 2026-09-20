@@ -10,7 +10,7 @@ boilerplate while reducing both maintenance cost and the opportunity for bugs.
 `Extend` is not a fixed bundle. Its reusable extender mechanism makes project-specific functionality
 easy to define once and apply uniformly to aggregates throughout a codebase. Users can take the
 complete defaults, select only individual behaviors, omit printing, or compose the defaults with
-their own extenders. The framework targets C++20, GCC 14+, and Clang 22+.
+their own extenders. The framework targets C++23, GCC 15+, and Clang 22+.
 
 This guide describes the public model and common usage. The separate
 [reflection implementation note](REFLECTION.md) explains how automatic field-name discovery works,

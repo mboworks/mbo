@@ -15,8 +15,14 @@
 
 #include "mbo/config/config.h"
 
+#include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
+#include <expected>
+#include <ranges>
+#include <string_view>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -25,6 +31,18 @@ namespace mbo::config {
 namespace {
 
 struct ConfigTest : ::testing::Test {};
+
+constexpr int StaticLocalProbe() {
+  static constexpr int kValue = 7;  // NOLINT(*-magic-numbers)
+  return kValue;
+}
+
+constexpr bool ContainerRangeProbe() {
+  constexpr std::array kSource{1, 2};
+  std::vector<int> values(std::from_range, kSource);
+  values.append_range(kSource);
+  return values.size() == 4;
+}
 
 TEST_F(ConfigTest, ExposesTheGeneratedConfigValues) {
   // The header either includes the generated `config_gen.h` or falls back to the
@@ -52,15 +70,21 @@ TEST_F(ConfigTest, ValuesAreUsableInAConstantExpression) {
 }
 
 TEST_F(ConfigTest, Constexpr23MacroIsDefined) {
-  // `MBO_CONFIG_CONSTEXPR_23` expands to `constexpr` when the selected language mode supports the
-  // required constant evaluation and to nothing otherwise; either way it must be defined, since
-  // declarations use it bare.
+  // Keep the compatibility macro defined while callers migrate to plain `constexpr`.
 #ifndef MBO_CONFIG_CONSTEXPR_23
   FAIL() << "MBO_CONFIG_CONSTEXPR_23 is not defined";
 #endif
-  // It must also be usable in a declaration under either standard.
   MBO_CONFIG_CONSTEXPR_23 const int value = 42;  // NOLINT(*-magic-numbers)
   EXPECT_THAT(value, 42);                        // NOLINT(*-magic-numbers)
+}
+
+TEST_F(ConfigTest, RequiresSelectedCxx23LanguageAndLibraryFacilities) {
+  static_assert(__cplusplus >= 202'302L);
+  static_assert(StaticLocalProbe() == 7);  // NOLINT(*-magic-numbers)
+  static_assert(ContainerRangeProbe());
+  static_assert(std::string_view("C++23").contains("23"));
+  static_assert(std::byteswap(0x01020304U) == 0x04030201U);  // NOLINT(*-magic-numbers)
+  static_assert(std::expected<int, int>(3).transform([](int value) { return value + 1; }).value() == 4);
 }
 
 }  // namespace

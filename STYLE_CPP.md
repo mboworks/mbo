@@ -7,8 +7,8 @@ an AI assistant) can follow them without reverse-engineering the tooling.
 
 ## Toolchain (machine-enforced)
 
-- C++20, compiled with `clang`. Compilation with GCC is kept working on a
-  best-effort basis.
+- C++23, compiled with Clang/LLVM 22 or GCC 15 and their matching standard
+  libraries.
 - **`clang-format`** with [`.clang-format`](.clang-format) formats all C++ code. Run
   it; do not hand-format against it. CI rejects any reformatting diff.
 - **`clang-tidy`** with [`.clang-tidy`](.clang-tidy) is an enforcing, report-only

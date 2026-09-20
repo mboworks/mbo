@@ -13,6 +13,11 @@ common:macos --linkopt=-Wl,-undefined,dynamic_lookup --host_linkopt=-Wl,-undefin
 # Earliest arm64 macOS; also clears libc++'s std::filesystem availability gate.
 common:macos --cxxopt=-mmacosx-version-min=11.0 --host_cxxopt=-mmacosx-version-min=11.0
 common:macos --linkopt=-mmacosx-version-min=11.0 --host_linkopt=-mmacosx-version-min=11.0
+# TODO: Drop these Apple linker overrides as soon as the pinned LLVM linker accepts
+# SDK 27's arm64e.x1 target (LLVM PR 222721, after LLVM 23.1.1). Keep this
+# Darwin-only: Linux should continue to use the hermetic LLD toolchain.
+common:macos --features=-supports_start_end_lib --host_features=-supports_start_end_lib
+common:macos --linkopt=--ld-path=/usr/bin/ld --host_linkopt=--ld-path=/usr/bin/ld
 
 try-import %workspace%/.bazelrc.user
 
@@ -25,7 +30,7 @@ common --features=layering_check,parse_headers
 # Define absl=1 to tell googletest to use absl for backtrace.
 common --define absl=1
 
-common --cxxopt=-std=c++20 --host_cxxopt=-std=c++20 --cxxopt=-Werror --host_cxxopt=-Werror
+common --cxxopt=-std=c++23 --host_cxxopt=-std=c++23 --cxxopt=-Werror --host_cxxopt=-Werror
 
 # Own the warning SET, not just the escalation: -Wall -Wextra explicitly, so the
 # first-party bar does not depend on which toolchain's defaults happen to apply.
@@ -101,10 +106,9 @@ common:asan --linkopt -ldl
 common:asan --define tcmalloc=disabled
 common:asan --define signal_trace=disabled
 
-# GCC 14 cannot compile Abseil's constexpr function-pointer comparison when
-# the UBSan umbrella is enabled, including when an external header template is
-# instantiated by first-party code. Keep GCC's sanitizer cell ASan-only; the
-# Clang sanitizer cells exercise ASan and UBSan together via --config=asan.
+# TODO: Recheck this with the GCC 15 minimum and remove it if the original
+# Abseil constexpr function-pointer failure is gone. Until then, keep GCC's
+# sanitizer cell ASan-only; Clang exercises ASan and UBSan via --config=asan.
 common:asan-gcc --copt -fno-sanitize=undefined
 common:asan-gcc --linkopt -fno-sanitize=undefined
 common:asan --build_tag_filters=-no_san  # skip san targets

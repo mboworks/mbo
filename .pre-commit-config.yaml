@@ -285,7 +285,7 @@ repos:
           Runs clang-tidy over the given C++ sources via tools/clang_tidy.sh, an enforcing
           pass (no --fix, so it never rewrites the tree). It needs a compile_commands.json
           (a gitignored local artifact; build it with ./compile_commands-update.sh) and a
-          clang-tidy >= 18 for this C++23 codebase.
+          clang-tidy >= 22 for this C++23 codebase.
           * clang-tidy used to run under trunk, pinned at 16; that version mis-parses C++23
             and trunk auto-applied its build-breaking fixes. Do not re-add it to trunk.
           * Run it over everything: `pre-commit run clang-tidy --all-files`.

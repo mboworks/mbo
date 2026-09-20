@@ -51,6 +51,8 @@ using ::testing::StrEq;
 static_assert(sizeof(""_ts) == 1);
 static_assert(""_ts.empty());
 static_assert(""_ts.size() == 0);
+static_assert(std::is_same_v<decltype(""_ts), tstring<>>);
+static_assert(std::is_same_v<decltype("a\0b"_ts), tstring<'a', '\0', 'b'>>);
 
 static_assert(sizeof("test"_ts) == 1);
 static_assert(!"test"_ts.empty());

@@ -452,7 +452,7 @@ inline ::testing::PolymorphicMatcher<testing_internal::StatusPayloads> StatusPay
 
 #if !defined(EXPECT_OK)
 # define EXPECT_OK(expr) MBO_EXPECT_OK(expr)
-#elif __cplusplus >= (20L * 100 + 23) * 100 + 2
+#else
 # warning "EXPECT_OK already defined"
 #endif  // !defined(EXPECT_OK)
 
@@ -461,7 +461,7 @@ inline ::testing::PolymorphicMatcher<testing_internal::StatusPayloads> StatusPay
 
 #if !defined(ASSERT_OK)
 # define ASSERT_OK(expr) MBO_ASSERT_OK(expr)
-#elif __cplusplus >= (20L * 100 + 23) * 100 + 2
+#else
 # warning "ASSERT_OK already defined"
 #endif  // !defined(ASSERT_OK)
 
@@ -495,7 +495,7 @@ inline ::testing::PolymorphicMatcher<testing_internal::StatusPayloads> StatusPay
 
 #if !defined(ASSERT_OK_AND_ASSIGN)
 # define ASSERT_OK_AND_ASSIGN(target, expression) MBO_ASSERT_OK_AND_ASSIGN(target, expression)
-#elif __cplusplus >= (20L * 100 + 23) * 100 + 2
+#else
 # warning "ASSERT_OK_AND_ASSIGN already defined"
 #endif  // !defined(ASSERT_OK_AND_ASSIGN)
 

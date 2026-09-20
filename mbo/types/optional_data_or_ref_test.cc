@@ -69,6 +69,7 @@ TEST_F(OptionalDataOrRefTest, Constexpr) {
     EXPECT_THAT(kRef.HoldsData(), false);
     EXPECT_THAT(kRef.HoldsNullopt(), true);
     EXPECT_THAT(kRef.HoldsReference(), false);
+    static_assert(kRef.get() == 0);
   }
   {
     static constexpr std::string_view kStr = "test";
@@ -92,6 +93,7 @@ TEST_F(OptionalDataOrRefTest, InitNone) {
   EXPECT_THAT(ref.HoldsData(), false);
   EXPECT_THAT(ref.HoldsNullopt(), true);
   EXPECT_THAT(ref.HoldsReference(), false);
+  EXPECT_THAT(ref.get(), 0);
 }
 
 TEST_F(OptionalDataOrRefTest, InitNullopt) {
@@ -114,6 +116,7 @@ TEST_F(OptionalDataOrRefTest, InitVal) {
   EXPECT_THAT(ref.HoldsData(), true);
   EXPECT_THAT(ref.HoldsNullopt(), false);
   EXPECT_THAT(ref.HoldsReference(), false);
+  EXPECT_THAT(ref.get(), 42);
 }
 
 TEST_F(OptionalDataOrRefTest, InitRef) {

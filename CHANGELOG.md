@@ -9,6 +9,12 @@
 - Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
   and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.9.1`.
 
+- Replaced the remaining C++20 compatibility branches with the selected C++23 facilities, including
+  static constexpr locals, `string_view::contains`, and `std::byteswap`.
+
+- Made the `tstring` literal use the standard structural class non-type template parameter form,
+  preserving embedded NUL characters without compiler-specific literal-operator extensions.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang

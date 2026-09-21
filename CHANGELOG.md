@@ -31,6 +31,10 @@
   available macOS deployment/SDK macros, and corrected remaining documentation of the active C++23
   baseline.
 
+- Expanded hash benchmark provenance with the actual C++ dialect, compiler and standard-library
+  versions, available Apple build/SDK values, Bazel version, and build invocation. The SMHasher3
+  container now compiles the injected mbo plugin in C++23 mode.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang

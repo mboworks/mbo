@@ -204,6 +204,45 @@ def _expand_list_arg(prefix, args):
     return [f"{prefix}={arg}" for arg in args] if args else []
 
 
+def _bazel_version():
+    """Return Bazel's build label without confusing it with Bazelisk's version."""
+    output = _sh(["bazel", "version", "--gnu_format"])
+    if not output:
+        raise RuntimeError("could not determine the Bazel version")
+    for line in output.splitlines():
+        if line.startswith("Build label: "):
+            return line.removeprefix("Build label: ")
+    for line in output.splitlines():
+        if line.startswith("bazel "):
+            return line.removeprefix("bazel ")
+    raise RuntimeError(f"unrecognized `bazel version --gnu_format` output: {output!r}")
+
+
+def _validate_live_build_context(context):
+    """Reject live measurements whose executable provenance is incomplete or contradictory."""
+    required = {
+        "compiler",
+        "compiler_name",
+        "compiler_version",
+        "compiler_version_extra",
+        "cplusplus",
+        "cxx_standard_requested",
+        "standard_library",
+        "standard_library_version",
+    }
+    missing = sorted(required - context.keys())
+    if missing:
+        raise RuntimeError(f"benchmark omitted required build context: {', '.join(missing)}")
+    if context["cxx_standard_requested"] != "c++23":
+        raise RuntimeError(f"benchmark requested {context['cxx_standard_requested']!r}, expected 'c++23'")
+    try:
+        cplusplus = int(context["cplusplus"])
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(f"benchmark emitted invalid __cplusplus value: {context['cplusplus']!r}") from error
+    if cplusplus < 202302:
+        raise RuntimeError(f"benchmark used __cplusplus={cplusplus}, expected C++23 (at least 202302)")
+
+
 def _run_benchmark(mode, reps, min_time, warmup, config=None, copt=None, host_copt=None):
     """Runs the bazel benchmark with the measurement precautions; returns parsed JSON.
 
@@ -236,8 +275,16 @@ def _run_benchmark(mode, reps, min_time, warmup, config=None, copt=None, host_co
     print(f"$ MBO_HASH_BENCHMARK_FULL={env.get('MBO_HASH_BENCHMARK_FULL', '')} {' '.join(cmd)}", file=sys.stderr)
     subprocess.run(cmd, text=True, check=True, env=env)
     with open("/tmp/results.json", "rb") as f:
-            out = f.read()
-    return json.loads(out)
+        out = f.read()
+    raw = json.loads(out)
+    context = raw.setdefault("context", {})
+    _validate_live_build_context(context)
+    context["bazel_version"] = _bazel_version()
+    context["bazel_command"] = shlex.join(cmd)
+    context["config"] = config or []
+    context["copt"] = copt or []
+    context["host_copt"] = host_copt or []
+    return raw
 
 
 def _distill_buckets(raw):

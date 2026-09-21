@@ -71,7 +71,7 @@ sed -i.bak "s/-march=native/-march=${march}/g" "${SRC_DIR}/CMakeLists.txt"
 # Install the in-house plugin: it #includes the ACTUAL mbo/hash headers (so the
 # real implementation is verified, not a transcription). Copy the four headers
 # preserving the mbo/hash/ path, drop in the registration source, register it,
-# and switch to C++20 (mumbo/dumbo need it).
+# and switch to C++23 (the mbo baseline).
 REPO="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 HASH_SRC="${REPO}/mbo/hash"
 HASH_DST="${SRC_DIR}/mbo_include/mbo/hash"
@@ -85,7 +85,12 @@ cp "${HASH_SRC}/hash_types.h" "${HASH_DST}/"
 cp "${HASH_SRC}/measurements/smhasher3/mbohash.cpp" "${SRC_DIR}/hashes/mbohash.cpp"
 grep -q 'hashes/mbohash.cpp' "${SRC_DIR}/hashes/Hashsrc.cmake" \
   || sed -i.bak 's#\(set(HASH_SRC_FILES\)#\1\n  hashes/mbohash.cpp#' "${SRC_DIR}/hashes/Hashsrc.cmake"
-sed -i.bak 's/set(CMAKE_CXX_STANDARD 11)/set(CMAKE_CXX_STANDARD 20)/' "${SRC_DIR}/CMakeLists.txt"
+sed -i.bak 's/set(CMAKE_CXX_STANDARD 11)/set(CMAKE_CXX_STANDARD 23)/' "${SRC_DIR}/CMakeLists.txt"
+grep -q 'set(CMAKE_CXX_STANDARD 23)' "${SRC_DIR}/CMakeLists.txt" \
+  || {
+    echo "Could not select C++23 in SMHasher3 CMakeLists.txt" >&2
+    exit 1
+  }
 # The ${CMAKE_*} tokens are meant to land literally in CMakeLists.txt, not expand here.
 # shellcheck disable=SC2016
 grep -q 'mbo_include' "${SRC_DIR}/CMakeLists.txt" \

@@ -27,6 +27,10 @@
 - Updated clang-format and its pre-commit mirror to 22.1.8, and kept opening braces with own-line
   trailing `requires` clauses.
 
+- Expanded `//tools:show_compiler` to report the active C++ language macro, standard library, and
+  available macOS deployment/SDK macros, and corrected remaining documentation of the active C++23
+  baseline.
+
 # 0.15.0
 
 - Added constexpr aggregate field-name discovery on GCC 14, complementing the existing Clang

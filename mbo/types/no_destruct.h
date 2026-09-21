@@ -32,20 +32,10 @@ namespace mbo::types {
 
 // NOLINTBEGIN(*-pro-type-member-init)
 
-// Template `struct NoDestruct` allows to create `static const` (global) variables.
-// New compilers are necessary in order to allow for `static constexpr`, where the
-// following issues are key:
-// . In-place construction with operator `new` is not a `constexpr`, so instead
-//   `std::construct_at` must be used which is marked `constexpr`. This requires
-//   . GCC 10.1+ or Clang 16+
-//   . Apple clang version 15.0.0 (clang-1500.0.34.3) (Beta 4+) works too, so
-//     Clang 15.0.7 should work.
-// . For `constexpr` to work the target (and thus all fields) must be able to be
-//   `constexpr` constructable. One common issue is with `std::string` which need
-//   . GCC >= 11,
-//   . Clang 16+,
-//   . Apple clang version 15.0.0 (clang-1500.0.34.3) (Beta 4+).
-// https://godbolt.org/z/WahPP8z36
+// `NoDestruct` supports static const and, when T can be constant-evaluated, static constexpr
+// values. It uses constexpr `std::construct_at` because placement new is not permitted in constant
+// evaluation. The C++23 compiler baseline provides that operation; whether a particular
+// `NoDestruct<T>` is constexpr still depends on T and all of its fields.
 template<typename T>
 class NoDestruct final {
  private:

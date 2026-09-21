@@ -103,7 +103,7 @@ tuple support and name support as the same capability.
 
 ## Field names
 
-Automatic names are best-effort metadata because C++20 has no standard field-name reflection:
+Automatic names are best-effort metadata because C++23 has no standard field-name reflection:
 
 - GCC 14+ extracts constexpr names from field-address expressions and compiler signatures.
 - Clang 22+ uses `__builtin_dump_struct`; eligible types are constexpr, with a runtime path for

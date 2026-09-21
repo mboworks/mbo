@@ -24,6 +24,7 @@
 #include "mbo/diff/chunked_diff.h"
 #include "mbo/diff/diff_options.h"
 #include "mbo/file/artefact.h"
+#include "mbo/testing/matchers.h"
 #include "mbo/testing/status.h"
 
 // Tests the shared diff plumbing the algorithms are built on: BaseDiff (headers,
@@ -33,6 +34,7 @@
 namespace mbo::diff {
 namespace {
 
+using ::mbo::testing::EqualsText;
 using ::mbo::testing::IsOkAndHolds;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
@@ -126,7 +128,7 @@ TEST_F(BaseDiffTest, ChunkedDiffReplaysAnEditScript) {
   diff.PushDiff();   // b -> X
   diff.PushEqual();  // c == c
   EXPECT_THAT(diff.More(), IsFalse());
-  EXPECT_THAT(diff.Finalize(), IsOkAndHolds("@@ -2 +2 @@\n-b\n+X\n"));
+  EXPECT_THAT(diff.Finalize(), IsOkAndHolds(EqualsText("@@ -2 +2 @@\n-b\n+X\n")));
 }
 
 TEST_F(BaseDiffTest, ChunkedDiffAllEqualFinalizesEmpty) {
@@ -157,7 +159,7 @@ TEST_F(BaseDiffTest, ChunkedDiffOneSidedPushes) {
   diff.PushRhs();    // +b
   diff.Chunk().MoveDiffs();
   diff.PushEqual();  // c
-  EXPECT_THAT(diff.Finalize(), IsOkAndHolds("@@ -1,0 +2 @@\n+b\n"));
+  EXPECT_THAT(diff.Finalize(), IsOkAndHolds(EqualsText("@@ -1,0 +2 @@\n+b\n")));
 }
 
 }  // namespace

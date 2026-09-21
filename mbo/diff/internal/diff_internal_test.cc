@@ -25,6 +25,7 @@
 #include "mbo/diff/internal/data.h"
 #include "mbo/diff/internal/output.h"
 #include "mbo/diff/internal/update_absl_log_flags.h"
+#include "mbo/testing/matchers.h"
 
 // Unit tests for the diff plumbing: the pieces every algorithm shares. Each class
 // gets its contract pinned directly rather than only through a whole-file diff.
@@ -32,6 +33,7 @@
 namespace mbo::diff::diff_internal {
 namespace {
 
+using ::mbo::testing::EqualsText;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
@@ -153,7 +155,7 @@ TEST_F(DiffInternalTest, ChunkCollectsAndRendersAUnifiedHunk) {
   chunk.PushLhs(0, 0, "old");
   chunk.PushRhs(1, 0, "new");
   chunk.MoveDiffs();
-  EXPECT_THAT(chunk.MoveOutput(), "@@ -1 +1 @@\n-old\n+new\n");
+  EXPECT_THAT(chunk.MoveOutput(), EqualsText("@@ -1 +1 @@\n-old\n+new\n"));
 }
 
 TEST_F(DiffInternalTest, ChunkWithNoDiffsRendersNothing) {
@@ -170,7 +172,7 @@ TEST_F(DiffInternalTest, AppendChunkRendersUnifiedFormat) {
   AppendChunk(
       output, options, ChunkRange{.lhs_idx = 0, .rhs_idx = 0, .lhs_size = 1, .rhs_size = 1},
       {{.kind = '-', .text = "old"}, {.kind = '+', .text = "new"}});
-  EXPECT_THAT(output, "@@ -1 +1 @@\n-old\n+new\n");
+  EXPECT_THAT(output, EqualsText("@@ -1 +1 @@\n-old\n+new\n"));
 }
 
 TEST_F(DiffInternalTest, AppendChunkRendersContextLines) {
@@ -179,7 +181,7 @@ TEST_F(DiffInternalTest, AppendChunkRendersContextLines) {
   AppendChunk(
       output, options, ChunkRange{.lhs_idx = 0, .rhs_idx = 0, .lhs_size = 3, .rhs_size = 3},
       {{.kind = ' ', .text = "a"}, {.kind = '-', .text = "b"}, {.kind = '+', .text = "X"}, {.kind = ' ', .text = "c"}});
-  EXPECT_THAT(output, "@@ -1,3 +1,3 @@\n a\n-b\n+X\n c\n");
+  EXPECT_THAT(output, EqualsText("@@ -1,3 +1,3 @@\n a\n-b\n+X\n c\n"));
 }
 
 // UpdateAbslLogFlags: must be callable without crashing; it only adjusts flags.

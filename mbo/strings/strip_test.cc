@@ -22,11 +22,13 @@
 #include "absl/status/status.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/testing/matchers.h"
 #include "mbo/testing/status.h"
 
 namespace mbo::strings {
 namespace {
 
+using ::mbo::testing::EqualsText;
 using ::mbo::testing::IsOkAndHolds;
 using ::mbo::testing::StatusIs;
 using ::testing::Pair;
@@ -66,28 +68,37 @@ TEST_F(StripTest, ConsumeSuffix) {
 }
 
 TEST_F(StripTest, Simple) {
-  // clang-format off
   EXPECT_THAT(StripComments("", {.comment_start = "#"}), "");
   EXPECT_THAT(StripComments("#", {.comment_start = "#"}), "");
   EXPECT_THAT(StripComments("##", {.comment_start = "#"}), "");
   EXPECT_THAT(StripComments("#", {.comment_start = "##"}), "#");
-  EXPECT_THAT(StripComments("1#\n2 ##\n3#", {.comment_start = "##"}), "1#\n2\n3#");
-  EXPECT_THAT(StripComments("1#\n2 ##\n3#", {.comment_start = "##", .strip_trailing_whitespace = false}), "1#\n2 \n3#");
-  EXPECT_THAT(StripComments("1#\n'2 #' #'\n3#", {.comment_start = "#", .strip_trailing_whitespace = false}), "1\n'2 \n3");
-  EXPECT_THAT(StripComments("1#\n'2 #' #'\n3#", {.comment_start = "#"}), "1\n'2\n3");
-  // clang-format on
+  EXPECT_THAT(StripComments("1#\n2 ##\n3#", {.comment_start = "##"}), EqualsText("1#\n2\n3#"));
+  EXPECT_THAT(
+      StripComments("1#\n2 ##\n3#", {.comment_start = "##", .strip_trailing_whitespace = false}),
+      EqualsText("1#\n2 \n3#"));
+  EXPECT_THAT(
+      StripComments("1#\n'2 #' #'\n3#", {.comment_start = "#", .strip_trailing_whitespace = false}),
+      EqualsText("1\n'2 \n3"));
+  EXPECT_THAT(StripComments("1#\n'2 #' #'\n3#", {.comment_start = "#"}), EqualsText("1\n'2\n3"));
 }
 
 TEST_F(StripTest, Parsed) {
-  // clang-format off
-  EXPECT_THAT(StripParsedComments("", {.parse = { .stop_at_any_of = "#"}}), IsOkAndHolds(""));
-  EXPECT_THAT(StripParsedComments("#", {.parse = { .stop_at_any_of = "#"}}), IsOkAndHolds(""));
-  EXPECT_THAT(StripParsedComments("##", {.parse = { .stop_at_any_of = "#"}}), IsOkAndHolds(""));
-  EXPECT_THAT(StripParsedComments("1#\n2 ##\n3#", {.parse = { .stop_at_any_of = "#"}}), IsOkAndHolds("1\n2\n3"));
-  EXPECT_THAT(StripParsedComments("1#\n2 ##\n3#", {.parse = { .stop_at_any_of = "#"}, .strip_trailing_whitespace = false}), IsOkAndHolds("1\n2 \n3"));
-  EXPECT_THAT(StripParsedComments("1#\n'2 #' #\n3#", {.parse = { .stop_at_any_of = "#", .remove_quotes = false}, .strip_trailing_whitespace = false}), IsOkAndHolds("1\n'2 #' \n3"));
-  EXPECT_THAT(StripParsedComments("1#\n'2 #' #\n3#", {.parse = { .stop_at_any_of = "#", .remove_quotes = false }}), IsOkAndHolds("1\n'2 #'\n3"));
-  // clang-format on
+  EXPECT_THAT(StripParsedComments("", {.parse = {.stop_at_any_of = "#"}}), IsOkAndHolds(""));
+  EXPECT_THAT(StripParsedComments("#", {.parse = {.stop_at_any_of = "#"}}), IsOkAndHolds(""));
+  EXPECT_THAT(StripParsedComments("##", {.parse = {.stop_at_any_of = "#"}}), IsOkAndHolds(""));
+  EXPECT_THAT(
+      StripParsedComments("1#\n2 ##\n3#", {.parse = {.stop_at_any_of = "#"}}), IsOkAndHolds(EqualsText("1\n2\n3")));
+  EXPECT_THAT(
+      StripParsedComments("1#\n2 ##\n3#", {.parse = {.stop_at_any_of = "#"}, .strip_trailing_whitespace = false}),
+      IsOkAndHolds(EqualsText("1\n2 \n3")));
+  EXPECT_THAT(
+      StripParsedComments(
+          "1#\n'2 #' #\n3#",
+          {.parse = {.stop_at_any_of = "#", .remove_quotes = false}, .strip_trailing_whitespace = false}),
+      IsOkAndHolds(EqualsText("1\n'2 #' \n3")));
+  EXPECT_THAT(
+      StripParsedComments("1#\n'2 #' #\n3#", {.parse = {.stop_at_any_of = "#", .remove_quotes = false}}),
+      IsOkAndHolds(EqualsText("1\n'2 #'\n3")));
 }
 
 TEST_F(StripTest, ParsedCommentsReportMalformedQuotedInput) {

@@ -115,6 +115,7 @@ cc_test(
     deps = [
         ":ini_cc",
         ":mope_cc",
+        "//mbo/testing:matchers_cc",
         "@abseil-cpp//absl/status",
         "@googletest//:gtest",
         "@googletest//:gtest_main",

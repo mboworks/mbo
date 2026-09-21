@@ -222,7 +222,9 @@ TEST_F(MatcherTest, WhenTransformedByDescriptions) {
   {
     const ::testing::Matcher<std::vector<int>> matcher = WhenTransformedBy([](int) { return 0; }, ElementsAre(0));
     EXPECT_THAT(Describe(matcher), "when transformed has 1 element that is equal to 0");
-    EXPECT_THAT(DescribeNegation(matcher), "when transformed doesn't have 1 element, or\nelement #0 isn't equal to 0");
+    EXPECT_THAT(
+        DescribeNegation(matcher),
+        EqualsText("when transformed doesn't have 1 element, or\nelement #0 isn't equal to 0"));
     EXPECT_THAT(MatchAndExplain(matcher, std::vector<int>()), Pair(false, "which (when transformed) doesn't match"));
     EXPECT_THAT(MatchAndExplain(matcher, std::vector<int>(1)), Pair(true, "which (when transformed) matches"));
     EXPECT_THAT(
@@ -409,13 +411,13 @@ TEST_F(MatcherTest, EqualsText) {
   EXPECT_THAT("abc", Not(EqualsText("")));
   EXPECT_THAT("abc", EqualsText("abc"));
   EXPECT_THAT(MatchAndExplain(EqualsText("a\nb\nc"), "a\nb\nc"), Pair(true, ""));
-  EXPECT_THAT(MatchAndExplain(EqualsText("a\nb\nc"), "a\nX\nc"), Pair(false, R"(Text difference:
+  EXPECT_THAT(MatchAndExplain(EqualsText("a\nb\nc"), "a\nX\nc"), Pair(false, EqualsText(R"(Text difference:
 @@ -1,3 +1,3 @@
  a
 -b
 +X
  c
-)"));
+)")));
   EXPECT_THAT(MatchAndExplain(EqualsText("a\nb\nc"), "a\nX\nc"), Pair(false, WithDropIndent(EqualsText(R"(
     Text difference:
     @@ -1,3 +1,3 @@

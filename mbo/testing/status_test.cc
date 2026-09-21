@@ -24,6 +24,7 @@
 #include "absl/strings/cord.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/testing/matchers.h"
 
 namespace mbo::testing {
 namespace {
@@ -31,6 +32,7 @@ namespace {
 // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 // NOLINTBEGIN(readability-magic-numbers)
 
+using ::mbo::testing::EqualsText;
 using ::mbo::testing::IsOk;          // Explicit
 using ::mbo::testing::IsOkAndHolds;  // Explicit
 using ::mbo::testing::StatusIs;      // Explicit
@@ -428,17 +430,20 @@ TEST_F(StatusMatcherTest, MessagesOfStatusPayloads) {
     const ::testing::Matcher<absl::Status> matcher =
         StatusPayloads(ElementsAre(Pair("abc", "another"), Pair("url", "content")));
     EXPECT_THAT(
-        Describe(matcher),
-        "has a payloads map that has 2 elements where\n"
-        "element #0 has a first field that is equal to \"abc\", and has a second field that is equal to \"another\",\n"
-        "element #1 has a first field that is equal to \"url\", and has a second field that is equal to \"content\"");
+        Describe(matcher), EqualsText(
+                               "has a payloads map that has 2 elements where\n"
+                               "element #0 has a first field that is equal to \"abc\", and has a second field that is "
+                               "equal to \"another\",\n"
+                               "element #1 has a first field that is equal to \"url\", and has a second field that is "
+                               "equal to \"content\""));
     EXPECT_THAT(
         DescribeNegation(matcher),
-        "has a payloads map that doesn't have 2 elements, or\n"
-        "element #0 has a first field that isn't equal to \"abc\", or has a second field that isn't equal to "
-        "\"another\", or\n"
-        "element #1 has a first field that isn't equal to \"url\", or has a second field that isn't equal to "
-        "\"content\"");
+        EqualsText(
+            "has a payloads map that doesn't have 2 elements, or\n"
+            "element #0 has a first field that isn't equal to \"abc\", or has a second field that isn't equal to "
+            "\"another\", or\n"
+            "element #1 has a first field that isn't equal to \"url\", or has a second field that isn't equal to "
+            "\"content\""));
     EXPECT_THAT(MatchAndExplain(matcher, absl::OkStatus()), Pair(false, "which has OK status (and no payload)"));
     EXPECT_THAT(MatchAndExplain(matcher, absl::CancelledError()), Pair(false, "which has no payload"));
     EXPECT_THAT(
@@ -454,9 +459,9 @@ TEST_F(StatusMatcherTest, MessagesOfStatusPayloads) {
     EXPECT_THAT(
         MatchAndExplain(matcher, status_abc_another),
         Pair(
-            true,
-            "which has a matching payload map whose element #0 matches, whose both fields match,\n"
-            "and whose element #1 matches, whose both fields match"));
+            true, EqualsText(
+                      "which has a matching payload map whose element #0 matches, whose both fields match,\n"
+                      "and whose element #1 matches, whose both fields match")));
   }
 }
 

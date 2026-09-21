@@ -17,10 +17,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/testing/matchers.h"
 
 namespace mbo::strings {
 namespace {
 
+using ::mbo::testing::EqualsText;
 using ::testing::ElementsAre;
 
 class DropIndentTest : public ::testing::Test {};
@@ -36,9 +38,9 @@ TEST_F(DropIndentTest, Single) {
 
 TEST_F(DropIndentTest, EmptyLines) {
   EXPECT_THAT(DropIndentAndSplit("\n"), ElementsAre(""));
-  EXPECT_THAT(DropIndent("\n"), "\n");
+  EXPECT_THAT(DropIndent("\n"), EqualsText("\n"));
   EXPECT_THAT(DropIndentAndSplit("\n\n"), ElementsAre("", ""));
-  EXPECT_THAT(DropIndent("\n\n"), "\n");
+  EXPECT_THAT(DropIndent("\n\n"), EqualsText("\n"));
   EXPECT_THAT(DropIndentAndSplit("\n \n "), ElementsAre("", ""));
   EXPECT_THAT(DropIndentAndSplit("\n  \n "), ElementsAre("", ""));
   EXPECT_THAT(DropIndentAndSplit("\n \n  "), ElementsAre("", ""));

@@ -103,6 +103,7 @@ cc_test(
         ":output_cc",
         ":update_absl_log_flags_cc",
         "//mbo/diff:diff_options_cc",
+        "//mbo/testing:matchers_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

@@ -79,9 +79,10 @@ absl::StatusOr<IniFile> IniFile::ParseStrict(std::string_view content) {
     }
     const auto [it, inserted] = first_key_lines.emplace(std::pair<std::string, std::string>(group, key), line_number);
     if (!inserted) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "line ", line_number, ": duplicate key '", key, "' in group [", group, "]; first defined on line ",
-          it->second));
+      return absl::InvalidArgumentError(
+          absl::StrCat(
+              "line ", line_number, ": duplicate key '", key, "' in group [", group, "]; first defined on line ",
+              it->second));
     }
     ini.SetKey({.group = group, .key = key}, std::string(value));
   }

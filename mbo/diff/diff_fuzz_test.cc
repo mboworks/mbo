@@ -73,16 +73,18 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     options.ignore_matching_lines.emplace(std::string(pattern));
   }
   if ((data[6] & 0x08U) != 0) {
-    options.regex_replace_lhs.emplace(mbo::diff::DiffOptions::RegexReplace{
-        .regex = std::make_unique<RE2>(std::string(pattern)),
-        .replace = std::string(replacement),
-    });
+    options.regex_replace_lhs.emplace(
+        mbo::diff::DiffOptions::RegexReplace{
+            .regex = std::make_unique<RE2>(std::string(pattern)),
+            .replace = std::string(replacement),
+        });
   }
   if ((data[6] & 0x10U) != 0) {
-    options.regex_replace_rhs.emplace(mbo::diff::DiffOptions::RegexReplace{
-        .regex = std::make_unique<RE2>(std::string(pattern)),
-        .replace = std::string(replacement),
-    });
+    options.regex_replace_rhs.emplace(
+        mbo::diff::DiffOptions::RegexReplace{
+            .regex = std::make_unique<RE2>(std::string(pattern)),
+            .replace = std::string(replacement),
+        });
   }
   switch ((data[6] >> 5U) % 3U) {
     default: break;

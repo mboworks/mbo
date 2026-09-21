@@ -83,8 +83,9 @@ struct ExtendBase {
   static Type ConstructFromConversionsImpl(std::index_sequence<Idx...>, std::tuple<Args...>&& args) {
     using FieldTypes = decltype(std::declval<const ExtendBase<ActualType>&>().ToTuple());
     using ArgTypes = std::tuple<Args...>;
-    return ConstructFromArgs(std::remove_cvref_t<std::tuple_element_t<Idx, FieldTypes>>(
-        std::forward<std::tuple_element_t<Idx, ArgTypes>>(std::get<Idx>(args)))...);
+    return ConstructFromArgs(
+        std::remove_cvref_t<std::tuple_element_t<Idx, FieldTypes>>(
+            std::forward<std::tuple_element_t<Idx, ArgTypes>>(std::get<Idx>(args)))...);
   }
 
   template<typename U, typename Extender>

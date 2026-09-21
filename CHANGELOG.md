@@ -21,7 +21,11 @@
 - Repaired `LimitedMap` and `LimitedSet` element lifetimes during insertion, erasure, copying,
   moving, and swapping. Their iterators are now correctly random access rather than contiguous,
   `data()` is removed, set keys are immutable, and map keys are never modified through a
-  `const_cast`.
+  `const_cast`. Operations remain conditionally `noexcept` when their element and comparator
+  operations cannot throw.
+
+- Updated clang-format and its pre-commit mirror to 22.1.8, and kept opening braces with own-line
+  trailing `requires` clauses.
 
 # 0.15.0
 

@@ -166,8 +166,9 @@ TEST_F(StringifyTest, PublicOptionHelpers) {
         << StringifyOptions::EscapeMode::kNone << ',' << StringifyOptions::EscapeMode::kCEscape << ','
         << StringifyOptions::EscapeMode::kCHexEscape;
   EXPECT_THAT(
-      modes.str(), EqualsText("KeyMode::kNone,KeyMode::kNormal,KeyMode::kNumericFallback\n"
-                              "EscapeMode::kNone,EscapeMode::kCEscape,EscapeMode::kCHexEscape"));
+      modes.str(), EqualsText(
+                       "KeyMode::kNone,KeyMode::kNormal,KeyMode::kNumericFallback\n"
+                       "EscapeMode::kNone,EscapeMode::kCEscape,EscapeMode::kCHexEscape"));
   std::ostringstream invalid_modes;
   // Verify the stream operators' defensive fallback for unnamed values.
   // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
@@ -427,45 +428,51 @@ TEST_F(StringifyTest, GetFieldOptions) {
   EXPECT_TRUE(HasMboTypesStringifySupport<TestStructFieldOptions>);
 
   EXPECT_CALL(*tester, GetFieldOptions(0, HasFieldName("one")))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=1=",
-              .field_separator = "+1+",
-          }},
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = false,
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_1_",
-              .key_suffix = ".1.",
-          }},
-          .key_overrides{StringifyOptions::KeyOverrides{
-              .key_use_name = "first",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=1=",
+                      .field_separator = "+1+",
+                  }},
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = false,
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_1_",
+                      .key_suffix = ".1.",
+                  }},
+                  .key_overrides{StringifyOptions::KeyOverrides{
+                      .key_use_name = "first",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(1, HasFieldName("two")))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=2=",
-              .field_separator = "+2+",
-          }},
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = false,
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_2_",
-              .key_suffix = ".2.",
-          }},
-          .key_overrides{StringifyOptions::KeyOverrides{
-              .key_use_name = "second",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=2=",
+                      .field_separator = "+2+",
+                  }},
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = false,
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_2_",
+                      .key_suffix = ".2.",
+                  }},
+                  .key_overrides{StringifyOptions::KeyOverrides{
+                      .key_use_name = "second",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(2, HasFieldName("three")))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = true,
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = true,
+                  }},
+              }));
 
   EXPECT_THAT(
       Stringify().ToString(TestStructFieldOptions{}), "{_1_first.1.=1=11, _2_second.2.=2={.first: 25+2+.second: 27}}");
@@ -496,84 +503,96 @@ TEST_F(StringifyTest, FieldNames) {
   // 1st ToString call.
   EXPECT_CALL(*tester, FieldNames()).WillOnce(::testing::Return(std::vector<std::string>{"First", "Second", "Third"}));
   EXPECT_CALL(*tester, GetFieldOptions(0, "First"))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=1=",
-              .field_separator = "+1+",
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_1_",
-              .key_suffix = ".1.",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=1=",
+                      .field_separator = "+1+",
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_1_",
+                      .key_suffix = ".1.",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(1, "Second"))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=2=",
-              .field_separator = "+2+",
-          }},
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = true,
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_2_",
-              .key_suffix = ".2.",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=2=",
+                      .field_separator = "+2+",
+                  }},
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = true,
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_2_",
+                      .key_suffix = ".2.",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(2, "Third"))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=3=",
-              .field_separator = "+3+",
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_3_",
-              .key_suffix = ".3.",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=3=",
+                      .field_separator = "+3+",
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_3_",
+                      .key_suffix = ".3.",
+                  }},
+              }));
 
   EXPECT_THAT(Stringify().ToString(TestStructFieldNames{}), "{_1_First.1.=1=11, _3_Third.3.=3=33}");
 
   // 2nd ToString call.
   EXPECT_CALL(*tester, FieldNames()).WillOnce(::testing::Return(std::vector<std::string>{"Fourth"}));
   EXPECT_CALL(*tester, GetFieldOptions(0, "Fourth"))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=4=",
-              .field_separator = "+4+",
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_4_",
-              .key_suffix = ".4.",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=4=",
+                      .field_separator = "+4+",
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_4_",
+                      .key_suffix = ".4.",
+                  }},
+              }));
   // 2nd and 3rd field get printed. But 2nd has no key name, so related options get ignored.
   EXPECT_CALL(*tester, GetFieldOptions(1, IsEmpty()))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=5=",
-              .field_separator = "+5+",
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_5_",
-              .key_suffix = ".5.",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=5=",
+                      .field_separator = "+5+",
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_5_",
+                      .key_suffix = ".5.",
+                  }},
+              }));
   // For the 3rd field, the options provide the field name through `key_use_name`.
   EXPECT_CALL(*tester, GetFieldOptions(2, IsEmpty()))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "=6=",
-              .field_separator = "+6+",
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "_6_",
-              .key_suffix = ".6.",
-          }},
-          .key_overrides{StringifyOptions::KeyOverrides{
-              .key_use_name = "Sixth",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "=6=",
+                      .field_separator = "+6+",
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "_6_",
+                      .key_suffix = ".6.",
+                  }},
+                  .key_overrides{StringifyOptions::KeyOverrides{
+                      .key_use_name = "Sixth",
+                  }},
+              }));
   EXPECT_THAT(
       Stringify().ToString(TestStructFieldNames{}),
       "{_4_Fourth.4.=4=11, {.first: 25+5+.second: 27}, _6_Sixth.6.=6=33}");
@@ -768,39 +787,45 @@ TEST_F(StringifyTest, DoNotPrintFieldNames) {
   EXPECT_TRUE(HasMboTypesStringifySupport<TestStructDoNotPrintFieldNames>);
 
   EXPECT_CALL(*tester, GetFieldOptions(0, IsEmpty()))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "==",
-              .field_separator = "++",
-          }},
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = false,
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "__",
-              .key_suffix = "..",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "==",
+                      .field_separator = "++",
+                  }},
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = false,
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "__",
+                      .key_suffix = "..",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(1, IsEmpty()))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .format{StringifyOptions::Format{
-              .key_value_separator = "==",
-              .field_separator = "++",
-          }},
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = false,
-          }},
-          .key_control{StringifyOptions::KeyControl{
-              .key_prefix = "__",
-              .key_suffix = "..",
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .format{StringifyOptions::Format{
+                      .key_value_separator = "==",
+                      .field_separator = "++",
+                  }},
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = false,
+                  }},
+                  .key_control{StringifyOptions::KeyControl{
+                      .key_prefix = "__",
+                      .key_suffix = "..",
+                  }},
+              }));
   EXPECT_CALL(*tester, GetFieldOptions(2, IsEmpty()))
-      .WillOnce(::testing::Return(StringifyOptions{
-          .field_control{StringifyOptions::FieldControl{
-              .suppress = true,
-          }},
-      }));
+      .WillOnce(
+          ::testing::Return(
+              StringifyOptions{
+                  .field_control{StringifyOptions::FieldControl{
+                      .suppress = true,
+                  }},
+              }));
 
   EXPECT_THAT(Stringify().ToString(TestStructDoNotPrintFieldNames{}), "{11, {25++27}}");
 }

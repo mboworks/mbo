@@ -65,8 +65,9 @@ struct GlobTest : ::testing::Test {
       std::string_view text,
       bool expected = true,
       const std::source_location sloc = std::source_location::current()) {
-    SCOPED_TRACE(absl::StrCat(
-        "\n", sloc.file_name(), ":", sloc.line(), "\n  Pattern: '", glob_pattern, "'\n  Text: '", text, "'"));
+    SCOPED_TRACE(
+        absl::StrCat(
+            "\n", sloc.file_name(), ":", sloc.line(), "\n  Pattern: '", glob_pattern, "'\n  Text: '", text, "'"));
     MBO_ASSERT_OK_AND_MOVE_TO(Glob2Re2(glob_pattern), const std::unique_ptr<const RE2> re2_pattern);
     ASSERT_THAT(re2_pattern, NotNull());
     EXPECT_THAT(re2::RE2::FullMatch(text, *re2_pattern), expected);
@@ -77,8 +78,9 @@ struct GlobTest : ::testing::Test {
       std::string_view text,
       bool expected = true,
       const std::source_location sloc = std::source_location::current()) {
-    SCOPED_TRACE(absl::StrCat(
-        "\n", sloc.file_name(), ":", sloc.line(), "\n  Pattern: '", glob_pattern, "'\n  Text: '", text, "'"));
+    SCOPED_TRACE(
+        absl::StrCat(
+            "\n", sloc.file_name(), ":", sloc.line(), "\n  Pattern: '", glob_pattern, "'\n  Text: '", text, "'"));
     MBO_ASSERT_OK_AND_MOVE_TO(Glob2Re2(glob_pattern), const std::unique_ptr<const RE2> re2_pattern);
     ASSERT_THAT(re2_pattern, NotNull());
     EXPECT_THAT(re2::RE2::FullMatch(text, *re2_pattern), expected);

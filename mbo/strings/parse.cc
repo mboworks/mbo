@@ -227,10 +227,11 @@ absl::StatusOr<std::string> ParseString(const ParseOptions& options, std::string
   if (quotes == Quotes::kNone) {
     return result;
   }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "ParseString input has unterminated %s quotes (%s).",  //
-      quotes == Quotes::kSingle ? "single" : "double",       //
-      quotes == Quotes::kSingle ? "'" : "\""));
+  return absl::InvalidArgumentError(
+      absl::StrFormat(
+          "ParseString input has unterminated %s quotes (%s).",  //
+          quotes == Quotes::kSingle ? "single" : "double",       //
+          quotes == Quotes::kSingle ? "'" : "\""));
 }
 
 absl::StatusOr<std::vector<std::string>> ParseStringList(const ParseOptions& options, std::string_view& data) {

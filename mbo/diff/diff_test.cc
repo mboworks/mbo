@@ -832,8 +832,9 @@ TEST_F(DiffTest, SideBySideFormatDirectAlgorithm) {
               .context_size = 0,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds("1        | x\n"
-                   "2        | y\n"));
+      IsOkAndHolds(
+          "1        | x\n"
+          "2        | y\n"));
 }
 
 TEST_F(DiffTest, NormalFormatNoChunkHeaders) {
@@ -901,25 +902,29 @@ TEST_F(DiffTest, SideBySideFormat) {
   // Changed pairs get '|'; the library default context (3) spans these whole
   // files, so common lines show like `diff -y` does by default.
   EXPECT_THAT(
-      diff(ToLines("a1b"), ToLines("a2b"), options), IsOkAndHolds("a          a\n"
-                                                                  "1        | 2\n"
-                                                                  "b          b\n"));
+      diff(ToLines("a1b"), ToLines("a2b"), options), IsOkAndHolds(
+                                                         "a          a\n"
+                                                         "1        | 2\n"
+                                                         "b          b\n"));
   // Insertions get '>' with an empty left cell.
   EXPECT_THAT(
-      diff(ToLines("ab"), ToLines("arb"), options), IsOkAndHolds("a          a\n"
-                                                                 "         > r\n"
-                                                                 "b          b\n"));
+      diff(ToLines("ab"), ToLines("arb"), options), IsOkAndHolds(
+                                                        "a          a\n"
+                                                        "         > r\n"
+                                                        "b          b\n"));
   // Deletions get '<' with nothing to the right.
   EXPECT_THAT(
-      diff(ToLines("alb"), ToLines("ab"), options), IsOkAndHolds("a          a\n"
-                                                                 "l        <\n"
-                                                                 "b          b\n"));
+      diff(ToLines("alb"), ToLines("ab"), options), IsOkAndHolds(
+                                                        "a          a\n"
+                                                        "l        <\n"
+                                                        "b          b\n"));
   // Uneven change blocks pair by index, the excess renders one-sided.
   EXPECT_THAT(
-      diff(ToLines("axyb"), ToLines("azb"), options), IsOkAndHolds("a          a\n"
-                                                                   "x        | z\n"
-                                                                   "y        <\n"
-                                                                   "b          b\n"));
+      diff(ToLines("axyb"), ToLines("azb"), options), IsOkAndHolds(
+                                                          "a          a\n"
+                                                          "x        | z\n"
+                                                          "y        <\n"
+                                                          "b          b\n"));
 }
 
 TEST_F(DiffTest, SideBySideFormatDetails) {
@@ -935,9 +940,10 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .output_format = Diff::Options::OutputFormat::kSideBySide,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds("l        | r\n"
-                   "\\ No newline at end of file\n"
-                   "\\ No newline at end of file\n"));
+      IsOkAndHolds(
+          "l        | r\n"
+          "\\ No newline at end of file\n"
+          "\\ No newline at end of file\n"));
   // Cells truncate at the column width (20 -> 8 chars per column).
   EXPECT_THAT(
       diff(
@@ -956,10 +962,11 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .context_size = 0,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds("5        | a\n"
-                   "6        | b\n"
-                   "a        <\n"
-                   "c        <\n"));
+      IsOkAndHolds(
+          "5        | a\n"
+          "6        | b\n"
+          "a        <\n"
+          "c        <\n"));
   // Degenerate widths clamp to one character columns.
   EXPECT_THAT(
       diff(
@@ -968,9 +975,10 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .output_format = Diff::Options::OutputFormat::kSideBySide,
               .side_by_side_width = 5,
           }),
-      IsOkAndHolds("a   a\n"
-                   "1 | 2\n"
-                   "b   b\n"));
+      IsOkAndHolds(
+          "a   a\n"
+          "1 | 2\n"
+          "b   b\n"));
 }
 
 TEST_F(DiffTest, MyersAlgorithm) {

@@ -41,7 +41,7 @@ PPIndentWidth: 1
 QualifierAlignment: Left
 ReferenceAlignment: Left
 RemoveSemicolon: true
-RequiresClausePosition: OwnLine
+RequiresClausePosition: OwnLineWithBrace
 RequiresExpressionIndentation: OuterScope
 SeparateDefinitionBlocks: Always
 SortUsingDeclarations: Lexicographic

@@ -327,7 +327,7 @@ repos:
         require_serial: true
 
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v19.1.6
+    rev: v22.1.8
     hooks:
       - id: clang-format
         # The default `types_or` for this hook includes `json`, where

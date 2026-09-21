@@ -401,8 +401,9 @@ template<typename StatusCodeMatcher, typename MessageMatcher>
 ::testing::PolymorphicMatcher<testing_internal::StatusIsMatcher> StatusIs(
     StatusCodeMatcher&& code_matcher,
     MessageMatcher&& message_matcher) {
-  return ::testing::MakePolymorphicMatcher(testing_internal::StatusIsMatcher(
-      std::forward<StatusCodeMatcher>(code_matcher), std::forward<MessageMatcher>(message_matcher)));
+  return ::testing::MakePolymorphicMatcher(
+      testing_internal::StatusIsMatcher(
+          std::forward<StatusCodeMatcher>(code_matcher), std::forward<MessageMatcher>(message_matcher)));
 }
 
 // Returns a gMock matcher that matches a Status/StatusOr<> whose status is NOT
@@ -432,8 +433,9 @@ inline ::testing::PolymorphicMatcher<testing_internal::StatusHasPayload> StatusH
 template<typename PayloadMatcher>
 inline ::testing::PolymorphicMatcher<testing_internal::StatusPayloads> StatusPayloads(
     const PayloadMatcher& payload_matcher) {
-  return ::testing::MakePolymorphicMatcher(testing_internal::StatusPayloads(
-      ::testing::MatcherCast<const absl::btree_map<std::string, std::string>&>(payload_matcher)));
+  return ::testing::MakePolymorphicMatcher(
+      testing_internal::StatusPayloads(
+          ::testing::MatcherCast<const absl::btree_map<std::string, std::string>&>(payload_matcher)));
 }
 
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)

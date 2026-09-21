@@ -16,6 +16,7 @@
 #include "mbo/container/limited_map.h"
 
 #include <array>
+#include <compare>
 #include <cstdint>
 #include <functional>
 #include <iterator>   // IWYU pragma: keep
@@ -23,6 +24,7 @@
 #include <stdexcept>  // IWYU pragma: keep
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -76,6 +78,68 @@ template<typename T>
 concept HasData = requires(T& value) { value.data(); };
 
 static_assert(!HasData<LimitedMap<int, int, 3>>);
+
+struct PotentiallyThrowingValue final {
+  PotentiallyThrowingValue() = default;
+
+  PotentiallyThrowingValue(const PotentiallyThrowingValue&) noexcept(false) = default;
+
+  PotentiallyThrowingValue& operator=(const PotentiallyThrowingValue& other) noexcept(false) {
+    if (this != &other) {
+      value = other.value;
+    }
+    return *this;
+  }
+
+  PotentiallyThrowingValue(PotentiallyThrowingValue&& other) noexcept(false) : value(other.value) {}
+
+  PotentiallyThrowingValue& operator=(PotentiallyThrowingValue&& other) noexcept(false) {
+    if (this != &other) {
+      value = other.value;
+    }
+    return *this;
+  }
+
+  ~PotentiallyThrowingValue() = default;
+
+  [[maybe_unused]] friend std::strong_ordering operator<=>(
+      const PotentiallyThrowingValue& lhs,
+      const PotentiallyThrowingValue& rhs) noexcept(false) {
+    return lhs.value <=> rhs.value;
+  }
+
+  [[maybe_unused]] friend bool operator==(
+      const PotentiallyThrowingValue& lhs,
+      const PotentiallyThrowingValue& rhs) noexcept(false) {
+    return lhs.value == rhs.value;
+  }
+
+  int value = 0;
+};
+
+using NothrowMap = LimitedMap<int, int, 3>;
+using NothrowCompareMap = LimitedMap<int, int, 3, types::CompareLess<int>>;
+using PotentiallyThrowingMap = LimitedMap<int, PotentiallyThrowingValue, 3>;
+
+static_assert(std::is_nothrow_default_constructible_v<NothrowMap>);
+static_assert(std::is_nothrow_copy_constructible_v<NothrowMap>);
+static_assert(std::is_nothrow_copy_assignable_v<NothrowMap>);
+static_assert(std::is_nothrow_move_constructible_v<NothrowMap>);
+static_assert(std::is_nothrow_move_assignable_v<NothrowMap>);
+static_assert(noexcept(std::declval<NothrowCompareMap&>().emplace(1, 2)));
+static_assert(noexcept(std::declval<NothrowMap&>().erase(std::declval<NothrowMap::iterator>())));
+static_assert(noexcept(std::declval<NothrowMap&>().swap(std::declval<NothrowMap&>())));
+static_assert(noexcept(std::declval<const NothrowMap&>() == std::declval<const NothrowMap&>()));
+static_assert(!std::is_nothrow_copy_constructible_v<PotentiallyThrowingMap>);
+static_assert(!std::is_nothrow_copy_assignable_v<PotentiallyThrowingMap>);
+static_assert(!std::is_nothrow_move_constructible_v<PotentiallyThrowingMap>);
+static_assert(!std::is_nothrow_move_assignable_v<PotentiallyThrowingMap>);
+static_assert(!noexcept(std::declval<PotentiallyThrowingMap&>().emplace(1, PotentiallyThrowingValue{})));
+static_assert(
+    !noexcept(std::declval<PotentiallyThrowingMap&>().erase(std::declval<PotentiallyThrowingMap::iterator>())));
+static_assert(!noexcept(std::declval<PotentiallyThrowingMap&>().swap(std::declval<PotentiallyThrowingMap&>())));
+static_assert(
+    !noexcept(std::declval<const PotentiallyThrowingMap&>() == std::declval<const PotentiallyThrowingMap&>()));
 
 struct Tracked final {
   static inline int live = 0;

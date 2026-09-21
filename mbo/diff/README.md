@@ -4,7 +4,8 @@ Part of the **MBO** library ecosystem, `mbo/diff` provides lightweight utilities
 
 ## 1. C++ API Reference: `mbo::diff::Diff`
 
-The C++ library resides under the namespace `mbo::diff`. It is built to leverage C++20 features (such as `std::string_view` and `std::span`) and integrates natively with Google's Abseil library.
+The C++ library resides under the namespace `mbo::diff`. Like the rest of mbo, it targets C++23
+and integrates natively with Google's Abseil library.
 
 ### `DiffOptions` Struct
 

@@ -79,6 +79,7 @@ cc_test(
     size = "small",
     srcs = ["status_test.cc"],
     deps = [
+        ":matchers_cc",
         ":status_cc",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",

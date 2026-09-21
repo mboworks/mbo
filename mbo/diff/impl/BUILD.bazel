@@ -75,6 +75,7 @@ cc_test(
         ":diff_naive_cc",
         "//mbo/diff:diff_options_cc",
         "//mbo/file:artefact_cc",
+        "//mbo/testing:matchers_cc",
         "//mbo/testing:status_cc",
         "@abseil-cpp//absl/status",
         "@googletest//:gtest",

@@ -27,12 +27,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/mope/ini.h"
+#include "mbo/testing/matchers.h"
 
 // Unit tests for the mope Template engine and its ini loader. The golden
 // `*_diff_test`s exercise the binary end to end; these pin the LIBRARY contract:
 // what SetValue/AddSection/Expand and ReadIniToTemlate do, one behaviour each.
 
 namespace mbo::mope {
+
+using ::mbo::testing::EqualsText;
 
 struct MopeTest : ::testing::Test {
   static std::string StreamSectionData() {
@@ -213,7 +216,7 @@ TEST_F(MopeTest, StandaloneSectionTagsConsumeTheirLines) {
   const Template tpl;
   std::string output(kInput);
   ASSERT_THAT(tpl.Expand(output), absl::OkStatus());
-  EXPECT_THAT(output, "before\nafter\n");
+  EXPECT_THAT(output, EqualsText("before\nafter\n"));
 }
 
 TEST_F(MopeTest, StandaloneSectionTagsRecognizeCarriageReturnsAndTabs) {

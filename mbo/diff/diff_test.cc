@@ -32,10 +32,9 @@
 #include "absl/strings/strip.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "mbo/container/convert_container.h"
 #include "mbo/file/artefact.h"
-#include "mbo/status/status_macros.h"
 #include "mbo/strings/indent.h"
+#include "mbo/testing/matchers.h"
 #include "mbo/testing/status.h"
 #include "re2/re2.h"
 
@@ -43,10 +42,10 @@ namespace mbo::diff {
 namespace {
 
 using ::mbo::strings::DropIndent;
-using ::mbo::strings::DropIndentAndSplit;
+using ::mbo::testing::EqualsText;
 using ::mbo::testing::IsOkAndHolds;
 using ::mbo::testing::StatusIs;
-using ::testing::ElementsAreArray;
+using ::mbo::testing::WithDropIndent;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::Lt;
@@ -56,17 +55,13 @@ using ::testing::Optional;
 class DiffTest : public ::testing::Test {
  public:
   // IMPORTANT: Uses a global cache, so cannot be used simultaneously.
-  static absl::StatusOr<std::vector<std::string>> Diff(
+  static absl::StatusOr<std::string> Diff(
       file::Artefact lhs,
       file::Artefact rhs,
       const Diff::Options& options = Diff::Options::Default()) {
     lhs.data = DropIndent(lhs.data);
     rhs.data = DropIndent(rhs.data);
-    MBO_ASSIGN_OR_RETURN(const std::string result, mbo::diff::Diff::FileDiff(lhs, rhs, options));
-    if (result.empty()) {
-      return std::vector<std::string>{};
-    }
-    return std::vector<std::string>(mbo::container::ConvertContainer(DropIndentAndSplit(result)));
+    return mbo::diff::Diff::FileDiff(lhs, rhs, options);
   }
 
   static std::string ToLines(std::string_view input) {
@@ -165,21 +160,20 @@ TEST_F(DiffTest, OnlyLhs) {
   const std::string txt = R"txt(
     l
   )txt";
-  EXPECT_THAT(Diff({txt, "lhs"}, {"\n", "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({txt, "lhs"}, {"\n", "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
     -l
     +
   )txt"))));
-  EXPECT_THAT(Diff({txt, "lhs"}, {"", "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({txt, "lhs"}, {"", "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +0,0 @@
     -l
   )txt"))));
-  EXPECT_THAT(
-      Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,2 @@
@@ -188,8 +182,7 @@ TEST_F(DiffTest, OnlyLhs) {
      b
   )txt"))));
   EXPECT_THAT(
-      Diff({ToLines("1234_L_5678"), "lhs"}, {ToLines("12345678"), "rhs"}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("1234_L_5678"), "lhs"}, {ToLines("12345678"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,9 +2,6 @@
@@ -209,21 +202,20 @@ TEST_F(DiffTest, OnlyRhs) {
   const std::string txt = R"txt(
     r
   )txt";
-  EXPECT_THAT(Diff({"\n", "lhs"}, {txt, "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"\n", "lhs"}, {txt, "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
     -
     +r
   )txt"))));
-  EXPECT_THAT(Diff({"", "lhs"}, {txt, "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"", "lhs"}, {txt, "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -0,0 +1 @@
     +r
   )txt"))));
-  EXPECT_THAT(
-      Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,2 +1,3 @@
@@ -232,8 +224,7 @@ TEST_F(DiffTest, OnlyRhs) {
      b
   )txt"))));
   EXPECT_THAT(
-      Diff({ToLines("12345678"), "lhs"}, {ToLines("1234_R_5678"), "rhs"}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("12345678"), "lhs"}, {ToLines("1234_R_5678"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,6 +2,9 @@
@@ -250,7 +241,7 @@ TEST_F(DiffTest, OnlyRhs) {
 }
 
 TEST_F(DiffTest, NoNewLine) {
-  EXPECT_THAT(Diff({ToLines("l"), "lhs"}, {"r", "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("l"), "lhs"}, {"r", "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
@@ -258,7 +249,7 @@ TEST_F(DiffTest, NoNewLine) {
     +r
     \ No newline at end of file
   )txt"))));
-  EXPECT_THAT(Diff({"l", "lhs"}, {ToLines("r"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"l", "lhs"}, {ToLines("r"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
@@ -266,7 +257,7 @@ TEST_F(DiffTest, NoNewLine) {
     \ No newline at end of file
     +r
   )txt"))));
-  EXPECT_THAT(Diff({"l", "lhs"}, {"r", "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"l", "lhs"}, {"r", "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
@@ -278,16 +269,14 @@ TEST_F(DiffTest, NoNewLine) {
 }
 
 TEST_F(DiffTest, CompletelyDifferent) {
-  EXPECT_THAT(
-      Diff({ToLines("l"), "lhs"}, {ToLines("r"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("l"), "lhs"}, {ToLines("r"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
     -l
     +r
   )txt"))));
-  EXPECT_THAT(
-      Diff({ToLines("l1"), "lhs"}, {ToLines("r2"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("l1"), "lhs"}, {ToLines("r2"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,2 +1,2 @@
@@ -299,8 +288,7 @@ TEST_F(DiffTest, CompletelyDifferent) {
 }
 
 TEST_F(DiffTest, Diff) {
-  EXPECT_THAT(
-      Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,3 @@
@@ -309,8 +297,7 @@ TEST_F(DiffTest, Diff) {
     +2
      b
   )txt"))));
-  EXPECT_THAT(
-      Diff({ToLines("a12b"), "lhs"}, {ToLines("a3b"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("a12b"), "lhs"}, {ToLines("a3b"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,4 +1,3 @@
@@ -320,8 +307,7 @@ TEST_F(DiffTest, Diff) {
     +3
      b
   )txt"))));
-  EXPECT_THAT(
-      Diff({ToLines("a1b"), "lhs"}, {ToLines("a23b"), "rhs"}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("a1b"), "lhs"}, {ToLines("a23b"), "rhs"}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,4 @@
@@ -338,7 +324,7 @@ TEST_F(DiffTest, EmptyTimeFormatOmitsHeaderTimestamp) {
   // reproducible regardless of the files' mtimes or the local time zone.
   EXPECT_THAT(
       Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, {.time_format = ""}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs
     +++ rhs
     @@ -1,3 +1,3 @@
@@ -354,7 +340,7 @@ TEST_F(DiffTest, Multi1) {
       Diff(
           {ToLines("acbdeacbed"), "lhs"}, {ToLines("acebdabbabed"), "rhs"},
           {.algorithm = Diff::Options::Algorithm::kNaive, .context_size = 0}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,0 +3 @@
@@ -374,7 +360,7 @@ TEST_F(DiffTest, Multi1) {
       Diff(
           {ToLines("acbdeacbed"), "lhs"}, {ToLines("acebdabbabed"), "rhs"},
           {.algorithm = Diff::Options::Algorithm::kNaive, .context_size = 1}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,8 +2,10 @@
@@ -414,21 +400,21 @@ TEST_F(DiffTest, Multi1) {
       Diff(
           {ToLines("acbdeacbed"), "lhs"}, {ToLines("acebdabbabed"), "rhs"},
           {.algorithm = Diff::Options::Algorithm::kNaive}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(kOneChunk))));
+      IsOkAndHolds(WithDropIndent(EqualsText(kOneChunk))));
   static constexpr std::array kContextSizes = std::to_array<std::size_t>({2, 3, 5, 50});
   for (const std::size_t context_size : kContextSizes) {
     EXPECT_THAT(
         Diff(
             {ToLines("acbdeacbed"), "lhs"}, {ToLines("acebdabbabed"), "rhs"},
             {.algorithm = Diff::Options::Algorithm::kNaive, .context_size = context_size}),
-        IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(kOneChunk))));
+        IsOkAndHolds(WithDropIndent(EqualsText(kOneChunk))));
   }
 }
 
 TEST_F(DiffTest, Multi2) {
   EXPECT_THAT(
       Diff({ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,11 +2,9 @@
@@ -448,7 +434,7 @@ TEST_F(DiffTest, Multi2) {
   )txt"))));
   EXPECT_THAT(
       Diff({ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"}, {.context_size = 2}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -3,10 +3,8 @@
@@ -467,7 +453,7 @@ TEST_F(DiffTest, Multi2) {
   )txt"))));
   EXPECT_THAT(
       Diff({ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"}, {.context_size = 1}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -4,4 +4,4 @@
@@ -485,7 +471,7 @@ TEST_F(DiffTest, Multi2) {
   )txt"))));
   EXPECT_THAT(
       Diff({ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"}, {.context_size = 0}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -5,2 +5,2 @@
@@ -502,7 +488,7 @@ TEST_F(DiffTest, Multi2) {
 TEST_F(DiffTest, Multi3) {
   EXPECT_THAT(
       Diff({ToLines("123456789XYZac0"), "lhs"}, {ToLines("1234ab789XYZ0"), "rhs"}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,14 +2,12 @@
@@ -525,7 +511,7 @@ TEST_F(DiffTest, Multi3) {
   )txt"))));
   EXPECT_THAT(
       Diff({ToLines("123456789_XYZac0"), "lhs"}, {ToLines("1234ab789_XYZ0"), "rhs"}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -2,8 +2,8 @@
@@ -549,7 +535,7 @@ TEST_F(DiffTest, Multi3) {
   )txt"))));
   EXPECT_THAT(
       Diff({ToLines("123456789_XYZac0"), "lhs"}, {ToLines("1234ab789_XYZ0"), "rhs"}, {.context_size = 4}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,16 +1,14 @@
@@ -578,8 +564,7 @@ TEST_F(DiffTest, ContextFormat) {
   const Diff::Options options{.output_format = Diff::Options::OutputFormat::kContext};
   // Deletions paired with insertions show as '!' change blocks on both sides.
   EXPECT_THAT(
-      Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -594,8 +579,7 @@ TEST_F(DiffTest, ContextFormat) {
   )txt"))));
   // A side without changes omits its body (here the unchanged lhs).
   EXPECT_THAT(
-      Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}, options),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -607,8 +591,7 @@ TEST_F(DiffTest, ContextFormat) {
   )txt"))));
   // Pure deletions keep '-' and the unchanged rhs omits its body.
   EXPECT_THAT(
-      Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}, options),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -625,7 +608,7 @@ TEST_F(DiffTest, ContextFormatMultiChunk) {
       Diff(
           {ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"},
           {.output_format = Diff::Options::OutputFormat::kContext, .context_size = 1}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -652,8 +635,7 @@ TEST_F(DiffTest, ContextFormatMultiChunk) {
 TEST_F(DiffTest, ContextFormatEmptyFile) {
   const Diff::Options options{.output_format = Diff::Options::OutputFormat::kContext};
   // An empty range shows the line before it, so an empty file shows as 0.
-  EXPECT_THAT(
-      Diff({ToLines("abc"), "lhs"}, {"", "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("abc"), "lhs"}, {"", "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -663,8 +645,7 @@ TEST_F(DiffTest, ContextFormatEmptyFile) {
     - c
     --- 0 ----
   )txt"))));
-  EXPECT_THAT(
-      Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -679,7 +660,7 @@ TEST_F(DiffTest, ContextFormatEmptyFile) {
 TEST_F(DiffTest, ContextFormatNoNewLine) {
   EXPECT_THAT(
       Diff({"l", "lhs"}, {"r", "rhs"}, {.output_format = Diff::Options::OutputFormat::kContext}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     *** lhs 1970-01-01 00:00:00.000 +0000
     --- rhs 1970-01-01 00:00:00.000 +0000
     ***************
@@ -703,8 +684,7 @@ TEST_F(DiffTest, NormalFormat) {
         .context_size = context_size,
     };
     EXPECT_THAT(
-        Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options),
-        IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+        Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
       2c2
       < 1
       ---
@@ -712,22 +692,20 @@ TEST_F(DiffTest, NormalFormat) {
     )txt"))))
         << "context_size: " << context_size;
     EXPECT_THAT(
-        Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}, options),
-        IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+        Diff({ToLines("ab"), "lhs"}, {ToLines("arb"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
       1a2
       > r
     )txt"))))
         << "context_size: " << context_size;
     EXPECT_THAT(
-        Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}, options),
-        IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+        Diff({ToLines("alb"), "lhs"}, {ToLines("ab"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
       2d1
       < l
     )txt"))))
         << "context_size: " << context_size;
     EXPECT_THAT(
         Diff({ToLines("123456789ac0"), "lhs"}, {ToLines("1234ab7890"), "rhs"}, options),
-        IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+        IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
       5,6c5,6
       < 5
       < 6
@@ -744,15 +722,13 @@ TEST_F(DiffTest, NormalFormat) {
 
 TEST_F(DiffTest, NormalFormatEmptyFile) {
   const Diff::Options options{.output_format = Diff::Options::OutputFormat::kNormal};
-  EXPECT_THAT(
-      Diff({ToLines("abc"), "lhs"}, {"", "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({ToLines("abc"), "lhs"}, {"", "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     1,3d0
     < a
     < b
     < c
   )txt"))));
-  EXPECT_THAT(
-      Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     0a1,3
     > a
     > b
@@ -763,7 +739,7 @@ TEST_F(DiffTest, NormalFormatEmptyFile) {
 TEST_F(DiffTest, NormalFormatNoNewLine) {
   EXPECT_THAT(
       Diff({"l", "lhs"}, {"r", "rhs"}, {.output_format = Diff::Options::OutputFormat::kNormal}),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     1c1
     < l
     \ No newline at end of file
@@ -785,7 +761,7 @@ TEST_F(DiffTest, ContextFormatDirectAlgorithm) {
               .context_size = 0,
               .file_header_use = Diff::Options::FileHeaderUse::kNone,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     ***************
     *** 1,2 ****
     ! 1
@@ -808,7 +784,7 @@ TEST_F(DiffTest, NormalFormatDirectAlgorithm) {
               .output_format = Diff::Options::OutputFormat::kNormal,
               .context_size = 0,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     1c1
     < 1
     ---
@@ -832,9 +808,9 @@ TEST_F(DiffTest, SideBySideFormatDirectAlgorithm) {
               .context_size = 0,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds(
+      IsOkAndHolds(EqualsText(
           "1        | x\n"
-          "2        | y\n"));
+          "2        | y\n")));
 }
 
 TEST_F(DiffTest, NormalFormatNoChunkHeaders) {
@@ -845,7 +821,7 @@ TEST_F(DiffTest, NormalFormatNoChunkHeaders) {
               .output_format = Diff::Options::OutputFormat::kNormal,
               .show_chunk_headers = false,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     < 1
     ---
     > 2
@@ -861,7 +837,7 @@ TEST_F(DiffTest, NormalFormatSkipLeftDeletions) {
               .output_format = Diff::Options::OutputFormat::kNormal,
               .skip_left_deletions = true,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     1a2
     > 2
   )txt"))));
@@ -902,29 +878,29 @@ TEST_F(DiffTest, SideBySideFormat) {
   // Changed pairs get '|'; the library default context (3) spans these whole
   // files, so common lines show like `diff -y` does by default.
   EXPECT_THAT(
-      diff(ToLines("a1b"), ToLines("a2b"), options), IsOkAndHolds(
+      diff(ToLines("a1b"), ToLines("a2b"), options), IsOkAndHolds(EqualsText(
                                                          "a          a\n"
                                                          "1        | 2\n"
-                                                         "b          b\n"));
+                                                         "b          b\n")));
   // Insertions get '>' with an empty left cell.
   EXPECT_THAT(
-      diff(ToLines("ab"), ToLines("arb"), options), IsOkAndHolds(
+      diff(ToLines("ab"), ToLines("arb"), options), IsOkAndHolds(EqualsText(
                                                         "a          a\n"
                                                         "         > r\n"
-                                                        "b          b\n"));
+                                                        "b          b\n")));
   // Deletions get '<' with nothing to the right.
   EXPECT_THAT(
-      diff(ToLines("alb"), ToLines("ab"), options), IsOkAndHolds(
+      diff(ToLines("alb"), ToLines("ab"), options), IsOkAndHolds(EqualsText(
                                                         "a          a\n"
                                                         "l        <\n"
-                                                        "b          b\n"));
+                                                        "b          b\n")));
   // Uneven change blocks pair by index, the excess renders one-sided.
   EXPECT_THAT(
-      diff(ToLines("axyb"), ToLines("azb"), options), IsOkAndHolds(
+      diff(ToLines("axyb"), ToLines("azb"), options), IsOkAndHolds(EqualsText(
                                                           "a          a\n"
                                                           "x        | z\n"
                                                           "y        <\n"
-                                                          "b          b\n"));
+                                                          "b          b\n")));
 }
 
 TEST_F(DiffTest, SideBySideFormatDetails) {
@@ -940,10 +916,10 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .output_format = Diff::Options::OutputFormat::kSideBySide,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds(
+      IsOkAndHolds(EqualsText(
           "l        | r\n"
           "\\ No newline at end of file\n"
-          "\\ No newline at end of file\n"));
+          "\\ No newline at end of file\n")));
   // Cells truncate at the column width (20 -> 8 chars per column).
   EXPECT_THAT(
       diff(
@@ -962,11 +938,11 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .context_size = 0,
               .side_by_side_width = 20,
           }),
-      IsOkAndHolds(
+      IsOkAndHolds(EqualsText(
           "5        | a\n"
           "6        | b\n"
           "a        <\n"
-          "c        <\n"));
+          "c        <\n")));
   // Degenerate widths clamp to one character columns.
   EXPECT_THAT(
       diff(
@@ -975,10 +951,10 @@ TEST_F(DiffTest, SideBySideFormatDetails) {
               .output_format = Diff::Options::OutputFormat::kSideBySide,
               .side_by_side_width = 5,
           }),
-      IsOkAndHolds(
+      IsOkAndHolds(EqualsText(
           "a   a\n"
           "1 | 2\n"
-          "b   b\n"));
+          "b   b\n")));
 }
 
 TEST_F(DiffTest, MyersAlgorithm) {
@@ -986,8 +962,7 @@ TEST_F(DiffTest, MyersAlgorithm) {
   // On inputs where the naive algorithm is already minimal the output is
   // identical (see the mirrored expectations in `Diff`).
   EXPECT_THAT(
-      Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      Diff({ToLines("a1b"), "lhs"}, {ToLines("a2b"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,3 @@
@@ -996,7 +971,7 @@ TEST_F(DiffTest, MyersAlgorithm) {
     +2
      b
   )txt"))));
-  EXPECT_THAT(Diff({"l", "lhs"}, {"r", "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"l", "lhs"}, {"r", "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1 +1 @@
@@ -1005,8 +980,7 @@ TEST_F(DiffTest, MyersAlgorithm) {
     +r
     \ No newline at end of file
   )txt"))));
-  EXPECT_THAT(
-      Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff({"", "lhs"}, {ToLines("abc"), "rhs"}, options), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -0,0 +1,3 @@
@@ -1027,7 +1001,7 @@ TEST_F(DiffTest, MyersMinimal) {
               .context_size = 0,
               .file_header_use = Diff::Options::FileHeaderUse::kNone,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     @@ -1 +1 @@
     -A
     +C
@@ -1049,7 +1023,7 @@ TEST_F(DiffTest, MyersFormats) {
               .output_format = Diff::Options::OutputFormat::kContext,
               .file_header_use = Diff::Options::FileHeaderUse::kNone,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     ***************
     *** 1,3 ****
       a
@@ -1067,7 +1041,7 @@ TEST_F(DiffTest, MyersFormats) {
               .algorithm = Diff::Options::Algorithm::kMyers,
               .output_format = Diff::Options::OutputFormat::kNormal,
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     2c2
     < 1
     ---
@@ -1317,7 +1291,7 @@ TEST_F(DiffTest, RegexReplace) {
     )txt",
       .name = "rhs",
   };
-  EXPECT_THAT(Diff(lhs, rhs, {}), IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+  EXPECT_THAT(Diff(lhs, rhs, {}), IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,3 @@
@@ -1351,7 +1325,7 @@ TEST_F(DiffTest, RegexReplace) {
               .regex_replace_lhs = Diff::Options::ParseRegexReplaceFlag("/(.*)ERROR.*/\\1 LHS/"),
               .regex_replace_rhs = Diff::Options::ParseRegexReplaceFlag(",(.*)ERROR.*,\\1 RHS,"),
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,3 @@
@@ -1368,7 +1342,7 @@ TEST_F(DiffTest, RegexReplace) {
               .regex_replace_lhs = Diff::Options::ParseRegexReplaceFlag("/ERROR.*//"),
               .regex_replace_rhs = Diff::Options::ParseRegexReplaceFlag(",ERROR.*,,"),
           }),
-      IsOkAndHolds(ElementsAreArray(DropIndentAndSplit(R"txt(
+      IsOkAndHolds(WithDropIndent(EqualsText(R"txt(
     --- lhs 1970-01-01 00:00:00.000 +0000
     +++ rhs 1970-01-01 00:00:00.000 +0000
     @@ -1,3 +1,3 @@

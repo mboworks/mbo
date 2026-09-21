@@ -759,7 +759,7 @@ TEST_F(StringifyTest, PairCanUseCustomFieldNames) {
   const StringifyRootOptions root_options{.root_prefix = "<", .root_suffix = ">"};
   EXPECT_THAT(
       Stringify(options).ToString(PairWithCustomFieldNames{}, root_options),
-      Eq("<{\"value\": {\"left\": 1, \"right\": 2}}\n>"));
+      EqualsText("<{\"value\": {\"left\": 1, \"right\": 2}}\n>"));
 }
 
 struct TestStructDoNotPrintFieldNames {
@@ -967,12 +967,14 @@ TEST_F(StringifyTest, MoreContainers) {
          "the provided key/value names.";
   EXPECT_THAT(
       Stringify::AsJson().ToString(TestStructMoreContainers{}),
-      R"({"one": [1, 2],"two": [{"first":1, "second":2}, {"first":3, "second":4}],"three": [{"Key":5, "Val":6}]}
-)");
+      EqualsText(
+          R"({"one": [1, 2],"two": [{"first":1, "second":2}, {"first":3, "second":4}],"three": [{"Key":5, "Val":6}]}
+)"));
   EXPECT_THAT(
       Stringify::AsJsonLine().ToString(TestStructMoreContainers{}),
-      R"({"one": [1, 2], "two": [{"first": 1, "second": 2}, {"first": 3, "second": 4}], "three": [{"Key": 5, "Val": 6}]}
-)");
+      EqualsText(
+          R"({"one": [1, 2], "two": [{"first": 1, "second": 2}, {"first": 3, "second": 4}], "three": [{"Key": 5, "Val": 6}]}
+)"));
   EXPECT_THAT(
       Stringify::AsJsonPretty().ToString(TestStructMoreContainers{}), EqualsText(
                                                                           R"({
@@ -1011,8 +1013,8 @@ TEST_F(StringifyTest, MoreContainersWithDirectFieldNames) {
   EXPECT_THAT(MboTypesStringifyFieldNames(TestStructMoreContainersWithDirectFieldNames{}), ElementsAre("1", "2", "3"));
   EXPECT_THAT(
       Stringify(Stringify::OptionsJson()).ToString(TestStructMoreContainersWithDirectFieldNames{}),
-      R"({"1":[1,2],"2":[{"first":1,"second":2},{"first":3,"second":4}],"3":[{"Key":5,"Val":6}]}
-)");
+      EqualsText(R"({"1":[1,2],"2":[{"first":1,"second":2},{"first":3,"second":4}],"3":[{"Key":5,"Val":6}]}
+)"));
 }
 
 struct TestStructContainersOfPairs {
@@ -1047,8 +1049,8 @@ TEST_F(StringifyTest, PrintWithControl) {
   .one = 25
 }
 )"));
-  EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), R"({"one":25}
-)");
+  EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), EqualsText(R"({"one":25}
+)"));
   EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(R"({
   "one": 25
 }
@@ -1090,8 +1092,8 @@ TEST_F(StringifyTest, NestedDefaults) {
 )";
   EXPECT_THAT(Stringify().ToString(v), kExpectedDef);
   EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), kExpectedCpp);
-  EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), kExpectedCppPretty);
-  EXPECT_THAT(Stringify::AsJson().ToString(v), kExpectedJson);
+  EXPECT_THAT(Stringify(Stringify::OptionsCppPretty()).ToString(v), EqualsText(kExpectedCppPretty));
+  EXPECT_THAT(Stringify::AsJson().ToString(v), EqualsText(kExpectedJson));
   EXPECT_THAT(Stringify::AsJsonPretty().ToString(v), EqualsText(kExpectedJsonPretty));
 }
 
@@ -1116,8 +1118,8 @@ TEST_F(StringifyTest, NestedJsonNumericFallback) {
 )";
   EXPECT_THAT(Stringify(Stringify::OptionsCpp()).ToString(v), kExpectedCpp);
   EXPECT_THAT(Stringify::AsCpp().ToString(v), kExpectedCpp);
-  EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), kExpectedJson);
-  EXPECT_THAT(Stringify::AsJson().ToString(v), kExpectedJson);
+  EXPECT_THAT(Stringify(Stringify::OptionsJson()).ToString(v), EqualsText(kExpectedJson));
+  EXPECT_THAT(Stringify::AsJson().ToString(v), EqualsText(kExpectedJson));
 }
 
 struct TestStructCustomNestedJsonNested {
@@ -1167,8 +1169,9 @@ TEST_F(StringifyTest, CustomNestedJson) {
 
   EXPECT_THAT(
       Stringify::AsJson().ToString(TestStructCustomNestedJson{}),
-      R"({"one":123,"two":"test","three":[false,true],"four":[{"NESTED_1":25,"NESTED_2":"foo"},{"NESTED_1":42,"NESTED_2":"bar"}],"five":{"first":25,"second":42}}
-)");
+      EqualsText(
+          R"({"one":123,"two":"test","three":[false,true],"four":[{"NESTED_1":25,"NESTED_2":"foo"},{"NESTED_1":42,"NESTED_2":"bar"}],"five":{"first":25,"second":42}}
+)"));
 }
 
 struct TestStructNonLiteralFields {

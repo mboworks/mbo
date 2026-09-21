@@ -50,6 +50,7 @@ cc_test(
     srcs = ["indent_test.cc"],
     deps = [
         ":indent_cc",
+        "//mbo/testing:matchers_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -155,6 +156,7 @@ cc_test(
     deps = [
         ":strip_cc",
         "//mbo/status:status_macros_cc",
+        "//mbo/testing:matchers_cc",
         "//mbo/testing:status_cc",
         "@abseil-cpp//absl/status:statusor",
         "@googletest//:gtest",

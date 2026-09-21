@@ -24,6 +24,7 @@
 #include "absl/time/time.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/testing/matchers.h"
 #include "mbo/testing/status.h"
 
 namespace mbo::file {
@@ -31,6 +32,7 @@ namespace {
 
 namespace fs = std::filesystem;
 
+using ::mbo::testing::EqualsText;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
@@ -77,7 +79,7 @@ TEST_F(ArtefactTest, OptionsDefaultToKeepingTheTime) {
 TEST_F(ArtefactTest, ReadsAFilesContentAndName) {
   const std::string path = Write("simple.txt", "hello\nworld\n");
   MBO_ASSERT_OK_AND_ASSIGN(const Artefact artefact, Artefact::Read(path));
-  EXPECT_THAT(artefact.data, "hello\nworld\n");
+  EXPECT_THAT(artefact.data, EqualsText("hello\nworld\n"));
   EXPECT_THAT(artefact.name, path) << "the name is the path it was read from";
 }
 
@@ -115,13 +117,13 @@ TEST_F(ArtefactTest, WithoutSkipTimeReadsTheRealMTime) {
 TEST_F(ArtefactTest, ReadMaxLinesTruncatesToTheLimit) {
   const std::string path = Write("many.txt", "a\nb\nc\nd\n");
   MBO_ASSERT_OK_AND_ASSIGN(const Artefact artefact, Artefact::ReadMaxLines(path, 2));
-  EXPECT_THAT(artefact.data, "a\nb\n");
+  EXPECT_THAT(artefact.data, EqualsText("a\nb\n"));
 }
 
 TEST_F(ArtefactTest, ReadMaxLinesReturnsEverythingWhenUnderTheLimit) {
   const std::string path = Write("few.txt", "a\nb\n");
   MBO_ASSERT_OK_AND_ASSIGN(const Artefact artefact, Artefact::ReadMaxLines(path, 10));
-  EXPECT_THAT(artefact.data, "a\nb\n");
+  EXPECT_THAT(artefact.data, EqualsText("a\nb\n"));
 }
 
 TEST_F(ArtefactTest, ReadMaxLinesWithZeroReturnsNothing) {

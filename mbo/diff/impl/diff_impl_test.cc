@@ -24,6 +24,7 @@
 #include "mbo/diff/impl/diff_myers.h"
 #include "mbo/diff/impl/diff_naive.h"
 #include "mbo/file/artefact.h"
+#include "mbo/testing/matchers.h"
 #include "mbo/testing/status.h"
 
 // Tests the three diff algorithm implementations directly, not through the
@@ -37,6 +38,7 @@
 namespace mbo::diff {
 namespace {
 
+using ::mbo::testing::EqualsText;
 using ::mbo::testing::IsOkAndHolds;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
@@ -74,23 +76,27 @@ TEST_F(DiffImplTest, DirectIdenticalInputsProduceNoDiff) {
 
 TEST_F(DiffImplTest, MyersSingleLineChange) {
   EXPECT_THAT(
-      DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), BareOptions()), IsOkAndHolds("@@ -2 +2 @@\n-b\n+X\n"));
+      DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), BareOptions()),
+      IsOkAndHolds(EqualsText("@@ -2 +2 @@\n-b\n+X\n")));
 }
 
 TEST_F(DiffImplTest, NaiveAgreesWithMyersOnASingleLineChange) {
   MBO_ASSERT_OK_AND_ASSIGN(
       const std::string myers, DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), BareOptions()));
-  EXPECT_THAT(DiffNaive::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), BareOptions()), IsOkAndHolds(myers));
+  EXPECT_THAT(
+      DiffNaive::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), BareOptions()), IsOkAndHolds(EqualsText(myers)));
 }
 
 TEST_F(DiffImplTest, MyersPureInsertion) {
   EXPECT_THAT(
-      DiffMyers::FileDiff(Text("a\nc\n"), Text("a\nb\nc\n"), BareOptions()), IsOkAndHolds("@@ -1,0 +2 @@\n+b\n"));
+      DiffMyers::FileDiff(Text("a\nc\n"), Text("a\nb\nc\n"), BareOptions()),
+      IsOkAndHolds(EqualsText("@@ -1,0 +2 @@\n+b\n")));
 }
 
 TEST_F(DiffImplTest, MyersPureDeletion) {
   EXPECT_THAT(
-      DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nc\n"), BareOptions()), IsOkAndHolds("@@ -2 +1,0 @@\n-b\n"));
+      DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nc\n"), BareOptions()),
+      IsOkAndHolds(EqualsText("@@ -2 +1,0 @@\n-b\n")));
 }
 
 TEST_F(DiffImplTest, MyersEmptyVersusContent) {
@@ -104,7 +110,7 @@ TEST_F(DiffImplTest, ContextLinesAreEmitted) {
   options.context_size = 1;
   EXPECT_THAT(
       DiffMyers::FileDiff(Text("a\nb\nc\n"), Text("a\nX\nc\n"), options),
-      IsOkAndHolds("@@ -1,3 +1,3 @@\n a\n-b\n+X\n c\n"));
+      IsOkAndHolds(EqualsText("@@ -1,3 +1,3 @@\n a\n-b\n+X\n c\n")));
 }
 
 // Naive is documented as greedy and non-minimal: it must still produce a diff

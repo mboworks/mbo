@@ -156,14 +156,14 @@ jobs:
             # `--config=clang` selects the hermetic toolchains_llvm toolchain via
             # Bazel toolchain resolution (`--extra_toolchains`), independent of
             # CC/CXX (those only feed the unused `@local_config_cc` fallback). The
-            # `EXPECT="Clang:"` assertion in "Show compiler" then verifies the
+            # `EXPECT="Compiler: Clang"` assertion in "Show compiler" then verifies the
             # actually-selected compiler, which is a stronger guarantee than the
             # old blind `unset`. (Note: $GITHUB_ENV cannot truly unset a variable
             # anyway -- it can only set it empty, and an empty `CC=` can confuse
             # `@local_config_cc` autoconfig, so clearing it that way would be
             # worse than leaving it absent.)
             BAZEL_ARGS+=("--config=clang")
-            EXPECT="Clang:"
+            EXPECT="Compiler: Clang"
             if [ -r "bazelmod/llvm.${{inputs.llvm_version}}.MODULE.bazel" ]; then
               cp "bazelmod/llvm.${{inputs.llvm_version}}.MODULE.bazel" bazelmod/llvm.MODULE.bazel
             elif [ -n "${{inputs.llvm_version}}" ]; then
@@ -174,7 +174,7 @@ jobs:
           elif [ "${{inputs.compiler}}" == "gcc" ]; then
             echo "CC=/usr/bin/gcc" >> "${GITHUB_ENV}"
             echo "CXX=/usr/bin/g++" >> "${GITHUB_ENV}"
-            EXPECT="GCC:"
+            EXPECT="Compiler: GCC"
           elif [ "${{inputs.compiler}}" == "native" ]; then
             # Use whatever is found!
             if [ -n "${CC:-}" ] && [ -x "$(which gcc)" ]; then

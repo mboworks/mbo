@@ -60,7 +60,13 @@ augmentations, enough to know exactly what produced it:
 - **host name**, **CPU count**, **CPU nominal MHz**, **CPU brand/model**, cache
   sizes.
 - **OS / kernel** (uname).
-- **compiler** and version (the benchmark is built `-c opt`).
+- **compiler** name, semantic version, vendor version string, and Apple build
+  identifier when present (the benchmark is built `-c opt`).
+- requested **C++ standard**, the actual `__cplusplus` value, and the standard
+  library implementation/version.
+- available macOS deployment-target and SDK macros.
+- **Bazel version**, exact benchmark command, configs, and explicit target/host
+  compiler options.
 - **load average** at measurement time (so a noisy run is identifiable).
 - **`cpu_scaling_enabled`**: if frequency scaling is on (it is, on macOS), the
   absolute numbers are unreliable; the tool records it and warns. The min

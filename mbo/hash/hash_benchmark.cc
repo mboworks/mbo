@@ -38,6 +38,11 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <version>
+
+#if defined(__APPLE__)
+# include <Availability.h>
+#endif
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
@@ -50,6 +55,50 @@ namespace {
 // NOLINTBEGIN(*-array-index,*-magic-numbers)
 
 constexpr uint64_t kSeed = 5'381;
+static_assert(__cplusplus >= 202'302L, "the hash benchmark provenance requires C++23");
+
+void AddBuildContext() {
+#if defined(__clang__)
+# if defined(__apple_build_version__)
+  benchmark::AddCustomContext("compiler_name", "Apple Clang");
+# else
+  benchmark::AddCustomContext("compiler_name", "Clang");
+# endif
+  benchmark::AddCustomContext("compiler", absl::StrCat("clang-", __clang_major__));
+  benchmark::AddCustomContext(
+      "compiler_version", absl::StrCat(__clang_major__, ".", __clang_minor__, ".", __clang_patchlevel__));
+  benchmark::AddCustomContext("compiler_version_extra", __clang_version__);
+# if defined(__apple_build_version__)
+  benchmark::AddCustomContext("compiler_build_version", absl::StrCat(__apple_build_version__));
+# endif
+#elif defined(__GNUC__)
+  benchmark::AddCustomContext("compiler_name", "GCC");
+  benchmark::AddCustomContext("compiler", absl::StrCat("gcc-", __GNUC__));
+  benchmark::AddCustomContext(
+      "compiler_version", absl::StrCat(__GNUC__, ".", __GNUC_MINOR__, ".", __GNUC_PATCHLEVEL__));
+  benchmark::AddCustomContext("compiler_version_extra", __VERSION__);
+#endif
+
+  benchmark::AddCustomContext("cxx_standard_requested", "c++23");
+  benchmark::AddCustomContext("cplusplus", absl::StrCat(__cplusplus));
+#if defined(_LIBCPP_VERSION)
+  benchmark::AddCustomContext("standard_library", "libc++");
+  benchmark::AddCustomContext("standard_library_version", absl::StrCat(_LIBCPP_VERSION));
+#elif defined(__GLIBCXX__)
+  benchmark::AddCustomContext("standard_library", "libstdc++");
+  benchmark::AddCustomContext("standard_library_version", absl::StrCat(__GLIBCXX__));
+# if defined(_GLIBCXX_RELEASE)
+  benchmark::AddCustomContext("standard_library_release", absl::StrCat(_GLIBCXX_RELEASE));
+# endif
+#endif
+
+#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+  benchmark::AddCustomContext("macos_deployment_target", absl::StrCat(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__));
+#endif
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
+  benchmark::AddCustomContext("macos_sdk_maximum", absl::StrCat(__MAC_OS_X_VERSION_MAX_ALLOWED));
+#endif
+}
 
 // FAST set (default, CI, and the README tables): a dense set straddling every
 // dispatch-tier boundary and SSO cutoff so the small-key cliffs are visible -
@@ -396,16 +445,10 @@ int main(int argc, char** argv) {
   mbo::hash::RegisterAll(mbo::hash::algo::AllAlgorithms{});
   benchmark::Initialize(&argc, argv);
   benchmark::AddCustomContext("algos", absl::StrJoin(mbo::hash::algo::GetAlgoNames(), ", "));
-  // The build compiler is a first-class axis of a measurement (GCC vs Clang perf
-  // differs), so record what THIS binary was built with in the dataset context;
-  // the stored bundle's filename is tagged with `compiler` too.
-#if defined(__clang__)
-  benchmark::AddCustomContext("compiler", absl::StrCat("clang-", __clang_major__));
-  benchmark::AddCustomContext("compiler_version", __clang_version__);
-#elif defined(__GNUC__)
-  benchmark::AddCustomContext("compiler", absl::StrCat("gcc-", __GNUC__));
-  benchmark::AddCustomContext("compiler_version", __VERSION__);
-#endif
+  // Record the toolchain that built THIS executable. Compiler choice affects
+  // performance, while the language, standard library, and Apple SDK fields
+  // make the resulting artifact independently auditable.
+  mbo::hash::AddBuildContext();
   // Emit the curated README size subset (kReadmeSizes) so the report tool extracts
   // the small table straight from a FULL dataset - no separate fast run, and no
   // second size list to drift (this C++ list is the single source of truth).

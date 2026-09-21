@@ -203,7 +203,8 @@ is the reproducible build: it clones SMHasher3 at the pinned commit, applies the
 two documented fixes (missing `<cstdlib>` in `lib/AEStest.cpp`; replace
 `-march=native`), and builds it with gcc in a container - matching the
 methodology in `../README.md`. The third-party algorithms are SMHasher3
-built-ins and work immediately.
+built-ins and work immediately. The injected mbo plugin is compiled as C++23,
+matching the language mode used for the same headers in the Bazel build.
 
 The in-house `mumbo`/`jumbo` and `dumbo`, `fambo` are registered by
 `smhasher3/mbohash.cpp`,

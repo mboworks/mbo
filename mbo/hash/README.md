@@ -815,7 +815,7 @@ reads as the compact MUM hash rather than a second tuned one:
   `mbo/hash` headers (so the real implementation is verified, not a
   transcription). `mbo/hash/measurements/build_smhasher3.sh` clones SMHasher3,
   applies the fixes above, installs the plugin + headers, and builds it (the
-  plugin needs C++20). Reproduce all of it with that one script.
+  plugin uses the mbo C++23 baseline). Reproduce all of it with that one script.
 - Full default battery per hash: `./SMHasher3 <name>` (~12 minutes each).
   Full logs are not committed; regenerate as above. Last run (2026-07): all
   three in-house hashes clean - `mumbo-64`/`jumbo-128` and `dumbo-64` PASS

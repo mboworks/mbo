@@ -10,9 +10,9 @@ common:macos --features=-macos_default_link_flags
 common:macos --features=-supports_dynamic_linker
 common:macos --linkopt=-framework --linkopt=CoreFoundation --host_linkopt=-framework --host_linkopt=CoreFoundation
 common:macos --linkopt=-Wl,-undefined,dynamic_lookup --host_linkopt=-Wl,-undefined,dynamic_lookup
-# Earliest arm64 macOS; also clears libc++'s std::filesystem availability gate.
-common:macos --cxxopt=-mmacosx-version-min=11.0 --host_cxxopt=-mmacosx-version-min=11.0
-common:macos --linkopt=-mmacosx-version-min=11.0 --host_linkopt=-mmacosx-version-min=11.0
+# Earliest arm64 macOS. Bazel propagates these settings to apple_support's
+# native target triple and the hermetic LLVM compile and link actions.
+common:macos --macos_minimum_os=11.0 --host_macos_minimum_os=11.0
 # TODO: Drop these Apple linker overrides as soon as the pinned LLVM linker accepts
 # SDK 27's arm64e.x1 target (LLVM PR 222721, after LLVM 23.1.1). Keep this
 # Darwin-only: Linux should continue to use the hermetic LLD toolchain.

@@ -5,8 +5,8 @@ and `StringInterner`. The semantic contracts live in the component design docume
 controls how implementations, experiments, measurements, and pull requests turn those contracts
 into production code.
 
-No implementation pull request merges until its relevant optimized benchmarks have been measured
-on both reference machines:
+Performance-sensitive representation or default choices are not finalized until their relevant
+optimized benchmarks have been measured on both reference machines:
 
 - Apple M5 Pro, macOS arm64, with the repository's supported Clang toolchain;
 - AMD Ryzen 9 9950X (Zen 5), Linux x86-64, with the repository's supported Clang toolchain and GCC
@@ -14,6 +14,11 @@ on both reference machines:
 
 Measurement chooses representations; it does not weaken correctness, lifetime, stability,
 exhaustion, or API guarantees already settled by the design documents.
+
+A correctness- and API-focused implementation may merge with explicitly diagnostic or incomplete
+performance evidence when it does not lock in an unmeasured public tuning choice. Its pull-request
+description must state the evidence gap and the follow-up that will close it. This permits the core
+container dependency chain to land without presenting one-machine data as a cross-platform result.
 
 ## Dependency graph
 
@@ -24,57 +29,59 @@ design and measurement contract
 shared benchmark artifact tooling
              |
              v
-block-source concept and Arena
+block-source concept and SegmentedSequence
              |
-             +-----------------------+
-             |                       |
-             v                       v
-SegmentedSequence              HAMT experiments
-             |                       |
-             |                       v
-             |                selected production HAMT
-             |                       |
-             +-----------+-----------+
-                         |
-                         v
-                   StringInterner
-                         |
-                         v
-             repository-wide CI collection
+             +------------------------+
+             |                        |
+             v                        v
+      Arena and layout        sequence layout/ranges
+             |                        |
+             |                        v
+             |                 HAMT experiments
+             |                        |
+             |                        v
+             |                 production HAMT
+             |                        |
+             +------------+-----------+
+                          |
+                          v
+                    StringInterner
+                          |
+                          v
+              repository-wide CI collection
 ```
 
 `StringInterner` depends on `Arena` and `SegmentedSequence`. It depends on HAMT only if HAMT wins the
 index benchmarks. HAMT remains a general container deliverable even if another index wins for the
 interner.
 
-## Branch and pull-request sequence
+## Pull-request dependency sequence
 
-Each production branch is based on the preceding production branch unless the table explicitly
-marks it as an independent proof. Pull-request descriptions must identify their parent and include
-the required `## AG;DR` detail section.
+Pull-request descriptions must identify their actual parent and include the required `## AG;DR`
+detail section. Branch names and pull-request topology may change as reviewable units are split; the
+durable dependencies are:
 
-| Order | Branch                                 | Deliverable                                             | Base                         | Merge evidence                                      |
-| ----: | -------------------------------------- | ------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
-|     0 | `design/string-interning`              | Contracts, dependency graph, measurement requirements   | `main`                       | Documentation validation                            |
-|     1 | `perf/benchmark-artifacts`             | Shared JSON runner, metadata schema, validation tooling | `design/string-interning`    | Self-tests and example schema validation            |
-|     2 | `feature/arena`                        | Block source adapters and raw byte `Arena`              | `perf/benchmark-artifacts`   | M5 Pro and Zen 5 Arena JSON                         |
-|    2a | `proof/arena-layouts`                  | Pointer/offset and growth candidates                    | `feature/arena`              | Comparative JSON; never merged wholesale            |
-|     3 | `feature/segmented-sequence`           | Production `SegmentedSequence`                          | `feature/arena`              | M5 Pro and Zen 5 sequence JSON                      |
-|    3a | `proof/segmented-sequence-layouts`     | Directory, mapping, reuse, and retention candidates     | `feature/segmented-sequence` | Comparative JSON; selected commits only             |
-|    4a | `proof/hamt-layouts`                   | Fragment, bitmap, collision, ownership candidates       | `feature/arena`              | Comparative JSON; never merged wholesale            |
-|     4 | `feature/hamt`                         | Selected node/flat persistent and transient HAMT        | `feature/segmented-sequence` | M5 Pro and Zen 5 HAMT JSON                          |
-|     5 | `feature/string-interner`              | Arena-backed cascading `StringInterner`                 | `feature/hamt`               | M5 Pro and Zen 5 end-to-end interner JSON           |
-|     6 | `perf/ci-benchmark-collection`         | Optimized CI benchmark artifact collection              | `feature/string-interner`    | CI artifact schema and collection integration tests |
-|     7 | `perf/benchmark-history-and-reporting` | Artifact-store ingestion, comparisons, and chart inputs | previous                     | Fixture history, regression tests, generated charts |
+| Order | Deliverable                                              | Required predecessor                    | Merge evidence                                            |
+| ----: | -------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------- |
+|     0 | Contracts and measurement requirements                   | `main`                                  | Documentation validation                                  |
+|     1 | Shared JSON runner, schema, and validation tooling       | `main`                                  | Self-tests and example schema validation                  |
+|     2 | BlockSource and production `SegmentedSequence`           | Shared benchmark tooling                | Correctness/API tests; performance gaps stated explicitly |
+|    2a | Sequence directory, mapping, reuse, and retention proofs | Production `SegmentedSequence`          | Comparative JSON; selected changes only                   |
+|     3 | Raw byte `Arena` and Arena layout proofs                 | BlockSource and benchmark tooling       | Correctness tests plus evidence for selected defaults     |
+|    4a | HAMT fragment, bitmap, collision, and ownership proofs   | Stable allocation/container foundations | Comparative JSON; selected changes only                   |
+|     4 | Selected persistent and transient HAMT                   | Relevant HAMT proofs                    | M5 Pro and Zen 5 HAMT JSON for selected layout choices    |
+|     5 | Arena-backed cascading `StringInterner`                  | Arena, SegmentedSequence, and HAMT      | M5 Pro and Zen 5 end-to-end interner JSON                 |
+|     6 | Optimized CI benchmark artifact collection               | Production components                   | Artifact schema and collection integration tests          |
+|     7 | Artifact-store ingestion, comparisons, and chart inputs  | CI benchmark collection                 | Fixture history, regression tests, generated charts       |
 
 Proof branches are disposable experimental histories. Their source is not part of the production
 stack unless a measured winner is deliberately implemented or selected into the corresponding
 production branch. Their JSON results remain reviewable evidence.
 
 The production stack may be split further when a reviewable unit becomes too large, but a split
-must preserve this dependency order and must add its own tests, benchmark coverage, and two-machine
-evidence before merge. The active pull-request graph is kept small enough to avoid wasting CI on
-heads made obsolete by a parent update.
+must preserve this dependency order and add its own tests and benchmark coverage. Two-machine
+evidence is mandatory before a split finalizes a performance-sensitive representation or default;
+an earlier correctness/API split records incomplete evidence and its concrete follow-up instead.
 
 ## Measurement artifact contract
 
@@ -175,8 +182,9 @@ An implementation pull request is not merge-ready until all of the following are
 1. The implementation and user-visible options match the relevant design contract.
 2. Unit, constexpr, bounded-capacity, failure, sanitizer, and documentation tests pass.
 3. Benchmarks cover every representation or option selected by that pull request.
-4. Raw JSON from the M5 Pro and Zen 5 machines is attached or checked in and validates against the
-   shared schema.
+4. A pull request that finalizes a performance-sensitive representation or default includes raw,
+   schema-valid JSON from the M5 Pro and Zen 5 machines. An earlier correctness/API pull request
+   identifies its diagnostic evidence, missing reference-machine evidence, and follow-up instead.
 5. The pull-request description identifies the compared commit SHAs and summarizes statistically
    meaningful results without discarding regressions.
 6. The selected implementation is not materially worse on an important workload without a stated,

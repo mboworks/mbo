@@ -332,13 +332,13 @@ The following interfaces are candidates and may coexist as adapters over one imp
 | Invalid `StringId` sentinel  | Success/failure only         | Smallest and fastest hot-path result |
 | `std::optional<StringId>`    | Success/failure only         | Conventional non-throwing API        |
 | `absl::StatusOr<StringId>`   | Detailed failure             | Existing mbo/Abseil callers          |
-| `std::expected<StringId, E>` | Typed detailed failure       | C++23 configuration                  |
+| `std::expected<StringId, E>` | Typed detailed failure       | C++23 callers                        |
 | Exception                    | Detailed out-of-band failure | Explicit throwing adapter only       |
 
-The baseline remains C++20, so `std::expected` cannot be the only public mechanism. Exceptions
-should not be the primary interface for a latency-sensitive container and must remain optional for
-builds with exceptions disabled. Successful-hit and successful-insert performance, result size,
-generated code, and failure behavior should be measured for each serious candidate.
+The C++23 baseline makes `std::expected` available, but it need not be the only public mechanism.
+Exceptions should not be the primary interface for a latency-sensitive container and must remain
+optional for builds with exceptions disabled. Successful-hit and successful-insert performance,
+result size, generated code, and failure behavior should be measured for each serious candidate.
 
 ## Candidate operations
 
@@ -454,25 +454,11 @@ The version-one semantic contract has no remaining open questions. Measurements 
   offset width;
 - whether a later owning-`std::string` backend has a meaningful winning workload.
 
-## Final language-baseline decision
+## Language baseline
 
-After the container, arena, and interner contracts and prototypes are understood, the project must
-make an explicit C++20-versus-C++23 baseline decision. The decision is based on implementation
-simplicity, generated code, compiler support, and consumer cost. The following WG21 papers provide
-the concrete C++23 case:
-
-| Paper                                | Facility                                       | Potential relevance                                      |
-| ------------------------------------ | ---------------------------------------------- | -------------------------------------------------------- |
-| [P2647R1](https://wg21.link/P2647R1) | Static `constexpr` variables in constexpr code | Compile-time policy tables and segment boundaries        |
-| [P2589R1](https://wg21.link/P2589R1) | Static `operator[]`                            | Stateless indexed policy/function objects                |
-| [P1169R4](https://wg21.link/P1169R4) | Static `operator()`                            | Stateless hash, growth, and mapping policy objects       |
-| [P2448R2](https://wg21.link/P2448R2) | Relaxed constexpr restrictions                 | Fewer artificial splits between runtime/constexpr paths  |
-| [P2173R1](https://wg21.link/P2173R1) | Attributes on lambda expressions               | Better attributes on generated/local policy callables    |
-| [P0847R7](https://wg21.link/P0847R7) | Explicit object parameter (`deducing this`)    | Fewer duplicated cv/ref accessors and CRTP-style helpers |
-| [P2797R0](https://wg21.link/P2797R0) | Static/explicit-object wording resolution      | Clearer interaction of static and explicit-object APIs   |
-| [P2201R1](https://wg21.link/P2201R1) | Mixed string-literal concatenation             | Cleaner compile-time string diagnostics and metadata     |
-| [P1938R3](https://wg21.link/P1938R3) | `if consteval`                                 | Direct runtime/constant-evaluation path selection        |
-
-No paper is sufficient by itself. Before raising the baseline, prototypes must show which features
-remove real complexity or improve results, and the supported GCC/Clang/Bazel matrix must compile
-and test those exact uses.
+The repository targets C++23 with its supported GCC and Clang toolchains. The implementation may
+use C++23 facilities such as `std::expected`, static call/index operators, `if consteval`, and the
+relaxed constexpr rules where they materially simplify the code or API. Their availability is not
+by itself a reason to expose a facility or add an abstraction: selected uses still require focused
+tests on the supported compiler matrix and a concrete readability, correctness, or generated-code
+benefit.

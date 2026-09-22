@@ -22,9 +22,9 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-[`SegmentedSequence`](../container/SEGMENTED_SEQUENCE.md) and the
-[`Arena`](../memory/ARENA.md) are prerequisite components. Each must be implemented and benchmarked
-independently before selecting the interner's default composition.
+The planned `SegmentedSequence` and `Arena` are prerequisite components. Their contracts and
+implementations land independently before the interner selects a default composition; this design
+does not depend on those files already existing on its base branch.
 
 ## Core model
 

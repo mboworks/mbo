@@ -29,26 +29,23 @@ design and measurement contract
 shared benchmark artifact tooling
              |
              v
-block-source concept and SegmentedSequence
+      block-source concept
              |
-             +------------------------+
-             |                        |
-             v                        v
-      Arena and layout        sequence layout/ranges
-             |                        |
-             |                        v
-             |                 HAMT experiments
-             |                        |
-             |                        v
-             |                 production HAMT
-             |                        |
-             +------------+-----------+
-                          |
-                          v
-                    StringInterner
-                          |
-                          v
-              repository-wide CI collection
+             +----------------------+----------------------+
+             |                      |                      |
+             v                      v                      v
+  SegmentedSequence         Arena and layouts      HAMT experiments
+             |                                             |
+             v                                             v
+ sequence layout/ranges                             production HAMT
+             |                      |                      |
+             +----------------------+----------------------+
+                                    |
+                                    v
+                              StringInterner
+                                    |
+                                    v
+                        repository-wide CI collection
 ```
 
 `StringInterner` depends on `Arena` and `SegmentedSequence`. It depends on HAMT only if HAMT wins the
@@ -61,18 +58,18 @@ Pull-request descriptions must identify their actual parent and include the requ
 detail section. Branch names and pull-request topology may change as reviewable units are split; the
 durable dependencies are:
 
-| Order | Deliverable                                              | Required predecessor                    | Merge evidence                                            |
-| ----: | -------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------- |
-|     0 | Contracts and measurement requirements                   | `main`                                  | Documentation validation                                  |
-|     1 | Shared JSON runner, schema, and validation tooling       | `main`                                  | Self-tests and example schema validation                  |
-|     2 | BlockSource and production `SegmentedSequence`           | Shared benchmark tooling                | Correctness/API tests; performance gaps stated explicitly |
-|    2a | Sequence directory, mapping, reuse, and retention proofs | Production `SegmentedSequence`          | Comparative JSON; selected changes only                   |
-|     3 | Raw byte `Arena` and Arena layout proofs                 | BlockSource and benchmark tooling       | Correctness tests plus evidence for selected defaults     |
-|    4a | HAMT fragment, bitmap, collision, and ownership proofs   | Stable allocation/container foundations | Comparative JSON; selected changes only                   |
-|     4 | Selected persistent and transient HAMT                   | Relevant HAMT proofs                    | M5 Pro and Zen 5 HAMT JSON for selected layout choices    |
-|     5 | Arena-backed cascading `StringInterner`                  | Arena, SegmentedSequence, and HAMT      | M5 Pro and Zen 5 end-to-end interner JSON                 |
-|     6 | Optimized CI benchmark artifact collection               | Production components                   | Artifact schema and collection integration tests          |
-|     7 | Artifact-store ingestion, comparisons, and chart inputs  | CI benchmark collection                 | Fixture history, regression tests, generated charts       |
+| Order | Deliverable                                              | Required predecessor                     | Merge evidence                                            |
+| ----: | -------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------- |
+|     0 | Contracts and measurement requirements                   | `main`                                   | Documentation validation                                  |
+|     1 | Shared JSON runner, schema, and validation tooling       | `main`                                   | Self-tests and example schema validation                  |
+|     2 | BlockSource and production `SegmentedSequence`           | Shared benchmark tooling                 | Correctness/API tests; performance gaps stated explicitly |
+|    2a | Sequence directory, mapping, reuse, and retention proofs | Production `SegmentedSequence`           | Comparative JSON; selected changes only                   |
+|     3 | Raw byte `Arena` and Arena layout proofs                 | BlockSource and benchmark tooling        | Correctness tests plus evidence for selected defaults     |
+|    4a | HAMT fragment, bitmap, collision, and ownership proofs   | Stable allocation/container foundations  | Comparative JSON; selected changes only                   |
+|     4 | Selected persistent and transient HAMT                   | Relevant HAMT proofs                     | M5 Pro and Zen 5 HAMT JSON for selected layout choices    |
+|     5 | Arena-backed cascading `StringInterner`                  | Arena, SegmentedSequence, selected index | M5 Pro and Zen 5 end-to-end interner JSON                 |
+|     6 | Optimized CI benchmark artifact collection               | Production components                    | Artifact schema and collection integration tests          |
+|     7 | Artifact-store ingestion, comparisons, and chart inputs  | CI benchmark collection                  | Fixture history, regression tests, generated charts       |
 
 Proof branches are disposable experimental histories. Their source is not part of the production
 stack unless a measured winner is deliberately implemented or selected into the corresponding

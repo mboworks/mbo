@@ -54,14 +54,14 @@ repos:
         # `ND` is the Myers complexity term, `abd` is deliberate hash input,
         # `FileTest` is a GoogleTest fixture type, and `whats` is byte-exact
         # input from the official BLAKE3 test vectors.
-        args: ["--ignore-words-list=abd,filetest,nd,whats"]
+        args: ["--ignore-words-list=abd,filetest,hart,nd,whats"]
       - id: codespell
         name: codespell C++ templates
         # `.mope` is a project-specific C++ template extension, so identify
         # that source explicitly while standard files use pre-commit types.
         files: "[.]mope$"
         types: [text]
-        args: ["--ignore-words-list=abd,filetest,nd,whats"]
+        args: ["--ignore-words-list=abd,filetest,hart,nd,whats"]
 
   - repo: local
     hooks:

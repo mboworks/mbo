@@ -54,7 +54,7 @@ struct MalformedBlockSource final {
 
   Result result = Result::kNullData;
   int* releases = nullptr;
-  alignas(128) std::array<std::byte, 4'096> storage{};
+  std::byte* storage = nullptr;
 
   static constexpr std::size_t max_alignment() noexcept { return 128; }
 
@@ -63,12 +63,12 @@ struct MalformedBlockSource final {
       return mbo::memory::MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
     }
     if (result == Result::kShortBlock) {
-      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size - 1, .alignment = alignment};
+      return mbo::memory::MemoryBlock{.data = storage, .size = size - 1, .alignment = alignment};
     }
     if (result == Result::kWeakAlignment) {
-      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size, .alignment = 1};
+      return mbo::memory::MemoryBlock{.data = storage, .size = size, .alignment = 1};
     }
-    return mbo::memory::MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
+    return mbo::memory::MemoryBlock{.data = storage + 1, .size = size, .alignment = alignment};
   }
 
   void Release(mbo::memory::MemoryBlock /*unused*/) const noexcept { ++*releases; }
@@ -914,12 +914,14 @@ TEST_F(SegmentedSequenceTest, TryAppendRejectsEveryMalformedSourceBlock) {
       MalformedBlockSource::Result::kWeakAlignment,
       MalformedBlockSource::Result::kMisalignedData,
   };
+  alignas(128) std::array<std::byte, 4'096> storage{};
   for (const auto result : kResults) {
     int releases = 0;
     SegmentedSequence<int, kOneSegment, MalformedBlockSource> sequence(
         MalformedBlockSource{
             .result = result,
             .releases = &releases,
+            .storage = storage.data(),
         });
 
     EXPECT_THAT(sequence.try_push_back(1), Eq(std::nullopt));

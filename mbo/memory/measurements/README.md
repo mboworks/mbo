@@ -1,13 +1,15 @@
 # mbo/memory measurements
 
 This directory contains the raw, attributable evidence used to select and tune `mbo::memory::Arena`.
-The methodology inherits the repository-wide artifact contract in
-[`INTERNING_IMPLEMENTATION.md`](../../strings/INTERNING_IMPLEMENTATION.md) and the statistical
-precautions established by [`mbo/hash/measurements`](../../hash/measurements/README.md).
+Artifacts use the repository's [`benchmark_artifact.py`](../../../tools/benchmark_artifact.py)
+runner and the statistical precautions established by
+[`mbo/hash/measurements`](../../hash/measurements/README.md).
 
 Arena results are not publication decoration. They decide block growth, descriptor layout,
-retention, and default source choices. Every selected representation must have comparable JSON from
-the Apple M5 Pro and AMD Zen 5 reference machines before the implementation PR merges.
+retention, and default source choices. Every performance-sensitive representation or default needs
+comparable JSON from the Apple M5 Pro and AMD Zen 5 reference machines before that choice is
+finalized. Correctness/API work can merge with an explicit evidence gap and follow-up when it does
+not lock in an unmeasured tuning choice.
 
 ## Layout
 
@@ -142,6 +144,11 @@ It records a clean `c913ba9ae` tree, Apple M5 Pro, Clang 22.1.8, C++20, Bazel 9.
 interleaving, one-second warmup and minimum time, a 333.58-second run, and load averages
 1.70/1.65/2.39. Times below are CPU nanoseconds per 16,384-operation workload. `Fast 3` is the mean
 of the three fastest raw repetitions; standard deviation and CV use all nine.
+
+That C++20 language mode is historical provenance, not the current C++23 build contract. New runs
+must report and validate their actual compiler, `__cplusplus`, requested language mode, standard
+library, platform version details, and Bazel release. The schema-v1 validator continues to accept
+the immutable historical artifacts above.
 
 ### Growth
 

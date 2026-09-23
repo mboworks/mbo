@@ -63,6 +63,14 @@ TEST_F(BlockSourceTest, FixedSourceRejectsUnsupportedRequestsWithoutConsumption)
   EXPECT_THAT(source.TryAcquire(64, 16), Optional(_));
 }
 
+TEST_F(BlockSourceTest, FixedSourceRejectsMisalignedStorageWithoutConsumption) {
+  alignas(16) std::array<std::byte, 65> storage{};
+  FixedBlockSource source(std::span<std::byte>(storage).subspan(1), 16);
+
+  EXPECT_THAT(source.TryAcquire(1, 16), Eq(std::nullopt));
+  EXPECT_THAT(source.TryAcquire(1, 1), Optional(_));
+}
+
 TEST_F(BlockSourceTest, NewDeleteSourceRejectsInvalidRequests) {
   EXPECT_THAT(NewDeleteBlockSource::TryAcquire(0, 1), Eq(std::nullopt));
   EXPECT_THAT(NewDeleteBlockSource::TryAcquire(1, 0), Eq(std::nullopt));
@@ -109,6 +117,17 @@ TEST_F(BlockSourceTest, AllocatorSourceRoundsStorageToItsValueSize) {
   source.Release(acquired);
   const auto& const_source = source;
   EXPECT_THAT(&const_source.allocator(), Eq(&source.allocator()));
+}
+
+TEST_F(BlockSourceTest, AllocatorSourcePreservesExactValueSize) {
+  AllocatorBlockSource source;
+
+  auto block = source.TryAcquire(sizeof(std::max_align_t), alignof(std::max_align_t));
+
+  ASSERT_THAT(block, Optional(_));
+  const auto acquired = block.value_or(MemoryBlock{});
+  EXPECT_THAT(acquired.size, Eq(sizeof(std::max_align_t)));
+  source.Release(acquired);
 }
 
 TEST_F(BlockSourceTest, AllocatorSourceRejectsInvalidRequestsAndReportsFailure) {

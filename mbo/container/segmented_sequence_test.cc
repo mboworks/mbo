@@ -299,6 +299,11 @@ static_assert(!std::is_copy_assignable_v<PropagatingCopySequence>);
 
 struct SegmentedSequenceTest : ::testing::Test {};
 
+template<typename T>
+void MoveAssignForTest(T& destination, T& source) {
+  destination = std::move(source);
+}
+
 TEST_F(SegmentedSequenceTest, OptionsRequirePowerOfTwoSegmentSizeAndFiniteCapacity) {
   SegmentedSequenceOptions options;
   EXPECT_THAT(options.IsValid(), Eq(true));
@@ -322,6 +327,12 @@ TEST_F(SegmentedSequenceTest, OptionsRequirePowerOfTwoSegmentSizeAndFiniteCapaci
   EXPECT_THAT(options.IsValid(), Eq(true));
   options.segment_capacity = std::numeric_limits<std::size_t>::max();
   EXPECT_THAT(options.IsValid(), Eq(true));
+}
+
+TEST_F(SegmentedSequenceTest, ByteRepresentationCapacityUsesIteratorDifferenceLimit) {
+  EXPECT_THAT(
+      container_internal::SegmentedSequenceRepresentationCapacityLimit<char>(),
+      Eq(static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())));
 }
 
 TEST_F(SegmentedSequenceTest, GrowsAcrossFixedCapacitySegments) {
@@ -531,6 +542,56 @@ TEST_F(SegmentedSequenceTest, MoveAssignmentPreservesUnequalNonpropagatingDirect
   EXPECT_THAT(source, IsEmpty());
 }
 
+TEST_F(SegmentedSequenceTest, SelfMoveAssignmentPreservesElementsAndAddresses) {
+  IntSequence sequence;
+  sequence.push_back(1);
+  int* const first = std::addressof(sequence.front());
+
+  MoveAssignForTest(sequence, sequence);
+
+  EXPECT_THAT(sequence, ElementsAre(1));
+  EXPECT_THAT(std::addressof(sequence.front()), Eq(first));
+}
+
+TEST_F(SegmentedSequenceTest, MoveAssignmentTransfersWhenDirectoryAllocatorsCompareEqual) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence destination(std::allocator_arg, Allocator(&state, 1));
+  destination.push_back(9);
+  Sequence source(std::allocator_arg, Allocator(&state, 1));
+  source.push_back(1);
+  int* const first = std::addressof(source.front());
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination, ElementsAre(1));
+  EXPECT_THAT(std::addressof(destination.front()), Eq(first));
+  EXPECT_THAT(destination.get_allocator().id, Eq(1));
+}
+
+TEST_F(SegmentedSequenceTest, UnequalMoveAssignmentGrowsReplacementDirectoryBeyondReservation) {
+  constexpr SegmentedSequenceOptions kReservedOne{
+      .segment_size = 2,
+      .segment_capacity = 8,
+      .segment_reservation = 1,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kReservedOne, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence destination(std::allocator_arg, Allocator(&state, 1));
+  Sequence source(std::allocator_arg, Allocator(&state, 2));
+  source.push_back(1);
+  source.push_back(2);
+  source.push_back(3);
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination, ElementsAre(1, 2, 3));
+  EXPECT_THAT(destination.segment_count(), Eq(2));
+  EXPECT_THAT(destination.get_allocator().id, Eq(1));
+}
+
 TEST_F(SegmentedSequenceTest, SwapPreservesUnequalNonpropagatingDirectoryAllocators) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
   using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
@@ -552,6 +613,33 @@ TEST_F(SegmentedSequenceTest, SwapPreservesUnequalNonpropagatingDirectoryAllocat
   EXPECT_THAT(rhs, ElementsAre(1));
   EXPECT_THAT(std::addressof(lhs.front()), Eq(rhs_first));
   EXPECT_THAT(std::addressof(rhs.front()), Eq(lhs_first));
+  EXPECT_THAT(lhs.get_allocator().id, Eq(1));
+  EXPECT_THAT(rhs.get_allocator().id, Eq(2));
+}
+
+TEST_F(SegmentedSequenceTest, UnequalSwapGrowsReplacementDirectoriesBeyondReservation) {
+  constexpr SegmentedSequenceOptions kReservedOne{
+      .segment_size = 2,
+      .segment_capacity = 8,
+      .segment_reservation = 1,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kReservedOne, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence lhs(std::allocator_arg, Allocator(&state, 1));
+  lhs.push_back(1);
+  lhs.push_back(2);
+  lhs.push_back(3);
+  Sequence rhs(std::allocator_arg, Allocator(&state, 2));
+  rhs.push_back(4);
+  rhs.push_back(5);
+  rhs.push_back(6);
+
+  using std::swap;
+  swap(lhs, rhs);
+
+  EXPECT_THAT(lhs, ElementsAre(4, 5, 6));
+  EXPECT_THAT(rhs, ElementsAre(1, 2, 3));
   EXPECT_THAT(lhs.get_allocator().id, Eq(1));
   EXPECT_THAT(rhs.get_allocator().id, Eq(2));
 }

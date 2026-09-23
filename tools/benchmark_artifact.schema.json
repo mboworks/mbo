@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mboworks.github.io/mbo/schema/benchmark-artifact-v1.json",
+  "title": "mbo benchmark artifact",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "component",
+    "git",
+    "source_relation",
+    "host",
+    "toolchain",
+    "build",
+    "timing",
+    "controls",
+    "validity",
+    "provenance",
+    "google_benchmark",
+    "content_sha256"
+  ],
+  "properties": {
+    "schema": { "const": "dev.mboworks.benchmark-artifact" },
+    "schema_version": { "const": 1 },
+    "component": { "type": "string", "minLength": 1 },
+    "git": { "type": "object" },
+    "source_relation": { "type": "object" },
+    "host": { "type": "object" },
+    "toolchain": { "type": "object" },
+    "build": { "type": "object" },
+    "timing": { "type": "object" },
+    "controls": { "type": "object" },
+    "validity": { "type": "object" },
+    "provenance": { "type": "object" },
+    "google_benchmark": { "type": "object" },
+    "content_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}

@@ -35,6 +35,9 @@
       "log": {
         "include": ["mbo/log/**"]
       },
+      "memory": {
+        "include": ["mbo/memory/**"]
+      },
       "mope": {
         "include": ["mbo/mope/**"]
       },
@@ -204,6 +207,23 @@
         "covered": 74,
         "total": 82,
         "percent": 90.24
+      }
+    },
+    "memory": {
+      "lines": {
+        "covered": 87,
+        "total": 90,
+        "percent": 96.67
+      },
+      "functions": {
+        "covered": 22,
+        "total": 23,
+        "percent": 95.65
+      },
+      "branches": {
+        "covered": 60,
+        "total": 62,
+        "percent": 96.77
       }
     },
     "mope": {

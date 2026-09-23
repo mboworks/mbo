@@ -4,13 +4,20 @@
 #include "mbo/container/segmented_sequence.h"
 
 #include <array>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <memory_resource>
 #include <ranges>
 #include <span>
+#include <sstream>
 #include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -67,11 +74,58 @@ struct MalformedBlockSource final {
   void Release(mbo::memory::MemoryBlock /*unused*/) const noexcept { ++*releases; }
 };
 
+struct ThrowingDestructor final {
+  ~ThrowingDestructor() noexcept(false) {}
+};
+
+struct alignas(128) OverAlignedElement final {
+  explicit OverAlignedElement(int value) : value(value) {}
+
+  int value;
+};
+
+struct LargeElement final {
+  std::array<std::byte, 1'024> bytes{};
+};
+
+struct IncompleteElement;
+
 // NOLINTEND(readability-identifier-naming)
 
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
 static_assert(!std::ranges::contiguous_range<IntSequence>);
+static_assert(std::equality_comparable_with<IntSequence::iterator, IntSequence::const_iterator>);
+static_assert(std::sized_sentinel_for<IntSequence::iterator, IntSequence::const_iterator>);
+static_assert(std::sized_sentinel_for<IntSequence::const_iterator, IntSequence::iterator>);
+static_assert(SegmentedSequenceElement<int>);
+static_assert(!SegmentedSequenceElement<const int>);
+static_assert(!SegmentedSequenceElement<volatile int>);
+static_assert(!SegmentedSequenceElement<int[2]>);
+static_assert(!SegmentedSequenceElement<ThrowingDestructor>);
+static_assert(!SegmentedSequenceElement<void>);
+static_assert(!SegmentedSequenceElement<IncompleteElement>);
+
+constexpr SegmentedSequenceOptions kUnlimitedOneElementSegments{
+    .segment_capacities = {1},
+    .listed_capacities = 1,
+};
+using UnlimitedIntSequence = SegmentedSequence<int, kUnlimitedOneElementSegments>;
+using UnlimitedLargeSequence = SegmentedSequence<LargeElement, kUnlimitedOneElementSegments>;
+constexpr std::size_t kIteratorLimit = static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
+constexpr std::size_t kIntObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(int);
+constexpr std::size_t kLargeObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(LargeElement);
+static_assert(
+    UnlimitedIntSequence::max_size() == (kIteratorLimit < kIntObjectLimit ? kIteratorLimit : kIntObjectLimit));
+static_assert(
+    UnlimitedLargeSequence::max_size() == (kIteratorLimit < kLargeObjectLimit ? kIteratorLimit : kLargeObjectLimit));
+
+template<typename Sequence, typename... Args>
+concept CanEmplaceBack =
+    requires(Sequence& sequence, Args&&... args) { sequence.emplace_back(std::forward<Args>(args)...); };
+
+static_assert(CanEmplaceBack<IntSequence, int>);
+static_assert(!CanEmplaceBack<IntSequence, std::string>);
 
 struct SegmentedSequenceTest : ::testing::Test {};
 
@@ -101,7 +155,7 @@ TEST_F(SegmentedSequenceTest, GrowsAcrossListedAndRepeatedSegments) {
   }
 
   EXPECT_THAT(sequence, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
-  EXPECT_THAT(sequence.size(), Eq(10));
+  EXPECT_THAT(sequence, SizeIs(10));
   EXPECT_THAT(sequence.capacity(), Eq(11));
   EXPECT_THAT(sequence.front(), Eq(0));
   EXPECT_THAT(sequence.back(), Eq(9));
@@ -176,6 +230,82 @@ TEST_F(SegmentedSequenceTest, IteratorsAreDenseRandomAccess) {
   EXPECT_THAT(*(--iterator), Eq(0));
   EXPECT_THAT(*(3 + iterator), Eq(3));
   EXPECT_THAT(std::ranges::reverse_view(sequence), ElementsAre(7, 6, 5, 4, 3, 2, 1, 0));
+
+  IntSequence::const_iterator const_iterator = sequence.begin();
+  EXPECT_THAT(const_iterator, Eq(sequence.begin()));
+  EXPECT_THAT(sequence.end() - const_iterator, Eq(8));
+  EXPECT_THAT(const_iterator - sequence.end(), Eq(-8));
+}
+
+TEST_F(SegmentedSequenceTest, ConstructsFromIteratorsAndAppendsSizedRange) {
+  const std::array initial = {1, 2, 3};
+  IntSequence sequence(initial.begin(), initial.end());
+  const std::array suffix = {4, 5};
+  sequence.append_range(suffix);
+
+  EXPECT_THAT(sequence, ElementsAre(1, 2, 3, 4, 5));
+}
+
+TEST_F(SegmentedSequenceTest, AppendsAliasedSelfRange) {
+  const std::array initial = {1, 2, 3};
+  IntSequence sequence(std::from_range, initial);
+
+  sequence.append_range(sequence);
+
+  EXPECT_THAT(sequence, ElementsAre(1, 2, 3, 1, 2, 3));
+}
+
+TEST_F(SegmentedSequenceTest, AppendsSinglePassRange) {
+  IntSequence sequence;
+  std::istringstream input("6 7");
+
+  sequence.append_range(std::ranges::istream_view<int>(input));
+
+  EXPECT_THAT(sequence, ElementsAre(6, 7));
+}
+
+TEST_F(SegmentedSequenceTest, FromRangeMovesElements) {
+  std::vector<std::unique_ptr<int>> pointers;
+  pointers.push_back(std::make_unique<int>(8));
+  pointers.push_back(std::make_unique<int>(9));
+  using PointerSequence = SegmentedSequence<std::unique_ptr<int>, kSmallSegments>;
+  PointerSequence moved(
+      std::from_range,
+      std::ranges::subrange(std::make_move_iterator(pointers.begin()), std::make_move_iterator(pointers.end())));
+  ASSERT_THAT(moved, SizeIs(2));
+  EXPECT_THAT(*moved[0], Eq(8));
+  EXPECT_THAT(*moved[1], Eq(9));
+  EXPECT_THAT(pointers[0], Eq(nullptr));
+  EXPECT_THAT(pointers[1], Eq(nullptr));
+}
+
+TEST_F(SegmentedSequenceTest, FromRangeAcceptsCallerOwnedSource) {
+  constexpr SegmentedSequenceOptions kFixedOptions{
+      .segment_capacities = {2},
+      .listed_capacities = 1,
+      .repeat_last = false,
+      .maximum_size = 2,
+  };
+  alignas(int) std::array<std::byte, 2 * sizeof(int)> storage{};
+  const std::array values = {1, 2};
+  SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource> sequence(
+      std::from_range, values, mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+
+  EXPECT_THAT(sequence, ElementsAre(1, 2));
+}
+
+TEST_F(SegmentedSequenceTest, FromRangeDefaultConstructsImmovableInlineSource) {
+  constexpr SegmentedSequenceOptions kFixedOptions{
+      .segment_capacities = {2},
+      .listed_capacities = 1,
+      .repeat_last = false,
+      .maximum_size = 2,
+  };
+  const std::array values = {1, 2};
+  using InlineSequence =
+      SegmentedSequence<int, kFixedOptions, mbo::memory::InlineBlockSource<2 * sizeof(int), alignof(int)>>;
+  InlineSequence inline_sequence(std::from_range, values);
+  EXPECT_THAT(inline_sequence, ElementsAre(1, 2));
 }
 
 TEST_F(SegmentedSequenceTest, SegmentSpansExposeOnlyConstructedPrefixes) {
@@ -270,6 +400,61 @@ TEST_F(SegmentedSequenceTest, ResizeConstructsAndDestroysSuffix) {
   EXPECT_THAT(sequence, ElementsAre(42, 42));
 }
 
+TEST_F(SegmentedSequenceTest, OverAlignedElementsRemainAlignedAcrossRetainedStorageReuse) {
+  constexpr SegmentedSequenceOptions kOneElementSegment{
+      .segment_capacities = {1},
+      .listed_capacities = 1,
+      .repeat_last = true,
+      .maximum_size = 2,
+  };
+  SegmentedSequence<OverAlignedElement, kOneElementSegment> sequence;
+  OverAlignedElement* const first = std::addressof(sequence.emplace_back(1));
+  EXPECT_THAT(reinterpret_cast<std::uintptr_t>(first) % alignof(OverAlignedElement), Eq(0));
+
+  sequence.clear();
+  OverAlignedElement* const reused = std::addressof(sequence.emplace_back(2));
+  EXPECT_THAT(reused, Eq(first));
+  EXPECT_THAT(reused->value, Eq(2));
+}
+
+TEST_F(SegmentedSequenceTest, ReacquiredSourcesRestartArrayLifetime) {
+  constexpr SegmentedSequenceOptions kTwoElements{
+      .segment_capacities = {2},
+      .listed_capacities = 1,
+      .repeat_last = false,
+      .maximum_size = 2,
+  };
+  alignas(double) std::array<std::byte, 2 * sizeof(double)> fixed_storage{};
+  {
+    SegmentedSequence<int, kTwoElements, mbo::memory::FixedBlockSource> integers(
+        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), alignof(double)));
+    integers.emplace_back(1);
+    integers.emplace_back(2);
+    EXPECT_THAT(integers, ElementsAre(1, 2));
+  }
+  {
+    SegmentedSequence<double, kTwoElements, mbo::memory::FixedBlockSource> doubles(
+        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), alignof(double)));
+    doubles.emplace_back(1.5);
+    doubles.emplace_back(2.5);
+    EXPECT_THAT(doubles, ElementsAre(1.5, 2.5));
+  }
+
+  using InlineSequence =
+      SegmentedSequence<int, kTwoElements, mbo::memory::InlineBlockSource<2 * sizeof(int), alignof(int)>>;
+  InlineSequence inline_sequence;
+  int* const first_inline_address = std::addressof(inline_sequence.emplace_back(3));
+  inline_sequence.release();
+  EXPECT_THAT(std::addressof(inline_sequence.emplace_back(4)), Eq(first_inline_address));
+
+  using AllocatorSequence = SegmentedSequence<int, kTwoElements, mbo::memory::AllocatorBlockSource<>>;
+  AllocatorSequence allocator_sequence;
+  allocator_sequence.emplace_back(5);
+  allocator_sequence.release();
+  allocator_sequence.emplace_back(6);
+  EXPECT_THAT(allocator_sequence, ElementsAre(6));
+}
+
 TEST_F(SegmentedSequenceTest, PmrBackedCopyUsesTheSameResource) {
   std::pmr::monotonic_buffer_resource resource;
   using PmrSequence = SegmentedSequence<int, kSmallSegments, mbo::memory::PmrBlockSource>;
@@ -298,10 +483,11 @@ TEST_F(SegmentedSequenceTest, TryAppendRejectsEveryMalformedSourceBlock) {
   };
   for (const auto result : kResults) {
     int releases = 0;
-    SegmentedSequence<int, kOneSegment, MalformedBlockSource> sequence(MalformedBlockSource{
-        .result = result,
-        .releases = &releases,
-    });
+    SegmentedSequence<int, kOneSegment, MalformedBlockSource> sequence(
+        MalformedBlockSource{
+            .result = result,
+            .releases = &releases,
+        });
 
     EXPECT_THAT(sequence.try_push_back(1), Eq(std::nullopt));
     EXPECT_THAT(sequence, IsEmpty());

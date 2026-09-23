@@ -14,7 +14,9 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -57,8 +59,12 @@ struct SegmentedSequenceOptions final {
 template<SegmentedSequenceOptions Options>
 concept ValidSegmentedSequenceOptions = Options.IsValid();
 
+template<typename T>
+concept SegmentedSequenceElement = std::is_object_v<T> && !std::is_array_v<T> && std::same_as<T, std::remove_cv_t<T>>
+                                   && requires { sizeof(T); } && std::destructible<T>;
+
 template<
-    typename T,
+    SegmentedSequenceElement T,
     SegmentedSequenceOptions Options = {},
     mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource>
 requires ValidSegmentedSequenceOptions<Options>
@@ -254,7 +260,69 @@ class SegmentedSequence final {
   constexpr SegmentedSequence() noexcept(std::is_nothrow_default_constructible_v<Source>) = default;
 
   constexpr explicit SegmentedSequence(Source source) noexcept(std::is_nothrow_move_constructible_v<Source>)
+  requires std::constructible_from<Source, Source&&>
       : source_(std::move(source)) {}
+
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires(std::default_initializable<Source> && std::constructible_from<T, std::iter_reference_t<Iterator>>)
+  constexpr SegmentedSequence(Iterator first, Sentinel last) {
+#if __cpp_exceptions
+    try {
+#endif
+      AppendIteratorRange(first, last);
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires(std::constructible_from<T, std::iter_reference_t<Iterator>> && std::constructible_from<Source, Source &&>)
+  constexpr SegmentedSequence(Iterator first, Sentinel last, Source source) : source_(std::move(source)) {
+#if __cpp_exceptions
+    try {
+#endif
+      AppendIteratorRange(first, last);
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::ranges::input_range Range>
+  requires(std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>)
+  constexpr SegmentedSequence(std::from_range_t, Range&& range) {
+#if __cpp_exceptions
+    try {
+#endif
+      append_range(std::forward<Range>(range));
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::ranges::input_range Range>
+  requires(
+      std::constructible_from<T, std::ranges::range_reference_t<Range>> && std::constructible_from<Source, Source &&>)
+  constexpr SegmentedSequence(std::from_range_t, Range&& range, Source source) : source_(std::move(source)) {
+#if __cpp_exceptions
+    try {
+#endif
+      append_range(std::forward<Range>(range));
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
 
   constexpr SegmentedSequence(const SegmentedSequence& other)
   requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
@@ -277,8 +345,7 @@ class SegmentedSequence final {
   constexpr SegmentedSequence& operator=(const SegmentedSequence& other)
   requires(
       std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>
-      && std::is_nothrow_swappable_v<Source>)
-  {
+      && std::is_nothrow_swappable_v<Source>) {
     if (this != &other) {
       SegmentedSequence copy(other);
       swap(copy);
@@ -298,8 +365,7 @@ class SegmentedSequence final {
   }
 
   constexpr SegmentedSequence& operator=(SegmentedSequence&& other) noexcept(std::is_nothrow_move_assignable_v<Source>)
-  requires std::is_move_assignable_v<Source>
-  {
+  requires std::is_move_assignable_v<Source> {
     if (this != &other) {
       release();
       source_ = std::move(other.source_);
@@ -316,8 +382,7 @@ class SegmentedSequence final {
   constexpr ~SegmentedSequence() { release(); }
 
   constexpr void swap(SegmentedSequence& other) noexcept
-  requires std::is_nothrow_swappable_v<Source>
-  {
+  requires std::is_nothrow_swappable_v<Source> {
     using std::swap;
     swap(source_, other.source_);
     swap(segments_, other.segments_);
@@ -326,8 +391,7 @@ class SegmentedSequence final {
   }
 
   friend constexpr void swap(SegmentedSequence& lhs, SegmentedSequence& rhs) noexcept
-  requires std::is_nothrow_swappable_v<Source>
-  {
+  requires std::is_nothrow_swappable_v<Source> {
     lhs.swap(rhs);
   }
 
@@ -337,7 +401,12 @@ class SegmentedSequence final {
 
   constexpr size_type capacity() const noexcept { return capacity_; }
 
-  static constexpr size_type max_size() noexcept { return Options.maximum_size; }
+  static constexpr size_type max_size() noexcept {
+    constexpr size_type kDifferenceLimit = static_cast<size_type>(std::numeric_limits<difference_type>::max());
+    constexpr size_type kObjectLimit = std::numeric_limits<size_type>::max() / sizeof(T);
+    constexpr size_type kRepresentationLimit = kDifferenceLimit < kObjectLimit ? kDifferenceLimit : kObjectLimit;
+    return Options.maximum_size < kRepresentationLimit ? Options.maximum_size : kRepresentationLimit;
+  }
 
   constexpr size_type segment_count() const noexcept { return segments_.size(); }
 
@@ -353,23 +422,23 @@ class SegmentedSequence final {
 
   constexpr const_reference operator[](size_type pos) const noexcept { return ElementAt(pos); }
 
-  constexpr reference at(size_type pos) {
+  constexpr reference at(size_type pos) noexcept(!kRequireThrows) {
     MBO_CONFIG_REQUIRE(pos < size_, "SegmentedSequence index is out of range");
     return (*this)[pos];
   }
 
-  constexpr const_reference at(size_type pos) const {
+  constexpr const_reference at(size_type pos) const noexcept(!kRequireThrows) {
     MBO_CONFIG_REQUIRE(pos < size_, "SegmentedSequence index is out of range");
     return (*this)[pos];
   }
 
-  constexpr reference front() { return at(0); }
+  constexpr reference front() noexcept(!kRequireThrows) { return at(0); }
 
-  constexpr const_reference front() const { return at(0); }
+  constexpr const_reference front() const noexcept(!kRequireThrows) { return at(0); }
 
-  constexpr reference back() { return at(size_ - 1); }
+  constexpr reference back() noexcept(!kRequireThrows) { return at(size_ - 1); }
 
-  constexpr const_reference back() const { return at(size_ - 1); }
+  constexpr const_reference back() const noexcept(!kRequireThrows) { return at(size_ - 1); }
 
   constexpr iterator begin() noexcept { return iterator(this, 0); }
 
@@ -392,6 +461,7 @@ class SegmentedSequence final {
   constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
 
   template<typename... Args>
+  requires std::constructible_from<T, Args...>
   constexpr reference emplace_back(Args&&... args) {
 #if __cpp_exceptions
     const bool added_segment = size_ == capacity_;
@@ -414,9 +484,9 @@ class SegmentedSequence final {
   }
 
   template<typename... Args>
+  requires std::constructible_from<T, Args...>
   constexpr std::optional<std::reference_wrapper<T>> try_emplace_back(Args&&... args)
-  requires Source::supports_recoverable_failure
-  {
+  requires Source::supports_recoverable_failure {
 #if __cpp_exceptions
     const bool added_segment = size_ == capacity_;
 #endif
@@ -438,6 +508,7 @@ class SegmentedSequence final {
   }
 
   template<typename... Args>
+  requires std::constructible_from<T, Args...>
   constexpr reference unchecked_emplace_back(Args&&... args) {
     MBO_CONFIG_REQUIRE(size_ < capacity_, "SegmentedSequence unchecked append requires reserved capacity");
     const auto [segment_index, offset] = Locate(size_);
@@ -449,25 +520,62 @@ class SegmentedSequence final {
     return *result;
   }
 
-  constexpr reference push_back(const T& value) { return emplace_back(value); }
+  constexpr reference push_back(const T& value)
+  requires std::constructible_from<T, const T&> {
+    return emplace_back(value);
+  }
 
-  constexpr reference push_back(T&& value) { return emplace_back(std::move(value)); }
+  constexpr reference push_back(T&& value)
+  requires std::constructible_from<T, T&&> {
+    return emplace_back(std::move(value));
+  }
 
   constexpr std::optional<std::reference_wrapper<T>> try_push_back(const T& value)
-  requires Source::supports_recoverable_failure
-  {
+  requires Source::supports_recoverable_failure && std::constructible_from<T, const T&> {
     return try_emplace_back(value);
   }
 
   constexpr std::optional<std::reference_wrapper<T>> try_push_back(T&& value)
-  requires Source::supports_recoverable_failure
-  {
+  requires Source::supports_recoverable_failure && std::constructible_from<T, T&&> {
     return try_emplace_back(std::move(value));
   }
 
-  constexpr reference unchecked_push_back(const T& value) { return unchecked_emplace_back(value); }
+  constexpr reference unchecked_push_back(const T& value)
+  requires std::constructible_from<T, const T&> {
+    return unchecked_emplace_back(value);
+  }
 
-  constexpr reference unchecked_push_back(T&& value) { return unchecked_emplace_back(std::move(value)); }
+  constexpr reference unchecked_push_back(T&& value)
+  requires std::constructible_from<T, T&&> {
+    return unchecked_emplace_back(std::move(value));
+  }
+
+  template<std::ranges::input_range Range>
+  requires std::constructible_from<T, std::ranges::range_reference_t<Range>>
+  constexpr void append_range(Range&& range) {
+#if __cpp_exceptions
+    const size_type original_size = size_;
+    const size_type original_segment_count = segments_.size();
+    try {
+#endif
+      if constexpr (std::ranges::sized_range<Range>) {
+        const auto count = std::ranges::size(range);
+        MBO_CONFIG_REQUIRE(
+            std::in_range<size_type>(count) && static_cast<size_type>(count) <= max_size() - size_,
+            "SegmentedSequence append exceeds max_size");
+        reserve(size_ + static_cast<size_type>(count));
+      }
+      for (auto&& value : std::forward<Range>(range)) {
+        emplace_back(std::forward<decltype(value)>(value));
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      DestroySuffix(original_size);
+      ReleaseSegmentsFrom(original_segment_count);
+      throw;
+    }
+#endif
+  }
 
   constexpr void reserve(size_type requested) {
     MBO_CONFIG_REQUIRE(requested <= max_size(), "SegmentedSequence reserve exceeds max_size");
@@ -490,58 +598,66 @@ class SegmentedSequence final {
   }
 
   constexpr void resize(size_type requested)
-  requires std::default_initializable<T>
-  {
+  requires std::default_initializable<T> {
     if (requested < size_) {
-      while (size_ != requested) {
-        pop_back();
-      }
+      DestroySuffix(requested);
       return;
     }
-    reserve(requested);
-    while (size_ != requested) {
-      unchecked_emplace_back();
+#if __cpp_exceptions
+    const size_type original_size = size_;
+    const size_type original_segment_count = segments_.size();
+    try {
+#endif
+      reserve(requested);
+      while (size_ != requested) {
+        unchecked_emplace_back();
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      DestroySuffix(original_size);
+      ReleaseSegmentsFrom(original_segment_count);
+      throw;
     }
+#endif
   }
 
   constexpr void resize(size_type requested, const T& value)
-  requires std::copy_constructible<T>
-  {
+  requires std::constructible_from<T, const T&> {
     if (requested < size_) {
-      while (size_ != requested) {
-        pop_back();
-      }
+      DestroySuffix(requested);
       return;
     }
-    reserve(requested);
-    while (size_ != requested) {
-      unchecked_emplace_back(value);
+#if __cpp_exceptions
+    const size_type original_size = size_;
+    const size_type original_segment_count = segments_.size();
+    try {
+#endif
+      reserve(requested);
+      while (size_ != requested) {
+        unchecked_emplace_back(value);
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      DestroySuffix(original_size);
+      ReleaseSegmentsFrom(original_segment_count);
+      throw;
     }
+#endif
   }
 
   constexpr void pop_back() noexcept(!kRequireThrows) {
     MBO_CONFIG_REQUIRE(!empty(), "Cannot pop from an empty SegmentedSequence");
-    const auto [segment_index, offset] = Locate(size_ - 1);
-    Segment& segment = segments_[segment_index];
-    MBO_CONFIG_REQUIRE(offset + 1 == segment.size, "SegmentedSequence segment prefix is inconsistent");
-    --segment.size;
-    --size_;
-    std::destroy_at(segment.data + offset);
+    DestroySuffix(size_ - 1);
   }
 
-  constexpr T pop_back_value() noexcept
-  requires std::is_nothrow_move_constructible_v<T>
-  {
+  constexpr T pop_back_value() noexcept(!kRequireThrows)
+  requires std::is_nothrow_move_constructible_v<T> {
     T result(std::move(back()));
     pop_back();
     return result;
   }
 
-  constexpr void clear() noexcept {
-    while (!empty()) {
-      pop_back();
-    }
-  }
+  constexpr void clear() noexcept { DestroySuffix(0); }
 
   constexpr void trim_capacity() noexcept {
     while (!segments_.empty() && segments_.back().size == 0) {
@@ -570,6 +686,34 @@ class SegmentedSequence final {
   constexpr const_segment_range segments() const noexcept { return const_segment_range(this, LiveSegmentCount()); }
 
  private:
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires std::constructible_from<T, std::iter_reference_t<Iterator>>
+  constexpr void AppendIteratorRange(Iterator first, Sentinel last) {
+#if __cpp_exceptions
+    const size_type original_size = size_;
+    const size_type original_segment_count = segments_.size();
+    try {
+#endif
+      if constexpr (std::sized_sentinel_for<Sentinel, Iterator>) {
+        const auto count = last - first;
+        MBO_CONFIG_REQUIRE(count >= 0, "SegmentedSequence range has negative size");
+        MBO_CONFIG_REQUIRE(
+            std::in_range<size_type>(count) && static_cast<size_type>(count) <= max_size() - size_,
+            "SegmentedSequence append exceeds max_size");
+        reserve(size_ + static_cast<size_type>(count));
+      }
+      for (; first != last; ++first) {
+        emplace_back(*first);
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      DestroySuffix(original_size);
+      ReleaseSegmentsFrom(original_segment_count);
+      throw;
+    }
+#endif
+  }
+
   static constexpr std::size_t CapacityForSegment(std::size_t segment_index) noexcept {
     if (segment_index < Options.listed_capacities) {
       return Options.segment_capacities[segment_index];
@@ -635,12 +779,20 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     try {
 #endif
-      segments_.push_back(Segment{
-          .block = *block,
-          .data = reinterpret_cast<T*>(block->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          .capacity = segment_capacity,
-          .size = 0,
-      });
+      // Restarting byte-array lifetime intentionally invokes implicit object creation: it
+      // establishes the segment's T[] storage/provenance without constructing any T elements.
+      // Every acquired block takes this path, including storage released and later reacquired.
+      auto* const bytes = ::new (static_cast<void*>(block->data)) std::byte[block->size];
+      // No T object is alive yet, so std::launder<T> would be invalid. construct_at starts each
+      // element lifetime before the resulting T pointer is dereferenced.
+      T* const data = reinterpret_cast<T*>(bytes);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      segments_.push_back(
+          Segment{
+              .block = *block,
+              .data = data,
+              .capacity = segment_capacity,
+              .size = 0,
+          });
 #if __cpp_exceptions
     } catch (...) {
       source_.Release(*block);
@@ -661,6 +813,16 @@ class SegmentedSequence final {
   constexpr void ReleaseSegmentsFrom(std::size_t first) noexcept {
     while (segments_.size() > first) {
       ReleaseLastEmptySegment();
+    }
+  }
+
+  constexpr void DestroySuffix(std::size_t requested) noexcept {
+    while (size_ > requested) {
+      const auto [segment_index, offset] = Locate(size_ - 1);
+      Segment& segment = segments_[segment_index];
+      --segment.size;
+      --size_;
+      std::destroy_at(segment.data + offset);
     }
   }
 

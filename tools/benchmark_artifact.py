@@ -52,6 +52,58 @@ def _optional_command(command):
         return None
 
 
+def _bazel_version():
+    """Return Bazel's release rather than the Bazelisk launcher version."""
+    output = _optional_command(["bazel", "version", "--gnu_format"])
+    if not output:
+        raise ValueError("could not determine the Bazel version")
+    for line in output.splitlines():
+        if line.startswith("Build label: "):
+            return line.removeprefix("Build label: ")
+    for line in output.splitlines():
+        if line.startswith("bazel "):
+            return line.removeprefix("bazel ")
+    raise ValueError(f"unrecognized `bazel version --gnu_format` output: {output!r}")
+
+
+def _validate_live_build_context(context):
+    """Reject a live benchmark whose executable provenance is incomplete or not C++23."""
+    required = {
+        "compiler",
+        "compiler_name",
+        "compiler_version",
+        "compiler_version_extra",
+        "cplusplus",
+        "cxx_standard_requested",
+        "standard_library",
+        "standard_library_version",
+    }
+    missing = sorted(required - context.keys())
+    if missing:
+        raise ValueError(f"benchmark omitted required build context: {', '.join(missing)}")
+    empty = sorted(
+        name
+        for name in required
+        if not isinstance(context[name], str) or not context[name].strip()
+    )
+    if empty:
+        raise ValueError(f"benchmark emitted empty required build context: {', '.join(empty)}")
+    if context["cxx_standard_requested"] != "c++23":
+        raise ValueError(
+            f"benchmark requested {context['cxx_standard_requested']!r}, expected 'c++23'"
+        )
+    try:
+        cplusplus = int(context["cplusplus"])
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"benchmark emitted invalid __cplusplus value: {context['cplusplus']!r}"
+        ) from error
+    if cplusplus < 202302:
+        raise ValueError(
+            f"benchmark used __cplusplus={cplusplus}, expected C++23 (at least 202302)"
+        )
+
+
 def _cpu_model():
     if platform.system() == "Darwin":
         profile = _optional_command(["system_profiler", "SPHardwareDataType", "-detailLevel", "mini"])
@@ -114,7 +166,7 @@ def _sha256_json(value):
 
 
 def artifact(*, component, target, raw, command, configurations, baseline, started, ended,
-             duration_seconds, root, controls, cxx_standard="c++20", bazel_version=None,
+             duration_seconds, root, controls, cxx_standard="c++23", bazel_version=None,
              validity="valid", validity_note=None, runner_version=SCHEMA_VERSION):
     context = raw.get("context")
     benchmarks = raw.get("benchmarks")
@@ -129,9 +181,18 @@ def artifact(*, component, target, raw, command, configurations, baseline, start
         "host": _host(),
         "toolchain": {
             "compiler": context.get("compiler") or context.get("compiler_version"),
+            "compiler_name": context.get("compiler_name"),
             "compiler_version": context.get("compiler_version"),
+            "compiler_version_extra": context.get("compiler_version_extra"),
+            "compiler_build_version": context.get("compiler_build_version"),
             "cxx_standard": cxx_standard,
+            "cplusplus": context.get("cplusplus"),
             "bazel_version": bazel_version,
+            "standard_library": context.get("standard_library"),
+            "standard_library_version": context.get("standard_library_version"),
+            "standard_library_release": context.get("standard_library_release"),
+            "macos_deployment_target": context.get("macos_deployment_target"),
+            "macos_sdk_maximum": context.get("macos_sdk_maximum"),
             "library_build_type": context.get("library_build_type"),
             "bazel_configurations": configurations,
             "build_flags": command,
@@ -250,10 +311,20 @@ def command_run(args):
         subprocess.run([*command, *benchmark_flags], cwd=root, check=True)
         duration = time.monotonic() - monotonic_start
         ended = _utc_now()
+        raw = _load(raw_path)
+        context = raw.get("context")
+        if not isinstance(context, dict):
+            raise ValueError("Google Benchmark JSON requires object context")
+        _validate_live_build_context(context)
+        if args.cxx_standard != context["cxx_standard_requested"]:
+            raise ValueError(
+                f"requested --cxx-standard={args.cxx_standard!r}, but benchmark used "
+                f"{context['cxx_standard_requested']!r}"
+            )
         result = artifact(
             component=args.component,
             target=args.target,
-            raw=_load(raw_path),
+            raw=raw,
             command=shlex.join([*command, *benchmark_flags]),
             configurations=args.config,
             baseline=args.baseline_commit,
@@ -263,7 +334,7 @@ def command_run(args):
             root=root,
             controls=controls,
             cxx_standard=args.cxx_standard,
-            bazel_version=args.bazel_version or _optional_command(["bazel", "--version"]),
+            bazel_version=_bazel_version(),
             validity=args.validity,
             validity_note=args.validity_note,
         )
@@ -287,8 +358,7 @@ def parser():
     run.add_argument("--repetitions", type=int, default=DEFAULT_REPETITIONS)
     run.add_argument("--minimum-time", default=DEFAULT_MIN_TIME)
     run.add_argument("--warmup-time", type=float, default=DEFAULT_WARMUP_TIME)
-    run.add_argument("--cxx-standard", default="c++20")
-    run.add_argument("--bazel-version")
+    run.add_argument("--cxx-standard", default="c++23")
     run.add_argument("--validity", choices=("valid", "suspect", "invalid"), default="valid")
     run.add_argument("--validity-note")
     run.add_argument("command", nargs=argparse.REMAINDER)

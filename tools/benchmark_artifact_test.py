@@ -20,7 +20,17 @@ class BenchmarkArtifactTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.raw = {
-            "context": {"compiler": "Clang 22", "library_build_type": "release"},
+            "context": {
+                "compiler": "clang-22",
+                "compiler_name": "Clang",
+                "compiler_version": "22.1.8",
+                "compiler_version_extra": "Clang 22.1.8",
+                "cplusplus": "202302",
+                "cxx_standard_requested": "c++23",
+                "standard_library": "libc++",
+                "standard_library_version": "220108",
+                "library_build_type": "release",
+            },
             "benchmarks": [{"name": "BM_Example", "real_time": 1.25, "time_unit": "ns"}],
         }
         self.git = mock.patch.object(
@@ -80,6 +90,9 @@ class BenchmarkArtifactTest(unittest.TestCase):
         self.assertEqual(artifact["git"]["commit"], "a" * 40)
         self.assertEqual(artifact["source_relation"]["baseline_commit"], "b" * 40)
         self.assertEqual(artifact["controls"]["repetitions"], 9)
+        self.assertEqual(artifact["toolchain"]["cxx_standard"], "c++23")
+        self.assertEqual(artifact["toolchain"]["cplusplus"], "202302")
+        self.assertEqual(artifact["toolchain"]["standard_library"], "libc++")
         self.assertEqual(len(artifact["content_sha256"]), 64)
 
     def test_validation_rejects_changed_content(self):
@@ -87,6 +100,29 @@ class BenchmarkArtifactTest(unittest.TestCase):
         artifact["component"] = "Changed"
         with self.assertRaisesRegex(ValueError, "content_sha256"):
             subject.validate(artifact)
+
+    def test_validation_accepts_schema_v1_cxx20_artifact(self):
+        artifact = self.make()
+        artifact["toolchain"] = {
+            "compiler": "clang-22",
+            "compiler_version": "Clang 22.1.8",
+            "cxx_standard": "c++20",
+            "bazel_version": "bazel 9.2.0",
+            "library_build_type": "release",
+            "bazel_configurations": ["clang", "opt_apple_m5"],
+            "build_flags": "benchmark --flags",
+        }
+        artifact["google_benchmark"]["context"] = {
+            "compiler": "clang-22",
+            "compiler_version": "Clang 22.1.8",
+            "cxx_standard": "c++20",
+            "library_build_type": "release",
+        }
+        artifact["content_sha256"] = subject._sha256_json(
+            {key: item for key, item in artifact.items() if key != "content_sha256"}
+        )
+
+        subject.validate(artifact)
 
     def test_validation_rejects_weak_measurement_controls(self):
         for field, value, message in (
@@ -136,6 +172,37 @@ class BenchmarkArtifactTest(unittest.TestCase):
         )
         self.assertEqual(args.warmup_time, 0.25)
         self.assertIsInstance(args.warmup_time, float)
+        self.assertEqual(args.cxx_standard, "c++23")
+
+    @mock.patch.object(
+        subject,
+        "_optional_command",
+        return_value="Bazelisk version: v1.29.0\nBuild label: 9.2.0\nBuild target: @@//src/main/java/com/google/devtools/build/lib/bazel:BazelServer",
+    )
+    def test_bazel_version_uses_bazel_build_label(self, optional_command):
+        self.assertEqual(subject._bazel_version(), "9.2.0")
+        optional_command.assert_called_once_with(["bazel", "version", "--gnu_format"])
+
+    @mock.patch.object(subject, "_optional_command", return_value="bazel 9.2.0")
+    def test_bazel_version_accepts_gnu_fallback(self, optional_command):
+        self.assertEqual(subject._bazel_version(), "9.2.0")
+        optional_command.assert_called_once_with(["bazel", "version", "--gnu_format"])
+
+    def test_live_build_context_requires_cxx23_executable_provenance(self):
+        subject._validate_live_build_context(self.raw["context"])
+
+        stale = dict(self.raw["context"], cxx_standard_requested="c++20", cplusplus="202002")
+        with self.assertRaisesRegex(ValueError, "expected 'c\\+\\+23'"):
+            subject._validate_live_build_context(stale)
+
+        missing = dict(self.raw["context"])
+        missing.pop("standard_library")
+        with self.assertRaisesRegex(ValueError, "standard_library"):
+            subject._validate_live_build_context(missing)
+
+        empty = dict(self.raw["context"], compiler_name="")
+        with self.assertRaisesRegex(ValueError, "compiler_name"):
+            subject._validate_live_build_context(empty)
 
     @mock.patch.object(subject.platform, "system", return_value="Darwin")
     @mock.patch.object(subject.platform, "processor", return_value="arm")

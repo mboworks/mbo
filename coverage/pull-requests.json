@@ -577,7 +577,7 @@
   },
   {
     "number": 439,
-    "state": "open",
+    "state": "closed",
     "merged_at": null,
     "merge_commit_sha": "0e468793d423c19c71e8240b9b4b268be8f91065"
   },
@@ -585,7 +585,7 @@
     "number": 438,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "8387a925b9f11603ac06b8595a36c97959a960aa"
+    "merge_commit_sha": null
   },
   {
     "number": 437,

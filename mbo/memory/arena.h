@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -31,8 +32,8 @@ struct ArenaOptions final {
   }
 };
 
-template<auto Options>
-concept ValidArenaOptions = std::same_as<std::remove_cv_t<decltype(Options)>, ArenaOptions> && Options.IsValid();
+template<ArenaOptions Options>
+concept ValidArenaOptions = Options.IsValid();
 
 template<BlockSource Source = NewDeleteBlockSource, ArenaOptions Options = {}>
 requires ValidArenaOptions<Options>
@@ -72,8 +73,8 @@ class Arena final {
   Arena(const Arena&) = delete;
   Arena& operator=(const Arena&) = delete;
 
-  constexpr Arena(Arena&& other) noexcept(std::is_nothrow_move_constructible_v<Source>)
-  requires std::move_constructible<Source>
+  constexpr Arena(Arena&& other) noexcept
+  requires std::is_nothrow_move_constructible_v<Source>
       : source_(std::move(other.source_)),
         first_(std::exchange(other.first_, nullptr)),
         last_(std::exchange(other.last_, nullptr)),
@@ -83,10 +84,8 @@ class Arena final {
         block_count_(std::exchange(other.block_count_, 0)),
         next_block_size_(std::exchange(other.next_block_size_, Options.initial_block_size)) {}
 
-  constexpr Arena& operator=(Arena&& other) noexcept(
-      std::is_nothrow_move_assignable_v<Source> && std::is_nothrow_move_constructible_v<Source>)
-  requires std::move_constructible<Source> && std::is_move_assignable_v<Source>
-  {
+  constexpr Arena& operator=(Arena&& other) noexcept
+  requires std::is_nothrow_move_assignable_v<Source> {
     if (this != &other) {
       Release();
       source_ = std::move(other.source_);
@@ -103,9 +102,8 @@ class Arena final {
 
   constexpr ~Arena() { Release(); }
 
-  constexpr void swap(Arena& other) noexcept(std::is_nothrow_swappable_v<Source>)
-  requires std::swappable<Source>
-  {
+  constexpr void swap(Arena& other) noexcept
+  requires std::is_nothrow_swappable_v<Source> {
     using std::swap;
     swap(source_, other.source_);
     swap(first_, other.first_);
@@ -117,9 +115,8 @@ class Arena final {
     swap(next_block_size_, other.next_block_size_);
   }
 
-  friend constexpr void swap(Arena& lhs, Arena& rhs) noexcept(noexcept(lhs.swap(rhs)))
-  requires std::swappable<Source>
-  {
+  friend constexpr void swap(Arena& lhs, Arena& rhs) noexcept
+  requires std::is_nothrow_swappable_v<Source> {
     lhs.swap(rhs);
   }
 
@@ -130,8 +127,7 @@ class Arena final {
   }
 
   constexpr std::byte* TryAllocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t))
-  requires Source::supports_recoverable_failure
-  {
+  requires Source::supports_recoverable_failure {
     return AllocateImpl(size, alignment);
   }
 
@@ -216,7 +212,7 @@ class Arena final {
     return block.memory.data + aligned;
   }
 
-  constexpr Block* TryAddBlock(std::size_t size, std::size_t alignment) noexcept {
+  constexpr Block* TryAddBlock(std::size_t size, std::size_t alignment) {
     const std::size_t effective_alignment = std::max(alignment, kHeaderAlignment);
     std::size_t overhead = 0;
     if (!Add(sizeof(Block), effective_alignment - 1, overhead)) {
@@ -244,6 +240,10 @@ class Arena final {
       return nullptr;
     }
 
+    // Restarting std::byte[] lifetime lets implicit object creation establish byte-array storage
+    // and provenance for every fresh or recycled block before the intrusive header is constructed.
+    // The source remains responsible for providing memory->size bytes of suitable raw storage.
+    memory->data = ::new (static_cast<void*>(memory->data)) std::byte[memory->size];
     const std::size_t begin = AlignUp(sizeof(Block), effective_alignment);
     // The block header begins its lifetime in suitably aligned raw storage owned by the source.
     auto* const block = std::construct_at(
@@ -268,11 +268,11 @@ class Arena final {
     const auto remainder = next_block_size_ % Options.growth_denominator;
     std::size_t grown = Options.maximum_block_size;
     if (quotient <= std::numeric_limits<std::size_t>::max() / Options.growth_numerator) {
-      grown = quotient * Options.growth_numerator;
+      const auto quotient_growth = quotient * Options.growth_numerator;
       if (remainder <= std::numeric_limits<std::size_t>::max() / Options.growth_numerator) {
         const auto extra = remainder * Options.growth_numerator / Options.growth_denominator;
-        if (extra <= std::numeric_limits<std::size_t>::max() - grown) {
-          grown += extra;
+        if (extra <= std::numeric_limits<std::size_t>::max() - quotient_growth) {
+          grown = quotient_growth + extra;
         }
       }
     }

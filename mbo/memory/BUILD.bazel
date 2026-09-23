@@ -68,3 +68,18 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# Exercises propagation from a throwing consumer-provided BlockSource. Mbo's
+# production configuration remains exception-free.
+cc_test(
+    name = "arena_exceptions_test",
+    size = "small",
+    srcs = ["arena_exceptions_test.cc"],
+    copts = ["-fexceptions"],
+    tags = ["no-coverage"],
+    deps = [
+        ":arena_cc",
+        "//mbo/config:config_cc",
+        "@googletest//:gtest_main",
+    ],
+)

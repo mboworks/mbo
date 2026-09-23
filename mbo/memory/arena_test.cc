@@ -36,16 +36,20 @@ inline constexpr ArenaOptions kSmallArenaOptions{
 
 inline constexpr ArenaOptions kQuotientOverflowOptions{
     .initial_block_size = 128,
-    .maximum_block_size = std::numeric_limits<std::size_t>::max(),
+    .maximum_block_size = 4'096,
     .growth_numerator = std::numeric_limits<std::size_t>::max(),
     .growth_denominator = 1,
 };
 
 inline constexpr ArenaOptions kRemainderOverflowOptions{
-    .initial_block_size = 255,
-    .maximum_block_size = std::numeric_limits<std::size_t>::max(),
+    .initial_block_size = 129,
+    .maximum_block_size = 4'096,
     .growth_numerator = std::numeric_limits<std::size_t>::max(),
-    .growth_denominator = 128,
+    .growth_denominator = 256,
+};
+
+inline constexpr ArenaOptions kInvalidArenaOptions{
+    .initial_block_size = sizeof(void*),
 };
 
 struct ArenaTest : ::testing::Test {};
@@ -56,8 +60,11 @@ struct RecordingSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) {
     requested_sizes.push_back(size);
+    if (size > 1'048'576) {
+      return std::nullopt;
+    }
     return NewDeleteBlockSource::TryAcquire(size, alignment);
   }
 
@@ -108,22 +115,22 @@ struct InvalidResponseSource final {
   Response response = Response::kUnavailable;
 };
 
-struct MaxSizeResponseSource final {
+struct MoveAssignableOnlySource final {
   static constexpr bool supports_recoverable_failure = true;
+
+  MoveAssignableOnlySource() = default;
+  MoveAssignableOnlySource(const MoveAssignableOnlySource&) = delete;
+  MoveAssignableOnlySource& operator=(const MoveAssignableOnlySource&) = delete;
+  MoveAssignableOnlySource(MoveAssignableOnlySource&&) = delete;
+  MoveAssignableOnlySource& operator=(MoveAssignableOnlySource&&) noexcept = default;
 
   static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<MemoryBlock> TryAcquire(std::size_t /*size*/, std::size_t alignment) noexcept {
-    return MemoryBlock{
-        .data = storage.data(),
-        .size = std::numeric_limits<std::size_t>::max(),
-        .alignment = alignment,
-    };
+  static std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    return NewDeleteBlockSource::TryAcquire(size, alignment);
   }
 
-  void Release(MemoryBlock /*block*/) noexcept {}
-
-  alignas(64) std::array<std::byte, 256> storage{};
+  static void Release(MemoryBlock block) noexcept { NewDeleteBlockSource::Release(block); }
 };
 
 // NOLINTEND(readability-identifier-naming)
@@ -139,6 +146,17 @@ static_assert(!HasTryAllocate<Arena<AllocatorBlockSource<>, kSmallArenaOptions>>
 static_assert(!HasTryAllocate<Arena<PmrBlockSource, kSmallArenaOptions>>);
 #endif
 static_assert(HasTryAllocate<Arena<NewDeleteBlockSource, kSmallArenaOptions>>);
+static_assert(ValidArenaOptions<ArenaOptions{}>);
+static_assert(ValidArenaOptions<kSmallArenaOptions>);
+static_assert(!ValidArenaOptions<kInvalidArenaOptions>);
+static_assert(!std::move_constructible<MoveAssignableOnlySource>);
+static_assert(std::is_nothrow_move_assignable_v<MoveAssignableOnlySource>);
+static_assert(!std::move_constructible<Arena<MoveAssignableOnlySource, kSmallArenaOptions>>);
+static_assert(std::is_nothrow_move_assignable_v<Arena<MoveAssignableOnlySource, kSmallArenaOptions>>);
+using InlineArena = Arena<InlineBlockSource<512, 64>, kSmallArenaOptions>;
+static_assert(!std::is_move_constructible_v<InlineArena>);
+static_assert(!std::is_move_assignable_v<InlineArena>);
+static_assert(!std::is_swappable_v<InlineArena>);
 
 TEST_F(ArenaTest, AllocationsAreAlignedAndStable) {
   Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
@@ -207,6 +225,41 @@ TEST_F(ArenaTest, ReleaseReturnsAllStorageAndRestoresInitialState) {
   EXPECT_THAT(arena.TryAllocate(8), NotNull());
 }
 
+TEST_F(ArenaTest, ReleaseCanReacquireAndRestartFixedStorage) {
+  alignas(64) std::array<std::byte, 512> storage{};
+  Arena<FixedBlockSource, kSmallArenaOptions> arena(FixedBlockSource(std::span<std::byte>(storage), 64));
+  auto* const first = arena.TryAllocate(80, 16);
+  ASSERT_THAT(first, NotNull());
+
+  arena.Release();
+  auto* const second = arena.TryAllocate(80, 16);
+
+  ASSERT_THAT(second, NotNull());
+  EXPECT_THAT(second, Eq(first));
+  second[0] = std::byte{0x2a};
+  EXPECT_THAT(second[0], Eq(std::byte{0x2a}));
+}
+
+TEST_F(ArenaTest, InlineSourceResetReusesStorage) {
+  InlineArena arena;
+  auto* const before = arena.TryAllocate(80, 16);
+  ASSERT_THAT(before, NotNull());
+
+  arena.Reset();
+
+  EXPECT_THAT(arena.TryAllocate(80, 16), Eq(before));
+}
+
+TEST_F(ArenaTest, InlineSourceReleaseReacquiresStorage) {
+  InlineArena arena;
+  auto* const before = arena.TryAllocate(80, 16);
+  ASSERT_THAT(before, NotNull());
+
+  arena.Release();
+
+  EXPECT_THAT(arena.TryAllocate(80, 16), Eq(before));
+}
+
 TEST_F(ArenaTest, MoveTransfersBlocksWithoutMovingAllocations) {
   Arena<NewDeleteBlockSource, kSmallArenaOptions> source;
   auto* const allocation = source.TryAllocate(80);
@@ -233,6 +286,19 @@ TEST_F(ArenaTest, MoveAssignmentReleasesDestinationAndTransfersSource) {
   EXPECT_THAT(destination.block_count(), Eq(1));
   source_allocation[0] = std::byte{0x2a};
   EXPECT_THAT(source_allocation[0], Eq(std::byte{0x2a}));
+}
+
+TEST_F(ArenaTest, MoveAssignmentOnlyRequiresSourceMoveAssignment) {
+  Arena<MoveAssignableOnlySource, kSmallArenaOptions> source;
+  Arena<MoveAssignableOnlySource, kSmallArenaOptions> destination;
+  auto* const allocation = source.TryAllocate(80);
+  ASSERT_THAT(allocation, NotNull());
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination.block_count(), Eq(1));
+  allocation[0] = std::byte{0x2a};
+  EXPECT_THAT(allocation[0], Eq(std::byte{0x2a}));
 }
 
 TEST_F(ArenaTest, SelfMoveAssignmentRetainsAllocations) {
@@ -350,7 +416,7 @@ TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
 }
 
 TEST_F(ArenaTest, OverflowingRequestsFailWithoutMutation) {
-  Arena<MaxSizeResponseSource, kSmallArenaOptions> arena;
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
   ASSERT_THAT(arena.TryAllocate(1, 1), NotNull());
   const auto used = arena.bytes_used();
   const auto reserved = arena.bytes_reserved();
@@ -359,20 +425,24 @@ TEST_F(ArenaTest, OverflowingRequestsFailWithoutMutation) {
   EXPECT_THAT(arena.bytes_used(), Eq(used));
   EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
 
-  Arena<MaxSizeResponseSource, kSmallArenaOptions> alignment_arena;
+  Arena<RecordingSource, kSmallArenaOptions> alignment_arena;
   EXPECT_THAT(alignment_arena.TryAllocate(1, NewDeleteBlockSource::max_alignment()), IsNull());
 }
 
 TEST_F(ArenaTest, OverflowingGrowthFallsBackToMaximumBlockSize) {
   Arena<RecordingSource, kQuotientOverflowOptions> quotient;
   ASSERT_THAT(quotient.TryAllocate(1, 1), NotNull());
-  ASSERT_THAT(quotient.source().requested_sizes.size(), Eq(1));
+  EXPECT_THAT(quotient.TryAllocate(kQuotientOverflowOptions.initial_block_size, 1), NotNull());
+  ASSERT_THAT(quotient.source().requested_sizes.size(), Eq(2));
   EXPECT_THAT(quotient.source().requested_sizes.front(), Eq(kQuotientOverflowOptions.initial_block_size));
+  EXPECT_THAT(quotient.source().requested_sizes.back(), Eq(kQuotientOverflowOptions.maximum_block_size));
 
   Arena<RecordingSource, kRemainderOverflowOptions> remainder;
   ASSERT_THAT(remainder.TryAllocate(1, 1), NotNull());
-  ASSERT_THAT(remainder.source().requested_sizes.size(), Eq(1));
+  EXPECT_THAT(remainder.TryAllocate(kRemainderOverflowOptions.initial_block_size, 1), NotNull());
+  ASSERT_THAT(remainder.source().requested_sizes.size(), Eq(2));
   EXPECT_THAT(remainder.source().requested_sizes.front(), Eq(kRemainderOverflowOptions.initial_block_size));
+  EXPECT_THAT(remainder.source().requested_sizes.back(), Eq(kRemainderOverflowOptions.maximum_block_size));
 }
 
 }  // namespace

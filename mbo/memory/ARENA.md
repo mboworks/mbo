@@ -1,8 +1,8 @@
 # Arena design
 
-This document specifies the planned general arena component. Its proposed package is `mbo::memory`
-because aligned storage acquisition and region lifetime are memory-management facilities rather
-than container or string semantics.
+This document specifies the general arena component in `mbo::memory`, where aligned storage
+acquisition and region lifetime belong because they are memory-management facilities rather than
+container or string semantics.
 
 The string interner requires an arena-backed character store, and `SegmentedSequence` may share a
 lower-level block source. The arena remains independently useful and independently benchmarked.
@@ -46,8 +46,11 @@ Successful allocations remain valid and do not move until `Reset`, destruction, 
 explicitly documented region-lifetime operation. Individual allocations cannot be freed. Allocation
 failure leaves the arena's observable state unchanged.
 
-Candidate operations are deliberately provisional. The fast form assumes that configured
-exhaustion is a hard failure; the failure-aware form illustrates a nullable result:
+`Arena` returns raw storage and does not track objects that callers construct in it. The caller must
+destroy every live object placed in that storage before `Reset`, `Release`, or arena destruction.
+
+The current byte arena exposes a hard-failing allocation operation, a recoverable operation when
+the selected block source can report failure, lifetime operations, and constant-time counters:
 
 ```cpp
 std::byte* Allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t));
@@ -59,34 +62,37 @@ void Reset();
 void Release();
 ```
 
-`TryAllocate` returns null on failure in this sketch. The final failure-aware API may instead use an
-optional or typed error result only if measurement and a concrete caller justify another adapter.
-Invalid alignment, arithmetic overflow, configured exhaustion, and backing-source failure are
-distinct internal conditions, but the base API deliberately reports only success or failure.
-Not expressing failure means a documented hard failure such as termination, not undefined behavior
-or an undersized allocation.
+`TryAllocate` returns null for arithmetic overflow, source exhaustion, unsupported alignment, or a
+backing-source failure. A zero size or an alignment that is zero or not a power of two violates an
+API precondition and uses mbo's configured requirement failure. `Allocate` applies that same hard
+failure policy when an otherwise valid request cannot be served. Neither operation returns an
+undersized or insufficiently aligned allocation.
 
 ### Existing mbo failure-policy precedent
 
 Existing bounded containers use `MBO_CONFIG_REQUIRE` when an operation cannot satisfy a capacity
 precondition. It throws `std::runtime_error` only when mbo's exception policy is explicitly enabled
-and otherwise terminates through fatal logging. Reusing that mechanism for hard-failing `Allocate`
-would keep the arena consistent with `LimitedVector`, `LimitedMap`, and `LimitedSet`.
+and otherwise terminates through fatal logging. `Allocate` uses the same mechanism, keeping the
+arena consistent with `LimitedVector`, `LimitedMap`, and `LimitedSet`.
 
 Resource exhaustion can also be ordinary control flow, particularly for a caller-supplied bounded
-arena. `TryAllocate` must therefore avoid the requirement mechanism and report failure directly.
+arena. `TryAllocate` therefore reports ordinary source exhaustion directly.
 A nullable pointer carries the same success/failure information as `optional<std::byte*>` in a
 smaller conventional representation; a separate diagnostic operation can return a typed reason if
 real callers need it.
 
-`Allocate` uses the configurable hard requirement. `TryAllocate` returns null without logging or
-throwing. Invalid alignment is a programmer precondition failure rather than ordinary resource
-exhaustion.
+`TryAllocate` is not a universal no-throw boundary: programmer-precondition failures still use the
+configured requirement policy, and an exception from a consumer-provided block source propagates.
+The arena commits no cursor, counter, block-chain, or growth-state change before a new block is
+successfully acquired and validated.
 
-Alignment must be a nonzero power of two. Every block source supports at least
-`alignof(std::max_align_t)` and advertises any greater supported maximum. An otherwise valid
-alignment above that maximum returns null from `TryAllocate` and triggers the configured hard
-failure from `Allocate`.
+`Allocate` uses the configurable hard requirement. `TryAllocate` returns null for ordinary
+exhaustion without logging; the precondition and source exceptions above remain exceptions to that
+ordinary-failure path.
+
+Alignment must be a nonzero power of two. Each block source advertises its supported maximum
+alignment. An otherwise valid alignment above that maximum returns null from `TryAllocate` and
+triggers the configured hard failure from `Allocate`.
 
 Allocation is transactional at the byte-tail level. Failed block acquisition, alignment, size
 arithmetic, or capacity checks leave the cursor, padding, counters, retained blocks, and normal
@@ -95,8 +101,9 @@ growth-sequence position unchanged.
 ## Block sources and growth
 
 A block-source concept expresses acquisition, ownership, alignment, release behavior, and whether
-resource failure is genuinely recoverable. It
-must be possible to provide:
+resource failure is genuinely recoverable. A successful source result must truthfully describe
+suitably aligned raw or byte-array storage of the reported size, with no live non-trivial object
+occupying it. It must be possible to provide:
 
 - fixed caller-owned storage that never allocates;
 - an allocator-backed growing source;
@@ -112,10 +119,13 @@ be caught. In the repository's normal exception-disabled mode they support hard 
 This is a compile-time API distinction: mbo does not label an operation “try” when the selected
 upstream API can terminate before returning failure.
 
-Block growth uses only strategies justified by benchmarks. As with `SegmentedSequence`, constexpr
-options may stop after a size list, repeat its final size, or transition to another growth strategy.
-A request larger than the next normal block receives a dedicated oversized block and does not
-advance or otherwise distort the normal growth sequence.
+`ArenaOptions` defines the initial and maximum normal block sizes and a rational growth factor.
+After each normal block, the implementation multiplies the next size by
+`growth_numerator / growth_denominator`, rounds through integer arithmetic, and clamps the result
+between the current size and `maximum_block_size`. A request larger than the next normal block
+receives a dedicated oversized block and does not advance or otherwise distort that geometric
+growth sequence. Listed, repeated-size, and hybrid policies are deferred alternatives, not behavior
+of the current arena.
 
 The policy must guard addition, multiplication, alignment rounding, and representation conversion
 against overflow before acquiring or committing storage.
@@ -158,17 +168,19 @@ whenever measurements or implementation experience show that direct reuse or cus
 the library materially better. Publication is driven by demonstrated value, not by an arbitrary
 minimum number of internal users, and must not leak one component's semantics into another.
 
-`Reset()` retains reusable normal and option-selected oversized blocks while resetting allocation
-state. `Release()` returns every backing block to its source and restores the arena to its initial
-empty state. The exact automatic retention limits are selected through `ArenaOptions` only when
-benchmarks demonstrate useful alternatives.
+`Reset()` retains every acquired block, including oversized blocks, resets each cursor, and starts
+reuse at the first block. `Release()` returns every backing block to its source and restores the
+arena and its geometric growth state to their initial empty values. Selective oversized-block
+retention and retention budgets are deferred alternatives; the current `ArenaOptions` has no
+retention controls.
 
-Move and swap availability depends on storage. Arenas owning growing or external blocks may move
-and swap while preserving addresses within the transferred blocks. Move assignment first releases
-the destination's old state and therefore invalidates pointers into that old destination. An arena
-with an inline fixed buffer is immovable and unswappable because moving its embedded bytes would
-invalidate their addresses. Concepts and conditional special members expose these distinctions at
-compile time.
+Move and swap availability depends on storage and on safe source ownership transfer. They
+participate only when the corresponding source construction, assignment, or swap is non-throwing,
+so block ownership and the source that must release those blocks cannot become separated by an
+exception. Move assignment first releases the destination's old state and therefore invalidates
+pointers into that old destination. An arena with an inline fixed buffer is immovable and
+unswappable because moving its embedded bytes would invalidate their addresses. Concepts and
+constrained special members expose these distinctions at compile time.
 
 Arena operations use external synchronization. The implementation adds no locks or atomics;
 concurrent access, including allocation concurrent with observation, requires synchronization by
@@ -195,17 +207,17 @@ representation.
 | Rollback             | Failed allocation leaves byte-tail state and growth position unchanged |
 | Oversized allocation | Dedicated block without advancing the normal growth sequence           |
 | Zero-size allocation | Programmer precondition requires a size greater than zero              |
-| Maximum alignment    | At least `max_align_t`; source advertises any higher supported maximum |
-| Move/swap            | Address-preserving for block-backed; forbidden for inline storage      |
+| Maximum alignment    | Source-specific and exposed by `max_alignment()`                       |
+| Move/swap            | Address-preserving when source transfer/swap is non-throwing           |
 | Thread safety        | External synchronization; no internal locks or atomics                 |
 | Introspection        | `bytes_used`, `bytes_reserved`, and `block_count` in constant time     |
-| Constexpr            | Options are constexpr; C++20 raw-storage mutation is runtime-only      |
+| Constexpr            | Options are constexpr; current raw-storage mutation is runtime-only    |
 
 ## Measurements required
 
 - allocation latency distributions for varied sizes and alignments;
 - blocks acquired, bytes reserved, bytes used, padding, and fragmentation;
-- fixed, repeated, listed, geometric, and oversized growth behavior;
+- current geometric and oversized growth behavior, plus any proposed alternative growth policy;
 - packed pointer descriptors, relative offsets, and inline string records;
 - reset with no destructors, trivial objects, and registered non-trivial destructors;
 - branch and code-size cost of each failure-result form;
@@ -215,17 +227,16 @@ representation.
 - exception-enabled and exception-disabled builds;
 - single-threaded performance; synchronization remains the caller's responsibility.
 
-The initial raw-arena semantic contract has no remaining open questions. Representation choices,
-including pointer versus offset descriptors, growth and retention defaults, and whether the shared
-block-chain merits a public API, remain benchmark decisions rather than missing semantics.
+The current raw-arena behavior is defined above. Representation choices, including pointer versus
+offset descriptors, growth and retention defaults, and whether the shared block-chain merits a
+public API, remain benchmark decisions rather than missing semantics.
 
-The public implementation remains C++20-compatible and uses later standard-library spelling and
-semantics where those can be expressed in C++20. C++20 constant evaluation cannot create the
-intrusive `Block` object through the raw byte-storage representation used by the runtime fast path.
-The fixed source is therefore useful for allocation-free runtime operation, but the current arena
-does not claim constexpr allocation. A future representation may add it without weakening the
-runtime contract; the library must not pretend that merely marking a function `constexpr` proves
-constant evaluability.
+The public implementation targets the repository's C++23 baseline. The current raw byte-storage
+representation still cannot create its intrusive `Block` object during constant evaluation. The
+fixed source is therefore useful for allocation-free runtime operation, but the current arena does
+not claim constexpr allocation. A future representation may add it without weakening the runtime
+contract; the library must not pretend that merely marking a function `constexpr` proves constant
+evaluability.
 
 ## Deferred work
 

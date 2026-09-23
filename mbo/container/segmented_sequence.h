@@ -295,7 +295,7 @@ class SegmentedSequence final {
 
   template<std::ranges::input_range Range>
   requires(std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>)
-  constexpr SegmentedSequence(std::from_range_t, Range&& range) {
+  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range) {
 #if __cpp_exceptions
     try {
 #endif
@@ -311,7 +311,8 @@ class SegmentedSequence final {
   template<std::ranges::input_range Range>
   requires(
       std::constructible_from<T, std::ranges::range_reference_t<Range>> && std::constructible_from<Source, Source &&>)
-  constexpr SegmentedSequence(std::from_range_t, Range&& range, Source source) : source_(std::move(source)) {
+  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range, Source source)
+      : source_(std::move(source)) {
 #if __cpp_exceptions
     try {
 #endif
@@ -402,7 +403,7 @@ class SegmentedSequence final {
   constexpr size_type capacity() const noexcept { return capacity_; }
 
   static constexpr size_type max_size() noexcept {
-    constexpr size_type kDifferenceLimit = static_cast<size_type>(std::numeric_limits<difference_type>::max());
+    constexpr auto kDifferenceLimit = static_cast<size_type>(std::numeric_limits<difference_type>::max());
     constexpr size_type kObjectLimit = std::numeric_limits<size_type>::max() / sizeof(T);
     constexpr size_type kRepresentationLimit = kDifferenceLimit < kObjectLimit ? kDifferenceLimit : kObjectLimit;
     return Options.maximum_size < kRepresentationLimit ? Options.maximum_size : kRepresentationLimit;
@@ -782,6 +783,7 @@ class SegmentedSequence final {
       // Restarting byte-array lifetime intentionally invokes implicit object creation: it
       // establishes the segment's T[] storage/provenance without constructing any T elements.
       // Every acquired block takes this path, including storage released and later reacquired.
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): restarts caller-owned array storage.
       auto* const bytes = ::new (static_cast<void*>(block->data)) std::byte[block->size];
       // No T object is alive yet, so std::launder<T> would be invalid. construct_at starts each
       // element lifetime before the resulting T pointer is dereferenced.

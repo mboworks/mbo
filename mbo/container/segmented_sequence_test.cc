@@ -4,6 +4,7 @@
 #include "mbo/container/segmented_sequence.h"
 
 #include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -75,7 +76,12 @@ struct MalformedBlockSource final {
 };
 
 struct ThrowingDestructor final {
-  ~ThrowingDestructor() noexcept(false) {}
+  ThrowingDestructor() = default;
+  ThrowingDestructor(const ThrowingDestructor&) = default;
+  ThrowingDestructor& operator=(const ThrowingDestructor&) = default;
+  ThrowingDestructor(ThrowingDestructor&&) = default;
+  ThrowingDestructor& operator=(ThrowingDestructor&&) = default;
+  ~ThrowingDestructor() noexcept(false) = default;
 };
 
 struct alignas(128) OverAlignedElement final {
@@ -101,7 +107,7 @@ static_assert(std::sized_sentinel_for<IntSequence::const_iterator, IntSequence::
 static_assert(SegmentedSequenceElement<int>);
 static_assert(!SegmentedSequenceElement<const int>);
 static_assert(!SegmentedSequenceElement<volatile int>);
-static_assert(!SegmentedSequenceElement<int[2]>);
+static_assert(!SegmentedSequenceElement<std::remove_const_t<decltype("x")>>);
 static_assert(!SegmentedSequenceElement<ThrowingDestructor>);
 static_assert(!SegmentedSequenceElement<void>);
 static_assert(!SegmentedSequenceElement<IncompleteElement>);
@@ -231,7 +237,7 @@ TEST_F(SegmentedSequenceTest, IteratorsAreDenseRandomAccess) {
   EXPECT_THAT(*(3 + iterator), Eq(3));
   EXPECT_THAT(std::ranges::reverse_view(sequence), ElementsAre(7, 6, 5, 4, 3, 2, 1, 0));
 
-  IntSequence::const_iterator const_iterator = sequence.begin();
+  const IntSequence::const_iterator const_iterator = sequence.begin();
   EXPECT_THAT(const_iterator, Eq(sequence.begin()));
   EXPECT_THAT(sequence.end() - const_iterator, Eq(8));
   EXPECT_THAT(const_iterator - sequence.end(), Eq(-8));
@@ -288,7 +294,7 @@ TEST_F(SegmentedSequenceTest, FromRangeAcceptsCallerOwnedSource) {
   };
   alignas(int) std::array<std::byte, 2 * sizeof(int)> storage{};
   const std::array values = {1, 2};
-  SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource> sequence(
+  const SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource> sequence(
       std::from_range, values, mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
 
   EXPECT_THAT(sequence, ElementsAre(1, 2));
@@ -304,7 +310,7 @@ TEST_F(SegmentedSequenceTest, FromRangeDefaultConstructsImmovableInlineSource) {
   const std::array values = {1, 2};
   using InlineSequence =
       SegmentedSequence<int, kFixedOptions, mbo::memory::InlineBlockSource<2 * sizeof(int), alignof(int)>>;
-  InlineSequence inline_sequence(std::from_range, values);
+  const InlineSequence inline_sequence(std::from_range, values);
   EXPECT_THAT(inline_sequence, ElementsAre(1, 2));
 }
 
@@ -409,10 +415,10 @@ TEST_F(SegmentedSequenceTest, OverAlignedElementsRemainAlignedAcrossRetainedStor
   };
   SegmentedSequence<OverAlignedElement, kOneElementSegment> sequence;
   OverAlignedElement* const first = std::addressof(sequence.emplace_back(1));
-  EXPECT_THAT(reinterpret_cast<std::uintptr_t>(first) % alignof(OverAlignedElement), Eq(0));
+  EXPECT_THAT(std::bit_cast<std::uintptr_t>(first) % alignof(OverAlignedElement), Eq(0));
 
   sequence.clear();
-  OverAlignedElement* const reused = std::addressof(sequence.emplace_back(2));
+  const OverAlignedElement* const reused = std::addressof(sequence.emplace_back(2));
   EXPECT_THAT(reused, Eq(first));
   EXPECT_THAT(reused->value, Eq(2));
 }

@@ -68,6 +68,8 @@ struct ThrowingElement final {
   ThrowingElement(const ThrowingElement& other) : value(other.value) { OnConstruction(); }
 
   ThrowingElement& operator=(const ThrowingElement&) = delete;
+  ThrowingElement(ThrowingElement&&) = delete;
+  ThrowingElement& operator=(ThrowingElement&&) = delete;
 
   ~ThrowingElement() noexcept { --live; }
 
@@ -95,11 +97,18 @@ struct MutatesThenThrowsOnMove final {
   explicit MutatesThenThrowsOnMove(int value) : value(value) {}
 
   MutatesThenThrowsOnMove(const MutatesThenThrowsOnMove&) = delete;
+  MutatesThenThrowsOnMove& operator=(const MutatesThenThrowsOnMove&) = delete;
 
+  // Intentionally throws to exercise the aliased-rvalue rollback caveat.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
   MutatesThenThrowsOnMove(MutatesThenThrowsOnMove&& other) : value(other.value) {
     other.value = -1;
     throw std::runtime_error("move failed");
   }
+
+  MutatesThenThrowsOnMove& operator=(MutatesThenThrowsOnMove&&) = delete;
+
+  ~MutatesThenThrowsOnMove() = default;
 
   int value;
 };

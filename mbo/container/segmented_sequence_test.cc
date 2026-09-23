@@ -81,7 +81,9 @@ struct ThrowingDestructor final {
   ThrowingDestructor& operator=(const ThrowingDestructor&) = default;
   ThrowingDestructor(ThrowingDestructor&&) = default;
   ThrowingDestructor& operator=(ThrowingDestructor&&) = default;
-  ~ThrowingDestructor() noexcept(false) = default;
+
+  // NOLINTNEXTLINE(modernize-use-equals-default): user-provided body preserves the throwing trait on GCC.
+  ~ThrowingDestructor() noexcept(false) {}
 };
 
 struct alignas(128) OverAlignedElement final {

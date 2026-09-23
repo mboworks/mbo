@@ -44,7 +44,8 @@ bytes.
 
 Successful allocations remain valid and do not move until `Reset`, destruction, or another
 explicitly documented region-lifetime operation. Individual allocations cannot be freed. Allocation
-failure leaves the arena's observable state unchanged.
+failure leaves the arena-owned cursors, counters, block chain, and growth position unchanged. A
+consumer-provided source may update its own observable diagnostics before returning null or throwing.
 
 `Arena` returns raw storage and does not track objects that callers construct in it. The caller must
 destroy every live object placed in that storage before `Reset`, `Release`, or arena destruction.

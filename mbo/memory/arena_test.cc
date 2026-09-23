@@ -154,7 +154,7 @@ static_assert(!HasTryAllocate<Arena<AllocatorBlockSource<>, kSmallArenaOptions>>
 static_assert(!HasTryAllocate<Arena<PmrBlockSource, kSmallArenaOptions>>);
 #endif
 static_assert(HasTryAllocate<Arena<NewDeleteBlockSource, kSmallArenaOptions>>);
-static_assert(ValidArenaOptions<ArenaOptions{}>);
+static_assert(!ValidArenaOptions<ArenaOptions{}>);
 static_assert(ValidArenaOptions<kSmallArenaOptions>);
 static_assert(!ValidArenaOptions<kInvalidArenaOptions>);
 static_assert(!std::move_constructible<MoveAssignableOnlySource>);
@@ -184,11 +184,44 @@ TEST_F(ArenaTest, AllocationsAreAlignedAndStable) {
 }
 
 TEST_F(ArenaTest, OptionsValidateEveryConstraint) {
-  EXPECT_THAT(ArenaOptions{}.IsValid(), IsTrue());
-  EXPECT_THAT(ArenaOptions{.initial_block_size = sizeof(void*)}.IsValid(), IsFalse());
-  EXPECT_THAT((ArenaOptions{.initial_block_size = 64, .maximum_block_size = 63}.IsValid()), IsFalse());
-  EXPECT_THAT((ArenaOptions{.growth_numerator = 1, .growth_denominator = 2}.IsValid()), IsFalse());
-  EXPECT_THAT(ArenaOptions{.growth_denominator = 0}.IsValid(), IsFalse());
+  EXPECT_THAT(ArenaOptions{}.IsValid(), IsFalse());
+  EXPECT_THAT(kSmallArenaOptions.IsValid(), IsTrue());
+  EXPECT_THAT(
+      (ArenaOptions{
+          .initial_block_size = sizeof(void*),
+          .maximum_block_size = 256,
+          .growth_numerator = 2,
+          .growth_denominator = 1,
+      }
+           .IsValid()),
+      IsFalse());
+  EXPECT_THAT(
+      (ArenaOptions{
+          .initial_block_size = 64,
+          .maximum_block_size = 63,
+          .growth_numerator = 2,
+          .growth_denominator = 1,
+      }
+           .IsValid()),
+      IsFalse());
+  EXPECT_THAT(
+      (ArenaOptions{
+          .initial_block_size = 64,
+          .maximum_block_size = 256,
+          .growth_numerator = 1,
+          .growth_denominator = 2,
+      }
+           .IsValid()),
+      IsFalse());
+  EXPECT_THAT(
+      (ArenaOptions{
+          .initial_block_size = 64,
+          .maximum_block_size = 256,
+          .growth_numerator = 2,
+          .growth_denominator = 0,
+      }
+           .IsValid()),
+      IsFalse());
 }
 
 TEST_F(ArenaTest, FixedSourceFailureIsTransactional) {

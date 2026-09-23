@@ -9,7 +9,9 @@ Arena results are not publication decoration. They decide block growth, descript
 retention, and default source choices. Every performance-sensitive representation or default needs
 comparable JSON from the Apple M5 Pro and AMD Zen 5 reference machines before that choice is
 finalized. Correctness/API work can merge with an explicit evidence gap and follow-up when it does
-not lock in an unmeasured tuning choice.
+not lock in an unmeasured tuning choice. Accordingly, `ArenaOptions{}` selects no policy and is
+invalid; each `Arena` specialization supplies explicit options until the complete reference-machine
+evidence supports a named or default policy.
 
 ## Layout
 

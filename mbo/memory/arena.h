@@ -21,10 +21,11 @@
 namespace mbo::memory {
 
 struct ArenaOptions final {
-  std::size_t initial_block_size = 4'096;
-  std::size_t maximum_block_size = std::size_t{1'024} * 1'024;
-  std::size_t growth_numerator = 2;
-  std::size_t growth_denominator = 1;
+  // The zero-initialized value deliberately selects no performance policy.
+  std::size_t initial_block_size = 0;
+  std::size_t maximum_block_size = 0;
+  std::size_t growth_numerator = 0;
+  std::size_t growth_denominator = 0;
 
   constexpr bool IsValid() const noexcept {
     return initial_block_size > sizeof(void*) && maximum_block_size >= initial_block_size
@@ -35,7 +36,7 @@ struct ArenaOptions final {
 template<ArenaOptions Options>
 concept ValidArenaOptions = Options.IsValid();
 
-template<BlockSource Source = NewDeleteBlockSource, ArenaOptions Options = {}>
+template<BlockSource Source, ArenaOptions Options>
 requires ValidArenaOptions<Options>
 class Arena final {
  private:

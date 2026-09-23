@@ -121,6 +121,10 @@ This is a compile-time API distinction: mbo does not label an operation â€œtryâ€
 upstream API can terminate before returning failure.
 
 `ArenaOptions` defines the initial and maximum normal block sizes and a rational growth factor.
+It deliberately supplies no performance default: `ArenaOptions{}` is invalid, and every `Arena`
+specialization names both its block source and a fully specified options value. This keeps the
+correctness/API layer usable without selecting an unmeasured growth policy. A future default or
+named policy alias requires comparable Apple M5 Pro and AMD Zen 5 evidence.
 After each normal block, the implementation multiplies the next size by
 `growth_numerator / growth_denominator`, rounds through integer arithmetic, and clamps the result
 between the current size and `maximum_block_size`. A request larger than the next normal block
@@ -229,8 +233,10 @@ representation.
 - single-threaded performance; synchronization remains the caller's responsibility.
 
 The current raw-arena behavior is defined above. Representation choices, including pointer versus
-offset descriptors, growth and retention defaults, and whether the shared block-chain merits a
-public API, remain benchmark decisions rather than missing semantics.
+offset descriptors, any future growth or retention defaults, and whether the shared block-chain
+merits a public API, remain benchmark decisions rather than missing semantics. Callers currently
+select growth explicitly through `ArenaOptions`; the implementation does not promote any measured
+candidate to a library default.
 
 The public implementation targets the repository's C++23 baseline. The current raw byte-storage
 representation still cannot create its intrusive `Block` object during constant evaluation. The

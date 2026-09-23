@@ -214,17 +214,17 @@ class Arena final {
 
   constexpr Block* TryAddBlock(std::size_t size, std::size_t alignment) {
     const std::size_t effective_alignment = std::max(alignment, kHeaderAlignment);
-    std::size_t overhead = 0;
-    if (!Add(sizeof(Block), effective_alignment - 1, overhead)) {
-      return nullptr;
-    }
+    constexpr auto kLargestPowerOfTwo = std::bit_floor(std::numeric_limits<std::size_t>::max());
+    static_assert(sizeof(Block) - 1 <= std::numeric_limits<std::size_t>::max() - kLargestPowerOfTwo);
+    // Both alignments are powers of two, so effective_alignment cannot exceed
+    // kLargestPowerOfTwo and this addition cannot overflow.
+    const auto overhead = sizeof(Block) + effective_alignment - 1;
     std::size_t required = 0;
     if (!Add(overhead, size, required)) {
       return nullptr;
     }
     std::size_t reserved_after = 0;
-    if (!Add(bytes_reserved_, std::max(required, next_block_size_), reserved_after)
-        || block_count_ == std::numeric_limits<std::size_t>::max()) {
+    if (!Add(bytes_reserved_, std::max(required, next_block_size_), reserved_after)) {
       return nullptr;
     }
     const bool oversized = required > next_block_size_;
@@ -243,6 +243,7 @@ class Arena final {
     // Restarting std::byte[] lifetime lets implicit object creation establish byte-array storage
     // and provenance for every fresh or recycled block before the intrusive header is constructed.
     // The source remains responsible for providing memory->size bytes of suitable raw storage.
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): restarts caller-owned array storage.
     memory->data = ::new (static_cast<void*>(memory->data)) std::byte[memory->size];
     const std::size_t begin = AlignUp(sizeof(Block), effective_alignment);
     // The block header begins its lifetime in suitably aligned raw storage owned by the source.
@@ -256,6 +257,7 @@ class Arena final {
     }
     last_ = block;
     bytes_reserved_ = actual_reserved_after;
+    // Each counted live block occupies more than one byte, so block_count_ cannot reach SIZE_MAX.
     ++block_count_;
     if (!oversized) {
       AdvanceGrowth();

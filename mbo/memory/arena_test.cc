@@ -48,6 +48,13 @@ inline constexpr ArenaOptions kRemainderOverflowOptions{
     .growth_denominator = 256,
 };
 
+inline constexpr ArenaOptions kGrowthSumOverflowOptions{
+    .initial_block_size = 255,
+    .maximum_block_size = 4'096,
+    .growth_numerator = std::numeric_limits<std::size_t>::max() / 127,
+    .growth_denominator = 2,
+};
+
 inline constexpr ArenaOptions kInvalidArenaOptions{
     .initial_block_size = sizeof(void*),
 };
@@ -123,6 +130,7 @@ struct MoveAssignableOnlySource final {
   MoveAssignableOnlySource& operator=(const MoveAssignableOnlySource&) = delete;
   MoveAssignableOnlySource(MoveAssignableOnlySource&&) = delete;
   MoveAssignableOnlySource& operator=(MoveAssignableOnlySource&&) noexcept = default;
+  ~MoveAssignableOnlySource() = default;
 
   static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
 
@@ -443,6 +451,17 @@ TEST_F(ArenaTest, OverflowingGrowthFallsBackToMaximumBlockSize) {
   ASSERT_THAT(remainder.source().requested_sizes.size(), Eq(2));
   EXPECT_THAT(remainder.source().requested_sizes.front(), Eq(kRemainderOverflowOptions.initial_block_size));
   EXPECT_THAT(remainder.source().requested_sizes.back(), Eq(kRemainderOverflowOptions.maximum_block_size));
+}
+
+TEST_F(ArenaTest, OverflowingGrowthSumFallsBackToMaximumBlockSize) {
+  Arena<RecordingSource, kGrowthSumOverflowOptions> arena;
+  ASSERT_THAT(arena.TryAllocate(1, 1), NotNull());
+
+  EXPECT_THAT(arena.TryAllocate(kGrowthSumOverflowOptions.initial_block_size, 1), NotNull());
+
+  ASSERT_THAT(arena.source().requested_sizes.size(), Eq(2));
+  EXPECT_THAT(arena.source().requested_sizes.front(), Eq(kGrowthSumOverflowOptions.initial_block_size));
+  EXPECT_THAT(arena.source().requested_sizes.back(), Eq(kGrowthSumOverflowOptions.maximum_block_size));
 }
 
 }  // namespace

@@ -35,7 +35,7 @@ struct ThrowingAcquireSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
 
-  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) {
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const {
     if (throw_on_acquire) {
       throw std::runtime_error("test acquisition failure");
     }
@@ -54,9 +54,11 @@ struct ThrowingOwnershipSource final {
   ThrowingOwnershipSource(const ThrowingOwnershipSource&) = delete;
   ThrowingOwnershipSource& operator=(const ThrowingOwnershipSource&) = delete;
 
-  ThrowingOwnershipSource(ThrowingOwnershipSource&&) noexcept(false) {}
+  ThrowingOwnershipSource(ThrowingOwnershipSource&& /*other*/) noexcept(false) {}
 
-  ThrowingOwnershipSource& operator=(ThrowingOwnershipSource&&) noexcept(false) { return *this; }
+  ThrowingOwnershipSource& operator=(ThrowingOwnershipSource&& /*other*/) noexcept(false) { return *this; }
+
+  ~ThrowingOwnershipSource() = default;
 
   static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
 
@@ -136,6 +138,17 @@ TEST_F(ArenaExceptionsTest, InvalidAlignmentReportsPreconditionThroughRequiremen
 
   EXPECT_THAT(
       [&arena] { static_cast<void>(arena.TryAllocate(1, 3)); },
+      ThrowsMessage<std::runtime_error>(HasSubstr("alignment must be a nonzero power of two")));
+}
+
+TEST_F(ArenaExceptionsTest, ZeroAlignmentReportsPreconditionThroughRequirementPolicy) {
+  if constexpr (!config::kRequireThrows) {
+    GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
+  }
+  Arena<NewDeleteBlockSource, kExceptionTestOptions> arena;
+
+  EXPECT_THAT(
+      [&arena] { static_cast<void>(arena.TryAllocate(1, 0)); },
       ThrowsMessage<std::runtime_error>(HasSubstr("alignment must be a nonzero power of two")));
 }
 

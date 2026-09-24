@@ -4,6 +4,7 @@
 #include <benchmark/benchmark.h>
 
 #include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -21,6 +22,8 @@ namespace {
 constexpr std::size_t kElementCount = 16'384;
 constexpr SegmentedSequenceOptions kSegment64{.segment_size = 64};
 constexpr SegmentedSequenceOptions kSegment256{.segment_size = 256};
+constexpr SegmentedSequenceOptions kSegment1024{.segment_size = 1'024};
+constexpr std::array<char, kElementCount + 32> kStringBacking{};
 
 template<std::size_t Bytes, std::size_t Alignment = alignof(std::uint64_t)>
 struct alignas(Alignment) Blob final {
@@ -52,7 +55,7 @@ T MakeValue(std::size_t pos) {
   if constexpr (std::is_integral_v<T>) {
     return static_cast<T>(pos);
   } else if constexpr (std::same_as<T, StringRecord>) {
-    return StringRecord{.data = nullptr, .size = pos};
+    return StringRecord{.data = kStringBacking.data() + pos, .size = (pos % 32) + 1};
   } else if constexpr (std::same_as<T, std::string>) {
     return std::to_string(pos);
   } else {
@@ -65,7 +68,7 @@ std::uint64_t ReadValue(const T& value) noexcept {
   if constexpr (std::is_integral_v<T>) {
     return static_cast<std::uint64_t>(value);
   } else if constexpr (std::same_as<T, StringRecord>) {
-    return value.size;
+    return static_cast<std::uint64_t>(std::bit_cast<std::uintptr_t>(value.data)) ^ value.size;
   } else if constexpr (std::same_as<T, std::string>) {
     return value.size();
   } else {
@@ -80,6 +83,7 @@ void BmIndexed(benchmark::State& state) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.unchecked_emplace_back(MakeValue<T>(pos));
   }
+  benchmark::ClobberMemory();
 
   for (auto _ : state) {
     std::uint64_t sum = 0;
@@ -98,11 +102,13 @@ void BmIndexed(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-#define REGISTER_ELEMENT_SHAPE(Label, Type)                                                             \
-  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment64, false)->Name("ElementShape/Sequential/S64/" Label);   \
-  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment64, true)->Name("ElementShape/Permuted/S64/" Label);      \
-  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment256, false)->Name("ElementShape/Sequential/S256/" Label); \
-  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment256, true)->Name("ElementShape/Permuted/S256/" Label)
+#define REGISTER_ELEMENT_SHAPE(Label, Type)                                                               \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment64, false)->Name("ElementShape/Sequential/S64/" Label);     \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment64, true)->Name("ElementShape/Permuted/S64/" Label);        \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment256, false)->Name("ElementShape/Sequential/S256/" Label);   \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment256, true)->Name("ElementShape/Permuted/S256/" Label);      \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment1024, false)->Name("ElementShape/Sequential/S1024/" Label); \
+  BENCHMARK_TEMPLATE(BmIndexed, Type, kSegment1024, true)->Name("ElementShape/Permuted/S1024/" Label)
 
 REGISTER_ELEMENT_SHAPE("U8", std::uint8_t);
 REGISTER_ELEMENT_SHAPE("U16", std::uint16_t);

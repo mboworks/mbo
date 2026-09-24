@@ -23,8 +23,12 @@ constexpr SegmentedSequenceOptions kSegment256{.segment_size = 256};
 struct AllocationCounters final {
   std::size_t source_allocations = 0;
   std::size_t source_bytes = 0;
+  std::size_t source_releases = 0;
+  std::size_t source_released_bytes = 0;
   std::size_t directory_allocations = 0;
   std::size_t directory_bytes = 0;
+  std::size_t directory_deallocations = 0;
+  std::size_t directory_deallocated_bytes = 0;
 };
 
 // NOLINTBEGIN(readability-identifier-naming): adapters model BlockSource and Allocator spelling.
@@ -42,7 +46,11 @@ struct CountingBlockSource final {
     return block;
   }
 
-  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
+    ++counters->source_releases;
+    counters->source_released_bytes += block.size;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
 
   AllocationCounters* counters;
 };
@@ -70,7 +78,11 @@ struct CountingDirectoryAllocator final {
     return std::allocator<T>{}.allocate(count);
   }
 
-  void deallocate(T* data, std::size_t count) noexcept { std::allocator<T>{}.deallocate(data, count); }
+  void deallocate(T* data, std::size_t count) noexcept {
+    ++counters->directory_deallocations;
+    counters->directory_deallocated_bytes += count * sizeof(T);
+    std::allocator<T>{}.deallocate(data, count);
+  }
 
   template<typename U>
   friend constexpr bool operator==(
@@ -93,6 +105,19 @@ void Fill(Sequence& sequence) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.unchecked_emplace_back(pos);
   }
+}
+
+void SetAllocationCounters(benchmark::State& state, const AllocationCounters& counters) {
+  const auto iterations = static_cast<double>(state.iterations());
+  state.counters["directory_allocations"] = static_cast<double>(counters.directory_allocations) / iterations;
+  state.counters["directory_bytes"] = static_cast<double>(counters.directory_bytes) / iterations;
+  state.counters["directory_deallocated_bytes"] =
+      static_cast<double>(counters.directory_deallocated_bytes) / iterations;
+  state.counters["directory_deallocations"] = static_cast<double>(counters.directory_deallocations) / iterations;
+  state.counters["source_allocations"] = static_cast<double>(counters.source_allocations) / iterations;
+  state.counters["source_bytes"] = static_cast<double>(counters.source_bytes) / iterations;
+  state.counters["source_released_bytes"] = static_cast<double>(counters.source_released_bytes) / iterations;
+  state.counters["source_releases"] = static_cast<double>(counters.source_releases) / iterations;
 }
 
 template<SegmentedSequenceOptions Options, bool Trim>
@@ -125,8 +150,8 @@ void BmPopRegrow(benchmark::State& state) {
   const std::size_t low_reserved = sequence.bytes_reserved();
   const std::size_t low_segments = sequence.segment_count();
   regrow();
+  counters = {};
   for (auto _ : state) {
-    counters = {};
     pop();
     regrow();
   }
@@ -136,16 +161,13 @@ void BmPopRegrow(benchmark::State& state) {
     return;
   }
   state.counters["depth"] = static_cast<double>(depth);
-  state.counters["directory_allocations"] = static_cast<double>(counters.directory_allocations);
-  state.counters["directory_bytes"] = static_cast<double>(counters.directory_bytes);
+  SetAllocationCounters(state, counters);
   state.counters["low_capacity"] = static_cast<double>(low_capacity);
   state.counters["low_reserved"] = static_cast<double>(low_reserved);
   state.counters["low_segments"] = static_cast<double>(low_segments);
   state.counters["restored_capacity"] = static_cast<double>(sequence.capacity());
   state.counters["restored_reserved"] = static_cast<double>(sequence.bytes_reserved());
   state.counters["restored_segments"] = static_cast<double>(sequence.segment_count());
-  state.counters["source_allocations"] = static_cast<double>(counters.source_allocations);
-  state.counters["source_bytes"] = static_cast<double>(counters.source_bytes);
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(depth));
 }
 
@@ -156,9 +178,9 @@ void BmClearRegrow(benchmark::State& state) {
   AllocationCounters counters;
   Sequence sequence(std::allocator_arg, Allocator(&counters), CountingBlockSource{.counters = &counters});
   Fill(sequence);
+  counters = {};
 
   for (auto _ : state) {
-    counters = {};
     if constexpr (Release) {
       sequence.release();
     } else {
@@ -166,8 +188,7 @@ void BmClearRegrow(benchmark::State& state) {
     }
     Fill(sequence);
   }
-  state.counters["directory_allocations"] = static_cast<double>(counters.directory_allocations);
-  state.counters["directory_bytes"] = static_cast<double>(counters.directory_bytes);
+  SetAllocationCounters(state, counters);
 
   if (sequence.size() != kElementCount || sequence.back() != kElementCount - 1) {
     state.SkipWithError("clear/regrow did not restore the sequence");
@@ -176,19 +197,21 @@ void BmClearRegrow(benchmark::State& state) {
   state.counters["restored_capacity"] = static_cast<double>(sequence.capacity());
   state.counters["restored_reserved"] = static_cast<double>(sequence.bytes_reserved());
   state.counters["restored_segments"] = static_cast<double>(sequence.segment_count());
-  state.counters["source_allocations"] = static_cast<double>(counters.source_allocations);
-  state.counters["source_bytes"] = static_cast<double>(counters.source_bytes);
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-#define REGISTER_LIFECYCLE(Label, Options)                                                                            \
-  BENCHMARK_TEMPLATE(BmPopRegrow, Options, false)                                                                     \
-      ->Name("Lifecycle/Retained/" Label)                                                                             \
-      ->Arg(64)                                                                                                       \
-      ->Arg(4'096)                                                                                                    \
-      ->Arg(16'384);                                                                                                  \
-  BENCHMARK_TEMPLATE(BmPopRegrow, Options, true)->Name("Lifecycle/Trimmed/" Label)->Arg(64)->Arg(4'096)->Arg(16'384); \
-  BENCHMARK_TEMPLATE(BmClearRegrow, Options, false)->Name("Lifecycle/ClearRegrow/" Label);                            \
+#define REGISTER_LIFECYCLE(Label, Options)                                                 \
+  BENCHMARK_TEMPLATE(BmPopRegrow, Options, false)                                          \
+      ->Name("Lifecycle/Retained/" Label)                                                  \
+      ->Arg((Options).segment_size)                                                        \
+      ->Arg(4'096)                                                                         \
+      ->Arg(16'384);                                                                       \
+  BENCHMARK_TEMPLATE(BmPopRegrow, Options, true)                                           \
+      ->Name("Lifecycle/Trimmed/" Label)                                                   \
+      ->Arg((Options).segment_size)                                                        \
+      ->Arg(4'096)                                                                         \
+      ->Arg(16'384);                                                                       \
+  BENCHMARK_TEMPLATE(BmClearRegrow, Options, false)->Name("Lifecycle/ClearRegrow/" Label); \
   BENCHMARK_TEMPLATE(BmClearRegrow, Options, true)->Name("Lifecycle/ReleaseRegrow/" Label)
 
 REGISTER_LIFECYCLE("S64", kSegment64);

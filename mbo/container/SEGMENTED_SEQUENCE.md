@@ -220,9 +220,11 @@ reserve once; single-pass ranges grow as consumed.
 
 The companion [measurement plan](measurements/SEGMENTED_SEQUENCE.md) covers indexed access,
 iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element
-size/alignment, exception configurations, and generated code. Growth-boundary latency must report
-tail behavior as well as aggregate throughput because an unbounded directory threshold adds a
-second allocation and pointer copy to that append.
+size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while
+generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment
+and reports minimum, median, fastest-three mean, all-nine mean, sample standard deviation,
+coefficient of variation, maximum, and allocation/deallocation counters. Nine calibrated
+repetition means do not establish a tail-latency distribution.
 
 The generic heterogeneous-capacity implementation merged in
 [pull request 443](https://github.com/mboworks/mbo/pull/443) at

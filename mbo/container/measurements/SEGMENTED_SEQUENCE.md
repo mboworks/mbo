@@ -259,34 +259,34 @@ time, and a 404.47-second run. It began immediately after a complete repository 
 averages 8.19/5.13/7.66 and ended at 1.70/3.98/6.38. Times are CPU nanoseconds per 16,384-element
 workload. `Fast 3` is the mean of the three fastest samples; CV uses all nine.
 
-| Operation        | Layout       | Fast 3 | Median |     Mean |     CV | Capacity | Reserved | Segments |
-| ---------------- | ------------ | -----: | -----: | -------: | -----: | -------: | -------: | -------: |
-| Append fresh     | Uniform 64   | 100404 | 100543 | 103431.4 |  8.42% |    16384 |   131072 |      256 |
-| Append fresh     | Uniform 256  |  89610 |  89760 |  91664.7 |  6.20% |    16384 |   131072 |       64 |
-| Append fresh     | Uniform 1024 |  86598 |  86680 |  86709.9 |  0.17% |    16384 |   131072 |       16 |
-| Append fresh     | Listed       |  94318 |  96070 | 100145.4 | 13.72% |    17728 |   141824 |        7 |
-| Append retained  | Uniform 64   |  83538 |  84066 |  83937.1 |  0.41% |    16384 |   131072 |      256 |
-| Append retained  | Uniform 256  |  83748 |  84228 |  85862.8 |  6.24% |    16384 |   131072 |       64 |
-| Append retained  | Uniform 1024 |  80825 |  84209 |  83140.4 |  2.69% |    16384 |   131072 |       16 |
-| Append retained  | Listed       |  88597 |  92222 |  91490.9 |  2.73% |    17728 |   141824 |        7 |
-| Indexed          | Uniform 64   |   9269 |   9293 |   9286.7 |  0.18% |    16384 |   131072 |      256 |
-| Indexed          | Uniform 256  |  11492 |  11497 |  11496.3 |  0.03% |    16384 |   131072 |       64 |
-| Indexed          | Uniform 1024 |   9241 |   9277 |   9467.7 |  6.42% |    16384 |   131072 |       16 |
-| Indexed          | Listed       |  19951 |  19959 |  19967.5 |  0.09% |    17728 |   141824 |        7 |
-| Indexed permuted | Uniform 64   |  10648 |  10657 |  10660.4 |  0.12% |    16384 |   131072 |      256 |
-| Indexed permuted | Uniform 256  |  10482 |  10511 |  10509.0 |  0.26% |    16384 |   131072 |       64 |
-| Indexed permuted | Uniform 1024 |  10401 |  10456 |  10482.0 |  0.74% |    16384 |   131072 |       16 |
-| Indexed permuted | Listed       |  22284 |  22384 |  22356.7 |  0.28% |    17728 |   141824 |        7 |
-| Iterator         | Uniform 64   |   8986 |   9006 |   9686.4 | 21.20% |    16384 |   131072 |      256 |
-| Iterator         | Uniform 256  |   8952 |   8969 |   8968.4 |  0.21% |    16384 |   131072 |       64 |
-| Iterator         | Uniform 1024 |   8954 |   8965 |   8966.7 |  0.16% |    16384 |   131072 |       16 |
-| Iterator         | Listed       |  22597 |  22612 |  22627.0 |  0.20% |    17728 |   141824 |        7 |
-| Segment spans    | Uniform 64   |   3175 |   3178 |   3224.3 |  4.34% |    16384 |   131072 |      256 |
-| Segment spans    | Uniform 256  |   1855 |   1863 |   1862.6 |  0.43% |    16384 |   131072 |       64 |
-| Segment spans    | Uniform 1024 |   1524 |   1526 |   1526.9 |  0.23% |    16384 |   131072 |       16 |
-| Segment spans    | Listed       |   1458 |   1460 |   1536.7 | 15.07% |    17728 |   141824 |        7 |
-| Append fresh     | `vector`     |  20861 |  21139 |  21680.4 |  8.52% |    16384 |   131072 |      n/a |
-| Append fresh     | `deque`      |  16257 |  16419 |  16411.9 |  0.88% |      n/a |      n/a |      n/a |
+| Operation        | Layout       |    Min | Fast 3 | Median |     Mean | Sample SD |     CV |    Max | Capacity | Reserved | Segments |
+| ---------------- | ------------ | -----: | -----: | -----: | -------: | --------: | -----: | -----: | -------: | -------: | -------: |
+| Append fresh     | Uniform 64   | 100270 | 100404 | 100543 | 103431.4 |    8709.4 |  8.42% | 126654 |    16384 |   131072 |      256 |
+| Append fresh     | Uniform 256  |  89517 |  89610 |  89760 |  91664.7 |    5680.7 |  6.20% | 106807 |    16384 |   131072 |       64 |
+| Append fresh     | Uniform 1024 |  86493 |  86598 |  86680 |  86709.9 |     149.5 |  0.17% |  87052 |    16384 |   131072 |       16 |
+| Append fresh     | Listed       |  92974 |  94318 |  96070 | 100145.4 |   13735.3 | 13.72% | 136622 |    17728 |   141824 |        7 |
+| Append retained  | Uniform 64   |  83277 |  83538 |  84066 |  83937.1 |     341.0 |  0.41% |  84258 |    16384 |   131072 |      256 |
+| Append retained  | Uniform 256  |  82997 |  83748 |  84228 |  85862.8 |    5358.9 |  6.24% | 100110 |    16384 |   131072 |       64 |
+| Append retained  | Uniform 1024 |  79183 |  80825 |  84209 |  83140.4 |    2235.7 |  2.69% |  84460 |    16384 |   131072 |       16 |
+| Append retained  | Listed       |  86968 |  88597 |  92222 |  91490.9 |    2494.3 |  2.73% |  93761 |    17728 |   141824 |        7 |
+| Indexed          | Uniform 64   |   9263 |   9269 |   9293 |   9286.7 |      16.3 |  0.18% |   9307 |    16384 |   131072 |      256 |
+| Indexed          | Uniform 256  |  11488 |  11492 |  11497 |  11496.3 |       3.8 |  0.03% |  11501 |    16384 |   131072 |       64 |
+| Indexed          | Uniform 1024 |   9234 |   9241 |   9277 |   9467.7 |     607.8 |  6.42% |  11087 |    16384 |   131072 |       16 |
+| Indexed          | Listed       |  19948 |  19951 |  19959 |  19967.5 |      17.3 |  0.09% |  20001 |    17728 |   141824 |        7 |
+| Indexed permuted | Uniform 64   |  10642 |  10648 |  10657 |  10660.4 |      12.9 |  0.12% |  10685 |    16384 |   131072 |      256 |
+| Indexed permuted | Uniform 256  |  10466 |  10482 |  10511 |  10509.0 |      27.5 |  0.26% |  10554 |    16384 |   131072 |       64 |
+| Indexed permuted | Uniform 1024 |  10392 |  10401 |  10456 |  10482.0 |      78.0 |  0.74% |  10580 |    16384 |   131072 |       16 |
+| Indexed permuted | Listed       |  22228 |  22284 |  22384 |  22356.7 |      62.0 |  0.28% |  22419 |    17728 |   141824 |        7 |
+| Iterator         | Uniform 64   |   8970 |   8986 |   9006 |   9686.4 |    2053.8 | 21.20% |  15163 |    16384 |   131072 |      256 |
+| Iterator         | Uniform 256  |   8949 |   8952 |   8969 |   8968.4 |      18.5 |  0.21% |   9004 |    16384 |   131072 |       64 |
+| Iterator         | Uniform 1024 |   8947 |   8954 |   8965 |   8966.7 |      14.1 |  0.16% |   8991 |    16384 |   131072 |       16 |
+| Iterator         | Listed       |  22593 |  22597 |  22612 |  22627.0 |      45.2 |  0.20% |  22741 |    17728 |   141824 |        7 |
+| Segment spans    | Uniform 64   |   3175 |   3175 |   3178 |   3224.3 |     140.0 |  4.34% |   3598 |    16384 |   131072 |      256 |
+| Segment spans    | Uniform 256  |   1851 |   1855 |   1863 |   1862.6 |       8.0 |  0.43% |   1879 |    16384 |   131072 |       64 |
+| Segment spans    | Uniform 1024 |   1523 |   1524 |   1526 |   1526.9 |       3.5 |  0.23% |   1534 |    16384 |   131072 |       16 |
+| Segment spans    | Listed       |   1457 |   1458 |   1460 |   1536.7 |     231.6 | 15.07% |   2154 |    17728 |   141824 |        7 |
+| Append fresh     | `vector`     |  20783 |  20861 |  21139 |  21680.4 |    1847.4 |  8.52% |  26581 |    16384 |   131072 |      n/a |
+| Append fresh     | `deque`      |  16190 |  16257 |  16419 |  16411.9 |     144.9 |  0.88% |  16627 |      n/a |      n/a |      n/a |
 
 This run is retained because its quiet samples establish useful next experiments, not because it
 selects defaults. Uniform logical iteration is essentially independent of segment size at roughly

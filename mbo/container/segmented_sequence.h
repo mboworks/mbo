@@ -818,7 +818,7 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     } catch (...) {
       if (added_segment) {
-        ReleaseLastEmptySegment();
+        ReleaseLastSegment();
       }
       throw;
     }
@@ -842,7 +842,7 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     } catch (...) {
       if (added_segment) {
-        ReleaseLastEmptySegment();
+        ReleaseLastSegment();
       }
       throw;
     }
@@ -1002,21 +1002,21 @@ class SegmentedSequence final {
 
   constexpr void trim_capacity() noexcept {
     while (!segments_.empty() && segments_.back()->empty()) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 
   constexpr void trim_capacity(size_type requested) noexcept {
     const std::size_t target = requested < size_ ? size_ : requested;
     while (!segments_.empty() && segments_.back()->empty() && capacity_ - Options.segment_size >= target) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 
   constexpr void release() noexcept {
-    clear();
+    size_ = 0;
     while (!segments_.empty()) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 
@@ -1173,7 +1173,7 @@ class SegmentedSequence final {
     return true;
   }
 
-  constexpr void ReleaseLastEmptySegment() noexcept {
+  constexpr void ReleaseLastSegment() noexcept {
     Segment* const segment = segments_.back();
     capacity_ -= Options.segment_size;
     segments_.pop_back();
@@ -1182,7 +1182,7 @@ class SegmentedSequence final {
 
   constexpr void ReleaseSegmentsFrom(std::size_t first) noexcept {
     while (segments_.size() > first) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 

@@ -409,7 +409,7 @@ void MoveAssignForTest(T& destination, T& source) {
 TEST_F(SegmentedSequenceTest, SourceConstructorCopiesLvalue) {
   int copies = 0;
   int moves = 0;
-  ConstructorTrackingBlockSource source(&copies, &moves);
+  const ConstructorTrackingBlockSource source(&copies, &moves);
 
   const ConstructorSequence sequence(source);
 

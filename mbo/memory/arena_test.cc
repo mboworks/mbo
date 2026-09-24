@@ -147,7 +147,9 @@ struct alignas(64) ConditionalConstructorSource final {
 
   ConditionalConstructorSource() = default;
 
-  ConditionalConstructorSource(const ConditionalConstructorSource&) noexcept(false) {}
+  ConditionalConstructorSource(const ConditionalConstructorSource& other) noexcept(false) {
+    static_cast<void>(other);
+  }  // NOLINT(modernize-use-equals-default): Preserve the throwing trait across GCC and Clang.
 
   ConditionalConstructorSource& operator=(const ConditionalConstructorSource&) = default;
   ConditionalConstructorSource(ConditionalConstructorSource&&) noexcept = default;

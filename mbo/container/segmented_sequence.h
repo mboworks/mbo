@@ -17,7 +17,6 @@
 #include <new>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -33,26 +32,17 @@ namespace mbo::container {
 // bounded internal storage and checked logical positions.
 
 struct SegmentedSequenceOptions final {
-  static constexpr std::size_t kMaxListedCapacities = 8;
-
-  std::array<std::size_t, kMaxListedCapacities> segment_capacities = {256};
-  std::size_t listed_capacities = 1;
-  bool repeat_last = true;
-  std::size_t maximum_size = std::numeric_limits<std::size_t>::max();
+  std::size_t segment_size = 256;
+  // Maximum number of segment slots. SIZE_MAX selects unbounded directory growth.
+  std::size_t segment_capacity = std::numeric_limits<std::size_t>::max();
+  // Initial number of segment-directory slots to reserve.
+  std::size_t segment_reservation = 1;
 
   constexpr bool IsValid() const noexcept {
-    if (listed_capacities == 0 || listed_capacities > segment_capacities.size()) {
-      return false;
-    }
-    std::size_t total = 0;
-    for (std::size_t pos = 0; pos < listed_capacities; ++pos) {
-      const std::size_t capacity = segment_capacities[pos];
-      if (capacity == 0 || capacity > maximum_size - total) {
-        return false;
-      }
-      total += capacity;
-    }
-    return maximum_size > 0;
+    return std::has_single_bit(segment_size)
+           && (segment_capacity == std::numeric_limits<std::size_t>::max() || std::has_single_bit(segment_capacity))
+           && (segment_reservation == 0 || std::has_single_bit(segment_reservation))
+           && (segment_capacity == std::numeric_limits<std::size_t>::max() || segment_reservation <= segment_capacity);
   }
 };
 
@@ -63,21 +53,83 @@ template<typename T>
 concept SegmentedSequenceElement = std::is_object_v<T> && !std::is_array_v<T> && std::same_as<T, std::remove_cv_t<T>>
                                    && requires { sizeof(T); } && std::destructible<T>;
 
+namespace container_internal {
+
+template<SegmentedSequenceElement T>
+constexpr std::size_t SegmentedSequenceRepresentationCapacityLimit() noexcept {
+  constexpr auto kDifferenceLimit = static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
+  constexpr std::size_t kObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(T);
+  return kDifferenceLimit < kObjectLimit ? kDifferenceLimit : kObjectLimit;
+}
+
+}  // namespace container_internal
+
+template<typename T, SegmentedSequenceOptions Options>
+concept RepresentableSegmentedSequenceOptions =
+    SegmentedSequenceElement<T> && ValidSegmentedSequenceOptions<Options>
+    && Options.segment_size
+           <= (static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max()) - sizeof(mbo::memory::MemoryBlock)
+               - (2 * sizeof(std::size_t)) - (alignof(T) - 1)
+               - ((alignof(T) < alignof(mbo::memory::MemoryBlock) ? alignof(mbo::memory::MemoryBlock) : alignof(T))
+                  - 1))
+                  / sizeof(T)
+    && (Options.segment_capacity == std::numeric_limits<std::size_t>::max()
+        || Options.segment_capacity
+               <= container_internal::SegmentedSequenceRepresentationCapacityLimit<T>() / Options.segment_size)
+    && Options.segment_reservation
+           <= container_internal::SegmentedSequenceRepresentationCapacityLimit<T>() / Options.segment_size;
+
 template<
     SegmentedSequenceElement T,
     SegmentedSequenceOptions Options = {},
-    mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource>
-requires ValidSegmentedSequenceOptions<Options>
+    mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
+    typename DirectoryAllocator = std::allocator<std::byte>>
+requires RepresentableSegmentedSequenceOptions<T, Options>
 class SegmentedSequence final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
+  static constexpr bool kFiniteDirectory = Options.segment_capacity != std::numeric_limits<std::size_t>::max();
+  static constexpr std::size_t kSegmentShift = std::countr_zero(Options.segment_size);
+  static constexpr std::size_t kSegmentMask = Options.segment_size - 1;
+
+  union Slot final {
+    constexpr Slot() noexcept {}
+
+    Slot(const Slot&) = delete;
+    Slot& operator=(const Slot&) = delete;
+    Slot(Slot&&) = delete;
+    Slot& operator=(Slot&&) = delete;
+
+    constexpr ~Slot() noexcept {}
+
+    T value;
+  };
 
   struct Segment final {
-    mbo::memory::MemoryBlock block;
-    T* data = nullptr;
-    std::size_t capacity = 0;
+    constexpr explicit Segment(mbo::memory::MemoryBlock block) noexcept : block(block) {}
+
+    Segment(const Segment&) = delete;
+    Segment& operator=(const Segment&) = delete;
+    Segment(Segment&&) = delete;
+    Segment& operator=(Segment&&) = delete;
+    constexpr ~Segment() = default;
+
+    mbo::memory::MemoryBlock block{};
     std::size_t size = 0;
+    std::array<Slot, Options.segment_size> slots;
   };
+
+  using SegmentPointerAllocator = std::allocator_traits<DirectoryAllocator>::template rebind_alloc<Segment*>;
+  using DirectoryAllocatorTraits = std::allocator_traits<DirectoryAllocator>;
+  using SegmentPointerAllocatorTraits = std::allocator_traits<SegmentPointerAllocator>;
+  using Directory = std::vector<Segment*, SegmentPointerAllocator>;
+  static constexpr bool kDirectorySwapAlwaysSafe = SegmentPointerAllocatorTraits::propagate_on_container_swap::value
+                                                   || SegmentPointerAllocatorTraits::is_always_equal::value;
+  static constexpr bool kDirectoryMoveAssignmentAlwaysSafe =
+      SegmentPointerAllocatorTraits::propagate_on_container_move_assignment::value
+      || SegmentPointerAllocatorTraits::is_always_equal::value;
+
+  struct CopyWithAllocatorTag final {};
 
   template<bool IsConst>
   class Iterator final {
@@ -182,26 +234,126 @@ class SegmentedSequence final {
   };
 
   template<bool IsConst>
+  class SegmentView final {
+   private:
+    using SegmentType = std::conditional_t<IsConst, const Segment, Segment>;
+
+    class ViewIterator final {
+     public:
+      using iterator_category = std::random_access_iterator_tag;
+      using iterator_concept = std::random_access_iterator_tag;
+      using value_type = T;
+      using difference_type = std::ptrdiff_t;
+      using reference = std::conditional_t<IsConst, const T&, T&>;
+      using pointer = std::conditional_t<IsConst, const T*, T*>;
+
+      constexpr ViewIterator() noexcept = default;
+
+      constexpr ViewIterator(SegmentType* segment, std::size_t pos) noexcept : segment_(segment), pos_(pos) {}
+
+      constexpr reference operator*() const noexcept { return segment_->slots[pos_].value; }
+
+      constexpr pointer operator->() const noexcept { return std::addressof(**this); }
+
+      constexpr reference operator[](difference_type offset) const noexcept { return *(*this + offset); }
+
+      constexpr ViewIterator& operator++() noexcept {
+        ++pos_;
+        return *this;
+      }
+
+      constexpr ViewIterator operator++(int) noexcept {
+        ViewIterator result = *this;
+        ++*this;
+        return result;
+      }
+
+      constexpr ViewIterator& operator--() noexcept {
+        --pos_;
+        return *this;
+      }
+
+      constexpr ViewIterator operator--(int) noexcept {
+        ViewIterator result = *this;
+        --*this;
+        return result;
+      }
+
+      constexpr ViewIterator& operator+=(difference_type offset) noexcept {
+        pos_ = static_cast<std::size_t>(static_cast<difference_type>(pos_) + offset);
+        return *this;
+      }
+
+      constexpr ViewIterator& operator-=(difference_type offset) noexcept { return *this += -offset; }
+
+      friend constexpr ViewIterator operator+(ViewIterator iterator, difference_type offset) noexcept {
+        iterator += offset;
+        return iterator;
+      }
+
+      friend constexpr ViewIterator operator+(difference_type offset, ViewIterator iterator) noexcept {
+        return iterator + offset;
+      }
+
+      friend constexpr ViewIterator operator-(ViewIterator iterator, difference_type offset) noexcept {
+        iterator -= offset;
+        return iterator;
+      }
+
+      friend constexpr difference_type operator-(const ViewIterator& lhs, const ViewIterator& rhs) noexcept {
+        return static_cast<difference_type>(lhs.pos_) - static_cast<difference_type>(rhs.pos_);
+      }
+
+      friend constexpr bool operator==(const ViewIterator&, const ViewIterator&) noexcept = default;
+
+      friend constexpr auto operator<=>(const ViewIterator& lhs, const ViewIterator& rhs) noexcept {
+        return lhs.pos_ <=> rhs.pos_;
+      }
+
+     private:
+      SegmentType* segment_ = nullptr;
+      std::size_t pos_ = 0;
+    };
+
+    friend class SegmentedSequence;
+
+    constexpr explicit SegmentView(SegmentType* segment) noexcept : segment_(segment) {}
+
+   public:
+    using iterator = ViewIterator;
+
+    constexpr iterator begin() const noexcept { return iterator(segment_, 0); }
+
+    constexpr iterator end() const noexcept { return iterator(segment_, size()); }
+
+    constexpr decltype(auto) operator[](std::size_t pos) const noexcept { return (segment_->slots[pos].value); }
+
+    constexpr std::size_t size() const noexcept { return segment_->size; }
+
+    constexpr bool empty() const noexcept { return size() == 0; }
+
+   private:
+    SegmentType* segment_ = nullptr;
+  };
+
+  template<bool IsConst>
   class SegmentRange final {
    private:
     using Owner = std::conditional_t<IsConst, const SegmentedSequence, SegmentedSequence>;
-    using Element = std::conditional_t<IsConst, const T, T>;
+    using View = SegmentView<IsConst>;
 
     class SegmentIterator final {
      public:
       using iterator_category = std::forward_iterator_tag;
       using iterator_concept = std::forward_iterator_tag;
-      using value_type = std::span<Element>;
+      using value_type = View;
       using difference_type = std::ptrdiff_t;
 
       constexpr SegmentIterator() noexcept = default;
 
       constexpr SegmentIterator(Owner* owner, std::size_t pos) noexcept : owner_(owner), pos_(pos) {}
 
-      constexpr value_type operator*() const noexcept {
-        const Segment& segment = owner_->segments_[pos_];
-        return value_type(segment.data, segment.size);
-      }
+      constexpr value_type operator*() const noexcept { return value_type(owner_->segments_[pos_]); }
 
       constexpr SegmentIterator& operator++() noexcept {
         ++pos_;
@@ -230,10 +382,7 @@ class SegmentedSequence final {
 
     constexpr SegmentIterator end() const noexcept { return SegmentIterator(owner_, size_); }
 
-    constexpr std::span<Element> operator[](std::size_t pos) const noexcept {
-      const Segment& segment = owner_->segments_[pos];
-      return std::span<Element>(segment.data, segment.size);
-    }
+    constexpr View operator[](std::size_t pos) const noexcept { return View(owner_->segments_[pos]); }
 
     constexpr std::size_t size() const noexcept { return size_; }
 
@@ -254,18 +403,49 @@ class SegmentedSequence final {
   using const_iterator = Iterator<true>;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using allocator_type = DirectoryAllocator;
+  using segment_view = SegmentView<false>;
+  using const_segment_view = SegmentView<true>;
   using segment_range = SegmentRange<false>;
   using const_segment_range = SegmentRange<true>;
 
-  constexpr SegmentedSequence() noexcept(std::is_nothrow_default_constructible_v<Source>) = default;
+  constexpr SegmentedSequence() noexcept(
+      Options.segment_reservation == 0
+      && std::is_nothrow_default_constructible_v<Source> && std::is_nothrow_default_constructible_v<Directory>)
+  requires(std::default_initializable<Source> && std::default_initializable<Directory>) {
+    InitializeDirectory();
+  }
 
-  constexpr explicit SegmentedSequence(Source source) noexcept(std::is_nothrow_move_constructible_v<Source>)
-  requires std::constructible_from<Source, Source&&>
-      : source_(std::move(source)) {}
+  constexpr explicit SegmentedSequence(Source source) noexcept(
+      Options.segment_reservation == 0
+      && std::is_nothrow_move_constructible_v<Source> && std::is_nothrow_default_constructible_v<Directory>)
+  requires(std::constructible_from<Source, Source &&> && std::default_initializable<Directory>)
+      : source_(std::move(source)) {
+    InitializeDirectory();
+  }
+
+  constexpr explicit SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator) noexcept(
+      Options.segment_reservation == 0 && std::is_nothrow_default_constructible_v<Source>
+      && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
+  requires(
+      std::default_initializable<Source> && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+      : segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
+  }
+
+  constexpr SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, Source source) noexcept(
+      Options.segment_reservation == 0 && std::is_nothrow_move_constructible_v<Source>
+      && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
+  requires(std::constructible_from<Source, Source &&>
+           && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
+  }
 
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
   requires(std::default_initializable<Source> && std::constructible_from<T, std::iter_reference_t<Iterator>>)
   constexpr SegmentedSequence(Iterator first, Sentinel last) {
+    InitializeDirectory();
 #if __cpp_exceptions
     try {
 #endif
@@ -281,6 +461,7 @@ class SegmentedSequence final {
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
   requires(std::constructible_from<T, std::iter_reference_t<Iterator>> && std::constructible_from<Source, Source &&>)
   constexpr SegmentedSequence(Iterator first, Sentinel last, Source source) : source_(std::move(source)) {
+    InitializeDirectory();
 #if __cpp_exceptions
     try {
 #endif
@@ -296,6 +477,7 @@ class SegmentedSequence final {
   template<std::ranges::input_range Range>
   requires(std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>)
   constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range) {
+    InitializeDirectory();
 #if __cpp_exceptions
     try {
 #endif
@@ -313,6 +495,100 @@ class SegmentedSequence final {
       std::constructible_from<T, std::ranges::range_reference_t<Range>> && std::constructible_from<Source, Source &&>)
   constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range, Source source)
       : source_(std::move(source)) {
+    InitializeDirectory();
+#if __cpp_exceptions
+    try {
+#endif
+      append_range(std::forward<Range>(range));
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires(
+      std::default_initializable<Source> && std::constructible_from<T, std::iter_reference_t<Iterator>>
+      && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+  constexpr SegmentedSequence(
+      std::allocator_arg_t /*unused*/,
+      const DirectoryAllocator& directory_allocator,
+      Iterator first,
+      Sentinel last)
+      : segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
+#if __cpp_exceptions
+    try {
+#endif
+      AppendIteratorRange(first, last);
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+  requires(std::constructible_from<T, std::iter_reference_t<Iterator>> && std::constructible_from<Source, Source &&>
+           && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+  constexpr SegmentedSequence(
+      std::allocator_arg_t /*unused*/,
+      const DirectoryAllocator& directory_allocator,
+      Iterator first,
+      Sentinel last,
+      Source source)
+      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
+#if __cpp_exceptions
+    try {
+#endif
+      AppendIteratorRange(first, last);
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::ranges::input_range Range>
+  requires(
+      std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>
+      && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+  constexpr SegmentedSequence(
+      std::allocator_arg_t /*unused*/,
+      const DirectoryAllocator& directory_allocator,
+      std::from_range_t /*from_range*/,
+      Range&& range)
+      : segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
+#if __cpp_exceptions
+    try {
+#endif
+      append_range(std::forward<Range>(range));
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
+  template<std::ranges::input_range Range>
+  requires(std::constructible_from<T, std::ranges::range_reference_t<Range>>
+           && std::constructible_from<Source, Source &&>
+           && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+  constexpr SegmentedSequence(
+      std::allocator_arg_t /*unused*/,
+      const DirectoryAllocator& directory_allocator,
+      std::from_range_t /*from_range*/,
+      Range&& range,
+      Source source)
+      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+    InitializeDirectory();
 #if __cpp_exceptions
     try {
 #endif
@@ -327,35 +603,36 @@ class SegmentedSequence final {
 
   constexpr SegmentedSequence(const SegmentedSequence& other)
   requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
-      : source_(other.source_.CopyForContainer()) {
-#if __cpp_exceptions
-    try {
-#endif
-      reserve(other.size());
-      for (const T& value : other) {
-        unchecked_emplace_back(value);
-      }
-#if __cpp_exceptions
-    } catch (...) {
-      release();
-      throw;
-    }
-#endif
-  }
+      : SegmentedSequence(
+            CopyWithAllocatorTag{},
+            other,
+            SegmentPointerAllocator(
+                DirectoryAllocatorTraits::select_on_container_copy_construction(
+                    DirectoryAllocator(other.segments_.get_allocator())))) {}
+
+  constexpr SegmentedSequence(
+      std::allocator_arg_t /*unused*/,
+      const DirectoryAllocator& directory_allocator,
+      const SegmentedSequence& other)
+  requires(
+      std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>
+      && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
+      : SegmentedSequence(CopyWithAllocatorTag{}, other, SegmentPointerAllocator(directory_allocator)) {}
 
   constexpr SegmentedSequence& operator=(const SegmentedSequence& other)
   requires(
       std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>
-      && std::is_nothrow_swappable_v<Source>) {
+      && !DirectoryAllocatorTraits::propagate_on_container_copy_assignment::value
+      && std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     if (this != &other) {
-      SegmentedSequence copy(other);
+      SegmentedSequence copy(CopyWithAllocatorTag{}, other, segments_.get_allocator());
       swap(copy);
     }
     return *this;
   }
 
-  constexpr SegmentedSequence(SegmentedSequence&& other) noexcept(std::is_nothrow_move_constructible_v<Source>)
-  requires std::move_constructible<Source>
+  constexpr SegmentedSequence(SegmentedSequence&& other) noexcept
+  requires(std::is_nothrow_move_constructible_v<Source> && std::is_nothrow_move_constructible_v<Directory>)
       : source_(std::move(other.source_)),
         segments_(std::move(other.segments_)),
         size_(other.size_),
@@ -365,12 +642,27 @@ class SegmentedSequence final {
     other.segments_.clear();
   }
 
-  constexpr SegmentedSequence& operator=(SegmentedSequence&& other) noexcept(std::is_nothrow_move_assignable_v<Source>)
-  requires std::is_move_assignable_v<Source> {
+  constexpr SegmentedSequence& operator=(SegmentedSequence&& other) noexcept(
+      std::is_nothrow_move_assignable_v<Source> && std::is_nothrow_move_assignable_v<Directory>)
+  requires(
+      std::is_nothrow_move_assignable_v<Source> && std::is_move_assignable_v<Directory>
+      && (!kDirectoryMoveAssignmentAlwaysSafe || std::is_nothrow_move_assignable_v<Directory>)) {
     if (this != &other) {
-      release();
-      source_ = std::move(other.source_);
-      segments_ = std::move(other.segments_);
+      if (DirectoryAllocatorsAllowMoveTransfer(other)) {
+        release();
+        segments_ = std::move(other.segments_);
+        source_ = std::move(other.source_);
+      } else {
+        Directory replacement(segments_.get_allocator());
+        replacement.reserve(
+            Options.segment_reservation < other.segments_.size() ? other.segments_.size()
+                                                                 : Options.segment_reservation);
+        replacement.insert(replacement.end(), other.segments_.begin(), other.segments_.end());
+        release();
+        segments_.swap(replacement);
+        other.segments_.clear();
+        source_ = std::move(other.source_);
+      }
       size_ = other.size_;
       capacity_ = other.capacity_;
       other.size_ = 0;
@@ -382,17 +674,32 @@ class SegmentedSequence final {
 
   constexpr ~SegmentedSequence() { release(); }
 
-  constexpr void swap(SegmentedSequence& other) noexcept
-  requires std::is_nothrow_swappable_v<Source> {
+  constexpr void swap(SegmentedSequence& other) noexcept(
+      std::is_nothrow_swappable_v<Source> && kDirectorySwapAlwaysSafe && noexcept(segments_.swap(other.segments_)))
+  requires(std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     using std::swap;
-    swap(source_, other.source_);
-    swap(segments_, other.segments_);
+    if (DirectoryAllocatorsAllowSwap(other)) {
+      swap(source_, other.source_);
+      segments_.swap(other.segments_);
+    } else {
+      Directory this_directory(segments_.get_allocator());
+      this_directory.reserve(
+          Options.segment_reservation < other.segments_.size() ? other.segments_.size() : Options.segment_reservation);
+      this_directory.insert(this_directory.end(), other.segments_.begin(), other.segments_.end());
+      Directory other_directory(other.segments_.get_allocator());
+      other_directory.reserve(
+          Options.segment_reservation < segments_.size() ? segments_.size() : Options.segment_reservation);
+      other_directory.insert(other_directory.end(), segments_.begin(), segments_.end());
+      swap(source_, other.source_);
+      segments_.swap(this_directory);
+      other.segments_.swap(other_directory);
+    }
     swap(size_, other.size_);
     swap(capacity_, other.capacity_);
   }
 
-  friend constexpr void swap(SegmentedSequence& lhs, SegmentedSequence& rhs) noexcept
-  requires std::is_nothrow_swappable_v<Source> {
+  friend constexpr void swap(SegmentedSequence& lhs, SegmentedSequence& rhs) noexcept(noexcept(lhs.swap(rhs)))
+  requires requires { lhs.swap(rhs); } {
     lhs.swap(rhs);
   }
 
@@ -402,19 +709,18 @@ class SegmentedSequence final {
 
   constexpr size_type capacity() const noexcept { return capacity_; }
 
-  static constexpr size_type max_size() noexcept {
-    constexpr auto kDifferenceLimit = static_cast<size_type>(std::numeric_limits<difference_type>::max());
-    constexpr size_type kObjectLimit = std::numeric_limits<size_type>::max() / sizeof(T);
-    constexpr size_type kRepresentationLimit = kDifferenceLimit < kObjectLimit ? kDifferenceLimit : kObjectLimit;
-    return Options.maximum_size < kRepresentationLimit ? Options.maximum_size : kRepresentationLimit;
-  }
-
   constexpr size_type segment_count() const noexcept { return segments_.size(); }
+
+  constexpr allocator_type get_allocator() const
+      noexcept(std::is_nothrow_constructible_v<DirectoryAllocator, SegmentPointerAllocator>)
+  requires std::constructible_from<DirectoryAllocator, SegmentPointerAllocator> {
+    return DirectoryAllocator(segments_.get_allocator());
+  }
 
   constexpr size_type bytes_reserved() const noexcept {
     size_type result = 0;
-    for (const Segment& segment : segments_) {
-      result += segment.block.size;
+    for (const Segment* segment : segments_) {
+      result += segment->block.size;
     }
     return result;
   }
@@ -513,9 +819,9 @@ class SegmentedSequence final {
   constexpr reference unchecked_emplace_back(Args&&... args) {
     MBO_CONFIG_REQUIRE(size_ < capacity_, "SegmentedSequence unchecked append requires reserved capacity");
     const auto [segment_index, offset] = Locate(size_);
-    Segment& segment = segments_[segment_index];
+    Segment& segment = *segments_[segment_index];
     MBO_CONFIG_REQUIRE(offset == segment.size, "SegmentedSequence segment prefix is inconsistent");
-    T* const result = std::construct_at(segment.data + offset, std::forward<Args>(args)...);
+    T* const result = std::construct_at(std::addressof(segment.slots[offset].value), std::forward<Args>(args)...);
     ++segment.size;
     ++size_;
     return *result;
@@ -562,8 +868,8 @@ class SegmentedSequence final {
       if constexpr (std::ranges::sized_range<Range>) {
         const auto count = std::ranges::size(range);
         MBO_CONFIG_REQUIRE(
-            std::in_range<size_type>(count) && static_cast<size_type>(count) <= max_size() - size_,
-            "SegmentedSequence append exceeds max_size");
+            std::in_range<size_type>(count) && static_cast<size_type>(count) <= MaxCapacity() - size_,
+            "SegmentedSequence append exceeds maximum capacity");
         reserve(size_ + static_cast<size_type>(count));
       }
       for (auto&& value : std::forward<Range>(range)) {
@@ -579,7 +885,7 @@ class SegmentedSequence final {
   }
 
   constexpr void reserve(size_type requested) {
-    MBO_CONFIG_REQUIRE(requested <= max_size(), "SegmentedSequence reserve exceeds max_size");
+    MBO_CONFIG_REQUIRE(requested <= MaxCapacity(), "SegmentedSequence reserve exceeds maximum capacity");
     const std::size_t original_segment_count = segments_.size();
 #if __cpp_exceptions
     try {
@@ -661,25 +967,23 @@ class SegmentedSequence final {
   constexpr void clear() noexcept { DestroySuffix(0); }
 
   constexpr void trim_capacity() noexcept {
-    while (!segments_.empty() && segments_.back().size == 0) {
+    while (!segments_.empty() && segments_.back()->size == 0) {
       ReleaseLastEmptySegment();
     }
   }
 
   constexpr void trim_capacity(size_type requested) noexcept {
     const std::size_t target = requested < size_ ? size_ : requested;
-    while (!segments_.empty() && segments_.back().size == 0 && capacity_ - segments_.back().capacity >= target) {
+    while (!segments_.empty() && segments_.back()->size == 0 && capacity_ - Options.segment_size >= target) {
       ReleaseLastEmptySegment();
     }
   }
 
   constexpr void release() noexcept {
     clear();
-    for (auto pos = segments_.rbegin(); pos != segments_.rend(); ++pos) {
-      source_.Release(pos->block);
+    while (!segments_.empty()) {
+      ReleaseLastEmptySegment();
     }
-    segments_.clear();
-    capacity_ = 0;
   }
 
   constexpr segment_range segments() noexcept { return segment_range(this, LiveSegmentCount()); }
@@ -687,6 +991,22 @@ class SegmentedSequence final {
   constexpr const_segment_range segments() const noexcept { return const_segment_range(this, LiveSegmentCount()); }
 
  private:
+  constexpr bool DirectoryAllocatorsAllowMoveTransfer(const SegmentedSequence& other) const noexcept {
+    if constexpr (kDirectoryMoveAssignmentAlwaysSafe) {
+      return true;
+    } else {
+      return segments_.get_allocator() == other.segments_.get_allocator();
+    }
+  }
+
+  constexpr bool DirectoryAllocatorsAllowSwap(const SegmentedSequence& other) const noexcept {
+    if constexpr (kDirectorySwapAlwaysSafe) {
+      return true;
+    } else {
+      return segments_.get_allocator() == other.segments_.get_allocator();
+    }
+  }
+
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
   requires std::constructible_from<T, std::iter_reference_t<Iterator>>
   constexpr void AppendIteratorRange(Iterator first, Sentinel last) {
@@ -699,8 +1019,8 @@ class SegmentedSequence final {
         const auto count = last - first;
         MBO_CONFIG_REQUIRE(count >= 0, "SegmentedSequence range has negative size");
         MBO_CONFIG_REQUIRE(
-            std::in_range<size_type>(count) && static_cast<size_type>(count) <= max_size() - size_,
-            "SegmentedSequence append exceeds max_size");
+            std::in_range<size_type>(count) && static_cast<size_type>(count) <= MaxCapacity() - size_,
+            "SegmentedSequence append exceeds maximum capacity");
         reserve(size_ + static_cast<size_type>(count));
       }
       for (; first != last; ++first) {
@@ -715,101 +1035,115 @@ class SegmentedSequence final {
 #endif
   }
 
-  static constexpr std::size_t CapacityForSegment(std::size_t segment_index) noexcept {
-    if (segment_index < Options.listed_capacities) {
-      return Options.segment_capacities[segment_index];
-    }
-    return Options.repeat_last ? Options.segment_capacities[Options.listed_capacities - 1] : 0;
+  static constexpr std::pair<std::size_t, std::size_t> Locate(std::size_t pos) noexcept {
+    return {pos >> kSegmentShift, pos & kSegmentMask};
   }
 
-  static constexpr std::pair<std::size_t, std::size_t> Locate(std::size_t pos) noexcept {
-    if constexpr (Options.listed_capacities == 1 && Options.repeat_last) {
-      const std::size_t capacity = Options.segment_capacities.front();
-      return {pos / capacity, pos % capacity};
-    }
-    if constexpr (Options.repeat_last) {
-      constexpr std::size_t kListedCapacity = [] {
-        std::size_t result = 0;
-        for (std::size_t segment_index = 0; segment_index < Options.listed_capacities; ++segment_index) {
-          result += Options.segment_capacities[segment_index];
-        }
-        return result;
-      }();
-      if (pos >= kListedCapacity) {
-        const std::size_t repeated = Options.segment_capacities[Options.listed_capacities - 1];
-        const std::size_t tail = pos - kListedCapacity;
-        return {Options.listed_capacities + (tail / repeated), tail % repeated};
-      }
-    }
-    for (std::size_t segment_index = 0; segment_index < Options.listed_capacities; ++segment_index) {
-      const std::size_t capacity = Options.segment_capacities[segment_index];
-      if (pos < capacity) {
-        return {segment_index, pos};
-      }
-      pos -= capacity;
-    }
-    return {Options.listed_capacities, pos};
+  static constexpr std::size_t RepresentationCapacityLimit() noexcept {
+    return container_internal::SegmentedSequenceRepresentationCapacityLimit<T>();
   }
+
+  static constexpr std::size_t MaxSegmentCount() noexcept {
+    if constexpr (kFiniteDirectory) {
+      return Options.segment_capacity;
+    } else {
+      return RepresentationCapacityLimit() / Options.segment_size;
+    }
+  }
+
+  static constexpr std::size_t MaxCapacity() noexcept { return MaxSegmentCount() * Options.segment_size; }
 
   constexpr std::size_t LiveSegmentCount() const noexcept { return empty() ? 0 : Locate(size_ - 1).first + 1; }
 
   constexpr reference ElementAt(std::size_t pos) noexcept {
     const auto [segment_index, offset] = Locate(pos);
-    return segments_[segment_index].data[offset];
+    return segments_[segment_index]->slots[offset].value;
   }
 
   constexpr const_reference ElementAt(std::size_t pos) const noexcept {
     const auto [segment_index, offset] = Locate(pos);
-    return segments_[segment_index].data[offset];
+    return segments_[segment_index]->slots[offset].value;
+  }
+
+  constexpr void InitializeDirectory() {
+    if constexpr (Options.segment_reservation > 0) {
+      segments_.reserve(Options.segment_reservation);
+    }
+  }
+
+  constexpr void EnsureDirectoryCapacity(std::size_t required) {
+    if (required <= segments_.capacity()) {
+      return;
+    }
+    const std::size_t requested = [required] {
+      const std::size_t next = std::bit_ceil(required);
+      return next < MaxSegmentCount() ? next : MaxSegmentCount();
+    }();
+    // std::vector may reserve more, but every explicit request follows a power-of-two threshold.
+    segments_.reserve(requested);
   }
 
   constexpr bool TryAddSegment() {
-    const std::size_t segment_capacity = CapacityForSegment(segments_.size());
-    if (segment_capacity == 0 || capacity_ >= max_size() || segment_capacity > max_size() - capacity_
-        || segment_capacity > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+    if (segments_.size() >= MaxSegmentCount()) {
       return false;
     }
-    const auto block = source_.TryAcquire(segment_capacity * sizeof(T), alignof(T));
-    if (!block || block->data == nullptr || block->size < segment_capacity * sizeof(T) || block->alignment < alignof(T)
-        || std::bit_cast<std::uintptr_t>(block->data) % alignof(T) != 0) {
-      if (block) {
-        source_.Release(*block);
+    EnsureDirectoryCapacity(segments_.size() + 1);
+    // The directory intentionally stores mutable Segment pointers: later appends construct Slots.
+    Segment* const segment = [this]() constexpr -> Segment* {  // NOLINT(misc-const-correctness)
+      if consteval {
+        if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {
+          std::allocator<Segment> allocator;
+          Segment* const result = allocator.allocate(1);
+          return std::construct_at(
+              result, mbo::memory::MemoryBlock{
+                          .data = nullptr,
+                          .size = sizeof(Segment),
+                          .alignment = alignof(Segment),
+                      });
+        } else {
+          // A custom source's exhaustion and state are part of its semantics. Do not bypass them
+          // with typed constant-evaluation storage that the source did not supply.
+          return nullptr;
+        }
+      } else {
+        const auto block = source_.TryAcquire(sizeof(Segment), alignof(Segment));
+        if (!block || block->data == nullptr || block->size < sizeof(Segment) || block->alignment < alignof(Segment)
+            || std::bit_cast<std::uintptr_t>(block->data) % alignof(Segment) != 0) {
+          if (block) {
+            source_.Release(*block);
+          }
+          return nullptr;
+        }
+        // The source supplies raw storage. construct_at begins one complete Segment object
+        // containing its header and inactive element Slots; individual T lifetimes start only on
+        // append.
+        return std::construct_at(
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): allocator-style storage.
+            reinterpret_cast<Segment*>(block->data), *block);
       }
+    }();
+    if (segment == nullptr) {
       return false;
     }
 #if __cpp_exceptions
     try {
 #endif
-      // Restarting byte-array lifetime intentionally invokes implicit object creation: it
-      // establishes the segment's T[] storage/provenance without constructing any T elements.
-      // Every acquired block takes this path, including storage released and later reacquired.
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): restarts caller-owned array storage.
-      auto* const bytes = ::new (static_cast<void*>(block->data)) std::byte[block->size];
-      // No T object is alive yet, so std::launder<T> would be invalid. construct_at starts each
-      // element lifetime before the resulting T pointer is dereferenced.
-      T* const data = reinterpret_cast<T*>(bytes);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-      segments_.push_back(
-          Segment{
-              .block = *block,
-              .data = data,
-              .capacity = segment_capacity,
-              .size = 0,
-          });
+      segments_.push_back(segment);
 #if __cpp_exceptions
     } catch (...) {
-      source_.Release(*block);
-      return false;
+      DestroySegmentStorage(segment);
+      throw;
     }
 #endif
-    capacity_ += segment_capacity;
+    capacity_ += Options.segment_size;
     return true;
   }
 
   constexpr void ReleaseLastEmptySegment() noexcept {
-    const Segment& segment = segments_.back();
-    source_.Release(segment.block);
-    capacity_ -= segment.capacity;
+    Segment* const segment = segments_.back();
+    capacity_ -= Options.segment_size;
     segments_.pop_back();
+    DestroySegmentStorage(segment);
   }
 
   constexpr void ReleaseSegmentsFrom(std::size_t first) noexcept {
@@ -821,15 +1155,50 @@ class SegmentedSequence final {
   constexpr void DestroySuffix(std::size_t requested) noexcept {
     while (size_ > requested) {
       const auto [segment_index, offset] = Locate(size_ - 1);
-      Segment& segment = segments_[segment_index];
+      Segment& segment = *segments_[segment_index];
       --segment.size;
       --size_;
-      std::destroy_at(segment.data + offset);
+      std::destroy_at(std::addressof(segment.slots[offset].value));
     }
   }
 
+  constexpr void DestroySegmentStorage(Segment* segment) noexcept {
+    const mbo::memory::MemoryBlock block = segment->block;
+    std::destroy_at(segment);
+    if consteval {
+      if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {
+        std::allocator<Segment> allocator;
+        allocator.deallocate(segment, 1);
+      }
+    } else {
+      source_.Release(block);
+    }
+  }
+
+  constexpr SegmentedSequence(
+      CopyWithAllocatorTag /*unused*/,
+      const SegmentedSequence& other,
+      const SegmentPointerAllocator& directory_allocator)
+  requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
+      : source_(other.source_.CopyForContainer()), segments_(directory_allocator) {
+    InitializeDirectory();
+#if __cpp_exceptions
+    try {
+#endif
+      reserve(other.size());
+      for (const T& value : other) {
+        unchecked_emplace_back(value);
+      }
+#if __cpp_exceptions
+    } catch (...) {
+      release();
+      throw;
+    }
+#endif
+  }
+
   [[no_unique_address]] Source source_{};
-  std::vector<Segment> segments_;
+  Directory segments_;
   std::size_t size_ = 0;
   std::size_t capacity_ = 0;
 };

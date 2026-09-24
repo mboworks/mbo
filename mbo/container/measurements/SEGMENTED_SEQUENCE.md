@@ -24,26 +24,31 @@ derived views; they never replace or modify JSON evidence.
 `//mbo/container:segmented_sequence_benchmark` measures the public implementation using 16,384
 64-bit elements. Its initial matrix separates the costs that a single aggregate result would hide:
 
-| Family             | What it measures                                                    |
-| ------------------ | ------------------------------------------------------------------- |
-| `AppendFresh`      | Construction, directory growth, segment acquisition, and append     |
-| `AppendRetained`   | Append into already reserved segments followed by element teardown  |
-| `Indexed`          | Sequential dense-position lookup through the mapping implementation |
-| `IndexedPermuted`  | Cache-resistant dense-position lookup in deterministic permutation  |
-| `Iterator`         | Element-wise random-access-iterator traversal                       |
-| `Segments`         | Non-allocating traversal through contiguous constructed spans       |
-| `Vector` / `Deque` | Relevant standard-library append baselines                          |
+| Family             | What it measures                                                          |
+| ------------------ | ------------------------------------------------------------------------- |
+| `AppendFresh`      | Construction, directory growth, segment acquisition, and append           |
+| `AppendRetained`   | Append into already reserved segments followed by element teardown        |
+| `GrowthBoundary`   | One append that adds a segment, with and without directory reallocation   |
+| `Indexed`          | Sequential shift/mask dense-position lookup                               |
+| `IndexedPermuted`  | Cache-resistant dense-position lookup in deterministic permutation        |
+| `Iterator`         | Element-wise random-access-iterator traversal                             |
+| `Segments`         | Traversal through constructed prefixes using non-contiguous segment views |
+| `Vector` / `Deque` | Relevant standard-library append baselines                                |
 
-The production target currently exercises uniform capacities of 64, 256, and 1,024 elements and a
-listed 64/256/1,024/4,096-element sequence that repeats its final capacity. These are candidates,
-not selected defaults. The proof target will expand mapping and retention alternatives without
-making them public API.
+The production target exercises fixed power-of-two segment sizes of 64, 256, and 1,024 elements. A
+finite 256-element case sets `segment_reservation == segment_capacity` to isolate a fully reserved
+directory from the default unbounded policy.
+The growth-boundary pair prepares two full segments, times the append that adds the third, and
+reports that operation's source/directory allocation count and bytes. Its unbounded case crosses
+the directory's `2 -> 4` reserve threshold; its finite case requested the complete directory during
+construction and therefore performs only the segment allocation.
 
-Every measured container reports logical capacity. `SegmentedSequence` additionally reports the
-number of allocated segments and source-reported reserved bytes. Later element-shape experiments
-must include small PODs, the pointer-plus-size record needed by StringInterner, large aligned PODs,
-and non-trivial movable objects. Latency is never evaluated without the corresponding allocation,
-metadata, unused-tail, and retained-memory cost.
+Every measured `SegmentedSequence` reports current element capacity, segment count, and
+source-reported reserved bytes. Growth-boundary cases additionally report source and directory
+allocation calls/bytes for the timed append. Later element-shape
+experiments must include small PODs, the pointer-plus-size record needed by StringInterner, large
+aligned PODs, and non-trivial movable objects. Latency is never evaluated without the corresponding
+allocation, metadata, unused-tail, and retained-memory cost.
 
 ## Reference commands
 
@@ -89,22 +94,22 @@ python3 tools/benchmark_artifact.py validate mbo/container/measurements/data/*.j
 | Dimension          | Required cases                                                                  |
 | ------------------ | ------------------------------------------------------------------------------- |
 | Element shape      | 1/2/4/8/16-byte POD, pointer-size record, 64/256-byte POD, over-aligned POD     |
-| Growth             | Uniform powers of two, listed capacities, repeated final, bounded fixed         |
-| Mapping            | Shift/mask, bounded listed decisions, hybrid transition, directory alternatives |
+| Growth             | Fixed power-of-two sizes; zero, partial, and full directory reservation         |
+| Mapping            | Shift/mask and pointer-directory alternatives                                   |
 | Lifecycle          | Fresh, reserved, clear/reuse, deep pop/regrow, trim, release                    |
 | Retention          | Retain tail, eager release, bounded count/bytes, close/largest compatible fit   |
-| Access             | Sequential, permuted, iterator arithmetic, segment spans, reverse traversal     |
+| Access             | Sequential, permuted, iterator arithmetic, segment views, reverse traversal     |
 | Source             | New/delete, allocator, PMR, fixed external, inline                              |
 | Failure            | Capacity, arithmetic, source, alignment, directory, and construction failure    |
 | Baseline           | `std::vector`, `std::deque`, and an appropriate Abseil baseline where available |
 | Compile properties | C++23 language mode, code size, compile time, exception on/off                  |
-| Memory             | Payload, source bytes, directory bytes, blocks, tail waste, retained and peak   |
+| Memory             | Payload, source/directory allocations and bytes, tail waste, retained and peak  |
 
-The uniform power-of-two specialization threshold, listed decision strategy, retained-segment
-waste threshold, retention byte/count budgets, and eviction timing are explicitly measurement
-questions. An option becomes public only when at least one measured workload needs it. A candidate
-that wins one access family but violates constant-time lookup, pointer stability, or failure
-transactionality is ineligible regardless of speed.
+The segment-size and reservation defaults, directory alternatives, retained-segment waste threshold,
+retention byte/count budgets, and eviction timing remain measurement questions. An option becomes
+public only when at least one measured workload needs it. A candidate that wins one access family
+but violates constant-time lookup, pointer stability, or failure transactionality is ineligible
+regardless of speed.
 
 ## Review method
 
@@ -116,19 +121,26 @@ deviation, coefficient of variation, and every relevant memory counter.
 Cross-machine direction matters more than tiny aggregate differences. A result within observed
 noise remains undecided. Material architecture disagreement is documented and may justify an
 option only when users can identify the relevant workload or machine characteristic in advance.
+For `GrowthBoundary`, also report p99 and maximum latency across repetitions together with allocation
+count/bytes; aggregate append throughput cannot expose the directory-growth tail.
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation SHA | Baseline SHA | Artifact                                                                                                | Status                                 |
-| ------------ | -------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Apple M5 Pro | Clang 22 | `aeb18e3b4`        | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid diagnostic; quiet rerun required |
-| AMD Zen 5    | Clang 22 | pending            | pending      | pending                                                                                                 | pending                                |
+| Machine      | Compiler | Implementation          | Baseline SHA | Artifact                                                                                                | Status                                  |
+| ------------ | -------- | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Apple M5 Pro | Clang 22 | generic `aeb18e3b4`     | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | valid historical diagnostic             |
+| Apple M5 Pro | Clang 22 | fixed-capacity redesign | pending      | pending                                                                                                 | growth-boundary and full matrix pending |
+| AMD Zen 5    | Clang 22 | fixed-capacity redesign | pending      | pending                                                                                                 | growth-boundary and full matrix pending |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
 
 ## Initial Apple M5 Pro diagnostic
 
-The initial artifact records a clean `aeb18e3b4` tree, Clang 22.1.8, C++20, Bazel 9.2.0, 26
+The initial artifact predates the fixed-capacity pointer-directory redesign and remains immutable
+historical evidence for the generic implementation merged in
+[pull request 443](https://github.com/mboworks/mbo/pull/443) at
+[`12bf51f8fdcceb2c452442a0287f332263a34680`](https://github.com/mboworks/mbo/commit/12bf51f8fdcceb2c452442a0287f332263a34680).
+It records a clean `aeb18e3b4` tree, Clang 22.1.8, C++20, Bazel 9.2.0, 26
 families with exactly nine raw repetitions each, random interleaving, one-second warmup and minimum
 time, and a 404.47-second run. It began immediately after a complete repository build at load
 averages 8.19/5.13/7.66 and ended at 1.70/3.98/6.38. Times are CPU nanoseconds per 16,384-element

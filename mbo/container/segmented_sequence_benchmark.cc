@@ -7,7 +7,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <memory>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <version>
 
@@ -71,27 +74,121 @@ void AddBuildContext() {
 }
 
 constexpr SegmentedSequenceOptions kUniform64{
-    .segment_capacities = {64},
-    .listed_capacities = 1,
+    .segment_size = 64,
 };
 constexpr SegmentedSequenceOptions kUniform256{
-    .segment_capacities = {256},
-    .listed_capacities = 1,
+    .segment_size = 256,
 };
 constexpr SegmentedSequenceOptions kUniform1024{
-    .segment_capacities = {1'024},
-    .listed_capacities = 1,
+    .segment_size = 1'024,
 };
-constexpr SegmentedSequenceOptions kListed{
-    .segment_capacities = {64, 256, 1'024, 4'096},
-    .listed_capacities = 4,
+constexpr SegmentedSequenceOptions kFinite256{
+    .segment_size = 256,
+    .segment_capacity = kElementCount / 256,
+    .segment_reservation = kElementCount / 256,
 };
 
-template<SegmentedSequenceOptions Options>
-void SetMemoryCounters(benchmark::State& state, const SegmentedSequence<std::uint64_t, Options>& sequence) {
+struct AllocationCounters final {
+  std::size_t source_allocations = 0;
+  std::size_t source_bytes = 0;
+  std::size_t directory_allocations = 0;
+  std::size_t directory_bytes = 0;
+};
+
+// NOLINTBEGIN(readability-identifier-naming): adapters model BlockSource and Allocator spelling.
+struct CountingBlockSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
+    auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+    if (block) {
+      ++counters->source_allocations;
+      counters->source_bytes += block->size;
+    }
+    return block;
+  }
+
+  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+
+  AllocationCounters* counters;
+};
+
+template<typename T>
+struct CountingDirectoryAllocator final {
+  using value_type = T;
+
+  template<typename U>
+  struct rebind final {
+    using other = CountingDirectoryAllocator<U>;
+  };
+
+  constexpr CountingDirectoryAllocator() noexcept = default;
+
+  constexpr explicit CountingDirectoryAllocator(AllocationCounters* counters) noexcept : counters(counters) {}
+
+  template<typename U>
+  constexpr explicit CountingDirectoryAllocator(const CountingDirectoryAllocator<U>& other) noexcept
+      : counters(other.counters) {}
+
+  T* allocate(std::size_t count) {
+    ++counters->directory_allocations;
+    counters->directory_bytes += count * sizeof(T);
+    return std::allocator<T>{}.allocate(count);
+  }
+
+  void deallocate(T* data, std::size_t count) noexcept { std::allocator<T>{}.deallocate(data, count); }
+
+  template<typename U>
+  friend constexpr bool operator==(
+      const CountingDirectoryAllocator& lhs,
+      const CountingDirectoryAllocator<U>& rhs) noexcept {
+    return lhs.counters == rhs.counters;
+  }
+
+  template<typename>
+  friend struct CountingDirectoryAllocator;
+
+  AllocationCounters* counters = nullptr;
+};
+
+// NOLINTEND(readability-identifier-naming)
+
+template<SegmentedSequenceOptions Options, mbo::memory::BlockSource Source, typename DirectoryAllocator>
+void SetMemoryCounters(
+    benchmark::State& state,
+    const SegmentedSequence<std::uint64_t, Options, Source, DirectoryAllocator>& sequence) {
   state.counters["capacity"] = static_cast<double>(sequence.capacity());
   state.counters["reserved"] = static_cast<double>(sequence.bytes_reserved());
   state.counters["segments"] = static_cast<double>(sequence.segment_count());
+}
+
+template<SegmentedSequenceOptions Options>
+void BmGrowthBoundary(benchmark::State& state) {
+  using Allocator = CountingDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<std::uint64_t, Options, CountingBlockSource, Allocator>;
+  constexpr std::size_t kPreparedElements = 2 * Options.segment_size;
+  for (auto _ : state) {
+    state.PauseTiming();
+    {
+      AllocationCounters counters;
+      Sequence sequence(std::allocator_arg, Allocator(&counters), CountingBlockSource{.counters = &counters});
+      sequence.resize(kPreparedElements, 1);
+      counters = {};
+      state.ResumeTiming();
+      benchmark::DoNotOptimize(sequence.emplace_back(1));
+      benchmark::ClobberMemory();
+      state.PauseTiming();
+      SetMemoryCounters(state, sequence);
+      state.counters["growth_directory_allocations"] = static_cast<double>(counters.directory_allocations);
+      state.counters["growth_directory_bytes"] = static_cast<double>(counters.directory_bytes);
+      state.counters["growth_source_allocations"] = static_cast<double>(counters.source_allocations);
+      state.counters["growth_source_bytes"] = static_cast<double>(counters.source_bytes);
+    }
+    state.ResumeTiming();
+  }
+  state.SetItemsProcessed(state.iterations());
 }
 
 template<SegmentedSequenceOptions Options>
@@ -209,10 +306,12 @@ void BmDequeAppendFresh(benchmark::State& state) {
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform64", kUniform64);
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform256", kUniform256);
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform1024", kUniform1024);
-REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Listed", kListed);
+REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Finite256", kFinite256);
 
 #undef REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS
 
+BENCHMARK_TEMPLATE(BmGrowthBoundary, kUniform256)->Name("SegmentedSequence/GrowthBoundary/UnboundedDirectory");
+BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256)->Name("SegmentedSequence/GrowthBoundary/FiniteDirectory");
 BENCHMARK(BmVectorAppendFresh)->Name("Vector/AppendFresh");
 BENCHMARK(BmDequeAppendFresh)->Name("Deque/AppendFresh");
 

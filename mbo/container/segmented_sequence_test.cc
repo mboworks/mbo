@@ -39,10 +39,9 @@ using ::testing::Optional;
 using ::testing::SizeIs;
 
 constexpr SegmentedSequenceOptions kSmallSegments{
-    .segment_capacities = {2, 3},
-    .listed_capacities = 2,
-    .repeat_last = true,
-    .maximum_size = 11,
+    .segment_size = 2,
+    .segment_capacity = 8,
+    .segment_reservation = 8,
 };
 
 using IntSequence = SegmentedSequence<int, kSmallSegments>;
@@ -55,24 +54,46 @@ struct MalformedBlockSource final {
 
   Result result = Result::kNullData;
   int* releases = nullptr;
-  alignas(int) std::array<std::byte, sizeof(int) * 3> storage{};
+  std::byte* storage = nullptr;
 
-  static constexpr std::size_t max_alignment() noexcept { return alignof(int); }
+  static constexpr std::size_t max_alignment() noexcept { return 128; }
 
   std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
     if (result == Result::kNullData) {
       return mbo::memory::MemoryBlock{.data = nullptr, .size = size, .alignment = alignment};
     }
     if (result == Result::kShortBlock) {
-      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size - 1, .alignment = alignment};
+      return mbo::memory::MemoryBlock{.data = storage, .size = size - 1, .alignment = alignment};
     }
     if (result == Result::kWeakAlignment) {
-      return mbo::memory::MemoryBlock{.data = storage.data(), .size = size, .alignment = 1};
+      return mbo::memory::MemoryBlock{.data = storage, .size = size, .alignment = 1};
     }
-    return mbo::memory::MemoryBlock{.data = storage.data() + 1, .size = size, .alignment = alignment};
+    return mbo::memory::MemoryBlock{.data = storage + 1, .size = size, .alignment = alignment};
   }
 
   void Release(mbo::memory::MemoryBlock /*unused*/) const noexcept { ++*releases; }
+};
+
+struct RecordingBlockSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  int* acquisitions = nullptr;
+  int* releases = nullptr;
+
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
+    auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+    if (block) {
+      ++*acquisitions;
+    }
+    return block;
+  }
+
+  void Release(mbo::memory::MemoryBlock block) const noexcept {
+    ++*releases;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
 };
 
 struct ThrowingDestructor final {
@@ -92,17 +113,106 @@ struct alignas(128) OverAlignedElement final {
   int value;
 };
 
-struct LargeElement final {
-  std::array<std::byte, 1'024> bytes{};
+struct IncompleteElement;
+
+struct DirectoryAllocationState final {
+  std::array<int, 8> allocations{};
+  std::array<int, 8> deallocations{};
+  std::array<std::size_t, 8> request_counts{};
+  std::array<std::array<std::size_t, 16>, 8> requested_sizes{};
 };
 
-struct IncompleteElement;
+template<typename T>
+struct StatefulDirectoryAllocator {
+  using value_type = T;
+  using propagate_on_container_copy_assignment = std::false_type;
+  using propagate_on_container_move_assignment = std::false_type;
+  using propagate_on_container_swap = std::false_type;
+  using is_always_equal = std::false_type;
+
+  template<typename U>
+  struct rebind final {
+    using other = StatefulDirectoryAllocator<U>;
+  };
+
+  constexpr StatefulDirectoryAllocator() noexcept = default;
+
+  constexpr StatefulDirectoryAllocator(DirectoryAllocationState* state, int allocator_id) noexcept
+      : state(state), id(allocator_id) {}
+
+  template<typename U>
+  constexpr explicit StatefulDirectoryAllocator(const StatefulDirectoryAllocator<U>& other) noexcept
+      : state(other.state), id(other.id) {}
+
+  T* allocate(std::size_t count) {
+    if (state != nullptr) {
+      const auto index = static_cast<std::size_t>(id);
+      ++state->allocations.at(index);
+      const std::size_t request_index = state->request_counts.at(index)++;
+      state->requested_sizes.at(index).at(request_index) = count;
+    }
+    return std::allocator<T>{}.allocate(count);
+  }
+
+  void deallocate(T* data, std::size_t count) noexcept {
+    if (state != nullptr) {
+      ++state->deallocations.at(static_cast<std::size_t>(id));
+    }
+    std::allocator<T>{}.deallocate(data, count);
+  }
+
+  constexpr StatefulDirectoryAllocator select_on_container_copy_construction() const noexcept {
+    return StatefulDirectoryAllocator(state, id + 2);
+  }
+
+  template<typename U>
+  friend constexpr bool operator==(
+      const StatefulDirectoryAllocator& lhs,
+      const StatefulDirectoryAllocator<U>& rhs) noexcept {
+    return lhs.state == rhs.state && lhs.id == rhs.id;
+  }
+
+  template<typename>
+  friend struct StatefulDirectoryAllocator;
+
+  DirectoryAllocationState* state = nullptr;
+  int id = 0;
+};
+
+template<typename T>
+struct PropagatingCopyAllocator {
+  using value_type = T;
+  using propagate_on_container_copy_assignment = std::true_type;
+  using is_always_equal = std::true_type;
+
+  template<typename U>
+  struct rebind final {
+    using other = PropagatingCopyAllocator<U>;
+  };
+
+  constexpr PropagatingCopyAllocator() noexcept = default;
+
+  template<typename U>
+  constexpr explicit PropagatingCopyAllocator(const PropagatingCopyAllocator<U>& /*other*/) noexcept {}
+
+  T* allocate(std::size_t count) { return std::allocator<T>{}.allocate(count); }
+
+  void deallocate(T* data, std::size_t count) noexcept { std::allocator<T>{}.deallocate(data, count); }
+
+  friend constexpr bool operator==(const PropagatingCopyAllocator&, const PropagatingCopyAllocator&) = default;
+};
 
 // NOLINTEND(readability-identifier-naming)
 
 static_assert(std::ranges::random_access_range<IntSequence>);
 static_assert(std::ranges::random_access_range<const IntSequence>);
 static_assert(!std::ranges::contiguous_range<IntSequence>);
+static_assert(std::ranges::random_access_range<IntSequence::segment_view>);
+static_assert(std::ranges::random_access_range<IntSequence::const_segment_view>);
+static_assert(!std::ranges::contiguous_range<IntSequence::segment_view>);
+static_assert(!std::ranges::contiguous_range<IntSequence::const_segment_view>);
+static_assert(std::same_as<std::ranges::range_reference_t<IntSequence::segment_view>, int&>);
+static_assert(std::same_as<std::ranges::range_reference_t<IntSequence::const_segment_view>, const int&>);
 static_assert(std::equality_comparable_with<IntSequence::iterator, IntSequence::const_iterator>);
 static_assert(std::sized_sentinel_for<IntSequence::iterator, IntSequence::const_iterator>);
 static_assert(std::sized_sentinel_for<IntSequence::const_iterator, IntSequence::iterator>);
@@ -114,19 +224,66 @@ static_assert(!SegmentedSequenceElement<ThrowingDestructor>);
 static_assert(!SegmentedSequenceElement<void>);
 static_assert(!SegmentedSequenceElement<IncompleteElement>);
 
-constexpr SegmentedSequenceOptions kUnlimitedOneElementSegments{
-    .segment_capacities = {1},
-    .listed_capacities = 1,
+constexpr SegmentedSequenceOptions kUnrepresentableSegment{
+    .segment_size = std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1),
 };
-using UnlimitedIntSequence = SegmentedSequence<int, kUnlimitedOneElementSegments>;
-using UnlimitedLargeSequence = SegmentedSequence<LargeElement, kUnlimitedOneElementSegments>;
-constexpr std::size_t kIteratorLimit = static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
-constexpr std::size_t kIntObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(int);
-constexpr std::size_t kLargeObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(LargeElement);
-static_assert(
-    UnlimitedIntSequence::max_size() == (kIteratorLimit < kIntObjectLimit ? kIteratorLimit : kIntObjectLimit));
-static_assert(
-    UnlimitedLargeSequence::max_size() == (kIteratorLimit < kLargeObjectLimit ? kIteratorLimit : kLargeObjectLimit));
+static_assert(kUnrepresentableSegment.IsValid());
+static_assert(!RepresentableSegmentedSequenceOptions<int, kUnrepresentableSegment>);
+
+constexpr SegmentedSequenceOptions kUnrepresentableDirectory{
+    .segment_size = 2,
+    .segment_capacity = std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1),
+};
+static_assert(kUnrepresentableDirectory.IsValid());
+static_assert(!RepresentableSegmentedSequenceOptions<int, kUnrepresentableDirectory>);
+
+constexpr SegmentedSequenceOptions kUnrepresentableReservation{
+    .segment_size = 2,
+    .segment_reservation = std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1),
+};
+static_assert(kUnrepresentableReservation.IsValid());
+static_assert(!RepresentableSegmentedSequenceOptions<int, kUnrepresentableReservation>);
+
+constexpr SegmentedSequenceOptions kConstexprOptions{
+    .segment_size = 2,
+    .segment_capacity = 4,
+};
+
+constexpr bool ConstexprSegmentedSequenceWorks() {
+  SegmentedSequence<int, kConstexprOptions> sequence;
+  sequence.push_back(1);
+  sequence.push_back(2);
+  sequence.push_back(3);
+  sequence.push_back(4);
+  sequence.push_back(5);
+  if (sequence.size() != 5 || sequence.capacity() != 6 || sequence.segment_count() != 3 || sequence[3] != 4
+      || sequence.bytes_reserved() == 0) {
+    return false;
+  }
+  const SegmentedSequence<int, kConstexprOptions> copy(sequence);
+  if (copy.size() != 5 || copy.front() != 1 || copy.back() != 5) {
+    return false;
+  }
+  sequence.pop_back();
+  sequence.clear();
+  return sequence.empty() && sequence.capacity() == 6;
+}
+
+static_assert(ConstexprSegmentedSequenceWorks());
+
+constexpr bool ConstexprCustomSourceIsNotBypassed() {
+  using Sequence = SegmentedSequence<int, kConstexprOptions, mbo::memory::InlineBlockSource<4'096, 128>>;
+  Sequence sequence;
+  return !sequence.try_push_back(1).has_value() && sequence.empty() && sequence.capacity() == 0;
+}
+
+static_assert(ConstexprCustomSourceIsNotBypassed());
+
+constexpr SegmentedSequenceOptions kNoDirectoryReservation{
+    .segment_reservation = 0,
+};
+static_assert(!std::is_nothrow_default_constructible_v<SegmentedSequence<int>>);
+static_assert(std::is_nothrow_default_constructible_v<SegmentedSequence<int, kNoDirectoryReservation>>);
 
 template<typename Sequence, typename... Args>
 concept CanEmplaceBack =
@@ -135,28 +292,50 @@ concept CanEmplaceBack =
 static_assert(CanEmplaceBack<IntSequence, int>);
 static_assert(!CanEmplaceBack<IntSequence, std::string>);
 
+using PropagatingCopySequence =
+    SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, PropagatingCopyAllocator<std::byte>>;
+static_assert(std::copy_constructible<PropagatingCopySequence>);
+static_assert(!std::is_copy_assignable_v<PropagatingCopySequence>);
+
 struct SegmentedSequenceTest : ::testing::Test {};
 
-TEST_F(SegmentedSequenceTest, OptionsRejectEmptyInvalidAndOverflowingCapacityLists) {
+template<typename T>
+void MoveAssignForTest(T& destination, T& source) {
+  destination = std::move(source);
+}
+
+TEST_F(SegmentedSequenceTest, OptionsRequirePowerOfTwoSegmentSizeAndFiniteCapacity) {
   SegmentedSequenceOptions options;
   EXPECT_THAT(options.IsValid(), Eq(true));
 
-  options.listed_capacities = 0;
+  options.segment_size = 0;
   EXPECT_THAT(options.IsValid(), Eq(false));
-  options.listed_capacities = options.segment_capacities.size() + 1;
+  options.segment_size = 3;
   EXPECT_THAT(options.IsValid(), Eq(false));
-  options.listed_capacities = 1;
-  options.segment_capacities[0] = 0;
+  options.segment_size = 2;
+  options.segment_capacity = 0;
   EXPECT_THAT(options.IsValid(), Eq(false));
-  options.segment_capacities[0] = 2;
-  options.maximum_size = 1;
+  options.segment_capacity = 3;
   EXPECT_THAT(options.IsValid(), Eq(false));
-  options.segment_capacities[0] = 1;
-  options.maximum_size = 0;
+  options.segment_capacity = 1;
+  EXPECT_THAT(options.IsValid(), Eq(true));
+  options.segment_reservation = 2;
   EXPECT_THAT(options.IsValid(), Eq(false));
+  options.segment_reservation = 3;
+  EXPECT_THAT(options.IsValid(), Eq(false));
+  options.segment_reservation = 0;
+  EXPECT_THAT(options.IsValid(), Eq(true));
+  options.segment_capacity = std::numeric_limits<std::size_t>::max();
+  EXPECT_THAT(options.IsValid(), Eq(true));
 }
 
-TEST_F(SegmentedSequenceTest, GrowsAcrossListedAndRepeatedSegments) {
+TEST_F(SegmentedSequenceTest, ByteRepresentationCapacityUsesIteratorDifferenceLimit) {
+  EXPECT_THAT(
+      container_internal::SegmentedSequenceRepresentationCapacityLimit<char>(),
+      Eq(static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())));
+}
+
+TEST_F(SegmentedSequenceTest, GrowsAcrossFixedCapacitySegments) {
   IntSequence sequence;
   for (int value = 0; value < 10; ++value) {
     EXPECT_THAT(std::addressof(sequence.emplace_back(value)), NotNull());
@@ -164,11 +343,84 @@ TEST_F(SegmentedSequenceTest, GrowsAcrossListedAndRepeatedSegments) {
 
   EXPECT_THAT(sequence, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
   EXPECT_THAT(sequence, SizeIs(10));
-  EXPECT_THAT(sequence.capacity(), Eq(11));
+  EXPECT_THAT(sequence.capacity(), Eq(10));
   EXPECT_THAT(sequence.front(), Eq(0));
   EXPECT_THAT(sequence.back(), Eq(9));
   EXPECT_THAT(sequence[7], Eq(7));
   EXPECT_THAT(sequence.at(8), Eq(8));
+}
+
+TEST_F(SegmentedSequenceTest, ReservationEqualToCapacityAvoidsDirectoryGrowth) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence sequence(std::allocator_arg, Allocator(&state, 1));
+  ASSERT_THAT(state.request_counts[1], Eq(1));
+  EXPECT_THAT(state.requested_sizes[1][0], Eq(8));
+
+  for (int value = 0; value < 11; ++value) {
+    sequence.push_back(value);
+  }
+
+  EXPECT_THAT(sequence, SizeIs(11));
+  EXPECT_THAT(sequence.segment_count(), Eq(6));
+  EXPECT_THAT(state.request_counts[1], Eq(1));
+}
+
+TEST_F(SegmentedSequenceTest, UnboundedDirectoryGrowthRequestsPowerOfTwoThresholds) {
+  constexpr SegmentedSequenceOptions kUnboundedTwo{
+      .segment_size = 2,
+      .segment_reservation = 0,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kUnboundedTwo, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence sequence(std::allocator_arg, Allocator(&state, 1));
+  EXPECT_THAT(state.request_counts[1], Eq(0));
+
+  for (int value = 0; value < 5; ++value) {
+    sequence.push_back(value);
+  }
+
+  ASSERT_THAT(state.request_counts[1], Eq(3));
+  EXPECT_THAT(state.requested_sizes[1][0], Eq(1));
+  EXPECT_THAT(state.requested_sizes[1][1], Eq(2));
+  EXPECT_THAT(state.requested_sizes[1][2], Eq(4));
+}
+
+TEST_F(SegmentedSequenceTest, DefaultDirectoryReservationRequestsOneSlot) {
+  constexpr SegmentedSequenceOptions kDefaultReservation{
+      .segment_size = 2,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kDefaultReservation, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+
+  const Sequence sequence(std::allocator_arg, Allocator(&state, 1));
+
+  ASSERT_THAT(state.request_counts[1], Eq(1));
+  EXPECT_THAT(state.requested_sizes[1][0], Eq(1));
+  EXPECT_THAT(sequence, IsEmpty());
+}
+
+TEST_F(SegmentedSequenceTest, IntermediateReservationGrowsAtNextPowerOfTwoThreshold) {
+  constexpr SegmentedSequenceOptions kReservedTwo{
+      .segment_size = 2,
+      .segment_capacity = 8,
+      .segment_reservation = 2,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kReservedTwo, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence sequence(std::allocator_arg, Allocator(&state, 1));
+
+  for (int value = 0; value < 5; ++value) {
+    sequence.push_back(value);
+  }
+
+  ASSERT_THAT(state.request_counts[1], Eq(2));
+  EXPECT_THAT(state.requested_sizes[1][0], Eq(2));
+  EXPECT_THAT(state.requested_sizes[1][1], Eq(4));
 }
 
 TEST_F(SegmentedSequenceTest, GrowthPreservesAddresses) {
@@ -181,6 +433,22 @@ TEST_F(SegmentedSequenceTest, GrowthPreservesAddresses) {
   sequence.reserve(11);
   EXPECT_THAT(std::addressof(sequence[0]), Eq(first_address));
   EXPECT_THAT(std::addressof(sequence[1]), Eq(second_address));
+}
+
+TEST_F(SegmentedSequenceTest, EachSegmentUsesOneSourceAllocationForHeaderAndSlots) {
+  int acquisitions = 0;
+  int releases = 0;
+  SegmentedSequence<int, kSmallSegments, RecordingBlockSource> sequence(
+      RecordingBlockSource{.acquisitions = &acquisitions, .releases = &releases});
+
+  for (int value = 0; value < 5; ++value) {
+    sequence.push_back(value);
+  }
+
+  EXPECT_THAT(sequence.segment_count(), Eq(3));
+  EXPECT_THAT(acquisitions, Eq(3));
+  sequence.release();
+  EXPECT_THAT(releases, Eq(3));
 }
 
 TEST_F(SegmentedSequenceTest, CopyOwnsIndependentElements) {
@@ -205,6 +473,36 @@ TEST_F(SegmentedSequenceTest, CopyOwnsIndependentElements) {
   EXPECT_THAT(assigned, ElementsAre(1, 2, 3));
 }
 
+TEST_F(SegmentedSequenceTest, CopySelectsDirectoryAllocatorThroughAllocatorTraits) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  static_assert(std::uses_allocator_v<Sequence, Allocator>);
+  DirectoryAllocationState state;
+  Sequence source(std::allocator_arg, Allocator(&state, 1));
+  source.push_back(1);
+  source.push_back(2);
+
+  const Sequence copy(source);
+
+  EXPECT_THAT(copy, ElementsAre(1, 2));
+  EXPECT_THAT(copy.get_allocator().id, Eq(3));
+  EXPECT_THAT(state.allocations[3], Eq(1));
+}
+
+TEST_F(SegmentedSequenceTest, AllocatorExtendedCopyUsesRequestedDirectoryAllocator) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence source(std::allocator_arg, Allocator(&state, 1));
+  source.push_back(1);
+
+  const Sequence copy(std::allocator_arg, Allocator(&state, 4), source);
+
+  EXPECT_THAT(copy, ElementsAre(1));
+  EXPECT_THAT(copy.get_allocator().id, Eq(4));
+  EXPECT_THAT(state.allocations[4], Eq(1));
+}
+
 TEST_F(SegmentedSequenceTest, MoveTransfersElementAddresses) {
   IntSequence source;
   source.push_back(1);
@@ -219,6 +517,131 @@ TEST_F(SegmentedSequenceTest, MoveTransfersElementAddresses) {
   EXPECT_THAT(source, IsEmpty());
   // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(source.capacity(), Eq(0));
+}
+
+TEST_F(SegmentedSequenceTest, MoveAssignmentPreservesUnequalNonpropagatingDirectoryAllocators) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  static_assert(std::is_move_assignable_v<Sequence>);
+  static_assert(!std::is_nothrow_move_assignable_v<Sequence>);
+  DirectoryAllocationState state;
+  Sequence destination(std::allocator_arg, Allocator(&state, 1));
+  destination.push_back(9);
+  Sequence source(std::allocator_arg, Allocator(&state, 2));
+  source.push_back(1);
+  source.push_back(2);
+  int* const first = std::addressof(source.front());
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination, ElementsAre(1, 2));
+  EXPECT_THAT(std::addressof(destination.front()), Eq(first));
+  EXPECT_THAT(destination.get_allocator().id, Eq(1));
+  // The container contract explicitly specifies the moved-from state.
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_THAT(source, IsEmpty());
+}
+
+TEST_F(SegmentedSequenceTest, SelfMoveAssignmentPreservesElementsAndAddresses) {
+  IntSequence sequence;
+  sequence.push_back(1);
+  int* const first = std::addressof(sequence.front());
+
+  MoveAssignForTest(sequence, sequence);
+
+  EXPECT_THAT(sequence, ElementsAre(1));
+  EXPECT_THAT(std::addressof(sequence.front()), Eq(first));
+}
+
+TEST_F(SegmentedSequenceTest, MoveAssignmentTransfersWhenDirectoryAllocatorsCompareEqual) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence destination(std::allocator_arg, Allocator(&state, 1));
+  destination.push_back(9);
+  Sequence source(std::allocator_arg, Allocator(&state, 1));
+  source.push_back(1);
+  int* const first = std::addressof(source.front());
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination, ElementsAre(1));
+  EXPECT_THAT(std::addressof(destination.front()), Eq(first));
+  EXPECT_THAT(destination.get_allocator().id, Eq(1));
+}
+
+TEST_F(SegmentedSequenceTest, UnequalMoveAssignmentGrowsReplacementDirectoryBeyondReservation) {
+  constexpr SegmentedSequenceOptions kReservedOne{
+      .segment_size = 2,
+      .segment_capacity = 8,
+      .segment_reservation = 1,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kReservedOne, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence destination(std::allocator_arg, Allocator(&state, 1));
+  Sequence source(std::allocator_arg, Allocator(&state, 2));
+  source.push_back(1);
+  source.push_back(2);
+  source.push_back(3);
+
+  destination = std::move(source);
+
+  EXPECT_THAT(destination, ElementsAre(1, 2, 3));
+  EXPECT_THAT(destination.segment_count(), Eq(2));
+  EXPECT_THAT(destination.get_allocator().id, Eq(1));
+}
+
+TEST_F(SegmentedSequenceTest, SwapPreservesUnequalNonpropagatingDirectoryAllocators) {
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  static_assert(std::is_swappable_v<Sequence>);
+  static_assert(!std::is_nothrow_swappable_v<Sequence>);
+  DirectoryAllocationState state;
+  Sequence lhs(std::allocator_arg, Allocator(&state, 1));
+  lhs.push_back(1);
+  Sequence rhs(std::allocator_arg, Allocator(&state, 2));
+  rhs.push_back(2);
+  rhs.push_back(3);
+  int* const lhs_first = std::addressof(lhs.front());
+  int* const rhs_first = std::addressof(rhs.front());
+
+  using std::swap;
+  swap(lhs, rhs);
+
+  EXPECT_THAT(lhs, ElementsAre(2, 3));
+  EXPECT_THAT(rhs, ElementsAre(1));
+  EXPECT_THAT(std::addressof(lhs.front()), Eq(rhs_first));
+  EXPECT_THAT(std::addressof(rhs.front()), Eq(lhs_first));
+  EXPECT_THAT(lhs.get_allocator().id, Eq(1));
+  EXPECT_THAT(rhs.get_allocator().id, Eq(2));
+}
+
+TEST_F(SegmentedSequenceTest, UnequalSwapGrowsReplacementDirectoriesBeyondReservation) {
+  constexpr SegmentedSequenceOptions kReservedOne{
+      .segment_size = 2,
+      .segment_capacity = 8,
+      .segment_reservation = 1,
+  };
+  using Allocator = StatefulDirectoryAllocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kReservedOne, mbo::memory::NewDeleteBlockSource, Allocator>;
+  DirectoryAllocationState state;
+  Sequence lhs(std::allocator_arg, Allocator(&state, 1));
+  lhs.push_back(1);
+  lhs.push_back(2);
+  lhs.push_back(3);
+  Sequence rhs(std::allocator_arg, Allocator(&state, 2));
+  rhs.push_back(4);
+  rhs.push_back(5);
+  rhs.push_back(6);
+
+  using std::swap;
+  swap(lhs, rhs);
+
+  EXPECT_THAT(lhs, ElementsAre(4, 5, 6));
+  EXPECT_THAT(rhs, ElementsAre(1, 2, 3));
+  EXPECT_THAT(lhs.get_allocator().id, Eq(1));
+  EXPECT_THAT(rhs.get_allocator().id, Eq(2));
 }
 
 TEST_F(SegmentedSequenceTest, IteratorsAreDenseRandomAccess) {
@@ -289,44 +712,40 @@ TEST_F(SegmentedSequenceTest, FromRangeMovesElements) {
 
 TEST_F(SegmentedSequenceTest, FromRangeAcceptsCallerOwnedSource) {
   constexpr SegmentedSequenceOptions kFixedOptions{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = false,
-      .maximum_size = 2,
+      .segment_size = 2,
+      .segment_capacity = 1,
   };
-  alignas(int) std::array<std::byte, 2 * sizeof(int)> storage{};
+  alignas(128) std::array<std::byte, 4'096> storage{};
   const std::array values = {1, 2};
   const SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource> sequence(
-      std::from_range, values, mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+      std::from_range, values, mbo::memory::FixedBlockSource(std::span<std::byte>(storage), 128));
 
   EXPECT_THAT(sequence, ElementsAre(1, 2));
 }
 
 TEST_F(SegmentedSequenceTest, FromRangeDefaultConstructsImmovableInlineSource) {
   constexpr SegmentedSequenceOptions kFixedOptions{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = false,
-      .maximum_size = 2,
+      .segment_size = 2,
+      .segment_capacity = 1,
   };
   const std::array values = {1, 2};
-  using InlineSequence =
-      SegmentedSequence<int, kFixedOptions, mbo::memory::InlineBlockSource<2 * sizeof(int), alignof(int)>>;
+  using InlineSequence = SegmentedSequence<int, kFixedOptions, mbo::memory::InlineBlockSource<4'096, 128>>;
   const InlineSequence inline_sequence(std::from_range, values);
   EXPECT_THAT(inline_sequence, ElementsAre(1, 2));
 }
 
-TEST_F(SegmentedSequenceTest, SegmentSpansExposeOnlyConstructedPrefixes) {
+TEST_F(SegmentedSequenceTest, SegmentViewsExposeOnlyConstructedPrefixes) {
   IntSequence sequence;
   for (int value = 0; value < 7; ++value) {
     sequence.push_back(value);
   }
 
   const auto segments = sequence.segments();
-  ASSERT_THAT(segments, SizeIs(3));
+  ASSERT_THAT(segments, SizeIs(4));
   EXPECT_THAT(segments[0], ElementsAre(0, 1));
-  EXPECT_THAT(segments[1], ElementsAre(2, 3, 4));
-  EXPECT_THAT(segments[2], ElementsAre(5, 6));
+  EXPECT_THAT(segments[1], ElementsAre(2, 3));
+  EXPECT_THAT(segments[2], ElementsAre(4, 5));
+  EXPECT_THAT(segments[3], ElementsAre(6));
 }
 
 TEST_F(SegmentedSequenceTest, PopClearAndReleaseRespectCapacity) {
@@ -366,29 +785,27 @@ TEST_F(SegmentedSequenceTest, TrimCapacityReleasesOnlyEmptyTailSegments) {
 
   sequence.trim_capacity();
   EXPECT_THAT(sequence, ElementsAre(0, 1, 2, 3, 4));
-  EXPECT_THAT(sequence.capacity(), Eq(5));
+  EXPECT_THAT(sequence.capacity(), Eq(6));
 
   sequence.trim_capacity(1);
-  EXPECT_THAT(sequence.capacity(), Eq(5));
+  EXPECT_THAT(sequence.capacity(), Eq(6));
   sequence.trim_capacity(10);
-  EXPECT_THAT(sequence.capacity(), Eq(5));
+  EXPECT_THAT(sequence.capacity(), Eq(6));
   sequence.reserve(11);
   sequence.trim_capacity(10);
-  EXPECT_THAT(sequence.capacity(), Eq(11));
+  EXPECT_THAT(sequence.capacity(), Eq(10));
   sequence.trim_capacity(5);
-  EXPECT_THAT(sequence.capacity(), Eq(5));
+  EXPECT_THAT(sequence.capacity(), Eq(6));
 }
 
-TEST_F(SegmentedSequenceTest, NonRepeatingCapacityListStopsGrowth) {
+TEST_F(SegmentedSequenceTest, FixedSourceExhaustionStopsGrowth) {
   constexpr SegmentedSequenceOptions kSingleSegment{
-      .segment_capacities = {1},
-      .listed_capacities = 1,
-      .repeat_last = false,
-      .maximum_size = 2,
+      .segment_size = 1,
+      .segment_capacity = 2,
   };
-  alignas(int) std::array<std::byte, sizeof(int) * 2> storage{};
+  alignas(128) std::array<std::byte, 64> storage{};
   SegmentedSequence<int, kSingleSegment, mbo::memory::FixedBlockSource> sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+      mbo::memory::FixedBlockSource(std::span<std::byte>(storage), 128));
 
   ASSERT_THAT(sequence.try_push_back(1), Optional(_));
   EXPECT_THAT(sequence.try_push_back(2), Eq(std::nullopt));
@@ -410,10 +827,8 @@ TEST_F(SegmentedSequenceTest, ResizeConstructsAndDestroysSuffix) {
 
 TEST_F(SegmentedSequenceTest, OverAlignedElementsRemainAlignedAcrossRetainedStorageReuse) {
   constexpr SegmentedSequenceOptions kOneElementSegment{
-      .segment_capacities = {1},
-      .listed_capacities = 1,
-      .repeat_last = true,
-      .maximum_size = 2,
+      .segment_size = 1,
+      .segment_capacity = 2,
   };
   SegmentedSequence<OverAlignedElement, kOneElementSegment> sequence;
   OverAlignedElement* const first = std::addressof(sequence.emplace_back(1));
@@ -427,29 +842,26 @@ TEST_F(SegmentedSequenceTest, OverAlignedElementsRemainAlignedAcrossRetainedStor
 
 TEST_F(SegmentedSequenceTest, ReacquiredSourcesRestartArrayLifetime) {
   constexpr SegmentedSequenceOptions kTwoElements{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = false,
-      .maximum_size = 2,
+      .segment_size = 2,
+      .segment_capacity = 1,
   };
-  alignas(double) std::array<std::byte, 2 * sizeof(double)> fixed_storage{};
+  alignas(128) std::array<std::byte, 4'096> fixed_storage{};
   {
     SegmentedSequence<int, kTwoElements, mbo::memory::FixedBlockSource> integers(
-        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), alignof(double)));
+        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), 128));
     integers.emplace_back(1);
     integers.emplace_back(2);
     EXPECT_THAT(integers, ElementsAre(1, 2));
   }
   {
     SegmentedSequence<double, kTwoElements, mbo::memory::FixedBlockSource> doubles(
-        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), alignof(double)));
+        mbo::memory::FixedBlockSource(std::span<std::byte>(fixed_storage), 128));
     doubles.emplace_back(1.5);
     doubles.emplace_back(2.5);
     EXPECT_THAT(doubles, ElementsAre(1.5, 2.5));
   }
 
-  using InlineSequence =
-      SegmentedSequence<int, kTwoElements, mbo::memory::InlineBlockSource<2 * sizeof(int), alignof(int)>>;
+  using InlineSequence = SegmentedSequence<int, kTwoElements, mbo::memory::InlineBlockSource<4'096, 128>>;
   InlineSequence inline_sequence;
   int* const first_inline_address = std::addressof(inline_sequence.emplace_back(3));
   inline_sequence.release();
@@ -476,12 +888,25 @@ TEST_F(SegmentedSequenceTest, PmrBackedCopyUsesTheSameResource) {
   EXPECT_THAT(std::addressof(copy.front()), Ne(std::addressof(source.front())));
 }
 
+TEST_F(SegmentedSequenceTest, PmrResourceCanOwnBothSegmentsAndDirectory) {
+  std::array<std::byte, 4'096> storage{};
+  std::pmr::monotonic_buffer_resource resource(storage.data(), storage.size());
+  using Allocator = std::pmr::polymorphic_allocator<std::byte>;
+  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::PmrBlockSource, Allocator>;
+  Sequence sequence(std::allocator_arg, Allocator(&resource), mbo::memory::PmrBlockSource(&resource));
+
+  sequence.push_back(1);
+  sequence.push_back(2);
+  sequence.push_back(3);
+
+  EXPECT_THAT(sequence, ElementsAre(1, 2, 3));
+  EXPECT_THAT(sequence.get_allocator().resource(), Eq(&resource));
+}
+
 TEST_F(SegmentedSequenceTest, TryAppendRejectsEveryMalformedSourceBlock) {
   constexpr SegmentedSequenceOptions kOneSegment{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = false,
-      .maximum_size = 2,
+      .segment_size = 2,
+      .segment_capacity = 1,
   };
   constexpr std::array kResults{
       MalformedBlockSource::Result::kNullData,
@@ -489,12 +914,14 @@ TEST_F(SegmentedSequenceTest, TryAppendRejectsEveryMalformedSourceBlock) {
       MalformedBlockSource::Result::kWeakAlignment,
       MalformedBlockSource::Result::kMisalignedData,
   };
+  alignas(128) std::array<std::byte, 4'096> storage{};
   for (const auto result : kResults) {
     int releases = 0;
     SegmentedSequence<int, kOneSegment, MalformedBlockSource> sequence(
         MalformedBlockSource{
             .result = result,
             .releases = &releases,
+            .storage = storage.data(),
         });
 
     EXPECT_THAT(sequence.try_push_back(1), Eq(std::nullopt));
@@ -503,54 +930,30 @@ TEST_F(SegmentedSequenceTest, TryAppendRejectsEveryMalformedSourceBlock) {
   }
 }
 
-TEST_F(SegmentedSequenceTest, TryAppendRejectsCapacityAndByteSizeExhaustion) {
-  constexpr SegmentedSequenceOptions kMaximumReached{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = true,
-      .maximum_size = 2,
+TEST_F(SegmentedSequenceTest, TryAppendStopsAfterTheConfiguredFullSegments) {
+  constexpr SegmentedSequenceOptions kBounded{
+      .segment_size = 2,
+      .segment_capacity = 2,
   };
-  alignas(int) std::array<std::byte, sizeof(int) * 2> maximum_storage{};
-  SegmentedSequence<int, kMaximumReached, mbo::memory::FixedBlockSource> maximum_sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(maximum_storage), alignof(int)));
-  maximum_sequence.push_back(1);
-  maximum_sequence.push_back(2);
-  EXPECT_THAT(maximum_sequence.try_push_back(3), Eq(std::nullopt));
+  SegmentedSequence<int, kBounded> sequence;
+  sequence.push_back(1);
+  sequence.push_back(2);
+  sequence.push_back(3);
+  sequence.push_back(4);
 
-  constexpr SegmentedSequenceOptions kRemainderTooSmall{
-      .segment_capacities = {2},
-      .listed_capacities = 1,
-      .repeat_last = true,
-      .maximum_size = 3,
-  };
-  alignas(int) std::array<std::byte, sizeof(int) * 4> remainder_storage{};
-  SegmentedSequence<int, kRemainderTooSmall, mbo::memory::FixedBlockSource> remainder_sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(remainder_storage), alignof(int)));
-  remainder_sequence.push_back(1);
-  remainder_sequence.push_back(2);
-  EXPECT_THAT(remainder_sequence.try_push_back(3), Eq(std::nullopt));
-
-  constexpr SegmentedSequenceOptions kByteSizeOverflow{
-      .segment_capacities = {(std::numeric_limits<std::size_t>::max() / sizeof(int)) + 1},
-      .listed_capacities = 1,
-      .repeat_last = false,
-  };
-  std::array<std::byte, 1> overflow_storage{};
-  SegmentedSequence<int, kByteSizeOverflow, mbo::memory::FixedBlockSource> overflow_sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(overflow_storage), alignof(int)));
-  EXPECT_THAT(overflow_sequence.try_push_back(1), Eq(std::nullopt));
+  EXPECT_THAT(sequence.capacity(), Eq(4));
+  EXPECT_THAT(sequence.segment_count(), Eq(2));
+  EXPECT_THAT(sequence.try_push_back(5), Eq(std::nullopt));
 }
 
 TEST_F(SegmentedSequenceTest, TryAppendReportsFixedSourceExhaustionWithoutMutation) {
-  alignas(int) std::array<std::byte, sizeof(int) * 2> storage{};
+  alignas(128) std::array<std::byte, 64> storage{};
   constexpr SegmentedSequenceOptions kFixedOptions{
-      .segment_capacities = {2, 2},
-      .listed_capacities = 2,
-      .repeat_last = false,
-      .maximum_size = 4,
+      .segment_size = 2,
+      .segment_capacity = 2,
   };
   using FixedSequence = SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource>;
-  FixedSequence sequence(mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+  FixedSequence sequence(mbo::memory::FixedBlockSource(std::span<std::byte>(storage), 128));
 
   const auto first = sequence.try_push_back(1);
   ASSERT_THAT(first, Optional(_));

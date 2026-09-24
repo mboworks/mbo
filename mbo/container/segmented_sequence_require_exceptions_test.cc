@@ -6,7 +6,6 @@
 #include <memory>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -26,10 +25,13 @@ using ::testing::SizeIs;
 using ::testing::ThrowsMessage;
 
 constexpr SegmentedSequenceOptions kTwoSegments{
-    .segment_capacities = {2, 3},
-    .listed_capacities = 2,
-    .repeat_last = false,
-    .maximum_size = 5,
+    .segment_size = 2,
+    .segment_capacity = 4,
+};
+
+constexpr SegmentedSequenceOptions kBoundedTwoSegments{
+    .segment_size = 2,
+    .segment_capacity = 2,
 };
 
 struct SegmentedSequenceRequireExceptionsTest : ::testing::Test {};
@@ -55,6 +57,27 @@ struct CountingBlockSource final {
     ++*releases;
     mbo::memory::NewDeleteBlockSource::Release(block);
   }
+};
+
+struct OneBlockSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) {
+    if (acquired) {
+      return std::nullopt;
+    }
+    acquired = true;
+    return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept {
+    acquired = false;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
+
+  bool acquired = false;
 };
 
 // NOLINTEND(readability-identifier-naming)
@@ -174,13 +197,44 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, PopBackValuePropagatesEmptyRequir
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
+TEST_F(SegmentedSequenceRequireExceptionsTest, ReserveRejectsGrowthBeyondSegmentCapacity) {
+  if constexpr (!config::kRequireThrows) {
+    GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
+  }
+  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+
+  EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
+  EXPECT_THAT(sequence, IsEmpty());
+}
+
+TEST_F(SegmentedSequenceRequireExceptionsTest, ResizeRejectsGrowthBeyondSegmentCapacity) {
+  if constexpr (!config::kRequireThrows) {
+    GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
+  }
+  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+
+  EXPECT_THAT([&sequence] { sequence.resize(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
+  EXPECT_THAT(sequence, IsEmpty());
+}
+
+TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegmentCapacity) {
+  if constexpr (!config::kRequireThrows) {
+    GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
+  }
+  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+  const std::array values = {1, 2, 3, 4, 5};
+
+  EXPECT_THAT(
+      ([&sequence, &values] { sequence.append_range(values); }),
+      ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
+  EXPECT_THAT(sequence, IsEmpty());
+}
+
 TEST_F(SegmentedSequenceRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAllocationFailure) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  alignas(int) std::array<std::byte, sizeof(int) * 2> storage{};
-  SegmentedSequence<int, kTwoSegments, mbo::memory::FixedBlockSource> sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+  SegmentedSequence<int, kTwoSegments, OneBlockSource> sequence;
 
   EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("allocation failed")));
   EXPECT_THAT(sequence, IsEmpty());
@@ -192,9 +246,7 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRollsBackSegmentsAfter
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  alignas(int) std::array<std::byte, sizeof(int) * 2> storage{};
-  SegmentedSequence<int, kTwoSegments, mbo::memory::FixedBlockSource> sequence(
-      mbo::memory::FixedBlockSource(std::span<std::byte>(storage), alignof(int)));
+  SegmentedSequence<int, kTwoSegments, OneBlockSource> sequence;
   const std::array values = {1, 2, 3};
 
   EXPECT_THAT(
@@ -208,10 +260,8 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRollsBackSegmentsAfter
 TEST_F(SegmentedSequenceRequireExceptionsTest, ValueResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   constexpr SegmentedSequenceOptions kResizeOptions{
-      .segment_capacities = {2, 2},
-      .listed_capacities = 2,
-      .repeat_last = false,
-      .maximum_size = 4,
+      .segment_size = 2,
+      .segment_capacity = 2,
   };
   {
     SegmentedSequence<ThrowingElement, kResizeOptions> sequence;
@@ -236,10 +286,8 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, ValueResizeRollsBackAfterConstruc
 TEST_F(SegmentedSequenceRequireExceptionsTest, DefaultResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   constexpr SegmentedSequenceOptions kResizeOptions{
-      .segment_capacities = {2, 2},
-      .listed_capacities = 2,
-      .repeat_last = false,
-      .maximum_size = 4,
+      .segment_size = 2,
+      .segment_capacity = 2,
   };
   {
     SegmentedSequence<ThrowingElement, kResizeOptions> sequence;

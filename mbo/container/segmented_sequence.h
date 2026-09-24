@@ -105,18 +105,53 @@ class SegmentedSequence final {
     T value;
   };
 
-  struct Segment final {
-    constexpr explicit Segment(mbo::memory::MemoryBlock block) noexcept : block(block) {}
+  class Segment final {
+   public:
+    constexpr explicit Segment(mbo::memory::MemoryBlock block) noexcept : block_(block) {}
 
     Segment(const Segment&) = delete;
     Segment& operator=(const Segment&) = delete;
     Segment(Segment&&) = delete;
     Segment& operator=(Segment&&) = delete;
-    constexpr ~Segment() = default;
 
-    mbo::memory::MemoryBlock block{};
-    std::size_t size = 0;
-    std::array<Slot, Options.segment_size> slots;
+    constexpr ~Segment() noexcept {
+      while (!empty()) {
+        pop_back();
+      }
+    }
+
+    constexpr const mbo::memory::MemoryBlock& block() const noexcept { return block_; }
+
+    constexpr std::size_t size() const noexcept { return size_; }
+
+    constexpr bool empty() const noexcept { return size_ == 0; }
+
+    constexpr T& operator[](std::size_t pos) noexcept { return slots_[pos].value; }
+
+    constexpr const T& operator[](std::size_t pos) const noexcept { return slots_[pos].value; }
+
+    template<typename... Args>
+    requires std::constructible_from<T, Args...>
+    constexpr T& emplace_back(Args&&... args) {
+      T* const result = std::construct_at(std::addressof(slots_[size_].value), std::forward<Args>(args)...);
+      ++size_;
+      return *result;
+    }
+
+    constexpr void pop_back() noexcept {
+      --size_;
+      std::destroy_at(std::addressof(slots_[size_].value));
+    }
+
+   private:
+    // Keep the allocation metadata and size header physically before the slots. A nested
+    // LimitedVector subobject would be aligned before its size header, then align its slots
+    // internally, adding a full alignment unit for over-aligned elements. This flat representation
+    // preserves the reviewed one-block layout; the methods above centralize element lifetime
+    // without adding checks to the hot path.
+    mbo::memory::MemoryBlock block_{};
+    std::size_t size_ = 0;
+    std::array<Slot, Options.segment_size> slots_;
   };
 
   using SegmentPointerAllocator = std::allocator_traits<DirectoryAllocator>::template rebind_alloc<Segment*>;
@@ -251,7 +286,7 @@ class SegmentedSequence final {
 
       constexpr ViewIterator(SegmentType* segment, std::size_t pos) noexcept : segment_(segment), pos_(pos) {}
 
-      constexpr reference operator*() const noexcept { return segment_->slots[pos_].value; }
+      constexpr reference operator*() const noexcept { return (*segment_)[pos_]; }
 
       constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
@@ -326,9 +361,9 @@ class SegmentedSequence final {
 
     constexpr iterator end() const noexcept { return iterator(segment_, size()); }
 
-    constexpr decltype(auto) operator[](std::size_t pos) const noexcept { return (segment_->slots[pos].value); }
+    constexpr decltype(auto) operator[](std::size_t pos) const noexcept { return (*segment_)[pos]; }
 
-    constexpr std::size_t size() const noexcept { return segment_->size; }
+    constexpr std::size_t size() const noexcept { return segment_->size(); }
 
     constexpr bool empty() const noexcept { return size() == 0; }
 
@@ -720,7 +755,7 @@ class SegmentedSequence final {
   constexpr size_type bytes_reserved() const noexcept {
     size_type result = 0;
     for (const Segment* segment : segments_) {
-      result += segment->block.size;
+      result += segment->block().size;
     }
     return result;
   }
@@ -783,7 +818,7 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     } catch (...) {
       if (added_segment) {
-        ReleaseLastEmptySegment();
+        ReleaseLastSegment();
       }
       throw;
     }
@@ -807,7 +842,7 @@ class SegmentedSequence final {
 #if __cpp_exceptions
     } catch (...) {
       if (added_segment) {
-        ReleaseLastEmptySegment();
+        ReleaseLastSegment();
       }
       throw;
     }
@@ -820,11 +855,10 @@ class SegmentedSequence final {
     MBO_CONFIG_REQUIRE(size_ < capacity_, "SegmentedSequence unchecked append requires reserved capacity");
     const auto [segment_index, offset] = Locate(size_);
     Segment& segment = *segments_[segment_index];
-    MBO_CONFIG_REQUIRE(offset == segment.size, "SegmentedSequence segment prefix is inconsistent");
-    T* const result = std::construct_at(std::addressof(segment.slots[offset].value), std::forward<Args>(args)...);
-    ++segment.size;
+    MBO_CONFIG_REQUIRE(offset == segment.size(), "SegmentedSequence segment prefix is inconsistent");
+    T& result = segment.emplace_back(std::forward<Args>(args)...);
     ++size_;
-    return *result;
+    return result;
   }
 
   constexpr reference push_back(const T& value)
@@ -967,22 +1001,22 @@ class SegmentedSequence final {
   constexpr void clear() noexcept { DestroySuffix(0); }
 
   constexpr void trim_capacity() noexcept {
-    while (!segments_.empty() && segments_.back()->size == 0) {
-      ReleaseLastEmptySegment();
+    while (!segments_.empty() && segments_.back()->empty()) {
+      ReleaseLastSegment();
     }
   }
 
   constexpr void trim_capacity(size_type requested) noexcept {
     const std::size_t target = requested < size_ ? size_ : requested;
-    while (!segments_.empty() && segments_.back()->size == 0 && capacity_ - Options.segment_size >= target) {
-      ReleaseLastEmptySegment();
+    while (!segments_.empty() && segments_.back()->empty() && capacity_ - Options.segment_size >= target) {
+      ReleaseLastSegment();
     }
   }
 
   constexpr void release() noexcept {
-    clear();
+    size_ = 0;
     while (!segments_.empty()) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 
@@ -1057,12 +1091,12 @@ class SegmentedSequence final {
 
   constexpr reference ElementAt(std::size_t pos) noexcept {
     const auto [segment_index, offset] = Locate(pos);
-    return segments_[segment_index]->slots[offset].value;
+    return (*segments_[segment_index])[offset];
   }
 
   constexpr const_reference ElementAt(std::size_t pos) const noexcept {
     const auto [segment_index, offset] = Locate(pos);
-    return segments_[segment_index]->slots[offset].value;
+    return (*segments_[segment_index])[offset];
   }
 
   constexpr void InitializeDirectory() {
@@ -1139,7 +1173,7 @@ class SegmentedSequence final {
     return true;
   }
 
-  constexpr void ReleaseLastEmptySegment() noexcept {
+  constexpr void ReleaseLastSegment() noexcept {
     Segment* const segment = segments_.back();
     capacity_ -= Options.segment_size;
     segments_.pop_back();
@@ -1148,22 +1182,21 @@ class SegmentedSequence final {
 
   constexpr void ReleaseSegmentsFrom(std::size_t first) noexcept {
     while (segments_.size() > first) {
-      ReleaseLastEmptySegment();
+      ReleaseLastSegment();
     }
   }
 
   constexpr void DestroySuffix(std::size_t requested) noexcept {
     while (size_ > requested) {
-      const auto [segment_index, offset] = Locate(size_ - 1);
+      const std::size_t segment_index = Locate(size_ - 1).first;
       Segment& segment = *segments_[segment_index];
-      --segment.size;
       --size_;
-      std::destroy_at(std::addressof(segment.slots[offset].value));
+      segment.pop_back();
     }
   }
 
   constexpr void DestroySegmentStorage(Segment* segment) noexcept {
-    const mbo::memory::MemoryBlock block = segment->block;
+    const mbo::memory::MemoryBlock block = segment->block();
     std::destroy_at(segment);
     if consteval {
       if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {

@@ -113,6 +113,40 @@ struct alignas(128) OverAlignedElement final {
   int value;
 };
 
+template<typename T>
+union ExpectedSegmentSlot {
+  T value;
+};
+
+template<typename T, std::size_t Capacity>
+struct ExpectedFlatSegmentLayout final {
+  mbo::memory::MemoryBlock block{};
+  std::size_t size{};
+  std::array<ExpectedSegmentSlot<T>, Capacity> slots;
+};
+
+static_assert(
+    sizeof(ExpectedFlatSegmentLayout<std::uint64_t, 64>)
+    == sizeof(mbo::memory::MemoryBlock) + sizeof(std::size_t) + (64 * sizeof(std::uint64_t)));
+static_assert(sizeof(ExpectedFlatSegmentLayout<OverAlignedElement, 2>) == 3 * alignof(OverAlignedElement));
+
+struct ImmovableSegmentElement final {
+  explicit ImmovableSegmentElement(int new_value, int& live_count) noexcept
+      : value(new_value), live_count(&live_count) {
+    ++*this->live_count;
+  }
+
+  ImmovableSegmentElement(const ImmovableSegmentElement&) = delete;
+  ImmovableSegmentElement& operator=(const ImmovableSegmentElement&) = delete;
+  ImmovableSegmentElement(ImmovableSegmentElement&&) = delete;
+  ImmovableSegmentElement& operator=(ImmovableSegmentElement&&) = delete;
+
+  ~ImmovableSegmentElement() noexcept { --*live_count; }
+
+  int value;
+  int* live_count;
+};
+
 struct IncompleteElement;
 
 struct DirectoryAllocationState final {
@@ -449,6 +483,49 @@ TEST_F(SegmentedSequenceTest, EachSegmentUsesOneSourceAllocationForHeaderAndSlot
   EXPECT_THAT(acquisitions, Eq(3));
   sequence.release();
   EXPECT_THAT(releases, Eq(3));
+}
+
+TEST_F(SegmentedSequenceTest, OrdinarySegmentKeepsFlatHeaderAndSlotLayout) {
+  constexpr SegmentedSequenceOptions kOneSegment{
+      .segment_size = 64,
+      .segment_capacity = 1,
+  };
+  SegmentedSequence<std::uint64_t, kOneSegment> sequence;
+  sequence.emplace_back(1);
+  EXPECT_THAT(sequence.bytes_reserved(), Eq(sizeof(ExpectedFlatSegmentLayout<std::uint64_t, 64>)));
+}
+
+TEST_F(SegmentedSequenceTest, OverAlignedSegmentKeepsHeaderBeforeSlotPadding) {
+  constexpr SegmentedSequenceOptions kOneSegment{
+      .segment_size = 2,
+      .segment_capacity = 1,
+  };
+  SegmentedSequence<OverAlignedElement, kOneSegment> sequence;
+  sequence.emplace_back(1);
+  EXPECT_THAT(sequence.bytes_reserved(), Eq(sizeof(ExpectedFlatSegmentLayout<OverAlignedElement, 2>)));
+}
+
+TEST_F(SegmentedSequenceTest, SegmentOwnsImmovableElementLifetimeAcrossGrowth) {
+  int live_count = 0;
+  {
+    SegmentedSequence<ImmovableSegmentElement, kSmallSegments> sequence;
+    sequence.emplace_back(1, live_count);
+    sequence.emplace_back(2, live_count);
+    sequence.emplace_back(3, live_count);
+    EXPECT_THAT(sequence, SizeIs(3));
+    EXPECT_THAT(sequence[0].value, Eq(1));
+    EXPECT_THAT(sequence[2].value, Eq(3));
+    EXPECT_THAT(live_count, Eq(3));
+
+    sequence.pop_back();
+    EXPECT_THAT(live_count, Eq(2));
+    sequence.clear();
+    EXPECT_THAT(live_count, Eq(0));
+
+    sequence.emplace_back(4, live_count);
+    EXPECT_THAT(live_count, Eq(1));
+  }
+  EXPECT_THAT(live_count, Eq(0));
 }
 
 TEST_F(SegmentedSequenceTest, CopyOwnsIndependentElements) {

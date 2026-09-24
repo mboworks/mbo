@@ -647,10 +647,11 @@ class LimitedVector final {
 
  private:
   std::size_t size_{0};
-  // Array would be better but that does not work with ASAN builds.
-  // std::array<Data, Capacity == 0 ? 1 : Capacity> values_;
-  // Add an unused sentinel, so that `end` and other functions do not cause memory issues.
-  Data values_[Capacity + 1];  // NOLINT(*-avoid-c-arrays)
+  // Retain the C array because the former std::array representation failed under ASan. Standard
+  // C++ does not permit a zero-length C array, so zero logical capacity keeps one inactive slot.
+  // Every positive capacity stores exactly that many slots; pointer-plus-index iterators no longer
+  // need the old extra end sentinel.
+  Data values_[Capacity == 0 ? 1 : Capacity];  // NOLINT(*-avoid-c-arrays)
 };
 
 template<typename... T>

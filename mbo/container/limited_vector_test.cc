@@ -55,6 +55,8 @@ static_assert(std::random_access_iterator<LimitedVector<int, 3>::iterator>);
 static_assert(std::random_access_iterator<LimitedVector<int, 3>::const_iterator>);
 static_assert(!std::contiguous_iterator<LimitedVector<int, 3>::iterator>);
 static_assert(!std::contiguous_iterator<LimitedVector<int, 3>::const_iterator>);
+static_assert(sizeof(LimitedVector<std::size_t, 0>) == sizeof(LimitedVector<std::size_t, 1>));
+static_assert(sizeof(LimitedVector<std::size_t, 2>) == sizeof(LimitedVector<std::size_t, 1>) + sizeof(std::size_t));
 
 constexpr LimitedVector<std::string, 2> kConstexprStrings{"one", "two"};
 static_assert(kConstexprStrings.size() == 2);
@@ -128,6 +130,15 @@ TEST_F(LimitedVectorTest, MakeNoArg) {
   EXPECT_THAT(kTest, SizeIs(0));
   EXPECT_THAT(kTest, CapacityIs(0));
   EXPECT_THAT(kTest, ElementsAre());
+}
+
+TEST_F(LimitedVectorTest, ZeroCapacityHasAValidEmptyIteratorRange) {
+  LimitedVector<int, 0> values;
+  EXPECT_THAT(values.begin(), Eq(values.end()));
+  EXPECT_THAT(values.cbegin(), Eq(values.cend()));
+  values.reserve(0);
+  values.clear();
+  EXPECT_THAT(values, IsEmpty());
 }
 
 TEST_F(LimitedVectorTest, MakeOneArg) {

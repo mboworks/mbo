@@ -42,7 +42,8 @@ namespace mbo::container {
 // NOLINTBEGIN(readability-identifier-naming)
 
 template<typename T>
-concept LimitedVectorValid = std::move_constructible<std::remove_const_t<T>>;
+concept LimitedVectorValid = std::is_object_v<T> && !std::is_array_v<T> && !std::is_volatile_v<T>
+                             && requires { sizeof(T); } && std::destructible<std::remove_const_t<T>>;
 
 // Implements a `std::vector` like container that only uses inlined memory. So if used as a local
 // variable with a types that does not perform memory allocation, then this type does not perform
@@ -83,6 +84,12 @@ class LimitedVector final {
   static constexpr std::size_t Capacity = Options::kCapacity;
 
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
+  template<typename... Args>
+  static constexpr bool kConstructibleFrom = types::ConstructibleFrom<RawValue, Args...>;
+  template<typename U>
+  static constexpr bool kConstructibleFromRvalue = kConstructibleFrom<U&&>;
+  static constexpr bool kMoveConstructible = kConstructibleFrom<RawValue&&>;
+  static constexpr bool kMoveAssignable = std::assignable_from<RawValue&, RawValue&&>;
 
   union Data {
     constexpr Data() noexcept : none{} {}
@@ -257,7 +264,8 @@ class LimitedVector final {
 
   constexpr LimitedVector() noexcept = default;
 
-  constexpr LimitedVector(const LimitedVector& other) noexcept(std::is_nothrow_copy_constructible_v<RawValue>) {
+  constexpr LimitedVector(const LimitedVector& other) noexcept(std::is_nothrow_copy_constructible_v<RawValue>)
+  requires kConstructibleFrom<const RawValue&> {
     ConstructionGuard guard(this);
     for (const_reference value : other) {
       emplace_back(value);
@@ -266,7 +274,8 @@ class LimitedVector final {
   }
 
   constexpr LimitedVector& operator=(const LimitedVector& other) noexcept(
-      std::is_nothrow_copy_constructible_v<RawValue>) {
+      std::is_nothrow_copy_constructible_v<RawValue>)
+  requires kConstructibleFrom<const RawValue&> {
     if (this != &other) {
       clear();
       for (const_reference value : other) {
@@ -276,7 +285,8 @@ class LimitedVector final {
     return *this;
   }
 
-  constexpr LimitedVector(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>) {
+  constexpr LimitedVector(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>)
+  requires kMoveConstructible {
     ConstructionGuard guard(this);
     // Must stay mutable for move-only types, even when scalar instantiations
     // make clang-tidy believe const would be sufficient.
@@ -287,7 +297,8 @@ class LimitedVector final {
     other.clear();
   }
 
-  constexpr LimitedVector& operator=(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>) {
+  constexpr LimitedVector& operator=(LimitedVector&& other) noexcept(std::is_nothrow_move_constructible_v<RawValue>)
+  requires kMoveConstructible {
     if (this != &other) {
       clear();
       // Must stay mutable for move-only types, even when scalar instantiations
@@ -315,21 +326,24 @@ class LimitedVector final {
 
   constexpr LimitedVector(const std::initializer_list<T>& list) noexcept(
       !kRequireThrows && std::is_nothrow_copy_constructible_v<RawValue>)
+  requires kConstructibleFrom<const T&>
       : LimitedVector(list.begin(), list.end()) {}
 
   template<types::ConstructibleInto<T> U>
+  requires kConstructibleFrom<const U&>
   constexpr LimitedVector(const std::initializer_list<U>& list) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>)
       : LimitedVector(list.begin(), list.end()) {}
 
   template<types::ConstructibleInto<T> U>
+  requires(kConstructibleFrom<const U&> && kMoveConstructible)
   constexpr LimitedVector& operator=(const std::initializer_list<U>& list) {
     assign(list.begin(), list.end());
     return *this;
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
-  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity && kConstructibleFrom<const U&>)
   constexpr explicit LimitedVector(const LimitedVector<U, OtherN>& other) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>) {
     ConstructionGuard guard(this);
@@ -340,7 +354,7 @@ class LimitedVector final {
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
-  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity && kConstructibleFrom<const U&>)
   constexpr LimitedVector& operator=(const LimitedVector<U, OtherN>& other) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const U&>) {
     clear();
@@ -351,7 +365,7 @@ class LimitedVector final {
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
-  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity && kConstructibleFromRvalue<U>)
   // Moved element-wise below; `other` has a different type, so it cannot be moved as a whole.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
   constexpr explicit LimitedVector(LimitedVector<U, OtherN>&& other) noexcept(
@@ -365,7 +379,7 @@ class LimitedVector final {
   }
 
   template<types::ConstructibleInto<T> U, auto OtherN>
-  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  requires(MakeLimitedOptions<OtherN>().kCapacity <= Capacity && kConstructibleFromRvalue<U>)
   // Moved element-wise below; `other` has a different type, so it cannot be moved as a whole.
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
   constexpr LimitedVector& operator=(LimitedVector<U, OtherN>&& other) noexcept(
@@ -387,7 +401,8 @@ class LimitedVector final {
   }
 
   constexpr void resize(std::size_t new_size) noexcept(
-      !kRequireThrows && std::is_nothrow_default_constructible_v<RawValue>) {
+      !kRequireThrows && std::is_nothrow_default_constructible_v<RawValue>)
+  requires std::default_initializable<RawValue> {
     MBO_CONFIG_REQUIRE(new_size <= Capacity, "Cannot resize beyond capacity.");
     while (new_size < size()) {
       pop_back();
@@ -406,7 +421,9 @@ class LimitedVector final {
   }
 
   template<typename U, auto OtherN>
-  requires(std::same_as<T, U> && MakeLimitedOptions<OtherN>().kCapacity <= Capacity)
+  requires(
+      std::same_as<T, U> && MakeLimitedOptions<OtherN>().kCapacity <= Capacity
+      && std::swappable<RawValue> && kMoveConstructible)
   constexpr void swap(LimitedVector<U, OtherN>& other) noexcept(
       !kRequireThrows && std::is_nothrow_swappable_v<RawValue> && std::is_nothrow_move_constructible_v<RawValue>) {
     if (static_cast<const void*>(this) == static_cast<const void*>(&other)) {
@@ -437,7 +454,7 @@ class LimitedVector final {
   }
 
   template<typename... Args>
-  requires std::assignable_from<RawValue&, RawValue&&>
+  requires(kConstructibleFrom<Args...> && kMoveConstructible && kMoveAssignable)
   constexpr iterator emplace(const_iterator pos, Args&&... args) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, Args...>
       && std::is_nothrow_move_constructible_v<RawValue> && std::is_nothrow_move_assignable_v<RawValue>) {
@@ -459,8 +476,8 @@ class LimitedVector final {
     return begin() + static_cast<difference_type>(index);
   }
 
-  constexpr iterator erase(const_iterator pos) noexcept(
-      !kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>) {
+  constexpr iterator erase(const_iterator pos) noexcept(!kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>)
+  requires kMoveAssignable {
     MBO_CONFIG_REQUIRE(cbegin() <= pos && pos < cend(), "Invalid `pos`.");
     const auto index = static_cast<size_type>(pos - cbegin());
     for (size_type dst = index; dst + 1 < size_; ++dst) {
@@ -471,7 +488,8 @@ class LimitedVector final {
   }
 
   constexpr iterator erase(const_iterator first, const_iterator last) noexcept(
-      !kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>) {
+      !kRequireThrows && std::is_nothrow_move_assignable_v<RawValue>)
+  requires kMoveAssignable {
     MBO_CONFIG_REQUIRE(cbegin() <= first && first <= last && last <= cend(), "Invalid `first` or `last`.");
     const auto first_index = static_cast<size_type>(first - cbegin());
     const auto deleted = static_cast<size_type>(last - first);
@@ -485,6 +503,7 @@ class LimitedVector final {
   }
 
   template<typename... Args>
+  requires kConstructibleFrom<Args...>
   constexpr reference emplace_back(Args&&... args) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, Args...>) {
     MBO_CONFIG_REQUIRE(size_ < Capacity, "Called `emplace_back` at capacity.");
@@ -494,12 +513,14 @@ class LimitedVector final {
     return data_ref.data;
   }
 
-  constexpr reference push_back(T&& val) noexcept(!kRequireThrows && std::is_nothrow_constructible_v<RawValue, T&&>) {
+  constexpr reference push_back(T&& val) noexcept(!kRequireThrows && std::is_nothrow_constructible_v<RawValue, T&&>)
+  requires kConstructibleFrom<T&&> {
     return emplace_back(std::move(val));
   }
 
   constexpr reference push_back(const T& val) noexcept(
-      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const T&>) {
+      !kRequireThrows && std::is_nothrow_constructible_v<RawValue, const T&>)
+  requires kConstructibleFrom<const T&> {
     return emplace_back(val);
   }
 
@@ -508,7 +529,8 @@ class LimitedVector final {
     std::destroy_at(&values_[--size_].data);
   }
 
-  constexpr void assign(std::size_t num, const T& value) {
+  constexpr void assign(std::size_t num, const T& value)
+  requires kConstructibleFrom<const T&> {
     MBO_CONFIG_REQUIRE(num <= Capacity, "Called `assign` beyond capacity.");
     const RawValue value_copy(value);
     clear();
@@ -518,6 +540,7 @@ class LimitedVector final {
   }
 
   template<std::forward_iterator It>
+  requires(kConstructibleFrom<std::iter_reference_t<It>> && kMoveConstructible)
   constexpr void assign(It begin, It end) {
     // Staged before clear for alias safety, then moved into this container.
     LimitedVector<RawValue, Capacity> values(begin, end);  // NOLINT(misc-const-correctness)
@@ -527,17 +550,20 @@ class LimitedVector final {
     }
   }
 
-  constexpr void assign(const std::initializer_list<T>& list) {
+  constexpr void assign(const std::initializer_list<T>& list)
+  requires(kConstructibleFrom<const T&> && kMoveConstructible) {
     MBO_CONFIG_REQUIRE(list.size() <= Capacity, "Called `assign` at capacity.");
     assign(list.begin(), list.end());
   }
 
   template<types::ConstructibleInto<T> U>
+  requires(kConstructibleFromRvalue<U> && kMoveConstructible && kMoveAssignable)
   constexpr iterator insert(const_iterator pos, U&& value) {
     return emplace(pos, std::forward<U>(value));
   }
 
-  constexpr iterator insert(const_iterator pos, size_type count, const T& value) {
+  constexpr iterator insert(const_iterator pos, size_type count, const T& value)
+  requires(kConstructibleFrom<const T&> && kMoveConstructible && kMoveAssignable) {
     MBO_CONFIG_REQUIRE(size_ + count <= Capacity, "Called `insert` at capacity.");
     MBO_CONFIG_REQUIRE(cbegin() <= pos && pos <= cend(), "Invalid `pos`.");
     const auto index = static_cast<size_type>(pos - cbegin());
@@ -553,10 +579,13 @@ class LimitedVector final {
     return begin() + static_cast<difference_type>(index);
   }
 
-  constexpr iterator insert(const_iterator pos, const T& value) { return insert(pos, 1, value); }
+  constexpr iterator insert(const_iterator pos, const T& value)
+  requires(kConstructibleFrom<const T&> && kMoveConstructible && kMoveAssignable) {
+    return insert(pos, 1, value);
+  }
 
   template<std::input_iterator InputIt>
-  requires(types::ConstructibleFrom<T, std::iter_reference_t<InputIt>>)
+  requires(types::ConstructibleFrom<T, std::iter_reference_t<InputIt>> && kMoveConstructible && kMoveAssignable)
   constexpr iterator insert(const_iterator pos, InputIt first, InputIt last) {
     MBO_CONFIG_REQUIRE(cbegin() <= pos && pos <= cend(), "Invalid `pos`.");
     const auto index = static_cast<size_type>(pos - cbegin());
@@ -577,6 +606,7 @@ class LimitedVector final {
   }
 
   template<types::ConstructibleInto<T> U>
+  requires(kConstructibleFrom<const U&> && kMoveConstructible && kMoveAssignable)
   constexpr iterator insert(const_iterator pos, std::initializer_list<U> list) {
     return insert(pos, list.begin(), list.end());
   }

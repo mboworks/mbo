@@ -114,6 +114,86 @@ struct CopyConstructOnly {
   int value;
 };
 
+struct ImmovableTracked final {
+  constexpr ImmovableTracked(int new_value, int& live_count) noexcept : value(new_value), live_count(&live_count) {
+    ++*this->live_count;
+  }
+
+  ImmovableTracked(const ImmovableTracked&) = delete;
+  ImmovableTracked& operator=(const ImmovableTracked&) = delete;
+  ImmovableTracked(ImmovableTracked&&) = delete;
+  ImmovableTracked& operator=(ImmovableTracked&&) = delete;
+
+  constexpr ~ImmovableTracked() noexcept { --*live_count; }
+
+  constexpr operator int() const noexcept { return value; }  // NOLINT(*-explicit-*)
+
+  int value;
+  int* live_count;
+};
+
+struct Incomplete;
+
+struct ThrowingDestructor final {
+  ThrowingDestructor() = default;
+  ThrowingDestructor(const ThrowingDestructor&) = default;
+  ThrowingDestructor& operator=(const ThrowingDestructor&) = default;
+  ThrowingDestructor(ThrowingDestructor&&) = default;
+  ThrowingDestructor& operator=(ThrowingDestructor&&) = default;
+
+  ~ThrowingDestructor() noexcept(false) {}  // NOLINT(modernize-use-equals-default)
+};
+
+using ImmovableVector = LimitedVector<ImmovableTracked, 3>;
+
+template<typename Vector>
+concept HasImmovableCoreOperations = requires(Vector& values, int& live_count) {
+  { values.emplace_back(1, live_count) } -> std::same_as<typename Vector::reference>;
+  values.pop_back();
+  values.clear();
+  values[0];
+  values.begin();
+  values.end();
+};
+
+template<typename Vector>
+concept HasConstPushBack = requires(Vector& values, const Vector::value_type& value) { values.push_back(value); };
+
+template<typename Vector>
+concept HasMovePushBack = requires(Vector& values, Vector::value_type&& value) { values.push_back(std::move(value)); };
+
+template<typename Vector>
+concept HasPositionalEmplace =
+    requires(Vector& values, int& live_count) { values.emplace(values.begin(), 1, live_count); };
+
+template<typename Vector>
+concept HasErase = requires(Vector& values) { values.erase(values.begin()); };
+
+template<typename Vector>
+concept HasDefaultResize = requires(Vector& values) { values.resize(1); };
+
+template<typename Vector>
+concept HasSwap = requires(Vector& lhs, Vector& rhs) { lhs.swap(rhs); };
+
+static_assert(LimitedVectorValid<ImmovableTracked>);
+static_assert(LimitedVectorValid<const int>);
+static_assert(!LimitedVectorValid<void>);
+static_assert(!LimitedVectorValid<std::remove_reference_t<decltype("x")>>);
+static_assert(!LimitedVectorValid<volatile int>);
+static_assert(!LimitedVectorValid<Incomplete>);
+static_assert(!LimitedVectorValid<ThrowingDestructor>);
+static_assert(HasImmovableCoreOperations<ImmovableVector>);
+static_assert(!std::copy_constructible<ImmovableVector>);
+static_assert(!std::move_constructible<ImmovableVector>);
+static_assert(!std::is_copy_assignable_v<ImmovableVector>);
+static_assert(!std::is_move_assignable_v<ImmovableVector>);
+static_assert(!HasConstPushBack<ImmovableVector>);
+static_assert(!HasMovePushBack<ImmovableVector>);
+static_assert(!HasPositionalEmplace<ImmovableVector>);
+static_assert(!HasErase<ImmovableVector>);
+static_assert(!HasDefaultResize<ImmovableVector>);
+static_assert(!HasSwap<ImmovableVector>);
+
 template<typename T>
 void CopyAssign(T& lhs, const T& rhs) {
   lhs = rhs;
@@ -525,6 +605,30 @@ TEST_F(LimitedVectorTest, SupportsMoveOnlyResourceValues) {
   ASSERT_THAT(values, SizeIs(2));
   EXPECT_THAT(*values.at(0), 2);
   EXPECT_THAT(*values.at(1), 3);
+}
+
+TEST_F(LimitedVectorTest, SupportsImmovableElementLifetimeAndIteration) {
+  int live_count = 0;
+  {
+    ImmovableVector values;
+    values.emplace_back(1, live_count);
+    values.emplace_back(2, live_count);
+    EXPECT_THAT(values, ElementsAre(1, 2));
+    EXPECT_THAT(live_count, Eq(2));
+
+    values.pop_back();
+    EXPECT_THAT(values, ElementsAre(1));
+    EXPECT_THAT(live_count, Eq(1));
+
+    values.clear();
+    EXPECT_THAT(values, IsEmpty());
+    EXPECT_THAT(live_count, Eq(0));
+
+    values.emplace_back(3, live_count);
+    EXPECT_THAT(values.at(0), Eq(3));
+    EXPECT_THAT(live_count, Eq(1));
+  }
+  EXPECT_THAT(live_count, Eq(0));
 }
 
 TEST_F(LimitedVectorTest, CopyAssignmentReconstructsNonassignableElements) {

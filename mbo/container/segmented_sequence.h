@@ -451,11 +451,14 @@ class SegmentedSequence final {
     InitializeDirectory();
   }
 
-  constexpr explicit SegmentedSequence(Source source) noexcept(
+  template<typename SourceArg>
+  requires(
+      std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
+      && std::default_initializable<Directory>)
+  constexpr explicit SegmentedSequence(SourceArg&& source) noexcept(
       Options.segment_reservation == 0
-      && std::is_nothrow_move_constructible_v<Source> && std::is_nothrow_default_constructible_v<Directory>)
-  requires(std::constructible_from<Source, Source &&> && std::default_initializable<Directory>)
-      : source_(std::move(source)) {
+      && std::is_nothrow_constructible_v<Source, SourceArg&&> && std::is_nothrow_default_constructible_v<Directory>)
+      : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
   }
 
@@ -468,12 +471,13 @@ class SegmentedSequence final {
     InitializeDirectory();
   }
 
-  constexpr SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, Source source) noexcept(
-      Options.segment_reservation == 0 && std::is_nothrow_move_constructible_v<Source>
-      && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
-  requires(std::constructible_from<Source, Source &&>
+  template<typename SourceArg>
+  requires(std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+  constexpr SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, SourceArg&& source) noexcept(
+      Options.segment_reservation == 0 && std::is_nothrow_constructible_v<Source, SourceArg&&>
+      && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
+      : source_(std::forward<SourceArg>(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
     InitializeDirectory();
   }
 
@@ -493,9 +497,12 @@ class SegmentedSequence final {
 #endif
   }
 
-  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
-  requires(std::constructible_from<T, std::iter_reference_t<Iterator>> && std::constructible_from<Source, Source &&>)
-  constexpr SegmentedSequence(Iterator first, Sentinel last, Source source) : source_(std::move(source)) {
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel, typename SourceArg>
+  requires(
+      std::constructible_from<T, std::iter_reference_t<Iterator>>
+      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
+  constexpr SegmentedSequence(Iterator first, Sentinel last, SourceArg&& source)
+      : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {
@@ -525,11 +532,12 @@ class SegmentedSequence final {
 #endif
   }
 
-  template<std::ranges::input_range Range>
+  template<std::ranges::input_range Range, typename SourceArg>
   requires(
-      std::constructible_from<T, std::ranges::range_reference_t<Range>> && std::constructible_from<Source, Source &&>)
-  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range, Source source)
-      : source_(std::move(source)) {
+      std::constructible_from<T, std::ranges::range_reference_t<Range>>
+      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
+  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range, SourceArg&& source)
+      : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {
@@ -566,16 +574,17 @@ class SegmentedSequence final {
 #endif
   }
 
-  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
-  requires(std::constructible_from<T, std::iter_reference_t<Iterator>> && std::constructible_from<Source, Source &&>
+  template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel, typename SourceArg>
+  requires(std::constructible_from<T, std::iter_reference_t<Iterator>>
+           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
   constexpr SegmentedSequence(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       Iterator first,
       Sentinel last,
-      Source source)
-      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+      SourceArg&& source)
+      : source_(std::forward<SourceArg>(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {
@@ -612,17 +621,17 @@ class SegmentedSequence final {
 #endif
   }
 
-  template<std::ranges::input_range Range>
+  template<std::ranges::input_range Range, typename SourceArg>
   requires(std::constructible_from<T, std::ranges::range_reference_t<Range>>
-           && std::constructible_from<Source, Source &&>
+           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
   constexpr SegmentedSequence(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       std::from_range_t /*from_range*/,
       Range&& range,
-      Source source)
-      : source_(std::move(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
+      SourceArg&& source)
+      : source_(std::forward<SourceArg>(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {

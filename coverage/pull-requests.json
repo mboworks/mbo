@@ -549,13 +549,13 @@
     "number": 446,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "1e1bc5e6f1f4f87a6a6661d2a91500b05250b0aa"
+    "merge_commit_sha": "211ebdc8c7f288710903cf7d231b774ac2371d64"
   },
   {
     "number": 445,
-    "state": "closed",
+    "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "fef41911d50ca55856d10a5d2a22be33b02f2b83"
+    "merge_commit_sha": "a3fa2c1f526d34e4c21c7d635ca88e546765c769"
   },
   {
     "number": 444,

@@ -7,6 +7,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -257,10 +258,45 @@ def validate(data):
              "validity.status must be valid, suspect, or invalid", errors)
     _require(validity.get("status") == "valid" or bool(validity.get("note")),
              "non-valid measurements require a validity note", errors)
+    _require(validity.get("status") != "valid" or git.get("dirty") is False,
+             "valid measurements require a clean git checkout", errors)
     raw = data["google_benchmark"]
     _require(isinstance(raw.get("context"), dict), "google_benchmark.context is required", errors)
-    _require(isinstance(raw.get("benchmarks"), list) and bool(raw.get("benchmarks")),
+    benchmarks = raw.get("benchmarks")
+    _require(isinstance(benchmarks, list) and bool(benchmarks),
              "google_benchmark.benchmarks must be non-empty", errors)
+    if isinstance(benchmarks, list) and validity.get("status") != "invalid":
+        repetition_indices_by_family = {}
+        for row in benchmarks:
+            if not isinstance(row, dict) or row.get("run_type") != "iteration":
+                continue
+            family = row.get("run_name") or row.get("name")
+            _require(isinstance(family, str) and bool(family),
+                     "iteration rows require a benchmark family name", errors)
+            _require(row.get("error_occurred") is not True,
+                     f"benchmark family {family!r} contains an errored iteration", errors)
+            iterations = row.get("iterations")
+            _require(isinstance(iterations, int) and iterations > 0,
+                     f"benchmark family {family!r} requires positive iterations", errors)
+            for field in ("cpu_time", "real_time"):
+                value = row.get(field)
+                _require(isinstance(value, (int, float)) and math.isfinite(value) and value >= 0,
+                         f"benchmark family {family!r} requires finite nonnegative {field}", errors)
+            _require(isinstance(row.get("time_unit"), str) and bool(row["time_unit"]),
+                     f"benchmark family {family!r} requires a non-empty time_unit", errors)
+            if isinstance(family, str) and family:
+                repetition_indices_by_family.setdefault(family, []).append(row.get("repetition_index"))
+        _require(bool(repetition_indices_by_family), "benchmark results require raw iteration rows", errors)
+        expected_repetitions = controls.get("repetitions")
+        expected_indices = list(range(expected_repetitions)) if isinstance(expected_repetitions, int) else []
+        for family, indices in repetition_indices_by_family.items():
+            _require(len(indices) == expected_repetitions,
+                     f"benchmark family {family!r} has {len(indices)} raw repetitions; "
+                     f"expected {expected_repetitions}", errors)
+            valid_indices = all(isinstance(index, int) for index in indices)
+            _require(valid_indices and sorted(indices) == expected_indices,
+                     f"benchmark family {family!r} repetition_index values must be "
+                     f"0..{expected_repetitions - 1}", errors)
     expected_hash = data.get("content_sha256")
     unhashed = dict(data)
     unhashed.pop("content_sha256", None)

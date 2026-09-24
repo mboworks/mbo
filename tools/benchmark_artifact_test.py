@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for benchmark_artifact."""
 
+import copy
 import os
 import json
 from pathlib import Path
@@ -31,7 +32,19 @@ class BenchmarkArtifactTest(unittest.TestCase):
                 "standard_library_version": "220108",
                 "library_build_type": "release",
             },
-            "benchmarks": [{"name": "BM_Example", "real_time": 1.25, "time_unit": "ns"}],
+            "benchmarks": [
+                {
+                    "name": "BM_Example",
+                    "run_name": "BM_Example",
+                    "run_type": "iteration",
+                    "iterations": 100,
+                    "repetition_index": repetition,
+                    "cpu_time": 1.0,
+                    "real_time": 1.25,
+                    "time_unit": "ns",
+                }
+                for repetition in range(9)
+            ],
         }
         self.git = mock.patch.object(
             subject,
@@ -67,7 +80,7 @@ class BenchmarkArtifactTest(unittest.TestCase):
         return subject.artifact(
             component="Arena",
             target="//mbo/memory:arena_benchmark",
-            raw=self.raw,
+            raw=copy.deepcopy(self.raw),
             command="benchmark --flags",
             configurations=["clang", "opt_apple_m5"],
             baseline="b" * 40,
@@ -153,6 +166,78 @@ class BenchmarkArtifactTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "must be non-empty"):
             subject.validate(artifact)
+
+    def test_valid_measurement_requires_clean_git_checkout(self):
+        artifact = self.make()
+        artifact["git"]["dirty"] = True
+        artifact["content_sha256"] = subject._sha256_json(
+            {key: item for key, item in artifact.items() if key != "content_sha256"}
+        )
+
+        with self.assertRaisesRegex(ValueError, "clean git checkout"):
+            subject.validate(artifact)
+
+    def test_validation_requires_declared_raw_repetition_count(self):
+        artifact = self.make()
+        artifact["google_benchmark"]["benchmarks"].pop()
+        artifact["content_sha256"] = subject._sha256_json(
+            {key: item for key, item in artifact.items() if key != "content_sha256"}
+        )
+
+        with self.assertRaisesRegex(ValueError, "8 raw repetitions; expected 9"):
+            subject.validate(artifact)
+
+    def test_validation_rejects_invalid_iteration_rows(self):
+        for field, value, message in (
+            ("iterations", 0, "positive iterations"),
+            ("error_occurred", True, "errored iteration"),
+        ):
+            with self.subTest(field=field):
+                artifact = self.make()
+                artifact["google_benchmark"]["benchmarks"][0][field] = value
+                artifact["content_sha256"] = subject._sha256_json(
+                    {key: item for key, item in artifact.items() if key != "content_sha256"}
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    subject.validate(artifact)
+
+    def test_validation_requires_unique_complete_repetition_indices(self):
+        artifact = self.make()
+        artifact["google_benchmark"]["benchmarks"][-1]["repetition_index"] = 0
+        artifact["content_sha256"] = subject._sha256_json(
+            {key: item for key, item in artifact.items() if key != "content_sha256"}
+        )
+
+        with self.assertRaisesRegex(ValueError, "repetition_index values"):
+            subject.validate(artifact)
+
+    def test_validation_requires_valid_iteration_timings(self):
+        for field, value, message in (
+            ("cpu_time", float("nan"), "finite nonnegative cpu_time"),
+            ("real_time", -1, "finite nonnegative real_time"),
+            ("time_unit", "", "non-empty time_unit"),
+        ):
+            with self.subTest(field=field):
+                artifact = self.make()
+                artifact["google_benchmark"]["benchmarks"][0][field] = value
+                artifact["content_sha256"] = subject._sha256_json(
+                    {key: item for key, item in artifact.items() if key != "content_sha256"}
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    subject.validate(artifact)
+
+    def test_validation_preserves_invalid_failed_run(self):
+        artifact = self.make()
+        failed = artifact["google_benchmark"]["benchmarks"][0]
+        failed["error_occurred"] = True
+        failed["iterations"] = 0
+        artifact["google_benchmark"]["benchmarks"] = [failed]
+        artifact["validity"] = {"status": "invalid", "note": "benchmark failed"}
+        artifact["content_sha256"] = subject._sha256_json(
+            {key: item for key, item in artifact.items() if key != "content_sha256"}
+        )
+
+        subject.validate(artifact)
 
     def test_warmup_is_numeric_seconds_as_required_by_google_benchmark(self):
         args = subject.parser().parse_args(

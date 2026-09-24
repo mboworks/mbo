@@ -166,9 +166,10 @@ void BmFreshConstructAppendDestroy(benchmark::State& state) {
   for (auto _ : state) {
     SegmentedSequence<std::uint64_t, Options> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
-      benchmark::DoNotOptimize(sequence.emplace_back(pos));
+      sequence.emplace_back(pos);
     }
     benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
     capacity = sequence.capacity();
     reserved = sequence.bytes_reserved();
     segments = sequence.segment_count();
@@ -185,8 +186,9 @@ void BmRetainedAppendClear(benchmark::State& state) {
   sequence.reserve(kElementCount);
   for (auto _ : state) {
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
-      benchmark::DoNotOptimize(sequence.unchecked_emplace_back(pos));
+      sequence.unchecked_emplace_back(pos);
     }
+    benchmark::DoNotOptimize(sequence);
     benchmark::ClobberMemory();
     sequence.clear();
   }
@@ -291,6 +293,7 @@ void BmVectorFreshConstructAppendDestroy(benchmark::State& state) {
       sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation)
     }
     benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
     capacity = sequence.capacity();
   }
   state.counters["capacity"] = static_cast<double>(capacity);
@@ -305,6 +308,7 @@ void BmDequeFreshConstructAppendDestroy(benchmark::State& state) {
       sequence.push_back(pos);
     }
     benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }

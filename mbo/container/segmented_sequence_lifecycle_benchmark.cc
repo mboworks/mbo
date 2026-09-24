@@ -105,6 +105,8 @@ void Fill(Sequence& sequence) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.unchecked_emplace_back(pos);
   }
+  benchmark::DoNotOptimize(sequence);
+  benchmark::ClobberMemory();
 }
 
 void SetAllocationCounters(benchmark::State& state, const AllocationCounters& counters) {
@@ -138,11 +140,12 @@ void BmPopRegrow(benchmark::State& state) {
     }
   };
   const auto regrow = [&] {
-    benchmark::ClobberMemory();
     const std::size_t first = sequence.size();
     for (std::size_t count = 0; count < depth; ++count) {
-      benchmark::DoNotOptimize(sequence.emplace_back(first + count));
+      sequence.emplace_back(first + count);
     }
+    benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
   };
 
   pop();

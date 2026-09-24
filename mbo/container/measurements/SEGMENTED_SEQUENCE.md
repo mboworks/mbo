@@ -107,26 +107,30 @@ implementation commit. The filename is descriptive; metadata inside the artifact
 Apple M5 Pro:
 
 ```sh
+MBO_SEGSEQ_SOURCE_SHA="$(git rev-parse HEAD)"
+MBO_SEGSEQ_BASELINE_SHA="$(git merge-base origin/main HEAD)"
 python3 tools/benchmark_artifact.py run \
   --component SegmentedSequence \
   --target //mbo/container:segmented_sequence_benchmark \
-  --output /private/tmp/macos-arm64-apple-m5-pro_clang-22_<sha>_segmented-sequence.json \
+  --output "/private/tmp/macos-arm64-apple-m5-pro_clang-22_${MBO_SEGSEQ_SOURCE_SHA}_segmented-sequence.json" \
   --config clang \
   --config opt_apple_m5 \
-  --baseline-commit <parent-sha> \
+  --baseline-commit "${MBO_SEGSEQ_BASELINE_SHA}" \
   -- bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_apple_m5 -c opt --
 ```
 
 AMD Zen 5:
 
 ```sh
+MBO_SEGSEQ_SOURCE_SHA="$(git rev-parse HEAD)"
+MBO_SEGSEQ_BASELINE_SHA="$(git merge-base origin/main HEAD)"
 python3 tools/benchmark_artifact.py run \
   --component SegmentedSequence \
   --target //mbo/container:segmented_sequence_benchmark \
-  --output /private/tmp/linux-x86-64-amd-ryzen-9-9950x_clang-22_<sha>_segmented-sequence.json \
+  --output "/private/tmp/linux-x86-64-amd-ryzen-9-9950x_clang-22_${MBO_SEGSEQ_SOURCE_SHA}_segmented-sequence.json" \
   --config clang \
   --config opt_zen5 \
-  --baseline-commit <parent-sha> \
+  --baseline-commit "${MBO_SEGSEQ_BASELINE_SHA}" \
   -- bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_zen5 -c opt --
 ```
 
@@ -234,12 +238,14 @@ branch; their original commits remain reachable as the accurate provenance.
 The initial production benchmark published three `SegmentedSequence` counters inside every timed
 fresh iteration, vector published two, and deque published none. Relative layout comparisons share
 similar reporting overhead, but absolute SegmentedSequence/vector/deque comparisons and precise
-append timings are unreliable. The old mapping directory-build and directory-growth cases have the
-same problem as noted above. Lookup, element-shape, and lifecycle counters were published after
-their loops. The old element-shape StringRecord used `data == nullptr` and read only `size`, so it
-measured a 16-byte shape rather than pointer-plus-size access. The current harness fixes these
-methodological errors. Matching clean C++23 artifacts from both reference machines remain required
-before selecting a default or drawing a cross-machine conclusion.
+append timings are unreliable. SegmentedSequence fresh/retained and lifecycle regrowth also used a
+compiler barrier on every append while vector/deque escaped only the completed container. The old
+mapping directory-build and directory-growth cases have the same counter-publication problem as
+noted above. Lookup, element-shape, and lifecycle counters were published after their loops. The old
+element-shape StringRecord used `data == nullptr` and read only `size`, so it measured a 16-byte
+shape rather than pointer-plus-size access. The current harness fixes these methodological errors.
+Matching clean C++23 artifacts from both reference machines remain required before selecting a
+default or drawing a cross-machine conclusion.
 
 ## Initial Apple M5 Pro diagnostic
 

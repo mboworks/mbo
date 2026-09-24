@@ -45,10 +45,39 @@ construction and therefore performs only the segment allocation.
 
 Every measured `SegmentedSequence` reports current element capacity, segment count, and
 source-reported reserved bytes. Growth-boundary cases additionally report source and directory
-allocation calls/bytes for the timed append. Later element-shape
-experiments must include small PODs, the pointer-plus-size record needed by StringInterner, large
-aligned PODs, and non-trivial movable objects. Latency is never evaluated without the corresponding
+allocation calls/bytes for the timed append. Latency is never evaluated without the corresponding
 allocation, metadata, unused-tail, and retained-memory cost.
+
+## Element-shape benchmark
+
+`//mbo/container:segmented_sequence_element_shape_benchmark` measures the actual fixed-segment
+container rather than the superseded synthetic listed-capacity candidates. It compares sequential
+and deterministic permuted indexed lookup with 64- and 256-element segments across:
+
+- 1-, 2-, 4-, and 8-byte integral values;
+- a 16-byte POD and the pointer-plus-size record needed by StringInterner;
+- 64- and 256-byte PODs;
+- a 64-byte, 64-byte-aligned POD; and
+- `std::string` as a non-trivial movable value.
+
+Every case reports element size/alignment, acquired element capacity, source-reported reserved
+bytes, and segment count. Construction occurs outside the timed loop so the experiment isolates the
+element-shape effect on the current shift/mask plus flat-pointer-directory lookup.
+
+## Lifecycle benchmark
+
+`//mbo/container:segmented_sequence_lifecycle_benchmark` measures lifecycle behavior supported by
+the current public contract. For 64- and 256-element segments it compares:
+
+- pop/regrow while retaining emptied tail segments;
+- pop, `trim_capacity()`, and regrow at shallow, medium, and full depths;
+- `clear()` followed by reuse; and
+- `release()` followed by rebuilding.
+
+Cases report the low-water and restored capacity, source bytes, and segment counts together with
+the source and directory allocations/bytes incurred by the final measured cycle. This keeps the
+latency result coupled to its allocation consequence without reviving the removed byte/count
+retention options or an unordered spare-block pool.
 
 ## Reference commands
 
@@ -81,6 +110,11 @@ python3 tools/benchmark_artifact.py run \
   -- bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_zen5 -c opt --
 ```
 
+Run the same protocol separately for
+`//mbo/container:segmented_sequence_element_shape_benchmark` and
+`//mbo/container:segmented_sequence_lifecycle_benchmark`, using distinct output filenames and the
+matching Bazel target in both `--target` and the command after `--`.
+
 The runner's defaults are required: nine repetitions, randomized interleaving, one-second warmup,
 and one-second minimum time. Short executions are smoke diagnostics only and cannot select an
 implementation. Validate committed evidence with:
@@ -93,11 +127,11 @@ python3 tools/benchmark_artifact.py validate mbo/container/measurements/data/*.j
 
 | Dimension          | Required cases                                                                  |
 | ------------------ | ------------------------------------------------------------------------------- |
-| Element shape      | 1/2/4/8/16-byte POD, pointer-size record, 64/256-byte POD, over-aligned POD     |
+| Element shape      | 1/2/4/8/16-byte POD, pointer-size record, 64/256-byte POD, over-aligned, string |
 | Growth             | Fixed power-of-two sizes; zero, partial, and full directory reservation         |
 | Mapping            | Shift/mask and pointer-directory alternatives                                   |
 | Lifecycle          | Fresh, reserved, clear/reuse, deep pop/regrow, trim, release                    |
-| Retention          | Retain tail, eager release, bounded count/bytes, close/largest compatible fit   |
+| Retention          | Retained tail, explicit trim/release, shallow/deep/full pop and regrow          |
 | Access             | Sequential, permuted, iterator arithmetic, segment views, reverse traversal     |
 | Source             | New/delete, allocator, PMR, fixed external, inline                              |
 | Failure            | Capacity, arithmetic, source, alignment, directory, and construction failure    |
@@ -105,11 +139,12 @@ python3 tools/benchmark_artifact.py validate mbo/container/measurements/data/*.j
 | Compile properties | C++23 language mode, code size, compile time, exception on/off                  |
 | Memory             | Payload, source/directory allocations and bytes, tail waste, retained and peak  |
 
-The segment-size and reservation defaults, directory alternatives, retained-segment waste threshold,
-retention byte/count budgets, and eviction timing remain measurement questions. An option becomes
-public only when at least one measured workload needs it. A candidate that wins one access family
-but violates constant-time lookup, pointer stability, or failure transactionality is ineligible
-regardless of speed.
+The segment-size and reservation defaults remain measurement questions. More elaborate directory
+representations, unordered spare-block pools, byte/count retention budgets, and eviction policies
+are future lower-level experiments and are not part of the current container or this proof. An
+option becomes public only when at least one measured workload needs it. A candidate that wins one
+access family but violates constant-time lookup, pointer stability, or failure transactionality is
+ineligible regardless of speed.
 
 ## Review method
 
@@ -133,6 +168,13 @@ count/bytes; aggregate append throughput cannot expose the directory-growth tail
 | AMD Zen 5    | Clang 22 | fixed-capacity redesign | pending      | pending                                                                                                 | growth-boundary and full matrix pending |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
+
+The additional Apple M5 Pro envelopes produced on the original proof branch are intentionally not
+copied here. They record C++20 runs of superseded listed-capacity, pointer-page, hybrid-page,
+bounded-retention, and spare-pool experiments. They remain immutable branch history, but they are
+not evidence for the current fixed-power-of-two C++23 representation. Matching C++23 artifacts from
+both reference machines remain required before this document selects a default or draws a
+cross-machine conclusion.
 
 ## Initial Apple M5 Pro diagnostic
 

@@ -1,5 +1,11 @@
 [
   {
+    "number": 538,
+    "state": "open",
+    "merged_at": null,
+    "merge_commit_sha": "3b1b5a98fe14086115bbaa30f9604ca066543ace"
+  },
+  {
     "number": 537,
     "state": "closed",
     "merged_at": "2026-09-24T18:28:25Z",

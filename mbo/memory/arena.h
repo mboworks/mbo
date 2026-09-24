@@ -45,7 +45,6 @@ class Arena final {
     MemoryBlock memory{};
     std::size_t begin = 0;
     std::size_t cursor = 0;
-    bool oversized = false;
   };
 
   static constexpr std::size_t kHeaderAlignment = alignof(Block);
@@ -250,7 +249,7 @@ class Arena final {
     // The block header begins its lifetime in suitably aligned raw storage owned by the source.
     auto* const block = std::construct_at(
         reinterpret_cast<Block*>(memory->data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        Block{.next = nullptr, .memory = *memory, .begin = begin, .cursor = begin, .oversized = oversized});
+        Block{.next = nullptr, .memory = *memory, .begin = begin, .cursor = begin});
     if (first_ == nullptr) {
       first_ = block;
     } else {

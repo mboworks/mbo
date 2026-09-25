@@ -29,7 +29,7 @@ Entry* FindUniqueEntry(HamtSharedNode<FragmentBits, Entry>* node, Hash hash, con
   const HamtHashPath<Hash, FragmentBits> path(hash);
   std::size_t level = 0;
   for (;;) {
-    if (node->use_count() != 1) {
+    if (!node->is_unique()) {
       return nullptr;
     }
     if (node->is_collision()) {

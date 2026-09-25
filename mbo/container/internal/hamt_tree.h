@@ -10,6 +10,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include "mbo/container/hamt_options.h"
 #include "mbo/container/internal/hamt_clone.h"
@@ -127,6 +128,28 @@ class HamtTree final {
   requires requires(const HamtTree& tree, const Key& key) { tree.Find(key); }
   bool contains(const Key& key) const noexcept {
     return Find(key) != nullptr;
+  }
+
+  // Detach a shared path before public wrappers expose its mapped value.
+  template<typename Key>
+  requires requires(const HamtTree& tree, const Key& key) { tree.Find(key); }
+  [[nodiscard]] std::variant<Entry*, HamtError> TryGetMutable(const Key& key) noexcept {
+    const Entry* target = Find(key);
+    if (target == nullptr) {
+      return static_cast<Entry*>(nullptr);
+    }
+    const hash_type hash = std::invoke(hash_, key);
+    // The returned pointer intentionally grants the caller mutable mapped-value access.
+    // NOLINTNEXTLINE(misc-const-correctness): Mutability is this operation's contract.
+    if (Entry* const unique = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target); unique != nullptr) {
+      return unique;
+    }
+    const auto detached = try_update(key, [](Entry&) noexcept {});
+    if (detached.error) {
+      return *detached.error;
+    }
+    target = Find(key);
+    return hamt_update_internal::FindUniqueEntry(root_.get(), hash, target);
   }
 
   [[nodiscard]] HamtMutationResult try_insert(const Entry& entry) noexcept {

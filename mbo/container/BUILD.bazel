@@ -16,6 +16,23 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 cc_library(
+    name = "hamt_options_cc",
+    hdrs = ["hamt_options.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "hamt_options_test",
+    size = "small",
+    srcs = ["hamt_options_test.cc"],
+    deps = [
+        ":hamt_options_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_bitmap_cc",
     hdrs = ["internal/hamt_bitmap.h"],
 )

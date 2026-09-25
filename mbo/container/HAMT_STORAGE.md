@@ -147,3 +147,16 @@ Both methods return one owned reference on success. Normal-node input, an invali
 singleton erasure, or allocation failure returns `std::nullopt`. Original contents and ownership
 remain unchanged. Collision operations reuse the normal-node entry-copy helpers and preserve
 the same non-throwing copy, source lifetime, and external synchronization requirements.
+
+## Persistent entry replacement
+
+`TryReplaceEntry` copies a normal or collision node while replacing one dense entry. The
+caller must preserve the entry's routing hash and container key uniqueness: this primitive
+does not reindex a changed key. Map operations normally use it to replace the mapped value
+while keeping the key unchanged.
+
+Successful replacement preserves the bitmap, collision representation, and child topology,
+retains the resulting children, and returns one owned node reference. Replacement input may
+alias an original entry. Releasing the original does not invalidate the replacement snapshot.
+An invalid position or allocation failure returns `std::nullopt` without changing the original
+or child references. Non-throwing entry copying and the shared-node lifetime contract apply.

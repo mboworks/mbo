@@ -32,6 +32,22 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_hash_path_cc",
+    hdrs = ["internal/hamt_hash_path.h"],
+)
+
+cc_test(
+    name = "hamt_hash_path_test",
+    size = "small",
+    srcs = ["internal/hamt_hash_path_test.cc"],
+    deps = [
+        ":hamt_hash_path_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "any_scan_cc",
     hdrs = ["any_scan.h"],
     visibility = ["//visibility:public"],

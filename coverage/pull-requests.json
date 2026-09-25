@@ -559,7 +559,7 @@
   },
   {
     "number": 445,
-    "state": "open",
+    "state": "closed",
     "merged_at": null,
     "merge_commit_sha": null
   },

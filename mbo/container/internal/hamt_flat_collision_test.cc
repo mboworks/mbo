@@ -89,8 +89,7 @@ TEST_F(HamtFlatCollisionTest, ReportsMaximumSizeWithoutMutation) {
 }
 
 TEST_F(HamtFlatCollisionTest, StorageExhaustionPreservesExistingEntriesAndAllowsReuse) {
-  constexpr SegmentedSequenceOptions kStorageOptions{
-      .segment_capacities = {1}, .repeat_last = false, .maximum_size = 1};
+  constexpr SegmentedSequenceOptions kStorageOptions{.segment_size = 1, .segment_capacity = 1};
   using Entry = HamtStoredValue<std::uint64_t, int>;
   using Storage = SegmentedSequence<Entry, kStorageOptions>;
   HamtFlatCollisionBucket<int, Identity, Equal, HamtOptions{}, std::uint64_t, Entry, Storage> bucket;

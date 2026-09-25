@@ -283,9 +283,9 @@
   },
   {
     "number": 492,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "573a3f71ac1f480fedc5b90c4452c0ac52294f59"
+    "state": "closed",
+    "merged_at": "2026-09-25T20:32:21Z",
+    "merge_commit_sha": "a279dec4d912e134bf056e1e27e2206c94294c78"
   },
   {
     "number": 491,

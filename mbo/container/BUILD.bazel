@@ -21,6 +21,30 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
+cc_library(
+    name = "hamt_flat_set_cc",
+    hdrs = ["hamt_flat_set.h"],
+    deps = [
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_set_test",
+    size = "small",
+    srcs = ["hamt_flat_set_test.cc"],
+    deps = [
+        ":hamt_flat_set_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_options_test",
     size = "small",

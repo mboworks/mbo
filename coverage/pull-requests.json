@@ -561,13 +561,13 @@
     "number": 445,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "a3fa2c1f526d34e4c21c7d635ca88e546765c769"
+    "merge_commit_sha": null
   },
   {
     "number": 444,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "a356f60807d851c9f4bb19f950cbc65aefee8e7e"
+    "merge_commit_sha": "509cfe193c40965dc9d8b0b214558f4393deedd4"
   },
   {
     "number": 443,

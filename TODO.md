@@ -69,6 +69,12 @@ also updates this file to the completed state.
 
 ## API additions
 
+- [ ] Align the strong identifier header and public type names.
+  - `mbo/types/strong_id.h` currently defines `ConstStrongId`; resolve this
+    filename/type-name mismatch in a follow-up change.
+  - Update the corresponding includes, Bazel targets, tests, and documentation
+    consistently when correcting the naming.
+
 - [x] Add `mbo::StringOrView`, a read-only owning-or-borrowing string wrapper.
   - Add `mbo/types/string_or_view.h` with default-empty, owning `std::string`,
     borrowing `std::string_view`, and borrowing string-literal construction.

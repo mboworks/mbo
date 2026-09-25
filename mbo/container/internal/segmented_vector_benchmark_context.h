@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MBO_CONTAINER_INTERNAL_SEGMENTED_SEQUENCE_BENCHMARK_CONTEXT_H_
-#define MBO_CONTAINER_INTERNAL_SEGMENTED_SEQUENCE_BENCHMARK_CONTEXT_H_
+#ifndef MBO_CONTAINER_INTERNAL_SEGMENTED_VECTOR_BENCHMARK_CONTEXT_H_
+#define MBO_CONTAINER_INTERNAL_SEGMENTED_VECTOR_BENCHMARK_CONTEXT_H_
 
 #include <benchmark/benchmark.h>
 
@@ -16,9 +16,9 @@
 
 namespace mbo::container::container_internal {
 
-static_assert(__cplusplus >= 202'302L, "the SegmentedSequence benchmark provenance requires C++23");
+static_assert(__cplusplus >= 202'302L, "the SegmentedVector benchmark provenance requires C++23");
 
-inline void AddSegmentedSequenceBenchmarkContext(std::string_view experiment) {
+inline void AddSegmentedVectorBenchmarkContext(std::string_view experiment) {
 #if defined(__clang__)
 # if defined(__apple_build_version__)
   benchmark::AddCustomContext("compiler_name", "Apple Clang");
@@ -66,4 +66,4 @@ inline void AddSegmentedSequenceBenchmarkContext(std::string_view experiment) {
 
 }  // namespace mbo::container::container_internal
 
-#endif  // MBO_CONTAINER_INTERNAL_SEGMENTED_SEQUENCE_BENCHMARK_CONTEXT_H_
+#endif  // MBO_CONTAINER_INTERNAL_SEGMENTED_VECTOR_BENCHMARK_CONTEXT_H_

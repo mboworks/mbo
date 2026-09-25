@@ -1,8 +1,8 @@
-# SegmentedSequence measurements
+# SegmentedVector measurements
 
 This document defines the evidence used to select the representation and defaults for
-`mbo::container::SegmentedSequence`. The semantic contract is specified in
-[`SEGMENTED_SEQUENCE.md`](../SEGMENTED_SEQUENCE.md); measurements choose implementations without
+`mbo::container::SegmentedVector`. The semantic contract is specified in
+[`SEGMENTED_VECTOR.md`](../SEGMENTED_VECTOR.md); measurements choose implementations without
 weakening its stable-address, constant-time indexed-access, lifetime, or failure guarantees.
 
 No performance-sensitive representation or default is final until the same clean implementation
@@ -23,7 +23,7 @@ do not independently identify the linker executable's runtime version.
 
 ## Production benchmark
 
-`//mbo/container:segmented_sequence_benchmark` measures the public implementation using 16,384
+`//mbo/container:segmented_vector_benchmark` measures the public implementation using 16,384
 64-bit elements. Its initial matrix separates the costs that a single aggregate result would hide:
 
 | Family                        | What it measures                                                                |
@@ -52,7 +52,7 @@ and whether the boundary reallocates. Each case reports source allocations/bytes
 allocations, deallocations, allocated bytes, and deallocated bytes for the timed event. This is an
 isolated growth-event mean, not a tail percentile.
 
-Every measured `SegmentedSequence` reports current element capacity, segment count, and
+Every measured `SegmentedVector` reports current element capacity, segment count, and
 source-reported reserved bytes. Counter publication occurs outside timed loops, or while timing is
 paused for the isolated growth event. Growth and lifecycle cases add event allocation/deallocation
 calls and bytes. Vector reports capacity bytes; deque is timing-only because it exposes no portable
@@ -61,7 +61,7 @@ harness does not claim to capture every allocator or metadata consequence.
 
 ## Element-shape benchmark
 
-`//mbo/container:segmented_sequence_element_shape_benchmark` measures the actual fixed-segment
+`//mbo/container:segmented_vector_element_shape_benchmark` measures the actual fixed-segment
 container rather than the superseded synthetic listed-capacity candidates. It compares sequential
 and deterministic permuted indexed lookup with 64-, 256-, and 1,024-element segments across:
 
@@ -79,7 +79,7 @@ isolates the element-shape effect on the current shift/mask plus flat-pointer-di
 
 ## Lifecycle benchmark
 
-`//mbo/container:segmented_sequence_lifecycle_benchmark` measures lifecycle behavior supported by
+`//mbo/container:segmented_vector_lifecycle_benchmark` measures lifecycle behavior supported by
 the current public contract. For 64- and 256-element segments it compares:
 
 - pop/regrow while retaining emptied tail segments;
@@ -107,36 +107,36 @@ implementation commit. The filename is descriptive; metadata inside the artifact
 Apple M5 Pro:
 
 ```sh
-MBO_SEGSEQ_SOURCE_SHA="$(git rev-parse HEAD)"
-MBO_SEGSEQ_BASELINE_SHA="$(git merge-base origin/main HEAD)"
+MBO_SEGVEC_SOURCE_SHA="$(git rev-parse HEAD)"
+MBO_SEGVEC_BASELINE_SHA="$(git merge-base origin/main HEAD)"
 python3 tools/benchmark_artifact.py run \
-  --component SegmentedSequence \
-  --target //mbo/container:segmented_sequence_benchmark \
-  --output "/private/tmp/macos-arm64-apple-m5-pro_clang-22_${MBO_SEGSEQ_SOURCE_SHA}_segmented-sequence.json" \
+  --component SegmentedVector \
+  --target //mbo/container:segmented_vector_benchmark \
+  --output "/private/tmp/macos-arm64-apple-m5-pro_clang-22_${MBO_SEGVEC_SOURCE_SHA}_segmented-vector.json" \
   --config clang \
   --config opt_apple_m5 \
-  --baseline-commit "${MBO_SEGSEQ_BASELINE_SHA}" \
-  -- bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_apple_m5 -c opt --
+  --baseline-commit "${MBO_SEGVEC_BASELINE_SHA}" \
+  -- bazel run //mbo/container:segmented_vector_benchmark --config=clang --config=opt_apple_m5 -c opt --
 ```
 
 AMD Zen 5:
 
 ```sh
-MBO_SEGSEQ_SOURCE_SHA="$(git rev-parse HEAD)"
-MBO_SEGSEQ_BASELINE_SHA="$(git merge-base origin/main HEAD)"
+MBO_SEGVEC_SOURCE_SHA="$(git rev-parse HEAD)"
+MBO_SEGVEC_BASELINE_SHA="$(git merge-base origin/main HEAD)"
 python3 tools/benchmark_artifact.py run \
-  --component SegmentedSequence \
-  --target //mbo/container:segmented_sequence_benchmark \
-  --output "/private/tmp/linux-x86-64-amd-ryzen-9-9950x_clang-22_${MBO_SEGSEQ_SOURCE_SHA}_segmented-sequence.json" \
+  --component SegmentedVector \
+  --target //mbo/container:segmented_vector_benchmark \
+  --output "/private/tmp/linux-x86-64-amd-ryzen-9-9950x_clang-22_${MBO_SEGVEC_SOURCE_SHA}_segmented-vector.json" \
   --config clang \
   --config opt_zen5 \
-  --baseline-commit "${MBO_SEGSEQ_BASELINE_SHA}" \
-  -- bazel run //mbo/container:segmented_sequence_benchmark --config=clang --config=opt_zen5 -c opt --
+  --baseline-commit "${MBO_SEGVEC_BASELINE_SHA}" \
+  -- bazel run //mbo/container:segmented_vector_benchmark --config=clang --config=opt_zen5 -c opt --
 ```
 
 Run the same protocol separately for
-`//mbo/container:segmented_sequence_element_shape_benchmark` and
-`//mbo/container:segmented_sequence_lifecycle_benchmark`, using distinct output filenames and the
+`//mbo/container:segmented_vector_element_shape_benchmark` and
+`//mbo/container:segmented_vector_lifecycle_benchmark`, using distinct output filenames and the
 matching Bazel target in both `--target` and the command after `--`.
 
 Write every output outside the checkout. Run all three targets from the same clean source SHA, then

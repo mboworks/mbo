@@ -1,0 +1,86 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#include "mbo/container/internal/hamt_merge_path.h"
+
+#include <cstddef>
+#include <cstdint>
+
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+
+namespace mbo::container::container_internal {
+namespace {
+
+using ::testing::Eq;
+
+struct HamtMergePathTest : ::testing::Test {};
+
+TEST_F(HamtMergePathTest, FindsImmediateAndDeepDivergence) {
+  const auto immediate = FindHamtMergePath<std::uint64_t, 5>(0, 1);
+  EXPECT_THAT(immediate.common_levels, Eq(0));
+  EXPECT_THAT(immediate.existing_fragment, Eq(0));
+  EXPECT_THAT(immediate.inserted_fragment, Eq(1));
+  EXPECT_THAT(immediate.full_hash_collision, Eq(false));
+
+  const auto deep = FindHamtMergePath<std::uint64_t, 5>(3, 3 + (std::uint64_t{7} << 15));
+  EXPECT_THAT(deep.common_levels, Eq(3));
+  EXPECT_THAT(deep.existing_fragment, Eq(0));
+  EXPECT_THAT(deep.inserted_fragment, Eq(7));
+}
+
+TEST_F(HamtMergePathTest, IdentifiesExhaustedFullHashCollisions) {
+  const auto collision = FindHamtMergePath<std::uint32_t, 7>(0xdeadbeefU, 0xdeadbeefU, 2);
+  EXPECT_THAT(collision.common_levels, Eq(3));
+  EXPECT_THAT(collision.full_hash_collision, Eq(true));
+}
+
+TEST_F(HamtMergePathTest, CountsOnlyLevelsAfterTheStartingLevel) {
+  const auto path = FindHamtMergePath<std::uint64_t, 5>(3, 3 + (std::uint64_t{7} << 15), 2);
+  EXPECT_THAT(path.common_levels, Eq(1));
+  EXPECT_THAT(path.inserted_fragment, Eq(7));
+  EXPECT_THAT(path.full_hash_collision, Eq(false));
+}
+
+TEST_F(HamtMergePathTest, HandlesThePartialFinalFragment) {
+  const auto path = FindHamtMergePath<std::uint32_t, 7>(0, std::uint32_t{15} << 28);
+  EXPECT_THAT(path.common_levels, Eq(4));
+  EXPECT_THAT(path.existing_fragment, Eq(0));
+  EXPECT_THAT(path.inserted_fragment, Eq(15));
+  EXPECT_THAT(path.full_hash_collision, Eq(false));
+}
+
+TEST_F(HamtMergePathTest, StartingAtTheEndReportsAnExhaustedPath) {
+  const auto path = FindHamtMergePath<std::uint32_t, 7>(42, 42, HamtHashPath<std::uint32_t, 7>::kLevels);
+  EXPECT_THAT(path.common_levels, Eq(0));
+  EXPECT_THAT(path.full_hash_collision, Eq(true));
+}
+
+TEST_F(HamtMergePathTest, RoutesEveryHashBitForAllSupportedFragmentWidths) {
+  const auto check_width = []<std::size_t FragmentBits>() {
+    for (std::size_t bit = 0; bit < 64; ++bit) {
+      const std::uint64_t hash = std::uint64_t{1} << bit;
+      const auto path = FindHamtMergePath<std::uint64_t, FragmentBits>(0, hash);
+      EXPECT_THAT(path.common_levels, Eq(bit / FragmentBits));
+      EXPECT_THAT(path.existing_fragment, Eq(0));
+      EXPECT_THAT(path.inserted_fragment, Eq(std::size_t{1} << (bit % FragmentBits)));
+      EXPECT_THAT(path.full_hash_collision, Eq(false));
+      const auto reverse = FindHamtMergePath<std::uint64_t, FragmentBits>(hash, 0, bit / FragmentBits);
+      EXPECT_THAT(reverse.common_levels, Eq(0));
+      EXPECT_THAT(reverse.existing_fragment, Eq(path.inserted_fragment));
+      EXPECT_THAT(reverse.inserted_fragment, Eq(0));
+    }
+  };
+  check_width.operator()<4>();
+  check_width.operator()<5>();
+  check_width.operator()<6>();
+  check_width.operator()<7>();
+}
+
+constexpr auto kConstexprPath = FindHamtMergePath<std::uint32_t, 4>(0x12345678U, 0x123456f8U);
+static_assert(kConstexprPath.common_levels == 1);
+static_assert(kConstexprPath.existing_fragment == 7);
+static_assert(kConstexprPath.inserted_fragment == 15);
+
+}  // namespace
+}  // namespace mbo::container::container_internal

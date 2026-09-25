@@ -96,6 +96,44 @@ struct RecordingBlockSource final {
   }
 };
 
+struct alignas(128) ConstructorTrackingBlockSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  ConstructorTrackingBlockSource() = default;
+
+  constexpr ConstructorTrackingBlockSource(int* copies, int* moves) noexcept : copies(copies), moves(moves) {}
+
+  ConstructorTrackingBlockSource(const ConstructorTrackingBlockSource& other) noexcept(false)
+      : copies(other.copies), moves(other.moves) {
+    if (copies != nullptr) {
+      ++*copies;
+    }
+  }
+
+  ConstructorTrackingBlockSource& operator=(const ConstructorTrackingBlockSource&) = default;
+
+  ConstructorTrackingBlockSource(ConstructorTrackingBlockSource&& other) noexcept
+      : copies(other.copies), moves(other.moves) {
+    if (moves != nullptr) {
+      ++*moves;
+    }
+  }
+
+  ConstructorTrackingBlockSource& operator=(ConstructorTrackingBlockSource&&) = default;
+  ~ConstructorTrackingBlockSource() = default;
+
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  static std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    return mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+  }
+
+  static void Release(mbo::memory::MemoryBlock block) noexcept { mbo::memory::NewDeleteBlockSource::Release(block); }
+
+  int* copies = nullptr;
+  int* moves = nullptr;
+};
+
 struct ThrowingDestructor final {
   ThrowingDestructor() = default;
   ThrowingDestructor(const ThrowingDestructor&) = default;
@@ -319,6 +357,36 @@ constexpr SegmentedSequenceOptions kNoDirectoryReservation{
 static_assert(!std::is_nothrow_default_constructible_v<SegmentedSequence<int>>);
 static_assert(std::is_nothrow_default_constructible_v<SegmentedSequence<int, kNoDirectoryReservation>>);
 
+using ConstructorSequence = SegmentedSequence<int, kNoDirectoryReservation, ConstructorTrackingBlockSource>;
+using ConstructorAllocator = ConstructorSequence::allocator_type;
+static_assert(std::constructible_from<ConstructorSequence, ConstructorTrackingBlockSource&>);
+static_assert(std::constructible_from<ConstructorSequence, const ConstructorTrackingBlockSource&>);
+static_assert(std::constructible_from<ConstructorSequence, ConstructorTrackingBlockSource&&>);
+static_assert(!noexcept(ConstructorSequence(std::declval<const ConstructorTrackingBlockSource&>())));
+static_assert(noexcept(ConstructorSequence(std::declval<ConstructorTrackingBlockSource&&>())));
+static_assert(std::constructible_from<
+              ConstructorSequence,
+              std::allocator_arg_t,
+              const ConstructorAllocator&,
+              ConstructorTrackingBlockSource&>);
+static_assert(std::constructible_from<ConstructorSequence, int*, int*, ConstructorTrackingBlockSource&>);
+static_assert(
+    std::constructible_from<ConstructorSequence, std::from_range_t, std::span<int>, ConstructorTrackingBlockSource&>);
+static_assert(std::constructible_from<
+              ConstructorSequence,
+              std::allocator_arg_t,
+              const ConstructorAllocator&,
+              int*,
+              int*,
+              ConstructorTrackingBlockSource&>);
+static_assert(std::constructible_from<
+              ConstructorSequence,
+              std::allocator_arg_t,
+              const ConstructorAllocator&,
+              std::from_range_t,
+              std::span<int>,
+              ConstructorTrackingBlockSource&>);
+
 template<typename Sequence, typename... Args>
 concept CanEmplaceBack =
     requires(Sequence& sequence, Args&&... args) { sequence.emplace_back(std::forward<Args>(args)...); };
@@ -336,6 +404,30 @@ struct SegmentedSequenceTest : ::testing::Test {};
 template<typename T>
 void MoveAssignForTest(T& destination, T& source) {
   destination = std::move(source);
+}
+
+TEST_F(SegmentedSequenceTest, SourceConstructorCopiesLvalue) {
+  int copies = 0;
+  int moves = 0;
+  const ConstructorTrackingBlockSource source(&copies, &moves);
+
+  const ConstructorSequence sequence(source);
+
+  EXPECT_THAT(sequence, IsEmpty());
+  EXPECT_THAT(copies, Eq(1));
+  EXPECT_THAT(moves, Eq(0));
+}
+
+TEST_F(SegmentedSequenceTest, SourceConstructorMovesRvalue) {
+  int copies = 0;
+  int moves = 0;
+  ConstructorTrackingBlockSource source(&copies, &moves);
+
+  const ConstructorSequence sequence(std::move(source));
+
+  EXPECT_THAT(sequence, IsEmpty());
+  EXPECT_THAT(copies, Eq(0));
+  EXPECT_THAT(moves, Eq(1));
 }
 
 TEST_F(SegmentedSequenceTest, OptionsRequirePowerOfTwoSegmentSizeAndFiniteCapacity) {

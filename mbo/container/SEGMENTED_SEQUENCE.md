@@ -119,10 +119,15 @@ class SegmentedSequence {
   using allocator_type = DirectoryAllocator;
 
   SegmentedSequence();
-  explicit SegmentedSequence(Source source);
+  template<typename SourceArg>
+    requires std::same_as<std::remove_cvref_t<SourceArg>, Source>
+             && std::constructible_from<Source, SourceArg&&>
+  explicit SegmentedSequence(SourceArg&& source);
   SegmentedSequence(std::allocator_arg_t, const allocator_type& allocator);
-  SegmentedSequence(
-      std::allocator_arg_t, const allocator_type& allocator, Source source);
+  template<typename SourceArg>
+    requires std::same_as<std::remove_cvref_t<SourceArg>, Source>
+             && std::constructible_from<Source, SourceArg&&>
+  SegmentedSequence(std::allocator_arg_t, const allocator_type& allocator, SourceArg&& source);
 
   template<std::input_iterator I, std::sentinel_for<I> S>
   SegmentedSequence(I first, S last);
@@ -183,9 +188,11 @@ requirement for storage exhaustion. The `unchecked_*` forms require `size() < ca
 acquire a segment. All overloads participate only when `T` is constructible from their arguments.
 
 Iterator-pair and `std::from_range_t` constructors default-construct the source in place, so they
-also support immovable `InlineBlockSource`. Separate overloads accept a caller-supplied movable
-source. Allocator-extended forms control the directory independently. Sized ranges reserve once;
-single-pass ranges grow as consumed.
+also support immovable `InlineBlockSource`. Constrained forwarding overloads accept a
+caller-supplied source in the direct, allocator-extended, iterator-pair, and `from_range` forms.
+They copy an lvalue source and move an rvalue source without passing an over-aligned source through
+a by-value parameter. Allocator-extended forms control the directory independently. Sized ranges
+reserve once; single-pass ranges grow as consumed.
 
 ## Implemented guarantees
 

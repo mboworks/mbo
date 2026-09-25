@@ -54,6 +54,10 @@ The current byte arena exposes a hard-failing allocation operation, a recoverabl
 the selected block source can report failure, lifetime operations, and constant-time counters:
 
 ```cpp
+Arena();
+explicit Arena(const Source& source);
+explicit Arena(Source&& source);
+
 std::byte* Allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t));
 std::byte* TryAllocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t));
 
@@ -62,6 +66,10 @@ std::size_t bytes_reserved() const noexcept;
 void Reset();
 void Release();
 ```
+
+The source constructors copy an lvalue source and move an rvalue source. Their availability and
+`noexcept` specification follow the corresponding `Source` construction operation. Separate
+reference overloads avoid passing an over-aligned source through a by-value parameter.
 
 `TryAllocate` returns null for arithmetic overflow, source exhaustion, unsupported alignment, or a
 backing-source failure. A zero size or an alignment that is zero or not a power of two violates an

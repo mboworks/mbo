@@ -5,6 +5,7 @@
 
 #include <array>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -141,6 +142,29 @@ struct MoveAssignableOnlySource final {
   static void Release(MemoryBlock block) noexcept { NewDeleteBlockSource::Release(block); }
 };
 
+struct alignas(64) ConditionalConstructorSource final {
+  static constexpr bool supports_recoverable_failure = true;
+
+  ConditionalConstructorSource() = default;
+
+  ConditionalConstructorSource(const ConditionalConstructorSource& other) noexcept(false) {
+    static_cast<void>(other);
+  }  // NOLINT(modernize-use-equals-default): Preserve the throwing trait across GCC and Clang.
+
+  ConditionalConstructorSource& operator=(const ConditionalConstructorSource&) = default;
+  ConditionalConstructorSource(ConditionalConstructorSource&&) noexcept = default;
+  ConditionalConstructorSource& operator=(ConditionalConstructorSource&&) = default;
+  ~ConditionalConstructorSource() = default;
+
+  static constexpr std::size_t max_alignment() noexcept { return NewDeleteBlockSource::max_alignment(); }
+
+  static std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    return NewDeleteBlockSource::TryAcquire(size, alignment);
+  }
+
+  static void Release(MemoryBlock block) noexcept { NewDeleteBlockSource::Release(block); }
+};
+
 // NOLINTEND(readability-identifier-naming)
 
 template<typename ArenaType>
@@ -165,6 +189,13 @@ using InlineArena = Arena<InlineBlockSource<512, 64>, kSmallArenaOptions>;
 static_assert(!std::is_move_constructible_v<InlineArena>);
 static_assert(!std::is_move_assignable_v<InlineArena>);
 static_assert(!std::is_swappable_v<InlineArena>);
+static_assert(!std::constructible_from<InlineArena, const InlineBlockSource<512, 64>&>);
+static_assert(!std::constructible_from<InlineArena, InlineBlockSource<512, 64>&&>);
+using ConditionalConstructorArena = Arena<ConditionalConstructorSource, kSmallArenaOptions>;
+static_assert(std::constructible_from<ConditionalConstructorArena, const ConditionalConstructorSource&>);
+static_assert(std::constructible_from<ConditionalConstructorArena, ConditionalConstructorSource&&>);
+static_assert(!noexcept(ConditionalConstructorArena(std::declval<const ConditionalConstructorSource&>())));
+static_assert(noexcept(ConditionalConstructorArena(std::declval<ConditionalConstructorSource&&>())));
 
 TEST_F(ArenaTest, AllocationsAreAlignedAndStable) {
   Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;

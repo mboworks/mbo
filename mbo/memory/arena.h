@@ -67,7 +67,12 @@ class Arena final {
   // NOLINTBEGIN(readability-identifier-naming): Arena models STL/PMR naming.
   constexpr Arena() noexcept(std::is_nothrow_default_constructible_v<Source>) = default;
 
-  constexpr explicit Arena(Source source) noexcept(std::is_nothrow_move_constructible_v<Source>)
+  constexpr explicit Arena(const Source& source) noexcept(std::is_nothrow_constructible_v<Source, const Source&>)
+  requires std::constructible_from<Source, const Source&>
+      : source_(source) {}
+
+  constexpr explicit Arena(Source&& source) noexcept(std::is_nothrow_constructible_v<Source, Source&&>)
+  requires std::constructible_from<Source, Source&&>
       : source_(std::move(source)) {}
 
   Arena(const Arena&) = delete;

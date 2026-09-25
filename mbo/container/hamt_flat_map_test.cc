@@ -52,7 +52,7 @@ struct BudgetSource final {
 TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) {
   using BudgetMap = HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   std::size_t budget = 8;
-  auto created = BudgetMap::TryCreate(std::hash<int>{}, std::equal_to<>{}, budget);
+  auto created = BudgetMap::try_create(std::hash<int>{}, std::equal_to<>{}, budget);
   if (!created) {
     FAIL() << "map creation failed";
     return;
@@ -147,7 +147,7 @@ TEST_F(HamtFlatMapTest, MutableCollisionIteratorsAdvanceWithoutChangingSnapshots
 TEST_F(HamtFlatMapTest, ExhaustedNodeStorageReportsInsertionFailureWithoutPublishingEntries) {
   using BoundedMap =
       HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1>>;
-  auto created = BoundedMap::TryCreate();
+  auto created = BoundedMap::try_create();
   if (!created) {
     FAIL() << "map creation failed";
     return;

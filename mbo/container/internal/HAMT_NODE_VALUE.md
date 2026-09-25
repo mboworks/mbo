@@ -21,6 +21,14 @@ returns an empty optional without changing ownership or values. An empty handle
 successfully returns a null pointer; unique access neither allocates nor relocates.
 Node-map mutable access must perform this payload-level copy-on-write independently
 of packed-node ownership; tree uniqueness alone does not establish payload uniqueness.
+`get_unique_mutable` provides nonallocating mutable access to an already unique
+payload, returning null for shared or empty handles. It does not copy or detach.
+Mutable traversal must prepare both tree and payload ownership before using it;
+publishing a new snapshot invalidates permission to edit a previously returned pointer.
+`HamtNodeIterator<Traversal, true>` projects this access into mutable references.
+Its caller must prepare unique ownership of every traversed payload before exposing
+the range; iterator dereference never performs lazy detachment. Default node
+iteration continues to expose const references even over a mutable traversal.
 Do not mutate an earlier reference after publishing a snapshot.
 `is_unique` observes ownership releases
 with an acquire load but does not permit concurrent mutation or unsynchronized retain.

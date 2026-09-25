@@ -8,7 +8,7 @@ hash/equality invocation. Throwing user operations are not caught or silently ad
 Persistent `insert` and `erase` return `(new_set, changed)`, leaving the original
 untouched. Their `try_` counterparts return a variant containing that pair or
 `HamtError`; maximum-size and allocation exhaustion are distinct errors. Ordinary
-operations terminate on those failures. `TryCreate` returns an optional set and
+operations terminate on those failures. `try_create` returns an optional set and
 accepts constructor arguments for the owned source; ordinary construction requires
 a nothrow default-constructible source and terminates if domain allocation fails.
 

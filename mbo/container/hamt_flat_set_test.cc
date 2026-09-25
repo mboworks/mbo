@@ -50,7 +50,7 @@ struct BudgetSource final {
 TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
   using BudgetSet = HamtFlatSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, BudgetSource>;
   std::size_t remaining = 8;
-  auto created = BudgetSet::TryCreate(std::hash<int>{}, std::equal_to<>{}, remaining);
+  auto created = BudgetSet::try_create(std::hash<int>{}, std::equal_to<>{}, remaining);
   if (!created) {
     FAIL() << "set creation failed";
     return;
@@ -156,7 +156,7 @@ TEST_F(HamtFlatSetTest, OrdinaryOperationsMatchTheDocumentedExample) {
 }
 
 TEST_F(HamtFlatSetTest, PersistentInsertionPreservesTheOriginalAndDuplicates) {
-  auto empty = Set::TryCreate();
+  auto empty = Set::try_create();
   if (!empty) {
     FAIL() << "set creation failed";
     return;
@@ -176,7 +176,7 @@ TEST_F(HamtFlatSetTest, PersistentInsertionPreservesTheOriginalAndDuplicates) {
 }
 
 TEST_F(HamtFlatSetTest, TransientConversionIsConsumingAndLeavesReusableEmptyValues) {
-  auto original = Set::TryCreate();
+  auto original = Set::try_create();
   if (!original) {
     FAIL() << "set creation failed";
     return;
@@ -203,7 +203,7 @@ TEST_F(HamtFlatSetTest, TransientConversionIsConsumingAndLeavesReusableEmptyValu
 TEST_F(HamtFlatSetTest, MaximumSizeAndAllocationExhaustionAreDistinct) {
   constexpr HamtOptions kOptions{.maximum_size = 1};
   using SmallSet = HamtFlatSet<int, std::hash<int>, std::equal_to<>, kOptions>;
-  auto small = SmallSet::TryCreate();
+  auto small = SmallSet::try_create();
   if (!small) {
     FAIL() << "set creation failed";
     return;
@@ -215,7 +215,7 @@ TEST_F(HamtFlatSetTest, MaximumSizeAndAllocationExhaustionAreDistinct) {
 
   using BoundedSet =
       HamtFlatSet<int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1>>;
-  auto bounded = BoundedSet::TryCreate();
+  auto bounded = BoundedSet::try_create();
   if (!bounded) {
     FAIL() << "set creation failed";
     return;

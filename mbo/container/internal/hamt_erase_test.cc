@@ -142,6 +142,28 @@ TEST_F(HamtEraseTest, ErasesTheLastEntryToAnEmptyRoot) {
   Node::Release(source, first.root);
 }
 
+TEST_F(HamtEraseTest, ErasesAChildThatBecomesEmpty) {
+  constexpr std::uint64_t kHash = 1;
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = kHash, .key = 10}});
+  Node::index_type child_index;
+  ASSERT_THAT(child_index.InsertData(0), Eq(true));
+  auto* const child = Node::TryCreate(source, child_index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+
+  Node::index_type root_index;
+  ASSERT_THAT(root_index.InsertNode(1), Eq(true));
+  const auto children = std::to_array<Node*>({child});
+  auto* const root = Node::TryCreate(source, root_index, {}, children).value_or(nullptr);
+  ASSERT_THAT(root, NotNull());
+
+  const auto erased = Erase(root, kHash, 10);
+  EXPECT_THAT(erased.erased, Eq(true));
+  EXPECT_THAT(erased.root, IsNull());
+  EXPECT_THAT(Find(root, kHash, 10), NotNull());
+  Node::Release(source, root);
+  Node::Release(source, child);
+}
+
 TEST_F(HamtEraseTest, ErasesASingleEntryCollisionToAnEmptyRoot) {
   constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}});
   auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);

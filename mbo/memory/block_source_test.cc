@@ -20,6 +20,8 @@ namespace {
 
 using ::testing::_;
 using ::testing::Eq;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
 using ::testing::Optional;
 
 struct BlockSourceTest : ::testing::Test {};

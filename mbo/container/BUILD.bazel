@@ -53,6 +53,31 @@ cc_library(
     hdrs = ["internal/hamt_collision.h"],
 )
 
+cc_library(
+    name = "hamt_branch_build_cc",
+    hdrs = ["internal/hamt_branch_build.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_merge_path_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_branch_build_test",
+    size = "small",
+    srcs = ["internal/hamt_branch_build_test.cc"],
+    deps = [
+        ":hamt_branch_build_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_collision_test",
     size = "small",

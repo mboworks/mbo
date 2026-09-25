@@ -160,3 +160,16 @@ retains the resulting children, and returns one owned node reference. Replacemen
 alias an original entry. Releasing the original does not invalidate the replacement snapshot.
 An invalid position or allocation failure returns `std::nullopt` without changing the original
 or child references. Non-throwing entry copying and the shared-node lifetime contract apply.
+
+## Branch construction
+
+`TryBuildHamtBranch` joins two entries beneath a supplied hash-path level. The caller establishes
+equal preceding fragments and distinct keys; full-hash equality alone does not establish key
+equality. Different hashes produce a dense two-entry divergence node ordered by fragment, with
+one parent node for every common level. Equal complete hashes produce a terminal collision node.
+
+The starting level may equal the exhausted path boundary only for equal complete hashes. An
+invalid level or allocation failure returns `std::nullopt`. Partial branches are released before
+failure returns, so every successful temporary allocation is reclaimed. Success returns one
+owned node reference. Entries are borrowed and copied without throwing; the source must outlive
+the returned branch and satisfy the shared-node ownership contract.

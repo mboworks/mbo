@@ -40,7 +40,13 @@ TEST_F(ArenaStringStorageTest, RewindsUncommittedCopiesWithoutChangingPublishedV
 }
 
 TEST_F(ArenaStringStorageTest, EmptyStringsNeedNoAllocationAndBoundedExhaustionIsSeparate) {
-  using Arena = mbo::memory::Arena<mbo::memory::InlineBlockSource<1>>;
+  constexpr mbo::memory::ArenaOptions kOneByteArenaOptions{
+      .initial_block_size = 256,
+      .maximum_block_size = 256,
+      .growth_numerator = 1,
+      .growth_denominator = 1,
+  };
+  using Arena = mbo::memory::Arena<mbo::memory::InlineBlockSource<1>, kOneByteArenaOptions>;
   ArenaStringStorage<Arena> storage;
   EXPECT_THAT(storage.try_store("").has_value(), Eq(true));
   EXPECT_THAT(storage.bytes_reserved(), Eq(0));

@@ -13,10 +13,21 @@
 
 namespace mbo::strings {
 
+namespace arena_string_storage_internal {
+inline constexpr mbo::memory::ArenaOptions kDefaultArenaOptions{
+    .initial_block_size = 256,
+    .maximum_block_size = 1'024,
+    .growth_numerator = 2,
+    .growth_denominator = 1,
+};
+}  // namespace arena_string_storage_internal
+
 // Byte ownership only: indexing and dense-ID assignment belong to the interner.
 // Checkpoints may rewind uncommitted copies; published views must never be rewound.
 // NOLINTBEGIN(readability-identifier-naming): storage adapter follows STL container vocabulary.
-template<typename Arena = mbo::memory::Arena<>>
+template<
+    typename Arena =
+        mbo::memory::Arena<mbo::memory::NewDeleteBlockSource, arena_string_storage_internal::kDefaultArenaOptions>>
 class ArenaStringStorage final {
  public:
   using checkpoint_type = Arena::Checkpoint;

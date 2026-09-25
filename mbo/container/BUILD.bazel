@@ -157,6 +157,28 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_shared_node_cc",
+    hdrs = ["internal/hamt_shared_node.h"],
+    deps = [
+        ":hamt_node_index_cc",
+        ":hamt_packed_node_layout_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_shared_node_test",
+    size = "small",
+    srcs = ["internal/hamt_shared_node_test.cc"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_node_collision_cc",
     hdrs = ["internal/hamt_node_collision.h"],
     deps = [

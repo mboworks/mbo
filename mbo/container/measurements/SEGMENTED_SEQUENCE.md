@@ -206,13 +206,37 @@ maximum.
 
 ## Evidence status
 
-| Machine      | Compiler | Implementation          | Baseline SHA | Artifact                                                                                                | Status                                  |
-| ------------ | -------- | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Apple M5 Pro | Clang 22 | generic `aeb18e3b4`     | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json) | schema-valid; method-limited diagnostic |
-| Apple M5 Pro | Clang 22 | fixed-capacity redesign | pending      | pending                                                                                                 | growth-boundary and full matrix pending |
-| AMD Zen 5    | Clang 22 | fixed-capacity redesign | pending      | pending                                                                                                 | growth-boundary and full matrix pending |
+| Machine      | Compiler | Implementation     | Source SHA   | Baseline SHA | Artifact                                                                                                                                 | Status                                           |
+| ------------ | -------- | ------------------ | ------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Apple M5 Pro | Clang 22 | generic            | `aeb18e3b4`  | `797b31c24`  | [`initial production matrix`](data/macos-arm64-apple-m5-pro_clang-22_aeb18e3b4_segmented-sequence.json)                                  | schema-valid; method-limited diagnostic          |
+| Apple M5 Pro | Clang 22 | fixed power-of-two | `109bc05353` | `b6f17849ef` | [`complete C++23 result`](data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-summary.md) | valid; one-machine diagnostic, no default chosen |
+| AMD Zen 5    | Clang 22 | fixed power-of-two | pending      | pending      | pending                                                                                                                                  | required before a tuning selection               |
 
 No smoke result belongs in this table. It is updated only from validated, committed JSON.
+
+## Current Apple M5 Pro C++23 diagnostic
+
+The three validated envelopes at `109bc05353480985c1d1cc6365f078ec818e18f3` cover the complete
+production, element-shape, and lifecycle matrices. That source tree is byte-for-byte identical to
+the implementation merged as `43bca82254757ce2f2d1023151de9b362968a175`. The
+[`complete derived report`](data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-summary.md)
+reports every family's minimum, fastest-three mean, median, all-nine mean, sample standard
+deviation, CV, maximum, and relevant memory counters while linking the authoritative raw JSON.
+
+The production and lifecycle runs are reasonably quiet: none of their 32 and 16 families exceeds
+10% CV. The element-shape run is not: 15 of 60 families exceed 10% CV, with a maximum of 45.39%.
+The element-shape envelope also records 1,592.63 seconds between its UTC timestamps but only 922.36
+seconds of monotonic benchmark duration. The cause of that roughly 670-second discrepancy is
+unknown. The envelope's host load is sampled at completion, not startup. These facts do not
+invalidate the raw evidence, but they prevent fine element-shape rankings.
+
+Directory reservation 64 removes the directory allocation/deallocation at the isolated S256
+third-segment boundary, but its median improvement over reservations 0 and 1 is only about 1.8%.
+The complete fresh-cycle reservation cases do not identify a general winner. Fresh, retained,
+clear/regrow, and release/regrow cases intentionally exercise different lifecycle and compiler-
+visible work; their absolute ordering is not evidence that reuse or release is generally faster.
+No segment-size or reservation default is selected. Matching Zen 5 evidence remains required
+before any later performance-sensitive choice.
 
 ## Original PR 444 artifact audit
 

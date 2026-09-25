@@ -35,8 +35,7 @@ struct HamtEraseStep final {
 
 template<typename Node, typename Entry, mbo::memory::BlockSource Source>
 std::optional<HamtEraseStep<Node, Entry>> Compact(Source& source, Node* node) noexcept
-requires(std::is_nothrow_copy_constructible_v<Entry> && std::is_nothrow_move_constructible_v<Entry>)
-{
+requires(std::is_nothrow_copy_constructible_v<Entry> && std::is_nothrow_move_constructible_v<Entry>) {
   if (node != nullptr && !node->is_collision() && node->entries().empty() && node->children().empty()) {
     Node::Release(source, node);
     return HamtEraseStep<Node, Entry>{.erased = true};

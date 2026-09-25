@@ -22,8 +22,7 @@ template<std::size_t FragmentBits, typename Entry, mbo::memory::BlockSource Sour
 std::optional<HamtSharedNode<FragmentBits, Entry>*> TryCloneHamtTree(
     Source& destination,
     const HamtSharedNode<FragmentBits, Entry>* original) noexcept
-requires std::is_nothrow_copy_constructible_v<Entry>
-{
+requires std::is_nothrow_copy_constructible_v<Entry> {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (original == nullptr) {
     return static_cast<Node*>(nullptr);

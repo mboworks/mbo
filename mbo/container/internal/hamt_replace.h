@@ -34,8 +34,7 @@ template<std::size_t FragmentBits, typename Entry, std::unsigned_integral Hash, 
     std::size_t level,
     const Entry* target,
     const Entry& replacement) noexcept
-requires std::is_nothrow_copy_constructible_v<Entry>
-{
+requires std::is_nothrow_copy_constructible_v<Entry> {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (original.is_collision()) {
     const auto position = static_cast<std::size_t>(std::distance(original.entries().data(), target));

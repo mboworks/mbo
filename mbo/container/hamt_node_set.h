@@ -109,8 +109,7 @@ class HamtNodeSet final {
   }
 
   [[nodiscard]] mutation_result try_insert(const Key& key) const noexcept
-  requires std::is_nothrow_copy_constructible_v<Key>
-  {
+  requires std::is_nothrow_copy_constructible_v<Key> {
     HamtNodeSet next(*this);
     const auto result = next.TryInsertKey(key);
     if (result.error) {
@@ -120,14 +119,12 @@ class HamtNodeSet final {
   }
 
   [[nodiscard]] std::pair<HamtNodeSet, bool> insert(const Key& key) const noexcept
-  requires std::is_nothrow_copy_constructible_v<Key>
-  {
+  requires std::is_nothrow_copy_constructible_v<Key> {
     return RequireValue(try_insert(key));
   }
 
   [[nodiscard]] mutation_result try_insert(Key&& key) const noexcept
-  requires std::is_nothrow_move_constructible_v<Key>
-  {
+  requires std::is_nothrow_move_constructible_v<Key> {
     HamtNodeSet next(*this);
     const auto result = next.TryInsertKey(std::move(key));
     if (result.error) {
@@ -137,8 +134,7 @@ class HamtNodeSet final {
   }
 
   [[nodiscard]] std::pair<HamtNodeSet, bool> insert(Key&& key) const noexcept
-  requires std::is_nothrow_move_constructible_v<Key>
-  {
+  requires std::is_nothrow_move_constructible_v<Key> {
     return RequireValue(try_insert(std::move(key)));
   }
 
@@ -211,8 +207,7 @@ class HamtNodeSet final {
 
   template<typename KeyArg>
   [[nodiscard]] InsertResult TryInsertKey(KeyArg&& key) noexcept
-  requires std::is_nothrow_constructible_v<Key, KeyArg&&>
-  {
+  requires std::is_nothrow_constructible_v<Key, KeyArg&&> {
     if (const auto* const existing = owned_.tree().Find(key); existing != nullptr) {
       return {.key = existing->get()};
     }
@@ -301,8 +296,7 @@ class HamtNodeSet<Key, Hash, Equal, Options, Source>::transient_type final {
   }
 
   [[nodiscard]] insertion_result try_insert(const Key& key) noexcept
-  requires std::is_nothrow_copy_constructible_v<Key>
-  {
+  requires std::is_nothrow_copy_constructible_v<Key> {
     const auto result = set_.TryInsertKey(key);
     if (result.error) {
       return *result.error;
@@ -311,14 +305,12 @@ class HamtNodeSet<Key, Hash, Equal, Options, Source>::transient_type final {
   }
 
   std::pair<iterator, bool> insert(const Key& key) noexcept
-  requires std::is_nothrow_copy_constructible_v<Key>
-  {
+  requires std::is_nothrow_copy_constructible_v<Key> {
     return HamtNodeSet::RequireValue(try_insert(key));
   }
 
   [[nodiscard]] insertion_result try_insert(Key&& key) noexcept
-  requires std::is_nothrow_move_constructible_v<Key>
-  {
+  requires std::is_nothrow_move_constructible_v<Key> {
     const auto result = set_.TryInsertKey(std::move(key));
     if (result.error) {
       return *result.error;
@@ -327,8 +319,7 @@ class HamtNodeSet<Key, Hash, Equal, Options, Source>::transient_type final {
   }
 
   std::pair<iterator, bool> insert(Key&& key) noexcept
-  requires std::is_nothrow_move_constructible_v<Key>
-  {
+  requires std::is_nothrow_move_constructible_v<Key> {
     return HamtNodeSet::RequireValue(try_insert(std::move(key)));
   }
 

@@ -28,8 +28,7 @@ std::optional<HamtSharedNode<FragmentBits, Entry>*> TryWrapPrefix(
     Hash hash,
     std::size_t start_level,
     std::size_t common_levels) noexcept
-requires std::is_nothrow_copy_constructible_v<Entry>
-{
+requires std::is_nothrow_copy_constructible_v<Entry> {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   const HamtHashPath<Hash, FragmentBits> path(hash);
   for (std::size_t offset = common_levels; offset > 0; --offset) {
@@ -58,8 +57,7 @@ std::optional<HamtSharedNode<FragmentBits, Entry>*> TryBuildHamtBranch(
     Hash inserted_hash,
     const Entry& inserted,
     std::size_t start_level) noexcept
-requires std::is_nothrow_copy_constructible_v<Entry>
-{
+requires std::is_nothrow_copy_constructible_v<Entry> {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (start_level > HamtHashPath<Hash, FragmentBits>::kLevels
       || (start_level == HamtHashPath<Hash, FragmentBits>::kLevels && existing_hash != inserted_hash)) {
@@ -96,8 +94,7 @@ std::optional<HamtSharedNode<FragmentBits, Entry>*> TryBuildHamtCollisionBranch(
     Hash inserted_hash,
     const Entry& inserted,
     std::size_t start_level) noexcept
-requires std::is_nothrow_copy_constructible_v<Entry>
-{
+requires std::is_nothrow_copy_constructible_v<Entry> {
   using Node = HamtSharedNode<FragmentBits, Entry>;
   if (existing == nullptr || !existing->is_collision() || existing_hash == inserted_hash
       || start_level >= HamtHashPath<Hash, FragmentBits>::kLevels) {

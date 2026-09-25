@@ -329,8 +329,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped>
-  {
+  requires std::is_nothrow_default_constructible_v<Mapped> {
     auto found = try_at(key);
     if (const auto* const error = std::get_if<HamtError>(&found); error != nullptr) {
       return *error;
@@ -346,8 +345,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   Mapped& operator[](const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped>
-  {
+  requires std::is_nothrow_default_constructible_v<Mapped> {
     return ValueOrTerminate(try_get_or_insert(key));
   }
 

@@ -72,8 +72,7 @@ class HamtFlatCollisionBucket final {
       std::is_nothrow_move_constructible_v<Value>
       && noexcept(std::declval<const Equal&>()(
           std::declval<const KeyOf&>()(std::declval<const Value&>()),
-          std::declval<const KeyOf&>()(std::declval<const Value&>()))))
-  {
+          std::declval<const KeyOf&>()(std::declval<const Value&>())))) {
     const auto existing = find(hash, std::invoke(std::as_const(key_of_), std::as_const(value)));
     if (existing != end()) {
       return {.entry = std::addressof(*existing), .inserted = false};
@@ -90,8 +89,7 @@ class HamtFlatCollisionBucket final {
 
   template<typename Key>
   constexpr bool erase(Hash hash, const Key& key) noexcept
-  requires std::is_nothrow_move_assignable_v<Entry>
-  {
+  requires std::is_nothrow_move_assignable_v<Entry> {
     const auto pos = find(hash, key);
     if (pos == end()) {
       return false;

@@ -42,8 +42,7 @@ class HamtPackedNodeBlock final {
       std::span<const Child> children) noexcept
   requires(
       std::is_nothrow_copy_constructible_v<Header> && std::is_nothrow_copy_constructible_v<Entry>
-      && std::is_nothrow_copy_constructible_v<Child>)
-  {
+      && std::is_nothrow_copy_constructible_v<Child>) {
     if (block_.data != nullptr) {
       return false;
     }

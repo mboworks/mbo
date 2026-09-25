@@ -79,8 +79,7 @@ class HamtNodeCollisionBucket final {
       std::is_nothrow_move_constructible_v<Value>
       && noexcept(std::declval<const Equal&>()(
           std::declval<const KeyOf&>()(std::declval<const Value&>()),
-          std::declval<const KeyOf&>()(std::declval<const Value&>()))))
-  {
+          std::declval<const KeyOf&>()(std::declval<const Value&>())))) {
     if (Entry* const existing = find(hash, std::invoke(std::as_const(key_of_), std::as_const(value)));
         existing != nullptr) {
       return {.entry = existing};

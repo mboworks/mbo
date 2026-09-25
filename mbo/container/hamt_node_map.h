@@ -138,8 +138,7 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] mutation_result try_insert(const value_type& entry) const noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     HamtNodeMap next(*this);
     const auto result = next.TryInsert(entry);
     if (result.error) {
@@ -149,8 +148,7 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] std::pair<HamtNodeMap, bool> insert(const value_type& entry) const noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     return RequireValue(try_insert(entry));
   }
 
@@ -202,8 +200,7 @@ class HamtNodeMap final {
   transient_type transient() && noexcept { return transient_type(std::move(*this)); }
 
   [[nodiscard]] mutation_result try_insert(value_type&& entry) const noexcept
-  requires std::is_nothrow_move_constructible_v<value_type>
-  {
+  requires std::is_nothrow_move_constructible_v<value_type> {
     HamtNodeMap next(*this);
     const auto result = next.TryInsert(std::move(entry));
     if (result.error) {
@@ -213,8 +210,7 @@ class HamtNodeMap final {
   }
 
   [[nodiscard]] std::pair<HamtNodeMap, bool> insert(value_type&& entry) const noexcept
-  requires std::is_nothrow_move_constructible_v<value_type>
-  {
+  requires std::is_nothrow_move_constructible_v<value_type> {
     return RequireValue(try_insert(std::move(entry)));
   }
 
@@ -224,8 +220,7 @@ class HamtNodeMap final {
 
  private:
   std::optional<HamtError> TryPrepareMutable() noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     auto& tree = owned_.tree();
     if (auto error = tree.TryMakeUnique()) {
       return error;
@@ -424,8 +419,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] access_result try_get_or_insert(const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped>
-  {
+  requires std::is_nothrow_default_constructible_v<Mapped> {
     auto found = try_at(key);
     const auto* const mapped = std::get_if<Mapped*>(&found);
     if (mapped == nullptr || *mapped != nullptr) {
@@ -439,8 +433,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   Mapped& operator[](const Key& key) noexcept
-  requires std::is_nothrow_default_constructible_v<Mapped>
-  {
+  requires std::is_nothrow_default_constructible_v<Mapped> {
     return RequireMapped(try_get_or_insert(key));
   }
 
@@ -464,8 +457,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     auto& tree = map_.owned_.tree();
     if (tree.size() == max_size() && !tree.contains(entry.first)) {
       return HamtError::kMaxSizeExceeded;
@@ -484,8 +476,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   std::pair<iterator, bool> insert(const value_type& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     return HamtNodeMap::RequireValue(try_insert(entry));
   }
 

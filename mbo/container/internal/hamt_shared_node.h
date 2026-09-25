@@ -90,8 +90,7 @@ class HamtSharedNode final {
       index_type index,
       std::span<const Entry> entries,
       std::span<node_type* const> children) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (entries.size() != index.DataSize() || children.size() != index.NodeSize()) {
       return std::nullopt;
     }
@@ -102,8 +101,7 @@ class HamtSharedNode final {
   // collision nodes are rejected; a collision node has no indexed children.
   template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryCreateCollision(Source& source, std::span<const Entry> entries) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (entries.empty()) {
       return std::nullopt;
     }
@@ -121,8 +119,7 @@ class HamtSharedNode final {
       index_type index,
       std::size_t position,
       const Entry& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (original.is_collision() || index.DataSize() != original.entries().size() + 1
         || index.NodeSize() != original.children().size() || position >= index.DataSize()) {
       return std::nullopt;
@@ -146,8 +143,7 @@ class HamtSharedNode final {
       index_type index,
       std::size_t position,
       node_type* child) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (child == nullptr || original.is_collision() || index.DataSize() != original.entries().size()
         || index.NodeSize() != original.children().size() + 1 || position >= index.NodeSize()) {
       return std::nullopt;
@@ -176,8 +172,7 @@ class HamtSharedNode final {
       const node_type& original,
       std::size_t position,
       node_type* replacement) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (replacement == nullptr || original.is_collision() || position >= original.children().size()) {
       return std::nullopt;
     }
@@ -207,8 +202,7 @@ class HamtSharedNode final {
       std::size_t entry_position,
       std::size_t child_position,
       node_type* child) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (child == nullptr || original.is_collision() || original.entries().empty()
         || index.DataSize() + 1 != original.entries().size() || index.NodeSize() != original.children().size() + 1
         || entry_position >= original.entries().size() || child_position >= index.NodeSize()) {
@@ -238,8 +232,7 @@ class HamtSharedNode final {
       std::size_t child_position,
       std::size_t entry_position,
       const Entry& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size() + 1
         || index.NodeSize() + 1 != original.children().size() || child_position >= original.children().size()
         || entry_position >= index.DataSize()) {
@@ -266,8 +259,7 @@ class HamtSharedNode final {
       const node_type& original,
       index_type index,
       std::size_t position) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (original.is_collision() || original.entries().empty() || index.DataSize() + 1 != original.entries().size()
         || index.NodeSize() != original.children().size() || position >= original.entries().size()) {
       return std::nullopt;
@@ -290,8 +282,7 @@ class HamtSharedNode final {
       const node_type& original,
       index_type index,
       std::size_t position) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (original.is_collision() || original.children().empty() || index.DataSize() != original.entries().size()
         || index.NodeSize() + 1 != original.children().size() || position >= original.children().size()) {
       return std::nullopt;
@@ -317,8 +308,7 @@ class HamtSharedNode final {
       const node_type& original,
       std::size_t position,
       const Entry& entry) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (!original.is_collision() || position > original.entries().size()) {
       return std::nullopt;
     }
@@ -337,8 +327,7 @@ class HamtSharedNode final {
       Source& source,
       const node_type& original,
       std::size_t position) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (!original.is_collision() || original.entries().size() <= 1 || position >= original.entries().size()) {
       return std::nullopt;
     }
@@ -358,8 +347,7 @@ class HamtSharedNode final {
       const node_type& original,
       std::size_t position,
       const Entry& replacement) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     if (position >= original.entries().size()) {
       return std::nullopt;
     }
@@ -405,8 +393,7 @@ class HamtSharedNode final {
       std::span<const Entry> entries,
       std::span<node_type* const> children,
       std::size_t collision_count) noexcept
-  requires std::is_nothrow_copy_constructible_v<Entry>
-  {
+  requires std::is_nothrow_copy_constructible_v<Entry> {
     for (const node_type* child : children) {
       if (child == nullptr) {
         return std::nullopt;

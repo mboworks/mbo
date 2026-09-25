@@ -104,8 +104,7 @@ class HamtNodeValue final {
 
   // NOLINTBEGIN(readability-identifier-naming): owning handle vocabulary.
   [[nodiscard]] std::optional<Value*> try_get_mutable() noexcept
-  requires std::is_nothrow_copy_constructible_v<Value>
-  {
+  requires std::is_nothrow_copy_constructible_v<Value> {
     if (control_ == nullptr) {
       return static_cast<Value*>(nullptr);
     }

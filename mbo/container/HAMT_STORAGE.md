@@ -102,3 +102,14 @@ referenced by the original. Successful construction retains every resulting chil
 Invalid counts/rank, a null child, or allocation failure returns `std::nullopt` without changing
 the original or retaining the proposed child. The result owns one node reference. Releasing
 the original cannot invalidate children retained by the result; the source must outlive both.
+
+## Persistent child replacement
+
+`TryReplaceChild` copies a normal node while replacing one dense child position. Its bitmap
+and entries remain unchanged. The replacement must be non-null and alive throughout the call;
+replacing a child with itself is valid. The result retains all of its children, including the
+replacement, and owns one node reference. The original remains untouched.
+
+A collision node, invalid position, null replacement, or allocation failure returns
+`std::nullopt` without changing child reference counts. Releasing the old node does not
+invalidate the replacement snapshot. Non-throwing entry copies and destruction remain required.

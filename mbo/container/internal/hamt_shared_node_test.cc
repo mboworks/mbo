@@ -483,5 +483,89 @@ TEST_F(HamtSharedNodeTest, FailedChildInsertionDoesNotRetainTheChild) {
   EXPECT_THAT(source.released, Eq(2));
 }
 
+TEST_F(HamtSharedNodeTest, ReplacementRetainsOnlyTheNewChildForItsCopiedNode) {
+  CountingSource source;
+  auto* const old_child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  auto* const replacement = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(old_child, NotNull());
+  ASSERT_THAT(replacement, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  constexpr auto kEntries = std::to_array<int>({10});
+  const auto children = std::to_array<Node*>({old_child});
+  auto* const original = Node::TryCreate(source, index, kEntries, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const copied = Node::TryReplaceChild(source, *original, 0, replacement).value_or(nullptr);
+  ASSERT_THAT(copied, NotNull());
+  EXPECT_THAT(original->children(), ElementsAre(old_child));
+  EXPECT_THAT(copied->children(), ElementsAre(replacement));
+  EXPECT_THAT(copied->entries(), ElementsAre(10));
+  EXPECT_THAT(old_child->use_count(), Eq(2));
+  EXPECT_THAT(replacement->use_count(), Eq(2));
+  Node::Release(source, old_child);
+  Node::Release(source, replacement);
+  Node::Release(source, original);
+  EXPECT_THAT(source.released, Eq(2));
+  EXPECT_THAT(copied->children().front()->use_count(), Eq(1));
+  Node::Release(source, copied);
+  EXPECT_THAT(source.released, Eq(4));
+}
+
+TEST_F(HamtSharedNodeTest, SelfReplacementCreatesAnotherOwnerOfTheSameChild) {
+  CountingSource source;
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  auto* const copied = Node::TryReplaceChild(source, *original, 0, child).value_or(nullptr);
+  ASSERT_THAT(copied, NotNull());
+  EXPECT_THAT(child->use_count(), Eq(3));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(copied->children().front()->use_count(), Eq(1));
+  Node::Release(source, copied);
+  EXPECT_THAT(source.released, Eq(3));
+}
+
+TEST_F(HamtSharedNodeTest, RejectsChildReplacementInTerminalCollisions) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  auto* const replacement = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(replacement, NotNull());
+  EXPECT_THAT(Node::TryReplaceChild(source, *original, 0, replacement), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(replacement->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(2));
+  Node::Release(source, original);
+  Node::Release(source, replacement);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
+TEST_F(HamtSharedNodeTest, FailedReplacementLeavesBothChildrenUnchanged) {
+  CountingSource source;
+  auto* const child = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(2), Eq(true));
+  const auto children = std::to_array<Node*>({child});
+  auto* const original = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(Node::TryReplaceChild(source, *original, 0, nullptr), Eq(std::nullopt));
+  EXPECT_THAT(Node::TryReplaceChild(source, *original, 1, child), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryReplaceChild(exhausted, *original, 0, child), Eq(std::nullopt));
+  EXPECT_THAT(child->use_count(), Eq(2));
+  EXPECT_THAT(original->children(), ElementsAre(child));
+  Node::Release(source, original);
+  Node::Release(source, child);
+  EXPECT_THAT(source.released, Eq(2));
+}
+
 }  // namespace
 }  // namespace mbo::container::container_internal

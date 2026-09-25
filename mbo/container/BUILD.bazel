@@ -147,6 +147,31 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "hamt_erase_cc",
+    hdrs = ["internal/hamt_erase.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_erase_test",
+    size = "small",
+    srcs = ["internal/hamt_erase_test.cc"],
+    deps = [
+        ":hamt_erase_cc",
+        ":hamt_insert_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_insert_test",
     size = "small",

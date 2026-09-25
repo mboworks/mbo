@@ -187,3 +187,19 @@ Allocation failure returns `std::nullopt`, reclaiming temporary nodes without ch
 original snapshots. The supplied hash and key must describe the supplied entry, and equivalent
 keys must have equal hashes. Hash/key extraction, equality, and entry copies must be non-throwing.
 These are internal primitives; public map/set variants establish the container-level contracts.
+
+## Persistent tree erasure
+
+`TryEraseHamtEntry` removes a key from a borrowed root and returns an owned root plus an `erased`
+flag. A successful removal of the final entry returns a null root with `erased == true`, not
+an allocation failure. Missing keys return a retained reference to the unchanged root with
+`erased == false`; null input is already empty.
+
+Erasure copies the affected path, removes empty children, and propagates singleton entries
+back into data slots. Two-entry collision buckets become ordinary singleton entries; larger
+buckets remain collision nodes. Existing snapshots remain unchanged. `std::nullopt` reports
+allocation failure, with temporary nodes reclaimed and original ownership preserved.
+
+Singleton propagation requires both non-throwing entry copying and moving. Hash/key extraction
+and equality must also be non-throwing. Equivalent keys require equal hashes. The source and
+all borrowed inputs follow the shared-node lifetime and external synchronization contracts.

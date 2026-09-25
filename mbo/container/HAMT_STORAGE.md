@@ -173,3 +173,17 @@ invalid level or allocation failure returns `std::nullopt`. Partial branches are
 failure returns, so every successful temporary allocation is reclaimed. Success returns one
 owned node reference. Entries are borrowed and copied without throwing; the source must outlive
 the returned branch and satisfy the shared-node ownership contract.
+
+## Persistent tree insertion
+
+`TryInsertHamtEntry` inserts into a borrowed root and returns an owned root plus an `inserted`
+flag. A null input root is an empty tree. A duplicate key returns a retained reference to the
+unchanged root with `inserted == false`; callers must release that reference too.
+
+New keys copy only the affected path, promote occupied data slots into branches when needed,
+and extend equal-full-hash collision buckets. A different hash splits a collision bucket
+into a branch rather than mixing hashes inside the bucket. Unaffected descendants are shared.
+Allocation failure returns `std::nullopt`, reclaiming temporary nodes without changing the
+original snapshots. The supplied hash and key must describe the supplied entry, and equivalent
+keys must have equal hashes. Hash/key extraction, equality, and entry copies must be non-throwing.
+These are internal primitives; public map/set variants establish the container-level contracts.

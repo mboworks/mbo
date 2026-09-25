@@ -180,6 +180,37 @@ class HamtSharedNode final {
   // index describes occupancy after removal. Path copying preserves the
   // original entries and retains all children for the new owner.
   template<mbo::memory::BlockSource Source>
+  static std::optional<node_type*> TryPromoteEntryToChild(
+      Source& source,
+      const node_type& original,
+      index_type index,
+      std::size_t entry_position,
+      std::size_t child_position,
+      node_type* child) noexcept
+  requires std::is_nothrow_copy_constructible_v<Entry>
+  {
+    if (child == nullptr || original.is_collision() || original.entries().empty()
+        || index.DataSize() + 1 != original.entries().size() || index.NodeSize() != original.children().size() + 1
+        || entry_position >= original.entries().size() || child_position >= index.NodeSize()) {
+      return std::nullopt;
+    }
+    const auto result = TryAllocateUninitialized(source, index, index.DataSize(), index.NodeSize(), 0);
+    if (!result) {
+      return std::nullopt;
+    }
+    const node_type* const node = *result;
+    CopyErasedEntries(*node, original.entries(), entry_position);
+    const auto children = original.children();
+    std::uninitialized_copy_n(children.begin(), child_position, node->ChildPtr());
+    std::construct_at(node->ChildPtr() + child_position, child);
+    std::uninitialized_copy(
+        children.begin() + static_cast<std::ptrdiff_t>(child_position), children.end(),
+        node->ChildPtr() + child_position + 1);
+    RetainChildren(node->children());
+    return result;
+  }
+
+  template<mbo::memory::BlockSource Source>
   static std::optional<node_type*> TryEraseEntry(
       Source& source,
       const node_type& original,

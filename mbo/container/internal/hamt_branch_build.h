@@ -18,6 +18,36 @@
 
 namespace mbo::container::container_internal {
 
+namespace hamt_branch_build_internal {
+
+// Takes ownership of current, including on failure.
+template<std::size_t FragmentBits, typename Entry, std::unsigned_integral Hash, mbo::memory::BlockSource Source>
+std::optional<HamtSharedNode<FragmentBits, Entry>*> TryWrapPrefix(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* current,
+    Hash hash,
+    std::size_t start_level,
+    std::size_t common_levels) noexcept
+requires std::is_nothrow_copy_constructible_v<Entry>
+{
+  using Node = HamtSharedNode<FragmentBits, Entry>;
+  const HamtHashPath<Hash, FragmentBits> path(hash);
+  for (std::size_t offset = common_levels; offset > 0; --offset) {
+    typename Node::index_type index;
+    index.InsertNode(path.Fragment(start_level + offset - 1));
+    const auto children = std::to_array<Node*>({current});
+    const auto parent = Node::TryCreate(source, index, std::span<const Entry>{}, children);
+    Node::Release(source, current);
+    if (!parent) {
+      return std::nullopt;
+    }
+    current = *parent;
+  }
+  return current;
+}
+
+}  // namespace hamt_branch_build_internal
+
 // The fragments before start_level must already match. Returns one owning
 // reference, or nullopt after releasing every partially constructed node.
 template<std::size_t FragmentBits, typename Entry, std::unsigned_integral Hash, mbo::memory::BlockSource Source>
@@ -51,19 +81,43 @@ requires std::is_nothrow_copy_constructible_v<Entry>
     return std::nullopt;
   }
 
-  const HamtHashPath<Hash, FragmentBits> path(existing_hash);
-  for (std::size_t offset = merge.common_levels; offset > 0; --offset) {
-    typename Node::index_type parent_index;
-    parent_index.InsertNode(path.Fragment(start_level + offset - 1));
-    const auto child = std::to_array<Node*>({*current});
-    auto parent = Node::TryCreate(source, parent_index, std::span<const Entry>{}, child);
-    Node::Release(source, *current);
-    if (!parent) {
-      return std::nullopt;
-    }
-    current = parent;
+  return hamt_branch_build_internal::TryWrapPrefix<FragmentBits>(
+      source, *current, existing_hash, start_level, merge.common_levels);
+}
+
+// Split a borrowed full-hash collision node from an entry with a different
+// full hash. The result owns a retained reference to existing; failure leaves
+// its ownership unchanged. Fragments before start_level must already match.
+template<std::size_t FragmentBits, typename Entry, std::unsigned_integral Hash, mbo::memory::BlockSource Source>
+std::optional<HamtSharedNode<FragmentBits, Entry>*> TryBuildHamtCollisionBranch(
+    Source& source,
+    HamtSharedNode<FragmentBits, Entry>* existing,
+    Hash existing_hash,
+    Hash inserted_hash,
+    const Entry& inserted,
+    std::size_t start_level) noexcept
+requires std::is_nothrow_copy_constructible_v<Entry>
+{
+  using Node = HamtSharedNode<FragmentBits, Entry>;
+  if (existing == nullptr || !existing->is_collision() || existing_hash == inserted_hash
+      || start_level >= HamtHashPath<Hash, FragmentBits>::kLevels) {
+    return std::nullopt;
   }
-  return current;
+  const auto merge = FindHamtMergePath<Hash, FragmentBits>(existing_hash, inserted_hash, start_level);
+  if (merge.full_hash_collision) {
+    return std::nullopt;
+  }
+  typename Node::index_type index;
+  index.InsertNode(merge.existing_fragment);
+  index.InsertData(merge.inserted_fragment);
+  const auto entries = std::to_array<Entry>({inserted});
+  const auto children = std::to_array<Node*>({existing});
+  const auto current = Node::TryCreate(source, index, entries, children);
+  if (!current) {
+    return std::nullopt;
+  }
+  return hamt_branch_build_internal::TryWrapPrefix<FragmentBits>(
+      source, *current, existing_hash, start_level, merge.common_levels);
 }
 
 }  // namespace mbo::container::container_internal

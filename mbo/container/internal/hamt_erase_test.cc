@@ -5,7 +5,9 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <span>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -188,6 +190,49 @@ TEST_F(HamtEraseTest, EmptyRootIsASuccessfulMissingKeyWithoutAllocation) {
       exhausted, static_cast<Node*>(nullptr), std::uint64_t{1}, 10, HashOf{}, KeyOf{}, Equal{});
   EXPECT_THAT(missing, Optional(Field("root", &HamtEraseResult<Node>::root, IsNull())));
   EXPECT_THAT(missing, Optional(Field("erased", &HamtEraseResult<Node>::erased, Eq(false))));
+}
+
+TEST_F(HamtEraseTest, CompactPreservesAnEmptyRootWithoutAllocation) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  const auto compacted = hamt_erase_internal::Compact<Node, Entry>(source, nullptr);
+  EXPECT_THAT(compacted, Optional(Field("node", &Step::node, IsNull())));
+  EXPECT_THAT(compacted, Optional(Field("erased", &Step::erased, Eq(true))));
+}
+
+TEST_F(HamtEraseTest, CompactReleasesEmptyBitmapNodesAndPreservesCollisionNodes) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  auto* const empty = Node::TryCreate(source, {}, std::span<const Entry>{}, std::span<Node* const>{}).value_or(nullptr);
+  ASSERT_THAT(empty, NotNull());
+  const auto compacted_empty = hamt_erase_internal::Compact<Node, Entry>(source, empty);
+  EXPECT_THAT(compacted_empty, Optional(Field("node", &Step::node, IsNull())));
+  EXPECT_THAT(compacted_empty, Optional(Field("erased", &Step::erased, Eq(true))));
+
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}});
+  auto* const collision = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(collision, NotNull());
+  const auto preserved = hamt_erase_internal::Compact<Node, Entry>(source, collision);
+  ASSERT_THAT(preserved, Optional(Field("node", &Step::node, NotNull())));
+  const Step* const preserved_step = preserved ? std::addressof(*preserved) : nullptr;
+  ASSERT_THAT(preserved_step, NotNull());
+  EXPECT_THAT(preserved_step->node, Eq(collision));
+  Node::Release(source, preserved_step->node);
+}
+
+TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
+  auto first = Insert(nullptr, 1, 10);
+  ASSERT_THAT(first.root, NotNull());
+  constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
+  const auto missing = hamt_erase_internal::TryEraseAt<std::uint64_t, 5>(
+      source, first.root, std::uint64_t{2}, 20, kPastHashPath, HashOf{}, KeyOf{}, Equal{});
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  ASSERT_THAT(missing, Optional(Field("node", &Step::node, NotNull())));
+  EXPECT_THAT(missing, Optional(Field("erased", &Step::erased, Eq(false))));
+  const Step* const missing_step = missing ? std::addressof(*missing) : nullptr;
+  ASSERT_THAT(missing_step, NotNull());
+  EXPECT_THAT(missing_step->node, Eq(first.root));
+  EXPECT_THAT(first.root->use_count(), Eq(2));
+  Node::Release(source, missing_step->node);
+  Node::Release(source, first.root);
 }
 
 TEST_F(HamtEraseTest, AllocationFailurePreservesTheOriginalSnapshot) {

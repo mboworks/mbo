@@ -32,6 +32,30 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "hamt_flat_map_cc",
+    hdrs = ["hamt_flat_map.h"],
+    deps = [
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_map_test",
+    size = "small",
+    srcs = ["hamt_flat_map_test.cc"],
+    deps = [
+        ":hamt_flat_map_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_flat_set_test",
     size = "small",

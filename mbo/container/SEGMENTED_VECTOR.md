@@ -1,19 +1,25 @@
-# SegmentedSequence design
+# SegmentedVector design
 
-This document specifies the current `mbo::container::SegmentedSequence` contract. The container is
+This document specifies the current `mbo::container::SegmentedVector` contract. The container is
 an append-oriented sequence with stable element addresses, fixed-capacity segments, and constant-time
 indexed access.
 
+`SegmentedVector` is the current name for the fixed-size-segment container originally introduced as
+`SegmentedSequence`. There is intentionally no compatibility alias. Callers migrate the header,
+type, options, concepts, tests, and Bazel labels from `segmented_sequence` / `SegmentedSequence` to
+`segmented_vector` / `SegmentedVector`. Historical benchmark JSON and links keep their measured
+names and source SHAs unchanged.
+
 ## Purpose
 
-`SegmentedSequence<T>` avoids relocating existing elements when it grows. It is useful for dense ID
+`SegmentedVector<T>` avoids relocating existing elements when it grows. It is useful for dense ID
 metadata and other append-heavy storage where references must remain valid, without requiring one
 contiguous allocation for every element.
 
 ## Current contract
 
 - `T` is a complete, cv-unqualified, non-array object type with a non-throwing destructor.
-- `SegmentedSequenceOptions::segment_size` is the power-of-two element count in every segment and is
+- `SegmentedVectorOptions::segment_size` is the power-of-two element count in every segment and is
   part of the segment type. `segment_capacity` is the maximum number of segment slots: a finite value
   is a nonzero power of two, while `SIZE_MAX` selects growth up to the private representation limit.
   `segment_reservation` is the initial directory reservation; it is zero or a power of two, cannot
@@ -110,31 +116,31 @@ source-reported reserved bytes.
 The principal C++23 surface is:
 
 ```cpp
-template<SegmentedSequenceElement T,
-         SegmentedSequenceOptions Options = {},
+template<SegmentedVectorElement T,
+         SegmentedVectorOptions Options = {},
          mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
          typename DirectoryAllocator = std::allocator<std::byte>>
-class SegmentedSequence {
+class SegmentedVector {
  public:
   using value_type = T;
   using size_type = std::size_t;
   using allocator_type = DirectoryAllocator;
 
-  SegmentedSequence();
+  SegmentedVector();
   template<typename SourceArg>
     requires std::same_as<std::remove_cvref_t<SourceArg>, Source>
              && std::constructible_from<Source, SourceArg&&>
-  explicit SegmentedSequence(SourceArg&& source);
-  SegmentedSequence(std::allocator_arg_t, const allocator_type& allocator);
+  explicit SegmentedVector(SourceArg&& source);
+  SegmentedVector(std::allocator_arg_t, const allocator_type& allocator);
   template<typename SourceArg>
     requires std::same_as<std::remove_cvref_t<SourceArg>, Source>
              && std::constructible_from<Source, SourceArg&&>
-  SegmentedSequence(std::allocator_arg_t, const allocator_type& allocator, SourceArg&& source);
+  SegmentedVector(std::allocator_arg_t, const allocator_type& allocator, SourceArg&& source);
 
   template<std::input_iterator I, std::sentinel_for<I> S>
-  SegmentedSequence(I first, S last);
+  SegmentedVector(I first, S last);
   template<std::ranges::input_range R>
-  SegmentedSequence(std::from_range_t, R&& range);
+  SegmentedVector(std::from_range_t, R&& range);
   // Source-taking and allocator-extended iterator/range overloads are also provided.
 
   allocator_type get_allocator() const;
@@ -218,7 +224,7 @@ reserve once; single-pass ranges grow as consumed.
 
 ## Measurement and deferred work
 
-The companion [measurement plan](measurements/SEGMENTED_SEQUENCE.md) covers indexed access,
+The companion [measurement plan](measurements/SEGMENTED_VECTOR.md) covers indexed access,
 iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element
 size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while
 generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment

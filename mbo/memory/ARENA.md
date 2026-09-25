@@ -4,7 +4,7 @@ This document specifies the general arena component in `mbo::memory`, where alig
 acquisition and region lifetime belong because they are memory-management facilities rather than
 container or string semantics.
 
-The string interner requires an arena-backed character store, and `SegmentedSequence` may share a
+The string interner requires an arena-backed character store, and `SegmentedVector` may share a
 lower-level block source. The arena remains independently useful and independently benchmarked.
 
 ## Goals
@@ -168,13 +168,13 @@ Offsets may reduce metadata and improve relocatability, but introduce decoding a
 No pointer-versus-offset choice is made until benchmarks cover realistic string-size distributions,
 arena sizes, and lookup ratios.
 
-## Relationship to `SegmentedSequence`
+## Relationship to `SegmentedVector`
 
 Both components can acquire multiple backing blocks through `BlockSource`. Their ownership and
 indexing remain distinct:
 
 - the arena suballocates variable-size, variably aligned byte ranges and uses region lifetime;
-- `SegmentedSequence<T>` owns uniformly typed element slots, manages each `T`, and provides dense
+- `SegmentedVector<T>` owns uniformly typed element slots, manages each `T`, and provides dense
   indexed iteration.
 
 `BlockSource` is their shared allocation boundary; it does not require a shared chain
@@ -237,7 +237,7 @@ representation.
 - branch and code-size cost of each failure-result form;
 - PMR, standard allocator, direct allocation, and caller-owned block sources;
 - small-string-heavy, mixed, and large-record workloads;
-- interaction with the string index and `SegmentedSequence` metadata table;
+- interaction with the string index and `SegmentedVector` metadata table;
 - exception-enabled and exception-disabled builds;
 - single-threaded performance; synchronization remains the caller's responsibility.
 

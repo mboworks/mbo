@@ -43,8 +43,8 @@ cc_test(
 )
 
 cc_library(
-    name = "segmented_sequence_cc",
-    hdrs = ["segmented_sequence.h"],
+    name = "segmented_vector_cc",
+    hdrs = ["segmented_vector.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mbo/config:require_cc",
@@ -53,30 +53,30 @@ cc_library(
 )
 
 cc_test(
-    name = "segmented_sequence_test",
+    name = "segmented_vector_test",
     size = "small",
-    srcs = ["segmented_sequence_test.cc"],
+    srcs = ["segmented_vector_test.cc"],
     deps = [
-        ":segmented_sequence_cc",
+        ":segmented_vector_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
 )
 
-# Exercises SegmentedSequence precondition and rollback failures in-process so
+# Exercises SegmentedVector precondition and rollback failures in-process so
 # coverage data is flushed. The supplemental coverage pass selects the
 # exception policy and overlays only matching production coverpoints.
 cc_test(
-    name = "segmented_sequence_require_exceptions_test",
+    name = "segmented_vector_require_exceptions_test",
     size = "small",
-    srcs = ["segmented_sequence_require_exceptions_test.cc"],
+    srcs = ["segmented_vector_require_exceptions_test.cc"],
     copts = ["-fexceptions"] + select({
         "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
         "//conditions:default": [],
     }),
     tags = ["no-coverage"],
     deps = [
-        ":segmented_sequence_cc",
+        ":segmented_vector_cc",
         "//mbo/config:config_cc",
         "//mbo/memory:block_source_cc",
         "@googletest//:gtest_main",
@@ -84,52 +84,52 @@ cc_test(
 )
 
 cc_binary(
-    name = "segmented_sequence_benchmark",
+    name = "segmented_vector_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_sequence_benchmark_context.h",
-        "segmented_sequence_benchmark.cc",
+        "internal/segmented_vector_benchmark_context.h",
+        "segmented_vector_benchmark.cc",
     ],
     tags = [
         "clang-tidy",
         "manual",
     ],
     deps = [
-        ":segmented_sequence_cc",
+        ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
 )
 
 cc_binary(
-    name = "segmented_sequence_element_shape_benchmark",
+    name = "segmented_vector_element_shape_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_sequence_benchmark_context.h",
-        "segmented_sequence_element_shape_benchmark.cc",
+        "internal/segmented_vector_benchmark_context.h",
+        "segmented_vector_element_shape_benchmark.cc",
     ],
     tags = [
         "clang-tidy",
         "manual",
     ],
     deps = [
-        ":segmented_sequence_cc",
+        ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
 )
 
 cc_binary(
-    name = "segmented_sequence_lifecycle_benchmark",
+    name = "segmented_vector_lifecycle_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_sequence_benchmark_context.h",
-        "segmented_sequence_lifecycle_benchmark.cc",
+        "internal/segmented_vector_benchmark_context.h",
+        "segmented_vector_lifecycle_benchmark.cc",
     ],
     tags = [
         "clang-tidy",
         "manual",
     ],
     deps = [
-        ":segmented_sequence_cc",
+        ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
 )

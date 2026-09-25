@@ -9,15 +9,10 @@
 #include <deque>
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 #include <vector>
-#include <version>
 
-#if defined(__APPLE__)
-# include <Availability.h>
-#endif
-
+#include "mbo/container/internal/segmented_sequence_benchmark_context.h"
 #include "mbo/container/segmented_sequence.h"
 
 namespace mbo::container {
@@ -26,52 +21,6 @@ namespace {
 // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores): Google Benchmark's range variable drives iterations.
 
 constexpr std::size_t kElementCount = 16'384;
-static_assert(__cplusplus >= 202'302L, "the SegmentedSequence benchmark provenance requires C++23");
-
-void AddBuildContext() {
-#if defined(__clang__)
-# if defined(__apple_build_version__)
-  benchmark::AddCustomContext("compiler_name", "Apple Clang");
-# else
-  benchmark::AddCustomContext("compiler_name", "Clang");
-# endif
-  benchmark::AddCustomContext("compiler", std::string("clang-") + std::to_string(__clang_major__));
-  benchmark::AddCustomContext(
-      "compiler_version", std::to_string(__clang_major__) + "." + std::to_string(__clang_minor__) + "."
-                              + std::to_string(__clang_patchlevel__));
-  benchmark::AddCustomContext("compiler_version_extra", __clang_version__);
-# if defined(__apple_build_version__)
-  benchmark::AddCustomContext("compiler_build_version", std::to_string(__apple_build_version__));
-# endif
-#elif defined(__GNUC__)
-  benchmark::AddCustomContext("compiler_name", "GCC");
-  benchmark::AddCustomContext("compiler", std::string("gcc-") + std::to_string(__GNUC__));
-  benchmark::AddCustomContext(
-      "compiler_version",
-      std::to_string(__GNUC__) + "." + std::to_string(__GNUC_MINOR__) + "." + std::to_string(__GNUC_PATCHLEVEL__));
-  benchmark::AddCustomContext("compiler_version_extra", __VERSION__);
-#endif
-
-  benchmark::AddCustomContext("cxx_standard_requested", "c++23");
-  benchmark::AddCustomContext("cplusplus", std::to_string(__cplusplus));
-#if defined(_LIBCPP_VERSION)
-  benchmark::AddCustomContext("standard_library", "libc++");
-  benchmark::AddCustomContext("standard_library_version", std::to_string(_LIBCPP_VERSION));
-#elif defined(__GLIBCXX__)
-  benchmark::AddCustomContext("standard_library", "libstdc++");
-  benchmark::AddCustomContext("standard_library_version", std::to_string(__GLIBCXX__));
-# if defined(_GLIBCXX_RELEASE)
-  benchmark::AddCustomContext("standard_library_release", std::to_string(_GLIBCXX_RELEASE));
-# endif
-#endif
-
-#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
-  benchmark::AddCustomContext("macos_deployment_target", std::to_string(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__));
-#endif
-#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
-  benchmark::AddCustomContext("macos_sdk_maximum", std::to_string(__MAC_OS_X_VERSION_MAX_ALLOWED));
-#endif
-}
 
 constexpr SegmentedSequenceOptions kUniform64{
     .segment_size = 64,
@@ -82,7 +31,17 @@ constexpr SegmentedSequenceOptions kUniform256{
 constexpr SegmentedSequenceOptions kUniform1024{
     .segment_size = 1'024,
 };
-constexpr SegmentedSequenceOptions kFinite256{
+constexpr SegmentedSequenceOptions kFinite256Reservation0{
+    .segment_size = 256,
+    .segment_capacity = kElementCount / 256,
+    .segment_reservation = 0,
+};
+constexpr SegmentedSequenceOptions kFinite256Reservation1{
+    .segment_size = 256,
+    .segment_capacity = kElementCount / 256,
+    .segment_reservation = 1,
+};
+constexpr SegmentedSequenceOptions kFinite256Reservation64{
     .segment_size = 256,
     .segment_capacity = kElementCount / 256,
     .segment_reservation = kElementCount / 256,
@@ -93,6 +52,8 @@ struct AllocationCounters final {
   std::size_t source_bytes = 0;
   std::size_t directory_allocations = 0;
   std::size_t directory_bytes = 0;
+  std::size_t directory_deallocations = 0;
+  std::size_t directory_deallocated_bytes = 0;
 };
 
 // NOLINTBEGIN(readability-identifier-naming): adapters model BlockSource and Allocator spelling.
@@ -138,7 +99,11 @@ struct CountingDirectoryAllocator final {
     return std::allocator<T>{}.allocate(count);
   }
 
-  void deallocate(T* data, std::size_t count) noexcept { std::allocator<T>{}.deallocate(data, count); }
+  void deallocate(T* data, std::size_t count) noexcept {
+    ++counters->directory_deallocations;
+    counters->directory_deallocated_bytes += count * sizeof(T);
+    std::allocator<T>{}.deallocate(data, count);
+  }
 
   template<typename U>
   friend constexpr bool operator==(
@@ -183,6 +148,8 @@ void BmGrowthBoundary(benchmark::State& state) {
       SetMemoryCounters(state, sequence);
       state.counters["growth_directory_allocations"] = static_cast<double>(counters.directory_allocations);
       state.counters["growth_directory_bytes"] = static_cast<double>(counters.directory_bytes);
+      state.counters["growth_directory_deallocated_bytes"] = static_cast<double>(counters.directory_deallocated_bytes);
+      state.counters["growth_directory_deallocations"] = static_cast<double>(counters.directory_deallocations);
       state.counters["growth_source_allocations"] = static_cast<double>(counters.source_allocations);
       state.counters["growth_source_bytes"] = static_cast<double>(counters.source_bytes);
     }
@@ -192,26 +159,36 @@ void BmGrowthBoundary(benchmark::State& state) {
 }
 
 template<SegmentedSequenceOptions Options>
-void BmAppendFresh(benchmark::State& state) {
+void BmFreshConstructAppendDestroy(benchmark::State& state) {
+  std::size_t capacity = 0;
+  std::size_t reserved = 0;
+  std::size_t segments = 0;
   for (auto _ : state) {
     SegmentedSequence<std::uint64_t, Options> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
-      benchmark::DoNotOptimize(sequence.emplace_back(pos));
+      sequence.emplace_back(pos);
     }
     benchmark::DoNotOptimize(sequence);
-    SetMemoryCounters(state, sequence);
+    benchmark::ClobberMemory();
+    capacity = sequence.capacity();
+    reserved = sequence.bytes_reserved();
+    segments = sequence.segment_count();
   }
+  state.counters["capacity"] = static_cast<double>(capacity);
+  state.counters["reserved"] = static_cast<double>(reserved);
+  state.counters["segments"] = static_cast<double>(segments);
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
 template<SegmentedSequenceOptions Options>
-void BmAppendRetained(benchmark::State& state) {
+void BmRetainedAppendClear(benchmark::State& state) {
   SegmentedSequence<std::uint64_t, Options> sequence;
   sequence.reserve(kElementCount);
   for (auto _ : state) {
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
-      benchmark::DoNotOptimize(sequence.unchecked_emplace_back(pos));
+      sequence.unchecked_emplace_back(pos);
     }
+    benchmark::DoNotOptimize(sequence);
     benchmark::ClobberMemory();
     sequence.clear();
   }
@@ -226,6 +203,7 @@ void BmIndexedLookup(benchmark::State& state) {
   for (std::size_t pos = 0; pos < kElementCount; ++pos) {
     sequence.unchecked_emplace_back(pos);
   }
+  benchmark::ClobberMemory();
   for (auto _ : state) {
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
@@ -239,9 +217,10 @@ void BmIndexedLookup(benchmark::State& state) {
 }
 
 template<SegmentedSequenceOptions Options>
-void BmIteratorLookup(benchmark::State& state) {
+void BmIteratorForward(benchmark::State& state) {
   SegmentedSequence<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
+  benchmark::ClobberMemory();
   for (auto _ : state) {
     std::uint64_t sum = 0;
     for (const std::uint64_t value : sequence) {
@@ -254,9 +233,44 @@ void BmIteratorLookup(benchmark::State& state) {
 }
 
 template<SegmentedSequenceOptions Options>
+void BmIteratorArithmetic(benchmark::State& state) {
+  SegmentedSequence<std::uint64_t, Options> sequence;
+  sequence.resize(kElementCount, 1);
+  benchmark::ClobberMemory();
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    const auto begin = sequence.cbegin();
+    for (std::size_t pos = 0; pos < kElementCount; ++pos) {
+      sum += *(begin + static_cast<std::ptrdiff_t>(pos));
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  SetMemoryCounters(state, sequence);
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<SegmentedSequenceOptions Options>
+void BmIteratorReverse(benchmark::State& state) {
+  SegmentedSequence<std::uint64_t, Options> sequence;
+  sequence.resize(kElementCount, 1);
+  const auto& values = sequence;
+  benchmark::ClobberMemory();
+  for (auto _ : state) {
+    std::uint64_t sum = 0;
+    for (auto iterator = values.rbegin(); iterator != values.rend(); ++iterator) {
+      sum += *iterator;
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  SetMemoryCounters(state, sequence);
+  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
+}
+
+template<SegmentedSequenceOptions Options>
 void BmSegmentLookup(benchmark::State& state) {
   SegmentedSequence<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
+  benchmark::ClobberMemory();
   for (auto _ : state) {
     std::uint64_t sum = 0;
     for (const auto segment : sequence.segments()) {
@@ -270,7 +284,8 @@ void BmSegmentLookup(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-void BmVectorAppendFresh(benchmark::State& state) {
+void BmVectorFreshConstructAppendDestroy(benchmark::State& state) {
+  std::size_t capacity = 0;
   for (auto _ : state) {
     std::vector<std::uint64_t> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
@@ -278,42 +293,57 @@ void BmVectorAppendFresh(benchmark::State& state) {
       sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation)
     }
     benchmark::DoNotOptimize(sequence);
-    state.counters["capacity"] = static_cast<double>(sequence.capacity());
-    state.counters["reserved"] = static_cast<double>(sequence.capacity() * sizeof(std::uint64_t));
+    benchmark::ClobberMemory();
+    capacity = sequence.capacity();
   }
+  state.counters["capacity"] = static_cast<double>(capacity);
+  state.counters["reserved"] = static_cast<double>(capacity * sizeof(std::uint64_t));
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-void BmDequeAppendFresh(benchmark::State& state) {
+void BmDequeFreshConstructAppendDestroy(benchmark::State& state) {
   for (auto _ : state) {
     std::deque<std::uint64_t> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.push_back(pos);
     }
     benchmark::DoNotOptimize(sequence);
+    benchmark::ClobberMemory();
   }
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-#define REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS(Label, Options)                                          \
-  BENCHMARK_TEMPLATE(BmAppendFresh, Options)->Name("SegmentedSequence/AppendFresh/" Label);             \
-  BENCHMARK_TEMPLATE(BmAppendRetained, Options)->Name("SegmentedSequence/AppendRetained/" Label);       \
-  BENCHMARK_TEMPLATE(BmIndexedLookup, Options, false)->Name("SegmentedSequence/Indexed/" Label);        \
-  BENCHMARK_TEMPLATE(BmIndexedLookup, Options, true)->Name("SegmentedSequence/IndexedPermuted/" Label); \
-  BENCHMARK_TEMPLATE(BmIteratorLookup, Options)->Name("SegmentedSequence/Iterator/" Label);             \
+#define REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS(Label, Options)                                              \
+  BENCHMARK_TEMPLATE(BmFreshConstructAppendDestroy, Options)                                                \
+      ->Name("SegmentedSequence/FreshConstructAppendDestroy/" Label);                                       \
+  BENCHMARK_TEMPLATE(BmRetainedAppendClear, Options)->Name("SegmentedSequence/RetainedAppendClear/" Label); \
+  BENCHMARK_TEMPLATE(BmIndexedLookup, Options, false)->Name("SegmentedSequence/Indexed/" Label);            \
+  BENCHMARK_TEMPLATE(BmIndexedLookup, Options, true)->Name("SegmentedSequence/IndexedPermuted/" Label);     \
+  BENCHMARK_TEMPLATE(BmIteratorForward, Options)->Name("SegmentedSequence/IteratorForward/" Label);         \
+  BENCHMARK_TEMPLATE(BmIteratorArithmetic, Options)->Name("SegmentedSequence/IteratorArithmetic/" Label);   \
+  BENCHMARK_TEMPLATE(BmIteratorReverse, Options)->Name("SegmentedSequence/IteratorReverse/" Label);         \
   BENCHMARK_TEMPLATE(BmSegmentLookup, Options)->Name("SegmentedSequence/Segments/" Label)
 
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform64", kUniform64);
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform256", kUniform256);
 REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Uniform1024", kUniform1024);
-REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS("Finite256", kFinite256);
 
 #undef REGISTER_SEGMENTED_SEQUENCE_BENCHMARKS
 
-BENCHMARK_TEMPLATE(BmGrowthBoundary, kUniform256)->Name("SegmentedSequence/GrowthBoundary/UnboundedDirectory");
-BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256)->Name("SegmentedSequence/GrowthBoundary/FiniteDirectory");
-BENCHMARK(BmVectorAppendFresh)->Name("Vector/AppendFresh");
-BENCHMARK(BmDequeAppendFresh)->Name("Deque/AppendFresh");
+BENCHMARK_TEMPLATE(BmFreshConstructAppendDestroy, kFinite256Reservation0)
+    ->Name("SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation0");
+BENCHMARK_TEMPLATE(BmFreshConstructAppendDestroy, kFinite256Reservation1)
+    ->Name("SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation1");
+BENCHMARK_TEMPLATE(BmFreshConstructAppendDestroy, kFinite256Reservation64)
+    ->Name("SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation64");
+BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256Reservation0)
+    ->Name("SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation0/Cross2To4");
+BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256Reservation1)
+    ->Name("SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation1/Cross2To4");
+BENCHMARK_TEMPLATE(BmGrowthBoundary, kFinite256Reservation64)
+    ->Name("SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation64/Preallocated");
+BENCHMARK(BmVectorFreshConstructAppendDestroy)->Name("Vector/FreshConstructAppendDestroy");
+BENCHMARK(BmDequeFreshConstructAppendDestroy)->Name("Deque/FreshConstructAppendDestroy");
 
 // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
@@ -323,7 +353,7 @@ BENCHMARK(BmDequeAppendFresh)->Name("Deque/AppendFresh");
 int main(int argc, char** argv) {
   benchmark::MaybeReenterWithoutASLR(argc, argv);
   benchmark::Initialize(&argc, argv);
-  mbo::container::AddBuildContext();
+  mbo::container::container_internal::AddSegmentedSequenceBenchmarkContext("segmented-sequence-v2");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

@@ -35,8 +35,9 @@ contiguous allocation for every element.
   the hard `segment_capacity` segment bound even when the source and directory allocator could keep
   allocating.
 - `segments()` exposes non-contiguous random-access views of constructed element prefixes and omits
-  empty tail segments. A segment contains an array of `Slot` union objects rather than a `T[]`, so the
-  API deliberately does not expose `data()` or `std::span<T>`.
+  empty tail segments. The whole-container API makes no contiguity promise. Adding `data()` or a
+  `span` conversion would require a separate public-contract and representation decision; it does
+  not follow merely from the current `Slot` representation.
 - `pop_back()` invalidates the removed element and old past-the-end iterator, but nothing referring
   to earlier elements. `clear()` and `release()` invalidate all element references and iterators.
   `trim_capacity()` preserves references and iterators to live elements.
@@ -84,8 +85,9 @@ Their participation and `noexcept` specifications also account for the `Source` 
 
 Segment storage and directory storage are independent choices. They can use different resources, or
 a `PmrBlockSource` and `pmr::polymorphic_allocator` can direct both to the same memory resource.
-Fixed and inline block sources can own segment storage, but the pointer directory still uses its
-configured allocator.
+`FixedBlockSource` and `InlineBlockSource` each permit one outstanding block, so they support
+bounded one-segment configurations unless a different multi-block source is supplied. The pointer
+directory still uses its configured allocator.
 
 ## Constant evaluation
 
@@ -218,9 +220,11 @@ reserve once; single-pass ranges grow as consumed.
 
 The companion [measurement plan](measurements/SEGMENTED_SEQUENCE.md) covers indexed access,
 iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element
-size/alignment, exception configurations, and generated code. Growth-boundary latency must report
-tail behavior as well as aggregate throughput because an unbounded directory threshold adds a
-second allocation and pointer copy to that append.
+size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while
+generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment
+and reports minimum, median, fastest-three mean, all-nine mean, sample standard deviation,
+coefficient of variation, maximum, and allocation/deallocation counters. Nine calibrated
+repetition means do not establish a tail-latency distribution.
 
 The generic heterogeneous-capacity implementation merged in
 [pull request 443](https://github.com/mboworks/mbo/pull/443) at

@@ -170,16 +170,17 @@ arena sizes, and lookup ratios.
 
 ## Relationship to `SegmentedSequence`
 
-Both components can acquire a chain of blocks. Their public contracts remain distinct:
+Both components can acquire multiple backing blocks through `BlockSource`. Their ownership and
+indexing remain distinct:
 
 - the arena suballocates variable-size, variably aligned byte ranges and uses region lifetime;
 - `SegmentedSequence<T>` owns uniformly typed element slots, manages each `T`, and provides dense
   indexed iteration.
 
-A shared block-chain primitive should begin as a private implementation detail. It becomes public
-whenever measurements or implementation experience show that direct reuse or customization makes
-the library materially better. Publication is driven by demonstrated value, not by an arbitrary
-minimum number of internal users, and must not leak one component's semantics into another.
+`BlockSource` is their shared allocation boundary; it does not require a shared chain
+representation. Any deeper common primitive should begin as a private implementation detail and
+become public only when measurements or implementation experience show material value without
+leaking one component's semantics into another.
 
 `Reset()` retains every acquired block, including oversized blocks, resets each cursor, and starts
 reuse at the first block. `Release()` returns every backing block to its source and restores the
@@ -241,10 +242,10 @@ representation.
 - single-threaded performance; synchronization remains the caller's responsibility.
 
 The current raw-arena behavior is defined above. Representation choices, including pointer versus
-offset descriptors, any future growth or retention defaults, and whether the shared block-chain
-merits a public API, remain benchmark decisions rather than missing semantics. Callers currently
-select growth explicitly through `ArenaOptions`; the implementation does not promote any measured
-candidate to a library default.
+offset descriptors, any future growth or retention defaults, and whether a deeper abstraction above
+`BlockSource` merits a public API, remain benchmark decisions rather than missing semantics.
+Callers currently select growth explicitly through `ArenaOptions`; the implementation does not
+promote any measured candidate to a library default.
 
 The public implementation targets the repository's C++23 baseline. The current raw byte-storage
 representation still cannot create its intrusive `Block` object during constant evaluation. The

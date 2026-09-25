@@ -66,13 +66,12 @@ and must justify its own speed and memory cost.
 | Persistent child snapshot       | Not inherent in the published organization    | Structural sharing is a central strength       |
 | Concurrent mutable index        | Central to the published HART                 | Requires a separate concurrency design         |
 | Ordered/prefix string operation | Radix subtrees may help, but hashing obscures | Hash order discards lexical prefix structure   |
-| Segment directory               | No published predecessor/range lookup         | No natural cumulative-boundary lookup          |
+| Fixed-segment directory         | Not applicable to shift/mask indexed lookup   | Not applicable to shift/mask indexed lookup    |
 | Deterministic ID iteration      | Requires a defined traversal                  | Requires a defined traversal or separate table |
 
-Neither known structure directly solves `SegmentedSequence` index-to-segment location. That
-operation asks for the segment containing a cumulative index, effectively a range or predecessor
-query. The published HART implementation provides exact lookup rather than this operation, and a
-HAMT indexes hash fragments rather than ordered boundaries.
+Neither known structure has a role in current `SegmentedSequence` index-to-segment location. Its
+uniform power-of-two segments use direct shift/mask mapping into a flat pointer directory; no range
+or predecessor query is involved.
 
 ## HAMT container contract
 

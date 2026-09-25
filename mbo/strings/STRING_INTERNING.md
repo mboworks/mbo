@@ -22,9 +22,8 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-The planned `SegmentedSequence` and `Arena` are prerequisite components. Their contracts and
-implementations land independently before the interner selects a default composition; this design
-does not depend on those files already existing on its base branch.
+`SegmentedSequence` and `Arena` are independent production components and prerequisites for the
+interner's default composition. Their public contracts remain separate from this design.
 
 ## Core model
 
@@ -49,8 +48,8 @@ The byte arena has different packing and lifetime needs and should not automatic
 
 ### Relationship between `SegmentedSequence` and an arena
 
-`SegmentedSequence` and a segmented arena can share nearly the same block-chain substrate, but they
-provide different contracts:
+`SegmentedSequence` and a segmented arena both acquire backing blocks through `BlockSource`, but
+they do not share a chain representation and provide different contracts:
 
 | Property             | `SegmentedSequence<T>`                       | Segmented arena                    |
 | -------------------- | -------------------------------------------- | ---------------------------------- |
@@ -58,35 +57,15 @@ provide different contracts:
 | Type knowledge       | Knows `T`, `sizeof(T)`, and `alignof(T)`     | Treats allocations as untyped      |
 | Object lifetime      | Constructs and destroys individual elements  | Usually releases a region at once  |
 | Addressing           | Dense element index                          | Pointer or arena-specific handle   |
-| Contiguous guarantee | Within one segment only                      | Within one allocation only         |
+| Contiguous guarantee | None; segment views are random-access        | Within one allocation only         |
 | Primary operation    | Append/emplace an element and index it later | Allocate an aligned range of bytes |
 
-A common internal segmented-allocation primitive may therefore be worthwhile, provided it does not
-force arena semantics onto the typed container or vice versa.
-
-Segment capacities may be described by a compile-time size list. That permits optimized mapping
-from a dense index to known prefix ranges, for example through unrolled comparisons, while allowing
-small early segments and larger later segments.
-
-After the listed capacities, all three of the following are supported strategies:
-
-- stop at a fixed total capacity;
-- repeat the final segment capacity;
-- transition to another growth policy.
-
-These strategies are selected through a constexpr-compatible policy type. The policy controls
-compile-time code generation, not merely runtime configuration, so unsupported branches can be
-discarded and bounded configurations can remain usable during constant evaluation. Its behavior,
-capacity limits, overflow handling, and generated-code consequences must be fully documented.
-
-Policy complexity is justified only by measured use. The public policy surface must contain only
-strategies and parameters whose relevance is demonstrated by benchmarks; speculative flexibility
-does not become supported API.
-
-Uniform power-of-two segments receive a specialized index-mapping fast path up to a measured size
-threshold. Beyond that threshold, excessively large uniform segments may waste too much tail
-capacity, so a size list or growth policy can take over. The threshold and transition are selected
-from benchmarks rather than fixed by intuition.
+The current `SegmentedSequence` uses one compile-time power-of-two `segment_size`, shift/mask index
+mapping, a hard `segment_capacity`, and an initial `segment_reservation`. Those options keep every
+segment uniform while making bounded capacity and directory-allocation behavior explicit. Segment
+size and reservation remain measurement choices because they trade directory size and allocation
+frequency against tail waste and cache behavior. Additional growth-policy surface is added only if
+a measured workload requires it.
 
 ### Identity and equality
 
@@ -417,9 +396,9 @@ Benchmarks should cover:
 - adversarial and ordinary hash collisions;
 - allocation count, allocated bytes, resident memory, and fragmentation;
 - arena segment sizes and bounded-capacity exhaustion;
-- ID-table chunk sizes, lookup cost, wasted tail capacity, and traversal/indexing strategies;
-- compile-time segment-size lists versus uniform and runtime growth policies;
-- the power-of-two fast-path threshold and transition to later growth;
+- fixed power-of-two ID-table segment sizes, lookup cost, and wasted tail capacity;
+- zero, partial, and full directory reservation under bounded and growing workloads;
+- indexed, forward, reverse, segment-view, and iterator-arithmetic traversal;
 - separate `(size, pointer/offset)` descriptors versus inline `(size, content)` arena records;
 - standard, Abseil, and mbo-provided index implementations;
 - 8-, 16-, 32-, and 64-bit ID representations where practical;
@@ -448,8 +427,8 @@ by the first internal caller.
 
 The version-one semantic contract has no remaining open questions. Measurements still select:
 
-- whether the initially private block-chain abstraction shared by `SegmentedSequence` and arena
-  storage provides enough general value to publish;
+- whether implementation experience demonstrates a useful common abstraction above the existing
+  `BlockSource` boundary without coupling arena and `SegmentedSequence` ownership models;
 - native pointers versus segment-relative offsets for arena descriptors, including the best useful
   offset width;
 - whether a later owning-`std::string` backend has a meaningful winning workload.

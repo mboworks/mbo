@@ -86,7 +86,44 @@ cc_test(
 cc_binary(
     name = "segmented_sequence_benchmark",
     testonly = 1,
-    srcs = ["segmented_sequence_benchmark.cc"],
+    srcs = [
+        "internal/segmented_sequence_benchmark_context.h",
+        "segmented_sequence_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_sequence_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "segmented_sequence_element_shape_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_sequence_benchmark_context.h",
+        "segmented_sequence_element_shape_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_sequence_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "segmented_sequence_lifecycle_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_sequence_benchmark_context.h",
+        "segmented_sequence_lifecycle_benchmark.cc",
+    ],
     tags = [
         "clang-tidy",
         "manual",

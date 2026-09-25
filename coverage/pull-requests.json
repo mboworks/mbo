@@ -565,9 +565,9 @@
   },
   {
     "number": 444,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "509cfe193c40965dc9d8b0b214558f4393deedd4"
+    "state": "closed",
+    "merged_at": "2026-09-25T06:43:34Z",
+    "merge_commit_sha": "43bca82254757ce2f2d1023151de9b362968a175"
   },
   {
     "number": 443,

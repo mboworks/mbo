@@ -145,6 +145,28 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "hamt_clone_cc",
+    hdrs = ["internal/hamt_clone.h"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_clone_test",
+    size = "small",
+    srcs = ["internal/hamt_clone_test.cc"],
+    deps = [
+        ":hamt_clone_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hamt_iterator_test",
     size = "small",

@@ -65,6 +65,27 @@ cc_test(
 )
 
 cc_library(
+    name = "hamt_flat_collision_cc",
+    hdrs = ["internal/hamt_flat_collision.h"],
+    deps = [
+        ":hamt_collision_cc",
+        ":hamt_options_cc",
+        ":segmented_sequence_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_collision_test",
+    size = "small",
+    srcs = ["internal/hamt_flat_collision_test.cc"],
+    deps = [
+        ":hamt_flat_collision_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_hash_path_cc",
     hdrs = ["internal/hamt_hash_path.h"],
 )

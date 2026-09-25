@@ -48,6 +48,23 @@ cc_binary(
     ],
 )
 
+# Also exercise the allocator and PMR bad_alloc adapters with exceptions enabled.
+# The library's default exception-free build cannot execute those branches.
+cc_test(
+    name = "block_source_exceptions_test",
+    size = "small",
+    srcs = ["block_source_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "arena_cc",
     hdrs = ["arena.h"],

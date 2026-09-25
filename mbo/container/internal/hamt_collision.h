@@ -7,6 +7,7 @@
 #include <concepts>
 #include <functional>
 #include <iterator>
+#include <type_traits>
 
 namespace mbo::container::container_internal {
 
@@ -17,10 +18,14 @@ template<
     typename HashOf,
     typename KeyOf,
     typename Equal>
-requires requires(Iterator pos, const LookupKey& key, HashOf hash_of, KeyOf key_of, Equal equal) {
-  { std::invoke(hash_of, *pos) } noexcept -> std::convertible_to<Hash>;
-  { std::invoke(equal, std::invoke(key_of, *pos), key) } noexcept -> std::convertible_to<bool>;
-}
+requires(
+    std::is_nothrow_invocable_r_v<Hash, HashOf&, std::iter_reference_t<Iterator>>
+    && std::is_nothrow_invocable_v<KeyOf&, std::iter_reference_t<Iterator>>
+    && std::is_nothrow_invocable_r_v<
+        bool,
+        Equal&,
+        std::invoke_result_t<KeyOf&, std::iter_reference_t<Iterator>>,
+        const LookupKey&>)
 constexpr Iterator FindHamtCollision(
     Iterator first,
     Iterator last,

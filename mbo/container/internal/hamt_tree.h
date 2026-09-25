@@ -4,6 +4,7 @@
 #ifndef MBO_CONTAINER_INTERNAL_HAMT_TREE_H_
 #define MBO_CONTAINER_INTERNAL_HAMT_TREE_H_
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -51,6 +52,7 @@ class HamtTree final {
   using node_type = HamtSharedNode<Options.fragment_bits, Entry>;
   using iterator = HamtIterator<Options.fragment_bits, Entry>;
   using const_iterator = iterator;
+  using mutable_iterator = HamtIterator<Options.fragment_bits, Entry, true>;
 
   static_assert(std::unsigned_integral<hash_type>);
   static_assert(std::is_nothrow_copy_constructible_v<Entry> && std::is_nothrow_move_constructible_v<Entry>);
@@ -106,6 +108,26 @@ class HamtTree final {
 
   static iterator end() noexcept { return {}; }
 
+  [[nodiscard]] std::optional<HamtError> TryMakeUnique() noexcept {
+    if (AllUnique(root_.get())) {
+      return std::nullopt;
+    }
+    const auto cloned = TryCloneHamtTree(root_.source(), root_.get());
+    if (!cloned) {
+      return HamtError::kAllocationExhausted;
+    }
+    root_.reset(*cloned);
+    return std::nullopt;
+  }
+
+  [[nodiscard]] std::variant<mutable_iterator, HamtError> TryMutableBegin() noexcept {
+    const auto error = TryMakeUnique();
+    if (error) {
+      return *error;
+    }
+    return mutable_iterator(root_.get(), this);
+  }
+
   template<typename Key>
   requires(
       std::is_nothrow_invocable_r_v<hash_type, const Hash&, const Key&>
@@ -122,6 +144,22 @@ class HamtTree final {
     const Entry* const found =
         FindHamtEntry(root_.get(), hash, key, EntryHash{.hash = hash_, .key_of = key_of_}, key_of_, equal_);
     return iterator::At(root_.get(), hash, found, this);
+  }
+
+  template<typename Key>
+  requires requires(const HamtTree& tree, const Key& key) { tree.Find(key); }
+  [[nodiscard]] std::variant<mutable_iterator, HamtError> TryMutableFind(const Key& key) noexcept {
+    if (Find(key) == nullptr) {
+      return mutable_iterator{};
+    }
+    const auto error = TryMakeUnique();
+    if (error) {
+      return *error;
+    }
+    const hash_type hash = std::invoke(hash_, key);
+    const Entry* const target = Find(key);
+    Entry* const found = hamt_update_internal::FindUniqueEntry(root_.get(), hash, target);
+    return mutable_iterator::At(root_.get(), hash, found, this);
   }
 
   template<typename Key>
@@ -253,6 +291,16 @@ class HamtTree final {
   }
 
  private:
+  static bool AllUnique(const node_type* node) noexcept {
+    if (node == nullptr) {
+      return true;
+    }
+    if (!node->is_unique()) {
+      return false;
+    }
+    return std::ranges::all_of(node->children(), [](const node_type* child) noexcept { return AllUnique(child); });
+  }
+
   struct EntryHash final {
     const Hash& hash;
     const KeyOf& key_of;

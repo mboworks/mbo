@@ -926,6 +926,9 @@ TEST_F(LimitedSetTest, CompareLessIsTransparent) {
   EXPECT_THAT(set.count(3), 1);
   EXPECT_THAT(set.find(9), set.end());
   EXPECT_THAT(set.index_of(1), 0);
+  const CompareLessSet& const_set = set;
+  EXPECT_THAT(const_set.find(2), const_set.begin() + 1);
+  EXPECT_THAT(const_set.find(9), const_set.end());
   EXPECT_THAT(set.erase(2), 1);
   EXPECT_THAT(set, ElementsAre(1, 3));
 }

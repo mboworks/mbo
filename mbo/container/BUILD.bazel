@@ -286,6 +286,34 @@ cc_library(
 )
 
 cc_library(
+    name = "hamt_node_set_cc",
+    hdrs = ["hamt_node_set.h"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_node_iterator_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_set_test",
+    size = "small",
+    srcs = ["hamt_node_set_test.cc"],
+    deps = [
+        ":hamt_node_set_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_node_key_of_cc",
     hdrs = ["internal/hamt_node_key_of.h"],
 )

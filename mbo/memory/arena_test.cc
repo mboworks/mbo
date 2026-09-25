@@ -62,8 +62,10 @@ inline constexpr ArenaOptions kInvalidArenaOptions{
 
 struct ArenaTest : ::testing::Test {};
 
+using DefaultArena = Arena<NewDeleteBlockSource, kSmallArenaOptions>;
+
 static_assert(
-    noexcept(std::declval<Arena<>&>().rewind(std::declval<const Arena<>::Checkpoint&>()))
+    noexcept(std::declval<DefaultArena&>().rewind(std::declval<const DefaultArena::Checkpoint&>()))
     == !::mbo::config::kRequireThrows);
 
 TEST_F(ArenaTest, EmptyCheckpointRewindsNewBlocksWithoutReleasingTheirCapacity) {
@@ -104,7 +106,7 @@ TEST_F(ArenaTest, NestedCheckpointsRewindAcrossBlocksAndKeepEarlierAllocationsVa
 }
 
 TEST_F(ArenaTest, CheckpointRewindsOnlyLaterBytesAndReusesTheirStorage) {
-  Arena<> arena;
+  DefaultArena arena;
   auto* const first = arena.TryAllocate(8, 1);
   ASSERT_THAT(first, NotNull());
   *first = std::byte{42};

@@ -173,6 +173,9 @@ The C++ library is organized in functional groups each residing in their own dir
     - function `ParseStringList`: Parses and splits strings respecting C++ and custom escapes as well as quotes (all configurable).
   - mbo/strings:split_cc, mbo/strings/split.h
     - struct `AtLast`: Allows `absl::StrSplit' to split on the last occurrence of a separator.
+  - mbo/strings:string_id_cc, mbo/strings/string_id.h
+    - alias template `StringId`: A compact dense string identifier with selectable 8-, 16-, 32-,
+      or 64-bit unsigned representation, an invalid default state, and no arithmetic operations.
   - mbo/strings:strip_cc, mbo/strings/strip.h
     - function `ConsumePrefix`: Removes a prefix from a `std::string` (like `absl::ConsumePrefix`).
     - function `ConsumeSuffix`: Removes a suffix from a `std::string` (like `absl::ConsumeSuffix`).
@@ -253,6 +256,14 @@ The C++ library is organized in functional groups each residing in their own dir
     - template-type `RefWrap<T>`: similar to `std::reference_wrapper` but supports operators `->` and `*`.
   - mbo/types:required_cc, mbo/types/required.h
     - template-type `Required<T>`: similar to `RefWrap` but stores the actual type (and unlike `std::optional` cannot be reset).
+  - mbo/types:strong_id_cc, mbo/types/strong_id.h
+    - class template `ConstStrongId`: An invalid-defaulted, unsigned nominal identifier with explicit
+      validity, comparison, Abseil and standard hashing, and no arithmetic operations.
+  - mbo/types:strong_ordinal_cc, mbo/types/strong_ordinal.h
+    - class template `ConstStrongOrdinal`: A zero-defaulted immutable nominal signed or unsigned
+      ordinal with checked non-mutating arithmetic.
+    - class template `StrongOrdinal`: The mutable ordinal counterpart with checked assignment,
+      compound arithmetic, and increment/decrement operations.
   - mbo/types:string_or_view_cc, mbo/types/string_or_view.h
     - class `mbo::StringOrView`: Read-only text that either owns a `std::string` or borrows a `std::string_view`, with the applicable string-view interface plus stream, formatting, comparison, and hashing integration.
   - mbo/types:stringify_cc, mbo/types/stringify.h

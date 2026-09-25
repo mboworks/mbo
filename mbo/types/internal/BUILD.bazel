@@ -23,6 +23,23 @@ cc_library(
     hdrs = ["cases.h"],
 )
 
+cc_library(
+    name = "strong_integral_cc",
+    hdrs = ["strong_integral.h"],
+    deps = ["//mbo/config:config_cc"],
+)
+
+cc_test(
+    name = "strong_integral_test",
+    size = "small",
+    srcs = ["strong_integral_test.cc"],
+    deps = [
+        ":strong_integral_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "cases_internal_test",
     size = "small",

@@ -4,6 +4,7 @@
 #include "mbo/container/hamt_flat_map.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -73,6 +74,76 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
   EXPECT_THAT(snapshot.at(2), Eq(20));
 }
 
+struct CollisionHash final {
+  constexpr std::uint64_t operator()([[maybe_unused]] int value) const noexcept { return 7; }
+};
+
+struct CopyObservedMapped final {
+  explicit CopyObservedMapped(int& copies) noexcept : copies(&copies) {}
+
+  CopyObservedMapped(const CopyObservedMapped& other) noexcept : copies(other.copies) { ++*copies; }
+
+  CopyObservedMapped& operator=(const CopyObservedMapped&) noexcept = default;
+  CopyObservedMapped(CopyObservedMapped&&) noexcept = default;
+  CopyObservedMapped& operator=(CopyObservedMapped&&) noexcept = default;
+  ~CopyObservedMapped() = default;
+
+  int* copies;
+};
+
+TEST_F(HamtFlatMapTest, UniqueMutableLookupDoesNotCopyMappedValues) {
+  using ObservedMap = HamtFlatMap<int, CopyObservedMapped>;
+  int copies = 0;
+  ObservedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(ObservedMap::value_type(1, CopyObservedMapped(copies))).second, Eq(true));
+  copies = 0;
+  auto result = edit.try_find(1);
+  const auto* const position = std::get_if<ObservedMap::transient_type::iterator>(&result);
+  ASSERT_THAT(position, NotNull());
+  EXPECT_THAT(*position == edit.end(), Eq(false));
+  EXPECT_THAT(copies, Eq(0));
+}
+
+TEST_F(HamtFlatMapTest, UniqueDuplicateInsertionDoesNotCopyMappedValues) {
+  using ObservedMap = HamtFlatMap<int, CopyObservedMapped>;
+  int copies = 0;
+  ObservedMap empty;
+  auto edit = std::move(empty).transient();
+  EXPECT_THAT(edit.insert(ObservedMap::value_type(1, CopyObservedMapped(copies))).second, Eq(true));
+  copies = 0;
+  auto result = edit.try_insert(ObservedMap::value_type(1, CopyObservedMapped(copies)));
+  const auto* const insertion = std::get_if<std::pair<ObservedMap::transient_type::iterator, bool>>(&result);
+  ASSERT_THAT(insertion, NotNull());
+  EXPECT_THAT(insertion->second, Eq(false));
+  EXPECT_THAT(copies, Eq(0));
+}
+
+TEST_F(HamtFlatMapTest, MutableCollisionIteratorsAdvanceWithoutChangingSnapshots) {
+  using CollisionMap = HamtFlatMap<int, int, CollisionHash>;
+  CollisionMap empty;
+  auto builder = std::move(empty).transient();
+  EXPECT_THAT(builder.insert(CollisionMap::value_type(1, 10)).second, Eq(true));
+  EXPECT_THAT(builder.insert(CollisionMap::value_type(2, 20)).second, Eq(true));
+  const auto snapshot = std::move(builder).persistent();
+  auto edit = snapshot.transient();
+  auto position = edit.find(1);
+  ASSERT_THAT(position == edit.end(), Eq(false));
+  auto copied = position;
+  position->second = 100;
+  EXPECT_THAT(copied->second, Eq(100));
+  ++position;
+  ASSERT_THAT(position == edit.end(), Eq(false));
+  EXPECT_THAT(position->first, Eq(2));
+  position->second = 200;
+  ++copied;
+  EXPECT_THAT(position == copied, Eq(true));
+  ++position;
+  EXPECT_THAT(position == edit.end(), Eq(true));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(snapshot.at(2), Eq(20));
+}
+
 TEST_F(HamtFlatMapTest, ExhaustedNodeStorageReportsInsertionFailureWithoutPublishingEntries) {
   using BoundedMap =
       HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, HamtOptions{}, mbo::memory::InlineBlockSource<1>>;
@@ -105,6 +176,49 @@ TEST_F(HamtFlatMapTest, SwapAndConstRangesPreserveTheVisibleKeyAndMappedValue) {
   EXPECT_THAT(empty.cend() == empty.end(), Eq(true));
   EXPECT_THAT(empty.at(1), Eq(10));
   EXPECT_DEATH(static_cast<void>(empty.at(2)), "");
+}
+
+TEST_F(HamtFlatMapTest, MutableIteratorsKeepKeysConstAndDetachFromPersistentSnapshots) {
+  const Map empty;
+  auto [snapshot, inserted] = empty.insert(Map::value_type(1, 10));
+  EXPECT_THAT(inserted, Eq(true));
+  auto edit = snapshot.transient();
+  auto position = edit.find(1);
+  ASSERT_THAT(position == edit.end(), Eq(false));
+  static_assert(std::is_const_v<std::remove_reference_t<decltype((position->first))>>);
+  static_assert(!std::is_const_v<std::remove_reference_t<decltype((position->second))>>);
+  const Map::iterator immutable = position;
+  EXPECT_THAT(immutable == position, Eq(true));
+  position->second = 99;
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(std::as_const(edit).at(1), Eq(99));
+  auto [duplicate, changed] = edit.insert(Map::value_type(1, 77));
+  EXPECT_THAT(changed, Eq(false));
+  duplicate->second = 55;
+  EXPECT_THAT(std::as_const(edit).at(1), Eq(55));
+  EXPECT_THAT(edit.cbegin() == edit.begin(), Eq(true));
+  const auto& borrowed = *edit.cbegin();
+  auto alias_result = edit.try_insert(borrowed);
+  const auto* const alias = std::get_if<std::pair<Map::transient_type::iterator, bool>>(&alias_result);
+  ASSERT_THAT(alias, NotNull());
+  EXPECT_THAT(alias->second, Eq(false));
+  EXPECT_THAT(alias->first->second, Eq(55));
+}
+
+TEST_F(HamtFlatMapTest, MaximumSizeFailurePrecedesSharedIteratorAllocation) {
+  constexpr HamtOptions kOneEntry{.fragment_bits = 5, .maximum_size = 1};
+  using BoundedMap =
+      HamtFlatMap<int, int, std::hash<int>, std::equal_to<>, kOneEntry, mbo::memory::InlineBlockSource<512>>;
+  BoundedMap empty;
+  auto builder = std::move(empty).transient();
+  EXPECT_THAT(builder.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
+  const auto snapshot = std::move(builder).persistent();
+  auto edit = snapshot.transient();
+  EXPECT_THAT(edit.try_insert(BoundedMap::value_type(2, 20)), VariantWith<HamtError>(Eq(HamtError::kMaxSizeExceeded)));
+  EXPECT_THAT(
+      edit.try_insert(BoundedMap::value_type(1, 99)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(snapshot.at(1), Eq(10));
+  EXPECT_THAT(edit.size(), Eq(1));
 }
 
 TEST_F(HamtFlatMapTest, PublicCloneChangesSourceAndConsumesOnlyOnSuccess) {
@@ -231,6 +345,17 @@ TEST_F(HamtFlatMapTest, RecoverableMutableAccessPreservesSharedValuesWhenAllocat
   EXPECT_THAT(edit.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
   auto snapshot = std::move(edit).persistent();
   auto shared = snapshot.transient();
+  EXPECT_THAT(shared.try_begin(), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(shared.try_find(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  auto missing = shared.try_find(2);
+  const auto* const missing_position = std::get_if<BoundedMap::transient_type::iterator>(&missing);
+  ASSERT_THAT(missing_position, NotNull());
+  EXPECT_THAT(*missing_position == shared.end(), Eq(true));
+  EXPECT_THAT(
+      shared.try_insert(BoundedMap::value_type(2, 20)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(
+      shared.try_insert(BoundedMap::value_type(1, 99)), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(std::as_const(shared).find(1) == shared.cend(), Eq(false));
   EXPECT_THAT(shared.try_at(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(shared.try_get_or_insert(2), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(snapshot.at(1), Eq(10));

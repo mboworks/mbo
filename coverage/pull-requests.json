@@ -405,31 +405,31 @@
     "number": 472,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "d93a0fceaa85c376eb319353b2af1bc65b3311f5"
+    "merge_commit_sha": "d8da1ad98d8ee5cb1b86fc6534e182031f749c1a"
   },
   {
     "number": 471,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "d3bdf94583edcb5504afab5d4a9527c0e2a318c1"
+    "state": "closed",
+    "merged_at": "2026-09-25T18:53:50Z",
+    "merge_commit_sha": "68f37c4b2affdf6c511b471362db9d7c1dcf5814"
   },
   {
     "number": 470,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "a77ad5e6838f35bdf207f046157097c779219c43"
+    "state": "closed",
+    "merged_at": "2026-09-25T18:52:57Z",
+    "merge_commit_sha": "6d5adf4107b03202deeb6ef503c3f3a9188f6776"
   },
   {
     "number": 469,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "9c253147d2e9aea7174b388e6c4fb05fa4fc0b04"
+    "state": "closed",
+    "merged_at": "2026-09-25T18:51:47Z",
+    "merge_commit_sha": "fa160b6addbac3355538e8a58c4161e9beaaf8cc"
   },
   {
     "number": 468,
-    "state": "open",
-    "merged_at": null,
-    "merge_commit_sha": "f440bfd560c01e8bb618766acb70e271d98dcd59"
+    "state": "closed",
+    "merged_at": "2026-09-25T18:50:58Z",
+    "merge_commit_sha": "776177657f043a3dfc836e489a9b13eb639173d9"
   },
   {
     "number": 467,
@@ -561,7 +561,7 @@
     "number": 446,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "46f31372683e97072ea37f92dc57518ab70ef1c1"
+    "merge_commit_sha": "51229445a1105a137c73fbceb7d6ec950527e60b"
   },
   {
     "number": 445,

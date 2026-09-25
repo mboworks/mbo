@@ -132,3 +132,18 @@ allocation failure returns `std::nullopt`. Inputs remain borrowed throughout the
 The source must outlive all resulting nodes; entry copies and destruction must be non-throwing.
 These primitives do not mutate existing snapshots and require external synchronization under
 the shared-node contract above.
+
+## Persistent collision mutation
+
+`TryInsertCollisionEntry` copies a collision node while inserting an entry at a dense position
+in `[0, size]`. The caller establishes that its complete hash matches the bucket and its key
+is absent. The entry may alias an original entry; copying does not modify the original node.
+
+`TryEraseCollisionEntry` copies a collision bucket while removing one dense position. A two-entry
+bucket may become a singleton collision node. Removing the final entry is a tree-level operation:
+this primitive rejects it instead of allocating an empty collision bucket.
+
+Both methods return one owned reference on success. Normal-node input, an invalid position,
+singleton erasure, or allocation failure returns `std::nullopt`. Original contents and ownership
+remain unchanged. Collision operations reuse the normal-node entry-copy helpers and preserve
+the same non-throwing copy, source lifetime, and external synchronization requirements.

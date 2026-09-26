@@ -16,9 +16,9 @@
 namespace mbo::types {
 
 template<typename T>
-concept StrongIdRepresentation = std::unsigned_integral<T> && !std::same_as<T, bool>;
+concept StrongIdRepresentation = std::integral<T> && !std::same_as<T, bool>;
 
-// Unsigned nominal ID with an explicit invalid sentinel. Unlike an ordinal, its default value is
+// Nominal integral ID with an explicit invalid sentinel. Unlike an ordinal, its default value is
 // invalid and it deliberately exposes no arithmetic API.
 // NOLINTBEGIN(readability-identifier-naming): Strong IDs follow STL value-wrapper vocabulary.
 template<

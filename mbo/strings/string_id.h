@@ -12,8 +12,7 @@
 namespace mbo::strings {
 
 template<typename T>
-concept StringIdRepresentation = std::same_as<T, std::uint8_t> || std::same_as<T, std::uint16_t>
-                                 || std::same_as<T, std::uint32_t> || std::same_as<T, std::uint64_t>;
+concept StringIdRepresentation = std::integral<T> && !std::same_as<T, bool>;
 
 namespace strings_internal {
 struct StringIdTag;

@@ -28,8 +28,8 @@ concept HasTryAdd = requires(T value) { value.try_add(1); };
 struct StrongIdTest : ::testing::Test {};
 
 static_assert(StrongIdRepresentation<unsigned int>);
+static_assert(StrongIdRepresentation<int>);
 static_assert(!StrongIdRepresentation<bool>);
-static_assert(!StrongIdRepresentation<int>);
 static_assert(!std::same_as<Id, ConstStrongId<SecondTag, std::uint8_t>>);
 static_assert(std::is_trivially_copyable_v<Id>);
 static_assert(std::is_final_v<Id>);
@@ -55,6 +55,15 @@ TEST_F(StrongIdTest, SupportsAnExplicitInvalidSentinel) {
   EXPECT_THAT(CustomSentinelId{1}.is_valid(), Eq(true));
   EXPECT_THAT(CustomSentinelId::try_from_ordinal(0).has_value(), Eq(false));
   EXPECT_THAT(CustomSentinelId::try_from_ordinal(1).has_value(), Eq(true));
+}
+
+TEST_F(StrongIdTest, SupportsSignedRepresentationsAndNegativeKnownValues) {
+  using SignedId = ConstStrongId<FirstTag, std::int8_t>;
+  EXPECT_THAT(SignedId{-1}.is_valid(), Eq(true));
+  EXPECT_THAT(SignedId::try_from_ordinal(-1), Eq(SignedId{-1}));
+  EXPECT_THAT(SignedId::try_from_ordinal(126), Eq(SignedId{126}));
+  EXPECT_THAT(SignedId::try_from_ordinal(127), Eq(std::nullopt));
+  EXPECT_THAT(SignedId::try_from_ordinal(128), Eq(std::nullopt));
 }
 
 TEST_F(StrongIdTest, SupportsStandardHashContainers) {

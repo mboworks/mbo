@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <iterator>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -25,6 +26,12 @@ struct StringInternerOptions final {
 
 enum class StringInternError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
 
+template<typename Id>
+concept StringInternerId =
+    (std::integral<Id> && !std::same_as<Id, bool>) || (requires {
+      typename Id::value_type;
+    } && StringIdRepresentation<typename Id::value_type> && std::same_as<Id, StringId<typename Id::value_type>>);
+
 template<typename Container, typename Id>
 concept StringInternerStringContainer =
     requires(Container& container, const Container& read, std::string_view key, Id identifier) {
@@ -33,28 +40,36 @@ concept StringInternerStringContainer =
     };
 
 template<typename Storage>
-concept StringInternerStorage = requires(
-    Storage& storage,
-    const Storage& read,
-    std::string_view text,
-    const typename Storage::checkpoint_type& checkpoint) {
-  { storage.try_store(text) } noexcept -> std::same_as<std::optional<std::string_view>>;
-  { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
-  { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
-};
+concept StringInternerStorage =
+    requires(Storage& storage, const Storage& read, std::string_view text, const Storage::checkpoint_type& checkpoint) {
+      { storage.try_store(text) } noexcept -> std::same_as<std::optional<std::string_view>>;
+      { read.checkpoint() } noexcept -> std::same_as<typename Storage::checkpoint_type>;
+      { storage.rewind(checkpoint) } noexcept -> std::same_as<void>;
+    };
+
+template<typename Entries>
+concept StringInternerEntries =
+    std::ranges::bidirectional_range<Entries> && std::same_as<typename Entries::value_type, std::string_view>
+    && requires(Entries& entries, const Entries& read, std::string_view value) {
+         { read.size() } -> std::convertible_to<std::size_t>;
+         entries.emplace_back(value);
+         entries.pop_back();
+       };
 
 // Append-only owner. Parent pointers borrow; every ancestor must outlive children.
 // NOLINTBEGIN(readability-identifier-naming): StringInterner follows STL container vocabulary.
 template<
     typename StringContainer,
     typename Storage,
-    StringIdRepresentation Representation = std::uint32_t,
+    StringInternerId Id = StringId<std::uint32_t>,
     typename Entries = mbo::container::SegmentedSequence<std::string_view>,
     StringInternerOptions Options = {}>
-requires(StringInternerStringContainer<StringContainer, StringId<Representation>> && StringInternerStorage<Storage>)
+requires(
+    StringInternerStringContainer<StringContainer, Id> && StringInternerStorage<Storage>
+    && StringInternerEntries<Entries>)
 class StringInterner final {
  public:
-  using id_type = StringId<Representation>;
+  using id_type = Id;
   using size_type = std::size_t;
   using insertion_result = std::variant<std::pair<id_type, bool>, StringInternError>;
 
@@ -69,7 +84,7 @@ class StringInterner final {
     iterator() noexcept = default;
 
     reference operator*() const noexcept {
-      return owner_->get(id_type(static_cast<Representation>(position_))).value_or(std::string_view{});
+      return owner_->get(IdFromOrdinal(position_).value_or(id_type{})).value_or(std::string_view{});
     }
 
     iterator& operator++() noexcept {
@@ -142,15 +157,16 @@ class StringInterner final {
   size_type first_local_id() const noexcept { return first_local_id_; }
 
   std::optional<std::string_view> get(id_type identifier) const noexcept {
-    if (std::cmp_greater_equal(identifier.value(), size())) {
+    const auto ordinal = IdOrdinal(identifier);
+    if (!ordinal || *ordinal >= size()) {
       return std::nullopt;
     }
-    const auto position = static_cast<size_type>(identifier.value());
+    const auto position = *ordinal;
     const auto* owner = this;
     while (position < owner->first_local_id_) {
       owner = owner->parent_;
     }
-    return owner->entries_.at(position - owner->first_local_id_);
+    return owner->EntryAt(position - owner->first_local_id_);
   }
 
   std::optional<id_type> find(std::string_view key) const noexcept { return FindForward(key, size()); }
@@ -168,22 +184,61 @@ class StringInterner final {
     return std::nullopt;
   }
 
-  [[nodiscard]] insertion_result intern_parent_first(std::string_view key) noexcept { return Insert(key, find(key)); }
+  [[nodiscard]] insertion_result insert_parent_first(std::string_view key) { return Insert(key, find(key)); }
 
-  [[nodiscard]] insertion_result intern_child_first(std::string_view key) noexcept { return Insert(key, rfind(key)); }
+  [[nodiscard]] insertion_result insert_child_first(std::string_view key) { return Insert(key, rfind(key)); }
 
-  [[nodiscard]] insertion_result intern(std::string_view key) noexcept {
+  [[nodiscard]] insertion_result insert(std::string_view key) {
     if constexpr (Options.parent_first) {
-      return intern_parent_first(key);
+      return insert_parent_first(key);
     } else {
-      return intern_child_first(key);
+      return insert_child_first(key);
     }
   }
 
  private:
+  [[nodiscard]] static constexpr std::optional<id_type> IdFromOrdinal(size_type ordinal) noexcept {
+    if constexpr (std::integral<id_type>) {
+      if (!std::in_range<id_type>(ordinal)) {
+        return std::nullopt;
+      }
+      return static_cast<id_type>(ordinal);
+    } else {
+      return id_type::try_from_ordinal(ordinal);
+    }
+  }
+
+  [[nodiscard]] static constexpr std::optional<size_type> IdOrdinal(id_type identifier) noexcept {
+    const auto value = [&] {
+      if constexpr (std::integral<id_type>) {
+        return identifier;
+      } else {
+        return identifier.value();
+      }
+    }();
+    if (!std::in_range<size_type>(value)) {
+      return std::nullopt;
+    }
+    return static_cast<size_type>(value);
+  }
+
+  [[nodiscard]] std::string_view EntryAt(size_type position) const noexcept {
+    return *std::ranges::next(entries_.begin(), static_cast<std::ranges::range_difference_t<Entries>>(position));
+  }
+
+  [[nodiscard]] bool TryAppendEntry(std::string_view value) {
+    if constexpr (requires { entries_.try_emplace_back(value); }) {
+      return entries_.try_emplace_back(value).has_value();
+    } else {
+      entries_.emplace_back(value);
+      return true;
+    }
+  }
+
   std::optional<id_type> FindLocal(std::string_view key, size_type limit) const noexcept {
     const auto found = strings_.find(key);
-    return found && std::cmp_less(found->value(), limit) ? found : std::nullopt;
+    const auto ordinal = found ? IdOrdinal(*found) : std::nullopt;
+    return ordinal && *ordinal < limit ? found : std::nullopt;
   }
 
   std::optional<id_type> FindForward(std::string_view key, size_type limit) const noexcept {
@@ -195,11 +250,11 @@ class StringInterner final {
     return FindLocal(key, limit);
   }
 
-  insertion_result Insert(std::string_view key, std::optional<id_type> existing) noexcept {
+  insertion_result Insert(std::string_view key, std::optional<id_type> existing) {
     if (existing) {
       return std::pair<id_type, bool>(*existing, false);
     }
-    auto identifier = id_type::try_from_ordinal(size());
+    auto identifier = IdFromOrdinal(size());
     if (!identifier) {
       return StringInternError::kIdExhausted;
     }
@@ -208,10 +263,19 @@ class StringInterner final {
     if (!stored) {
       return StringInternError::kCharacterStorageExhausted;
     }
-    if (!entries_.try_emplace_back(*stored)) {
+#if __cpp_exceptions
+    try {
+#endif
+      if (!TryAppendEntry(*stored)) {
+        storage_.rewind(checkpoint);
+        return StringInternError::kEntryStorageExhausted;
+      }
+#if __cpp_exceptions
+    } catch (...) {
       storage_.rewind(checkpoint);
-      return StringInternError::kEntryStorageExhausted;
+      throw;
     }
+#endif
     const auto inserted = strings_.try_insert(*stored, *identifier);
     if (!inserted || !*inserted) {
       entries_.pop_back();

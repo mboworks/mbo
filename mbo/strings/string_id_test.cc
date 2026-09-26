@@ -14,13 +14,14 @@
 namespace mbo::strings {
 namespace {
 using ::testing::Eq;
+using ::testing::Optional;
 
 struct StringIdTest : ::testing::Test {};
 
 template<typename T>
 concept HasTryIncrement = requires(T identifier) { identifier.try_increment(); };
 
-static_assert(!StringIdRepresentation<int>);
+static_assert(StringIdRepresentation<int>);
 static_assert(std::is_trivially_copyable_v<StringId<>>);
 static_assert(std::is_final_v<StringId<>>);
 static_assert(!HasTryIncrement<StringId<>>);
@@ -28,6 +29,7 @@ static_assert(sizeof(StringId<std::uint8_t>) == 1);
 static_assert(sizeof(StringId<std::uint16_t>) == 2);
 static_assert(sizeof(StringId<>) == 4);
 static_assert(sizeof(StringId<std::uint64_t>) == 8);
+static_assert(sizeof(StringId<std::int32_t>) == 4);
 static_assert(StringId<std::uint8_t>{7} == StringId<std::uint8_t>{7});
 static_assert(StringId<std::uint8_t>{7} < StringId<std::uint8_t>{8});
 static_assert(StringId<std::uint8_t>::try_from_ordinal(254U).has_value());
@@ -50,6 +52,14 @@ TEST_F(StringIdTest, DefaultIsInvalidAndDenseOrdinalsStartAtZero) {
   EXPECT_THAT(Id::try_from_ordinal(std::numeric_limits<std::uint64_t>::max()).has_value(), Eq(false));
   EXPECT_THAT(
       StringId<std::uint64_t>::try_from_ordinal(std::numeric_limits<std::uint64_t>::max()).has_value(), Eq(false));
+}
+
+TEST_F(StringIdTest, SignedRepresentationsPermitNegativeKnownValues) {
+  using Id = StringId<std::int8_t>;
+  EXPECT_THAT(Id{-1}.is_valid(), Eq(true));
+  EXPECT_THAT(Id::try_from_ordinal(-1), Optional(Id{-1}));
+  EXPECT_THAT(Id::try_from_ordinal(126), Optional(Id{126}));
+  EXPECT_THAT(Id::try_from_ordinal(127), Eq(std::nullopt));
 }
 }  // namespace
 }  // namespace mbo::strings

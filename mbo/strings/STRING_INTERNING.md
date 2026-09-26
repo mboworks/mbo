@@ -113,15 +113,15 @@ range, including zero, independently of the ID representation's invalid sentinel
 
 IDs are zero-based. The first inserted string receives ID zero and every new ID is `size()` before
 insertion. Zero is a valid ID, including for an empty string when that is the first value inserted.
-The largest underlying representation value is reserved as `StringId::invalid_value`, making a
-default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.
+For `StringId`, the largest underlying representation value is reserved as `invalid_value`, making
+a default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.
 
-A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
-with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
-unsigned integer so applications can trade capacity against memory footprint. These are the
-supported POD representations; other underlying types, including signed integers, are not
-supported without a demonstrated use. ID exhaustion must be detected before mutating either
-storage or the index. The default underlying representation is `std::uint32_t`.
+The interner accepts either a plain non-boolean integral ID or `StringId` with a signed or unsigned
+integral representation. Signed types permit application-defined negative, pre-known values while
+the interner continues assigning its dense local range from zero. `StringId` prevents accidental
+arithmetic and reserves its maximum representation value as invalid; a plain integral uses every
+nonnegative representable value. ID exhaustion is detected before mutating storage or the index.
+The default ID type is `StringId<std::uint32_t>`.
 
 ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload
 may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output
@@ -138,8 +138,8 @@ coupling. They must not truncate the default hash merely because the default ID 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 
 The initial [`StringId`](string_id.h) helper constrains
-[`mbo::types::ConstStrongId`](../types/strong_id.h) to the four fixed-width unsigned
-representations. It provides explicit underlying-value access, ordering, constexpr checked ordinal
+[`mbo::types::ConstStrongId`](../types/strong_id.h) to non-boolean integral representations. It
+provides explicit underlying-value access, ordering, constexpr checked ordinal
 conversion via `try_from_ordinal`, an `invalid_value` sentinel, and `is_valid()`, but deliberately
 does not expose arithmetic or mutation operations. The largest underlying value is
 reserved, so an 8-bit ID supports 255 entries with valid IDs `0..254`; exhaustion returns an empty
@@ -193,8 +193,9 @@ Both directions are required for lookup and interning. Neither parent-first nor 
 universally hotter: applications may concentrate reuse in a shared root dictionary or in recent
 branch-local additions. Explicit operations expose each direction. A compile-time option selects
 the direction of the unsuffixed convenience operation so the default hot path has no runtime branch.
-The explicit insertion operations are `intern_parent_first(...)` and `intern_child_first(...)`;
-`intern(...)` uses the direction selected by `StringInternerOptions`.
+The explicit insertion operations are `insert_parent_first(...)` and `insert_child_first(...)`;
+the STL-style `insert(...)` uses the direction selected by `StringInternerOptions` and reports the
+identifier plus whether a new local entry was inserted.
 
 ### Immutability and iteration
 
@@ -369,10 +370,10 @@ struct InsertResult {
   bool inserted;
 };
 
-InsertResult intern(std::string_view value);
-InsertResult intern(std::string&& value);
-InsertResult intern_parent_first(std::string_view value);
-InsertResult intern_child_first(std::string_view value);
+InsertResult insert(std::string_view value);
+InsertResult insert(std::string&& value);
+InsertResult insert_parent_first(std::string_view value);
+InsertResult insert_child_first(std::string_view value);
 
 iterator find(std::string_view value) const;
 reverse_iterator rfind(std::string_view value) const;

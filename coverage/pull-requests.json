@@ -219,13 +219,13 @@
     "number": 503,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "dab39d415de06ba45c1a63a7bf061474645a7579"
+    "merge_commit_sha": "96063e94deace3361895a0f6402ad7cc1fc584cf"
   },
   {
     "number": 502,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "d7f63199fea6f11b7ed16e4d25f6ca389192e811"
+    "merge_commit_sha": "09cadd7df70e4ccb348e22fa2f002cb377095f4e"
   },
   {
     "number": 501,

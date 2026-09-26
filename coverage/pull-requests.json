@@ -201,13 +201,13 @@
     "number": 507,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "2ffac1a791f097b291534191d98e251e58a05d8f"
+    "merge_commit_sha": null
   },
   {
     "number": 506,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": null
+    "merge_commit_sha": "c123cc6c35c611ebc2477cba93fb950f78af72f4"
   },
   {
     "number": 505,

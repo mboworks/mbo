@@ -247,6 +247,12 @@ for iterator equality because different snapshot branches can assign the same lo
 strings. Appending must preserve existing element references and iterators; as with other growing
 containers, an iterator that previously represented `end()` need not become the new end.
 
+Iterator dereference requires a non-singular iterator positioned before `end()`. Incrementing
+`end()` or decrementing `begin()` violates the iterator contract; decrementing a nonempty `end()`
+is valid. Debug builds diagnose these violations rather than confusing an invalid dereference with
+a valid interned empty string. Release builds retain the standard preconditions without evaluating
+the debug checks. Iterator equality still includes interner identity, including for empty ranges.
+
 Dereferencing an iterator yields only `std::string_view`. It does not expose an entry pair or an
 additional public ID accessor. A caller that needs IDs while traversing can count dense ordinal
 positions from `begin()`. IDs remain element ordinals; using arena byte offsets as IDs is not the

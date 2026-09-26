@@ -87,6 +87,12 @@ with arguments that nothrow-construct the source. It returns `std::nullopt` if t
 underlying HAMT cannot be constructed. Later node-allocation failure still reports an
 empty `try_insert` result and does not publish an entry.
 
+[`HamtNodeStringIndex`](hamt_node_string_index.h) provides the same index protocol
+with node-backed HAMT entries. Build it with
+`//mbo/strings:hamt_node_string_index_cc`; the node-backed adapter has a separate
+`//mbo/strings:hamt_node_string_index_test` test target. Its keys still borrow
+character bytes from storage, so that storage must outlive the index.
+
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,
 including embedded NUL bytes, without adding a terminator. Empty strings need no

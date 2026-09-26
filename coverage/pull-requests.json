@@ -225,7 +225,7 @@
     "number": 503,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "ffa9eb19edfc3db3892b79bc36c4fdd5919aedf5"
+    "merge_commit_sha": null
   },
   {
     "number": 502,

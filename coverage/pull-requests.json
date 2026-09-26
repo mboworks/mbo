@@ -171,19 +171,19 @@
     "number": 512,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "0ced00f02d470a63d120b1d855e1cab7c9f4745f"
+    "merge_commit_sha": "b0cf91f0ab2bf18e3d26cc66b52739d567104879"
   },
   {
     "number": 511,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "5f64d2d16f535f5dcb6618fdb0b71468e93f3321"
+    "merge_commit_sha": "80b3dae89a5758c0332f607000f9f5e6cd03183f"
   },
   {
     "number": 510,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "09b60efbd2c4e14eb1e14b2c3bffdf19258d7e74"
+    "merge_commit_sha": "96d2b968dd70c6fd785469dbdccbc22adc649de0"
   },
   {
     "number": 509,

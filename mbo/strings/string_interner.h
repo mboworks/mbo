@@ -125,9 +125,10 @@ class StringInterner final {
       : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()) {}
 
   template<typename IndexFactory>
-  requires(std::is_nothrow_invocable_v<IndexFactory&> && std::same_as<std::invoke_result_t<IndexFactory&>, Index>
-           && std::is_nothrow_default_constructible_v<Storage> && std::is_nothrow_default_constructible_v<Entries>)
-  StringInterner(const StringInterner* parent, IndexFactory factory) noexcept
+  requires(std::invocable<IndexFactory&> && std::same_as<std::invoke_result_t<IndexFactory&>, Index>)
+  StringInterner(const StringInterner* parent, IndexFactory factory) noexcept(
+      std::is_nothrow_invocable_v<IndexFactory&> && std::is_nothrow_default_constructible_v<Storage>
+      && std::is_nothrow_default_constructible_v<Entries>)
       : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()), index_(std::invoke(factory)) {}
 
   StringInterner(const StringInterner&) = delete;

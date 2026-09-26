@@ -60,9 +60,11 @@ The initial [`StringInterner`](string_interner.h) implementation composes config
 character storage, a dense entry sequence, and an index constrained by
 `StringInternerIndex`. It implements captured parent cutoffs, forward/reverse lookup,
 whole-chain bidirectional iteration yielding only string views, and staged insertion
-with entry/byte rollback when indexing fails. Declared empty parents retain their
-identity; a zero local starting ID does not imply a null parent. Index/storage member
-destruction order preserves borrowed character lifetimes.
+with entry/byte rollback when indexing fails. If character storage reports failure
+after writing uncommitted bytes, insertion rewinds to its checkpoint without changing
+published strings or IDs. Declared empty parents retain their identity; a zero local
+starting ID does not imply a null parent. Index/storage member destruction order
+preserves borrowed character lifetimes.
 
 The implementation is still incomplete: diagnostics, stateful backend construction,
 extended bounded-failure tests, and performance tuning remain outstanding. Forward

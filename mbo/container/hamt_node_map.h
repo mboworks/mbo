@@ -344,8 +344,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   static constexpr size_type max_size() noexcept { return HamtNodeMap::max_size(); }
 
   [[nodiscard]] iterator_result try_begin() noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     if (auto error = map_.TryPrepareMutable()) {
       return *error;
     }
@@ -353,8 +352,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   iterator begin() noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     return HamtNodeMap::RequireValue(try_begin());
   }
 

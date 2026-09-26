@@ -9,7 +9,7 @@
     "number": 539,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "274709d6c6272cc7a29b09b753333c8ce0e8b1bc"
+    "merge_commit_sha": "222188a0324feda0607bc4a4c7890ec489622943"
   },
   {
     "number": 538,
@@ -165,7 +165,7 @@
     "number": 513,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "12dd47ac2fdd27c9694238a5ab4c37fe889c551a"
+    "merge_commit_sha": null
   },
   {
     "number": 512,

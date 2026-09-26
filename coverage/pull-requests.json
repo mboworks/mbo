@@ -219,7 +219,7 @@
     "number": 503,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "28da06c4cd6fa0e33a9df30b8f962aac26a32f46"
+    "merge_commit_sha": "dab39d415de06ba45c1a63a7bf061474645a7579"
   },
   {
     "number": 502,
@@ -231,31 +231,31 @@
     "number": 501,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "5139b5d1f7553f7c5258d9ca5b933770ba2262fa"
+    "merge_commit_sha": "a51e6ba9260b28e6c2c7bbc58fa352bfdc278366"
   },
   {
     "number": 500,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "db84cbf011cdabfb94d1c37167c3bc6547032c87"
+    "merge_commit_sha": "87316c0ec72bf02f31c3d4db18c0d13c9232bdb4"
   },
   {
     "number": 499,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "3ac2c24fee45f14728d43b7f65ed312a84d743d8"
+    "merge_commit_sha": "3e2d04c0be1d4b119059f7d52b03a63660afd5f4"
   },
   {
     "number": 498,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "f359a854fc44ad6d8f59d842528728cfc11e16b1"
+    "merge_commit_sha": "dbad0ed2c035adebed59db9c90a8b0b9b57206a2"
   },
   {
     "number": 497,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": null
+    "merge_commit_sha": "c782d2c6123a090dd8e5a35b1a5ed6bf454fbc04"
   },
   {
     "number": 496,

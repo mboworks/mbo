@@ -36,6 +36,7 @@ cc_test(
         ":hamt_string_index_cc",
         ":string_id_cc",
         "//mbo/container:hamt_options_cc",
+        "//mbo/memory:block_source_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

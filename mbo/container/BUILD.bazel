@@ -36,6 +36,7 @@ cc_library(
 cc_library(
     name = "hamt_flat_map_cc",
     hdrs = ["hamt_flat_map.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hamt_key_of_cc",
         ":hamt_options_cc",

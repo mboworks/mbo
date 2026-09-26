@@ -22,9 +22,8 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-[`SegmentedSequence`](../container/SEGMENTED_SEQUENCE.md) and the
-[`Arena`](../memory/ARENA.md) are prerequisite components. Each must be implemented and benchmarked
-independently before selecting the interner's default composition.
+`SegmentedSequence` and `Arena` are independent production components and prerequisites for the
+interner's default composition. Their public contracts remain separate from this design.
 
 ## Core model
 
@@ -111,8 +110,8 @@ The byte arena has different packing and lifetime needs and should not automatic
 
 ### Relationship between `SegmentedSequence` and an arena
 
-`SegmentedSequence` and a segmented arena can share nearly the same block-chain substrate, but they
-provide different contracts:
+`SegmentedSequence` and a segmented arena both acquire backing blocks through `BlockSource`, but
+they do not share a chain representation and provide different contracts:
 
 | Property             | `SegmentedSequence<T>`                       | Segmented arena                    |
 | -------------------- | -------------------------------------------- | ---------------------------------- |
@@ -120,35 +119,15 @@ provide different contracts:
 | Type knowledge       | Knows `T`, `sizeof(T)`, and `alignof(T)`     | Treats allocations as untyped      |
 | Object lifetime      | Constructs and destroys individual elements  | Usually releases a region at once  |
 | Addressing           | Dense element index                          | Pointer or arena-specific handle   |
-| Contiguous guarantee | Within one segment only                      | Within one allocation only         |
+| Contiguous guarantee | None; segment views are random-access        | Within one allocation only         |
 | Primary operation    | Append/emplace an element and index it later | Allocate an aligned range of bytes |
 
-A common internal segmented-allocation primitive may therefore be worthwhile, provided it does not
-force arena semantics onto the typed container or vice versa.
-
-Segment capacities may be described by a compile-time size list. That permits optimized mapping
-from a dense index to known prefix ranges, for example through unrolled comparisons, while allowing
-small early segments and larger later segments.
-
-After the listed capacities, all three of the following are supported strategies:
-
-- stop at a fixed total capacity;
-- repeat the final segment capacity;
-- transition to another growth policy.
-
-These strategies are selected through a constexpr-compatible policy type. The policy controls
-compile-time code generation, not merely runtime configuration, so unsupported branches can be
-discarded and bounded configurations can remain usable during constant evaluation. Its behavior,
-capacity limits, overflow handling, and generated-code consequences must be fully documented.
-
-Policy complexity is justified only by measured use. The public policy surface must contain only
-strategies and parameters whose relevance is demonstrated by benchmarks; speculative flexibility
-does not become supported API.
-
-Uniform power-of-two segments receive a specialized index-mapping fast path up to a measured size
-threshold. Beyond that threshold, excessively large uniform segments may waste too much tail
-capacity, so a size list or growth policy can take over. The threshold and transition are selected
-from benchmarks rather than fixed by intuition.
+The current `SegmentedSequence` uses one compile-time power-of-two `segment_size`, shift/mask index
+mapping, a hard `segment_capacity`, and an initial `segment_reservation`. Those options keep every
+segment uniform while making bounded capacity and directory-allocation behavior explicit. Segment
+size and reservation remain measurement choices because they trade directory size and allocation
+frequency against tail waste and cache behavior. Additional growth-policy surface is added only if
+a measured workload requires it.
 
 ### Identity and equality
 
@@ -406,13 +385,13 @@ The following interfaces are candidates and may coexist as adapters over one imp
 | Invalid `StringId` sentinel  | Success/failure only         | Smallest and fastest hot-path result |
 | `std::optional<StringId>`    | Success/failure only         | Conventional non-throwing API        |
 | `absl::StatusOr<StringId>`   | Detailed failure             | Existing mbo/Abseil callers          |
-| `std::expected<StringId, E>` | Typed detailed failure       | C++23 configuration                  |
+| `std::expected<StringId, E>` | Typed detailed failure       | C++23 callers                        |
 | Exception                    | Detailed out-of-band failure | Explicit throwing adapter only       |
 
-The baseline remains C++20, so `std::expected` cannot be the only public mechanism. Exceptions
-should not be the primary interface for a latency-sensitive container and must remain optional for
-builds with exceptions disabled. Successful-hit and successful-insert performance, result size,
-generated code, and failure behavior should be measured for each serious candidate.
+The C++23 baseline makes `std::expected` available, but it need not be the only public mechanism.
+Exceptions should not be the primary interface for a latency-sensitive container and must remain
+optional for builds with exceptions disabled. Successful-hit and successful-insert performance,
+result size, generated code, and failure behavior should be measured for each serious candidate.
 
 ## Candidate operations
 
@@ -491,9 +470,9 @@ Benchmarks should cover:
 - adversarial and ordinary hash collisions;
 - allocation count, allocated bytes, resident memory, and fragmentation;
 - arena segment sizes and bounded-capacity exhaustion;
-- ID-table chunk sizes, lookup cost, wasted tail capacity, and traversal/indexing strategies;
-- compile-time segment-size lists versus uniform and runtime growth policies;
-- the power-of-two fast-path threshold and transition to later growth;
+- fixed power-of-two ID-table segment sizes, lookup cost, and wasted tail capacity;
+- zero, partial, and full directory reservation under bounded and growing workloads;
+- indexed, forward, reverse, segment-view, and iterator-arithmetic traversal;
 - separate `(size, pointer/offset)` descriptors versus inline `(size, content)` arena records;
 - standard, Abseil, and mbo-provided index implementations;
 - 8-, 16-, 32-, and 64-bit ID representations where practical;
@@ -522,8 +501,8 @@ by the first internal caller.
 
 The version-one semantic contract has no remaining open questions. Measurements still select:
 
-- whether the initially private block-chain abstraction shared by `SegmentedSequence` and arena
-  storage provides enough general value to publish;
+- whether implementation experience demonstrates a useful common abstraction above the existing
+  `BlockSource` boundary without coupling arena and `SegmentedSequence` ownership models;
 - native pointers versus segment-relative offsets for arena descriptors, including the best useful
   offset width;
 - whether a later owning-`std::string` backend has a meaningful winning workload.
@@ -541,25 +520,11 @@ character backend, excluding ancestors, entry descriptors, and index storage. Un
 statistics return `std::nullopt`, never a misleading zero. These are initial diagnostics, not a
 complete memory breakdown or collision/probe analysis; index-specific diagnostics remain separate.
 
-## Final language-baseline decision
+## Language baseline
 
-After the container, arena, and interner contracts and prototypes are understood, the project must
-make an explicit C++20-versus-C++23 baseline decision. The decision is based on implementation
-simplicity, generated code, compiler support, and consumer cost. The following WG21 papers provide
-the concrete C++23 case:
-
-| Paper                                | Facility                                       | Potential relevance                                      |
-| ------------------------------------ | ---------------------------------------------- | -------------------------------------------------------- |
-| [P2647R1](https://wg21.link/P2647R1) | Static `constexpr` variables in constexpr code | Compile-time policy tables and segment boundaries        |
-| [P2589R1](https://wg21.link/P2589R1) | Static `operator[]`                            | Stateless indexed policy/function objects                |
-| [P1169R4](https://wg21.link/P1169R4) | Static `operator()`                            | Stateless hash, growth, and mapping policy objects       |
-| [P2448R2](https://wg21.link/P2448R2) | Relaxed constexpr restrictions                 | Fewer artificial splits between runtime/constexpr paths  |
-| [P2173R1](https://wg21.link/P2173R1) | Attributes on lambda expressions               | Better attributes on generated/local policy callables    |
-| [P0847R7](https://wg21.link/P0847R7) | Explicit object parameter (`deducing this`)    | Fewer duplicated cv/ref accessors and CRTP-style helpers |
-| [P2797R0](https://wg21.link/P2797R0) | Static/explicit-object wording resolution      | Clearer interaction of static and explicit-object APIs   |
-| [P2201R1](https://wg21.link/P2201R1) | Mixed string-literal concatenation             | Cleaner compile-time string diagnostics and metadata     |
-| [P1938R3](https://wg21.link/P1938R3) | `if consteval`                                 | Direct runtime/constant-evaluation path selection        |
-
-No paper is sufficient by itself. Before raising the baseline, prototypes must show which features
-remove real complexity or improve results, and the supported GCC/Clang/Bazel matrix must compile
-and test those exact uses.
+The repository targets C++23 with its supported GCC and Clang toolchains. The implementation may
+use C++23 facilities such as `std::expected`, static call/index operators, `if consteval`, and the
+relaxed constexpr rules where they materially simplify the code or API. Their availability is not
+by itself a reason to expose a facility or add an abstraction: selected uses still require focused
+tests on the supported compiler matrix and a concrete readability, correctness, or generated-code
+benefit.

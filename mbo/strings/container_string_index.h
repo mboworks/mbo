@@ -7,7 +7,9 @@
 #include <concepts>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 #include "mbo/strings/string_id.h"
 
@@ -20,6 +22,12 @@ requires(
     std::same_as<typename Container::key_type, std::string_view> && std::same_as<typename Container::mapped_type, Id>)
 class ContainerStringIndex final {
  public:
+  ContainerStringIndex() = default;
+
+  explicit ContainerStringIndex(Container&& entries) noexcept
+  requires std::is_nothrow_move_constructible_v<Container>
+      : entries_(std::move(entries)) {}
+
   // NOLINTBEGIN(readability-identifier-naming): string-index adapters use STL-compatible naming.
   std::optional<Id> find(std::string_view key) const noexcept {
     const auto position = entries_.find(key);

@@ -27,6 +27,16 @@ interner's default composition. Their public contracts remain separate from this
 
 ## Core model
 
+Stateful index construction is supported by `StringInterner(parent, index_factory)`.
+The nothrow factory returns a fresh, empty index of the configured type; guaranteed
+copy elision initializes it without imposing index moveability. Storage and entry
+containers must be nothrow-default-constructible for this overload. A
+`ContainerStringIndex` may take an rvalue native container when its move construction
+is nothrow, preserving allocator, hash, and equality state. When used to initialize
+an interner, that container must be empty: prepopulated index entries would have no
+corresponding owned string or dense-table record. This is a semantic backend contract,
+not something the index concept alone can prove.
+
 [`ContainerStringIndex`](container_string_index.h) adapts standard/Abseil-style maps
 with string-view keys and ID mapped values. The default is `std::unordered_map`;
 tests also cover Abseil flat and node maps. Duplicate insertion preserves the old ID

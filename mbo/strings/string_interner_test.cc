@@ -26,8 +26,7 @@ TEST_F(StringInternerTest, CharacterAndEntryExhaustionLeavePublishedStringsUncha
       .growth_numerator = 1,
       .growth_denominator = 1,
   };
-  using EmptyStorage =
-      ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<1>, kEmptyArenaOptions>>;
+  using EmptyStorage = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<1>, kEmptyArenaOptions>>;
   StringInterner<std::uint32_t, EmptyStorage> bounded;
   EXPECT_THAT(bounded.intern("x"), VariantWith<StringInternError>(StringInternError::kCharacterStorageExhausted));
   EXPECT_THAT(bounded.size(), Eq(0));

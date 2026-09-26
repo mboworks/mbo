@@ -8,8 +8,8 @@
 #include <memory>
 #include <optional>
 
-#include "mbo/container/internal/segmented_sequence_benchmark_context.h"
-#include "mbo/container/segmented_sequence.h"
+#include "mbo/container/internal/segmented_vector_benchmark_context.h"
+#include "mbo/container/segmented_vector.h"
 
 namespace mbo::container {
 namespace {
@@ -17,8 +17,8 @@ namespace {
 // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores): Google Benchmark's range variable drives iterations.
 
 constexpr std::size_t kElementCount = 16'384;
-constexpr SegmentedSequenceOptions kSegment64{.segment_size = 64};
-constexpr SegmentedSequenceOptions kSegment256{.segment_size = 256};
+constexpr SegmentedVectorOptions kSegment64{.segment_size = 64};
+constexpr SegmentedVectorOptions kSegment256{.segment_size = 256};
 
 struct AllocationCounters final {
   std::size_t source_allocations = 0;
@@ -122,10 +122,10 @@ void SetAllocationCounters(benchmark::State& state, const AllocationCounters& co
   state.counters["source_releases"] = static_cast<double>(counters.source_releases) / iterations;
 }
 
-template<SegmentedSequenceOptions Options, bool Trim>
+template<SegmentedVectorOptions Options, bool Trim>
 void BmPopRegrow(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<std::uint64_t, Options, CountingBlockSource, Allocator>;
+  using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
   const auto depth = static_cast<std::size_t>(state.range(0));
   AllocationCounters counters;
   Sequence sequence(std::allocator_arg, Allocator(&counters), CountingBlockSource{.counters = &counters});
@@ -174,10 +174,10 @@ void BmPopRegrow(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(depth));
 }
 
-template<SegmentedSequenceOptions Options, bool Release>
+template<SegmentedVectorOptions Options, bool Release>
 void BmClearRegrow(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<std::uint64_t, Options, CountingBlockSource, Allocator>;
+  using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
   AllocationCounters counters;
   Sequence sequence(std::allocator_arg, Allocator(&counters), CountingBlockSource{.counters = &counters});
   Fill(sequence);
@@ -230,7 +230,7 @@ REGISTER_LIFECYCLE("S256", kSegment256);
 int main(int argc, char** argv) {
   benchmark::MaybeReenterWithoutASLR(argc, argv);
   benchmark::Initialize(&argc, argv);
-  mbo::container::container_internal::AddSegmentedSequenceBenchmarkContext("segmented-sequence-lifecycle-v2");
+  mbo::container::container_internal::AddSegmentedVectorBenchmarkContext("segmented-vector-lifecycle-v3");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

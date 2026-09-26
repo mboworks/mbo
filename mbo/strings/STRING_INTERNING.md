@@ -15,14 +15,14 @@ and assigns compact dense identifiers. It supports fast lookup in both direction
   independent local strings;
 - configurable hashing, indexing, and character storage, including arena-backed and bounded
   allocation-free configurations;
-- a reusable `SegmentedSequence` built from fixed-capacity segments for append-oriented stable
+- a reusable `SegmentedVector` built from fixed-capacity segments for append-oriented stable
   storage, including but not limited to the interner's dense ID table.
 
 The design should make the efficient configuration easy while allowing users to choose different
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-`SegmentedSequence` and `Arena` are independent production components and prerequisites for the
+`SegmentedVector` and `Arena` are independent production components and prerequisites for the
 interner's default composition. Their public contracts remain separate from this design.
 
 ## Core model
@@ -37,21 +37,21 @@ Separating these concerns is important. An arena can eliminate per-string charac
 but it does not make a node-based hash table allocation-free. A fully bounded interner must bound
 and supply storage for both the character data and every index/table allocation.
 
-The ordered ID-to-view table naturally wants `SegmentedSequence`, an append-oriented container made
+The ordered ID-to-view table naturally wants `SegmentedVector`, an append-oriented container made
 from fixed-capacity segments. It must provide stable element addresses and efficient indexing by
 dense position. Developing this reusable container is an explicit goal of the project, not merely
 a private interner implementation detail. Its API should nevertheless be driven by demonstrated
 requirements and measured behavior rather than speculative generality.
 
 The byte arena has different packing and lifetime needs and should not automatically share the
-`SegmentedSequence` abstraction.
+`SegmentedVector` abstraction.
 
-### Relationship between `SegmentedSequence` and an arena
+### Relationship between `SegmentedVector` and an arena
 
-`SegmentedSequence` and a segmented arena both acquire backing blocks through `BlockSource`, but
+`SegmentedVector` and a segmented arena both acquire backing blocks through `BlockSource`, but
 they do not share a chain representation and provide different contracts:
 
-| Property             | `SegmentedSequence<T>`                       | Segmented arena                    |
+| Property             | `SegmentedVector<T>`                         | Segmented arena                    |
 | -------------------- | -------------------------------------------- | ---------------------------------- |
 | Allocation unit      | A fixed number of `T` element slots          | Requested bytes plus alignment     |
 | Type knowledge       | Knows `T`, `sizeof(T)`, and `alignof(T)`     | Treats allocations as untyped      |
@@ -60,7 +60,7 @@ they do not share a chain representation and provide different contracts:
 | Contiguous guarantee | None; segment views are random-access        | Within one allocation only         |
 | Primary operation    | Append/emplace an element and index it later | Allocate an aligned range of bytes |
 
-The current `SegmentedSequence` uses one compile-time power-of-two `segment_size`, shift/mask index
+The current `SegmentedVector` uses one compile-time power-of-two `segment_size`, shift/mask index
 mapping, a hard `segment_capacity`, and an initial `segment_reservation`. Those options keep every
 segment uniform while making bounded capacity and directory-allocation behavior explicit. Segment
 size and reservation remain measurement choices because they trade directory size and allocation
@@ -440,7 +440,7 @@ by the first internal caller.
 The version-one semantic contract has no remaining open questions. Measurements still select:
 
 - whether implementation experience demonstrates a useful common abstraction above the existing
-  `BlockSource` boundary without coupling arena and `SegmentedSequence` ownership models;
+  `BlockSource` boundary without coupling arena and `SegmentedVector` ownership models;
 - native pointers versus segment-relative offsets for arena descriptors, including the best useful
   offset width;
 - whether a later owning-`std::string` backend has a meaningful winning workload.

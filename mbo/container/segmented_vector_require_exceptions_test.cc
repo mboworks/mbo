@@ -12,7 +12,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/config/config.h"
-#include "mbo/container/segmented_sequence.h"
+#include "mbo/container/segmented_vector.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container {
@@ -24,17 +24,17 @@ using ::testing::IsEmpty;
 using ::testing::SizeIs;
 using ::testing::ThrowsMessage;
 
-constexpr SegmentedSequenceOptions kTwoSegments{
+constexpr SegmentedVectorOptions kTwoSegments{
     .segment_size = 2,
     .segment_capacity = 4,
 };
 
-constexpr SegmentedSequenceOptions kBoundedTwoSegments{
+constexpr SegmentedVectorOptions kBoundedTwoSegments{
     .segment_size = 2,
     .segment_capacity = 2,
 };
 
-struct SegmentedSequenceRequireExceptionsTest : ::testing::Test {};
+struct SegmentedVectorRequireExceptionsTest : ::testing::Test {};
 
 // NOLINTBEGIN(readability-identifier-naming): test double models BlockSource spelling.
 struct CountingBlockSource final {
@@ -136,92 +136,92 @@ struct MutatesThenThrowsOnMove final {
   int value;
 };
 
-static_assert(noexcept(std::declval<SegmentedSequence<int>&>().at(0)) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedSequence<int>&>().front()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedSequence<int>&>().back()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedSequence<int>&>().pop_back()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedSequence<int>&>().pop_back_value()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedSequence<int>&>().at(0)) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedSequence<int>&>().front()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedSequence<int>&>().back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedVector<int>&>().at(0)) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedVector<int>&>().front()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedVector<int>&>().back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedVector<int>&>().pop_back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedVector<int>&>().pop_back_value()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedVector<int>&>().at(0)) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedVector<int>&>().front()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedVector<int>&>().back()) == !config::kRequireThrows);
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, AtPropagatesOutOfRangeRequirement) {
+TEST_F(SegmentedVectorRequireExceptionsTest, AtPropagatesOutOfRangeRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int> sequence;
+  SegmentedVector<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.at(0)); }, ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, FrontPropagatesEmptyRequirement) {
+TEST_F(SegmentedVectorRequireExceptionsTest, FrontPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int> sequence;
+  SegmentedVector<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.front()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, BackPropagatesEmptyRequirement) {
+TEST_F(SegmentedVectorRequireExceptionsTest, BackPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int> sequence;
+  SegmentedVector<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.back()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, PopBackPropagatesEmptyRequirement) {
+TEST_F(SegmentedVectorRequireExceptionsTest, PopBackPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int> sequence;
+  SegmentedVector<int> sequence;
 
   EXPECT_THAT([&sequence] { sequence.pop_back(); }, ThrowsMessage<std::runtime_error>(HasSubstr("Cannot pop")));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, PopBackValuePropagatesEmptyRequirement) {
+TEST_F(SegmentedVectorRequireExceptionsTest, PopBackValuePropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int> sequence;
+  SegmentedVector<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.pop_back_value()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, ReserveRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedVectorRequireExceptionsTest, ReserveRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+  SegmentedVector<int, kBoundedTwoSegments> sequence;
 
   EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, ResizeRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedVectorRequireExceptionsTest, ResizeRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+  SegmentedVector<int, kBoundedTwoSegments> sequence;
 
   EXPECT_THAT([&sequence] { sequence.resize(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int, kBoundedTwoSegments> sequence;
+  SegmentedVector<int, kBoundedTwoSegments> sequence;
   const std::array values = {1, 2, 3, 4, 5};
 
   EXPECT_THAT(
@@ -230,11 +230,11 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSeg
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAllocationFailure) {
+TEST_F(SegmentedVectorRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAllocationFailure) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int, kTwoSegments, OneBlockSource> sequence;
+  SegmentedVector<int, kTwoSegments, OneBlockSource> sequence;
 
   EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("allocation failed")));
   EXPECT_THAT(sequence, IsEmpty());
@@ -242,11 +242,11 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterA
   EXPECT_THAT(sequence.segment_count(), 0);
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRollsBackSegmentsAfterAllocationFailure) {
+TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRollsBackSegmentsAfterAllocationFailure) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedSequence<int, kTwoSegments, OneBlockSource> sequence;
+  SegmentedVector<int, kTwoSegments, OneBlockSource> sequence;
   const std::array values = {1, 2, 3};
 
   EXPECT_THAT(
@@ -257,14 +257,14 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, SizedAppendRollsBackSegmentsAfter
   EXPECT_THAT(sequence.segment_count(), 0);
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, ValueResizeRollsBackAfterConstructionFailure) {
+TEST_F(SegmentedVectorRequireExceptionsTest, ValueResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
-  constexpr SegmentedSequenceOptions kResizeOptions{
+  constexpr SegmentedVectorOptions kResizeOptions{
       .segment_size = 2,
       .segment_capacity = 2,
   };
   {
-    SegmentedSequence<ThrowingElement, kResizeOptions> sequence;
+    SegmentedVector<ThrowingElement, kResizeOptions> sequence;
     sequence.emplace_back(1);
     const ThrowingElement value(9);
     ThrowingElement::Arm(1);
@@ -283,14 +283,14 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, ValueResizeRollsBackAfterConstruc
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, DefaultResizeRollsBackAfterConstructionFailure) {
+TEST_F(SegmentedVectorRequireExceptionsTest, DefaultResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
-  constexpr SegmentedSequenceOptions kResizeOptions{
+  constexpr SegmentedVectorOptions kResizeOptions{
       .segment_size = 2,
       .segment_capacity = 2,
   };
   {
-    SegmentedSequence<ThrowingElement, kResizeOptions> sequence;
+    SegmentedVector<ThrowingElement, kResizeOptions> sequence;
     sequence.emplace_back(1);
     ThrowingElement::Arm(1);
 
@@ -307,10 +307,10 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, DefaultResizeRollsBackAfterConstr
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, AppendRangeRestoresNonemptySequenceAfterConstructionFailure) {
+TEST_F(SegmentedVectorRequireExceptionsTest, AppendRangeRestoresNonemptySequenceAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   {
-    SegmentedSequence<ThrowingElement, kTwoSegments> sequence;
+    SegmentedVector<ThrowingElement, kTwoSegments> sequence;
     sequence.emplace_back(7);
     const std::array source = {ThrowingElement(1), ThrowingElement(2), ThrowingElement(3)};
     ThrowingElement::Arm(1);
@@ -329,8 +329,8 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, AppendRangeRestoresNonemptySequen
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, AliasedThrowingMoveRestoresStructureButCanModifySourceElement) {
-  SegmentedSequence<MutatesThenThrowsOnMove, kTwoSegments> sequence;
+TEST_F(SegmentedVectorRequireExceptionsTest, AliasedThrowingMoveRestoresStructureButCanModifySourceElement) {
+  SegmentedVector<MutatesThenThrowsOnMove, kTwoSegments> sequence;
   sequence.emplace_back(1);
   sequence.emplace_back(2);
 
@@ -345,7 +345,7 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, AliasedThrowingMoveRestoresStruct
   EXPECT_THAT(sequence.segment_count(), Eq(1));
 }
 
-TEST_F(SegmentedSequenceRequireExceptionsTest, FailedRangeConstructionDestroysElementsAndReleasesStorage) {
+TEST_F(SegmentedVectorRequireExceptionsTest, FailedRangeConstructionDestroysElementsAndReleasesStorage) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   int acquisitions = 0;
   int releases = 0;
@@ -355,7 +355,7 @@ TEST_F(SegmentedSequenceRequireExceptionsTest, FailedRangeConstructionDestroysEl
 
     EXPECT_THAT(
         ([&source, &acquisitions, &releases] {
-          return SegmentedSequence<ThrowingElement, kTwoSegments, CountingBlockSource>(
+          return SegmentedVector<ThrowingElement, kTwoSegments, CountingBlockSource>(
               std::from_range, source, CountingBlockSource{.acquisitions = &acquisitions, .releases = &releases});
         }),
         ThrowsMessage<std::runtime_error>(HasSubstr("construction failed")));

@@ -1,0 +1,243 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#include "mbo/container/internal/hamt_iterator.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "mbo/container/internal/hamt_insert.h"
+#include "mbo/memory/block_source.h"
+
+namespace mbo::container::container_internal {
+namespace {
+
+using ::testing::ElementsAre;
+using ::testing::Eq;
+using ::testing::Ne;
+using ::testing::NotNull;
+using ::testing::UnorderedElementsAre;
+
+struct Entry final {
+  std::uint64_t hash;
+  int key;
+};
+
+struct HashOf final {
+  constexpr std::uint64_t operator()(const Entry& entry) const noexcept { return entry.hash; }
+};
+
+struct KeyOf final {
+  constexpr int operator()(const Entry& entry) const noexcept { return entry.key; }
+};
+
+struct Equal final {
+  constexpr bool operator()(int lhs, int rhs) const noexcept { return lhs == rhs; }
+};
+
+using Node = HamtSharedNode<5, Entry>;
+using Iterator = HamtIterator<5, Entry>;
+
+struct HamtIteratorTest : ::testing::Test {
+  mbo::memory::NewDeleteBlockSource source;
+
+  template<std::size_t FragmentBits>
+  void CheckDeepestTree() {
+    using DeepNode = HamtSharedNode<FragmentBits, Entry>;
+    using DeepIterator = HamtIterator<FragmentBits, Entry>;
+    const auto release = [this](DeepNode* node) noexcept { DeepNode::Release(source, node); };
+    std::unique_ptr<DeepNode, decltype(release)> root(nullptr, release);
+    constexpr auto kEntries = std::to_array<Entry>(
+        {Entry{.hash = 0, .key = 10}, Entry{.hash = std::uint64_t{1} << 63, .key = 20}, Entry{.hash = 0, .key = 30}});
+    for (const Entry& entry : kEntries) {
+      const auto inserted = TryInsertHamtEntry<std::uint64_t, FragmentBits>(
+                                source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+                                .value_or(HamtInsertResult<DeepNode>{.root = nullptr, .inserted = false});
+      ASSERT_THAT(inserted.root, NotNull());
+      root.reset(inserted.root);
+    }
+    std::vector<int> keys;
+    for (DeepIterator iter(root.get()); iter != DeepIterator{}; ++iter) {
+      DeepIterator positioned = DeepIterator::At(root.get(), iter->hash, std::addressof(*iter));
+      EXPECT_THAT(positioned, Eq(iter));
+      DeepIterator next = iter;
+      EXPECT_THAT(++positioned, Eq(++next));
+      keys.push_back(iter->key);
+    }
+    EXPECT_THAT(keys, UnorderedElementsAre(10, 20, 30));
+  }
+};
+
+TEST_F(HamtIteratorTest, TraversesDeepestPathsForEverySupportedFragmentWidth) {
+  CheckDeepestTree<4>();
+  CheckDeepestTree<5>();
+  CheckDeepestTree<6>();
+  CheckDeepestTree<7>();
+}
+
+TEST_F(HamtIteratorTest, TraversesEntriesInLeavesBranchesAndCollisions) {
+  Node* root = nullptr;
+  constexpr auto kEntries = std::to_array<Entry>(
+      {Entry{.hash = 1, .key = 10}, Entry{.hash = 1 + (std::uint64_t{3} << 15), .key = 20}, Entry{.hash = 7, .key = 30},
+       Entry{.hash = 7, .key = 40}});
+  for (const Entry entry : kEntries) {
+    auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+
+  std::vector<int> keys;
+  for (Iterator iter(root); iter != Iterator{}; ++iter) {
+    keys.push_back(iter->key);
+  }
+  EXPECT_THAT(keys, ElementsAre(10, 20, 30, 40));
+  Node::Release(source, root);
+}
+
+TEST_F(HamtIteratorTest, ValueInitializedIteratorsEqualTheEmptyRangeEnd) {
+  EXPECT_THAT(Iterator{}, Eq(Iterator(nullptr)));
+}
+
+TEST_F(HamtIteratorTest, PositionsByHashAndContinuesInTraversalOrder) {
+  const auto release = [this](Node* node) noexcept { Node::Release(source, node); };
+  std::unique_ptr<Node, decltype(release)> root(nullptr, release);
+  constexpr auto kEntries = std::to_array<Entry>(
+      {Entry{.hash = 1, .key = 10}, Entry{.hash = 1, .key = 20}, Entry{.hash = std::uint64_t{1} << 63, .key = 30}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted = TryInsertHamtEntry<std::uint64_t, 5>(
+                              source, root.get(), entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+                              .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    root.reset(inserted.root);
+  }
+  for (Iterator expected(root.get()); expected != Iterator{}; ++expected) {
+    Iterator actual = Iterator::At(root.get(), expected->hash, std::addressof(*expected));
+    EXPECT_THAT(actual, Eq(expected));
+    Iterator suffix = expected;
+    while (suffix != Iterator{}) {
+      ASSERT_THAT(actual, Eq(suffix));
+      ++actual;
+      ++suffix;
+    }
+    EXPECT_THAT(actual, Eq(Iterator{}));
+  }
+  const Entry foreign{.hash = 1, .key = 10};
+  EXPECT_THAT(Iterator::At(root.get(), foreign.hash, &foreign), Eq(Iterator{}));
+  const Entry foreign_data{.hash = std::uint64_t{1} << 63, .key = 30};
+  EXPECT_THAT(Iterator::At(root.get(), foreign_data.hash, &foreign_data), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{7}, std::addressof(*Iterator(root.get()))), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(nullptr, std::uint64_t{0}, &foreign), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root.get(), std::uint64_t{0}, nullptr), Eq(Iterator{}));
+}
+
+TEST_F(HamtIteratorTest, SharedEntriesInDifferentRootRangesDoNotCompareEqual) {
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 7, .key = 10}, Entry{.hash = 7, .key = 20}});
+  auto* const child = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(child, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertNode(7), Eq(true));
+  const auto children = std::to_array<Node*>({child});
+  auto* const first_root = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  auto* const second_root = Node::TryCreate(source, index, {}, children).value_or(nullptr);
+  ASSERT_THAT(first_root, NotNull());
+  ASSERT_THAT(second_root, NotNull());
+  const Iterator first(first_root);
+  const Iterator second(second_root);
+  EXPECT_THAT(first.operator->(), Eq(second.operator->()));
+  EXPECT_THAT(first == second, Eq(false));
+  Node::Release(source, child);
+  Node::Release(source, first_root);
+  Node::Release(source, second_root);
+}
+
+TEST_F(HamtIteratorTest, IsAMultiPassForwardIterator) {
+  auto inserted =
+      TryInsertHamtEntry<std::uint64_t, 5>(
+          source, static_cast<Node*>(nullptr), 1ULL, 10, Entry{.hash = 1, .key = 10}, HashOf{}, KeyOf{}, Equal{})
+          .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+  ASSERT_THAT(inserted.root, NotNull());
+  const Iterator first(inserted.root);
+  Iterator copy = first;
+
+  EXPECT_THAT(first, Eq(copy));
+  EXPECT_THAT((*first).key, Eq(10));
+  EXPECT_THAT(first->key, Eq(10));
+  EXPECT_THAT((copy++)->key, Eq(10));
+  EXPECT_THAT(first->key, Eq(10));
+  EXPECT_THAT(copy, Eq(Iterator{}));
+  Node::Release(source, inserted.root);
+}
+
+TEST_F(HamtIteratorTest, EmptyAllocatedRootHasTheSameEndAsANullRoot) {
+  auto* const root = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(root, NotNull());
+  EXPECT_THAT(Iterator(root), Eq(Iterator{}));
+  const Entry foreign{.hash = 0, .key = 10};
+  EXPECT_THAT(Iterator::At(root, foreign.hash, &foreign), Eq(Iterator{}));
+  Node::Release(source, root);
+}
+
+TEST_F(HamtIteratorTest, NarrowHashCannotPositionBeyondItsAvailableFragments) {
+  Node* root = nullptr;
+  constexpr auto kEntries =
+      std::to_array<Entry>({Entry{.hash = 0, .key = 10}, Entry{.hash = std::uint64_t{1} << 63, .key = 20}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+  const Iterator first(root);
+  ASSERT_THAT(first, Ne(Iterator{}));
+  EXPECT_THAT(Iterator::At(root, std::uint8_t{0}, first.operator->()), Eq(Iterator{}));
+  EXPECT_THAT(Iterator::At(root, std::uint64_t{0}, first.operator->()), Eq(first));
+  Node::Release(source, root);
+}
+
+TEST_F(HamtIteratorTest, IteratorCopiesKeepIndependentTraversalPositionsAcrossBranches) {
+  Node* root = nullptr;
+  constexpr auto kEntries =
+      std::to_array<Entry>({Entry{.hash = 1, .key = 10}, Entry{.hash = 33, .key = 20}, Entry{.hash = 7, .key = 30}});
+  for (const Entry& entry : kEntries) {
+    const auto inserted =
+        TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
+            .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
+    ASSERT_THAT(inserted.root, NotNull());
+    Node::Release(source, root);
+    root = inserted.root;
+  }
+  Iterator first(root);
+  Iterator second = first;
+  const int original_key = second->key;
+  ++first;
+  EXPECT_THAT(second->key, Eq(original_key));
+  EXPECT_THAT(first == second, Eq(false));
+  ++second;
+  EXPECT_THAT(first, Eq(second));
+  std::vector<int> first_remaining;
+  std::vector<int> second_remaining;
+  for (; first != Iterator{}; ++first) {
+    first_remaining.push_back(first->key);
+  }
+  for (; second != Iterator{}; ++second) {
+    second_remaining.push_back(second->key);
+  }
+  EXPECT_THAT(first_remaining, ElementsAre(10, 20));
+  EXPECT_THAT(second_remaining, ElementsAre(10, 20));
+  Node::Release(source, root);
+}
+
+static_assert(std::forward_iterator<Iterator>);
+
+}  // namespace
+}  // namespace mbo::container::container_internal

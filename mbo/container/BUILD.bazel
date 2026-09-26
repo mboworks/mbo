@@ -16,6 +16,671 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 cc_library(
+    name = "hamt_options_cc",
+    hdrs = ["hamt_options.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "hamt_flat_set_cc",
+    hdrs = ["hamt_flat_set.h"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_flat_map_cc",
+    hdrs = ["hamt_flat_map.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_map_test",
+    size = "small",
+    srcs = ["hamt_flat_map_test.cc"],
+    deps = [
+        ":hamt_flat_map_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_set_test",
+    size = "small",
+    srcs = ["hamt_flat_set_test.cc"],
+    deps = [
+        ":hamt_flat_set_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_options_test",
+    size = "small",
+    srcs = ["hamt_options_test.cc"],
+    deps = [
+        ":hamt_options_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_bitmap_cc",
+    hdrs = ["internal/hamt_bitmap.h"],
+)
+
+cc_test(
+    name = "hamt_bitmap_test",
+    size = "small",
+    srcs = ["internal/hamt_bitmap_test.cc"],
+    deps = [
+        ":hamt_bitmap_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_collision_cc",
+    hdrs = ["internal/hamt_collision.h"],
+)
+
+cc_library(
+    name = "hamt_branch_build_cc",
+    hdrs = ["internal/hamt_branch_build.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_merge_path_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_branch_build_test",
+    size = "small",
+    srcs = ["internal/hamt_branch_build_test.cc"],
+    deps = [
+        ":hamt_branch_build_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_collision_test",
+    size = "small",
+    srcs = ["internal/hamt_collision_test.cc"],
+    deps = [
+        ":hamt_collision_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_flat_collision_cc",
+    hdrs = ["internal/hamt_flat_collision.h"],
+    deps = [
+        ":hamt_collision_cc",
+        ":hamt_options_cc",
+        ":segmented_sequence_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_flat_collision_test",
+    size = "small",
+    srcs = ["internal/hamt_flat_collision_test.cc"],
+    deps = [
+        ":hamt_flat_collision_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_hash_path_cc",
+    hdrs = ["internal/hamt_hash_path.h"],
+)
+
+cc_test(
+    name = "hamt_hash_path_test",
+    size = "small",
+    srcs = ["internal/hamt_hash_path_test.cc"],
+    deps = [
+        ":hamt_hash_path_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_lookup_cc",
+    hdrs = ["internal/hamt_lookup.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_node_index_cc",
+        ":hamt_shared_node_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_iterator_cc",
+    hdrs = ["internal/hamt_iterator.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_shared_node_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_clone_cc",
+    hdrs = ["internal/hamt_clone.h"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_replace_cc",
+    hdrs = ["internal/hamt_replace.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_root_owner_cc",
+    hdrs = ["internal/hamt_root_owner.h"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_source_domain_cc",
+    hdrs = ["internal/hamt_source_domain.h"],
+    deps = ["//mbo/memory:block_source_cc"],
+)
+
+cc_library(
+    name = "hamt_owned_tree_cc",
+    hdrs = ["internal/hamt_owned_tree.h"],
+    deps = [
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_node_value_cc",
+    hdrs = ["internal/hamt_node_value.h"],
+    deps = [
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_contract_cc",
+    hdrs = ["internal/hamt_contract.h"],
+)
+
+cc_library(
+    name = "hamt_node_iterator_cc",
+    hdrs = ["internal/hamt_node_iterator.h"],
+)
+
+cc_test(
+    name = "hamt_node_iterator_test",
+    size = "small",
+    srcs = ["internal/hamt_node_iterator_test.cc"],
+    deps = [
+        ":hamt_iterator_cc",
+        ":hamt_node_iterator_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_value_test",
+    size = "small",
+    srcs = ["internal/hamt_node_value_test.cc"],
+    deps = [
+        ":hamt_node_value_cc",
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_key_of_cc",
+    hdrs = ["internal/hamt_key_of.h"],
+)
+
+cc_library(
+    name = "hamt_node_set_cc",
+    hdrs = ["hamt_node_set.h"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_node_iterator_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_node_map_cc",
+    hdrs = ["hamt_node_map.h"],
+    deps = [
+        ":hamt_contract_cc",
+        ":hamt_key_of_cc",
+        ":hamt_node_iterator_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_map_test",
+    size = "small",
+    srcs = ["hamt_node_map_test.cc"],
+    deps = [
+        ":hamt_contract_cc",
+        ":hamt_node_map_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_set_test",
+    size = "small",
+    srcs = ["hamt_node_set_test.cc"],
+    deps = [
+        ":hamt_node_set_cc",
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_node_key_of_cc",
+    hdrs = ["internal/hamt_node_key_of.h"],
+)
+
+cc_test(
+    name = "hamt_node_key_of_test",
+    size = "small",
+    srcs = ["internal/hamt_node_key_of_test.cc"],
+    deps = [
+        ":hamt_key_of_cc",
+        ":hamt_node_key_of_cc",
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_source_domain_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_key_of_test",
+    size = "small",
+    srcs = ["internal/hamt_key_of_test.cc"],
+    deps = [
+        ":hamt_key_of_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_owned_tree_test",
+    size = "small",
+    srcs = ["internal/hamt_owned_tree_test.cc"],
+    deps = [
+        ":hamt_node_value_cc",
+        ":hamt_options_cc",
+        ":hamt_owned_tree_cc",
+        ":hamt_tree_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_source_domain_test",
+    size = "small",
+    srcs = ["internal/hamt_source_domain_test.cc"],
+    deps = [
+        ":hamt_source_domain_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_tree_cc",
+    hdrs = ["internal/hamt_tree.h"],
+    deps = [
+        ":hamt_clone_cc",
+        ":hamt_erase_cc",
+        ":hamt_insert_cc",
+        ":hamt_iterator_cc",
+        ":hamt_lookup_cc",
+        ":hamt_options_cc",
+        ":hamt_replace_cc",
+        ":hamt_root_owner_cc",
+        ":hamt_update_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_tree_test",
+    size = "small",
+    srcs = ["internal/hamt_tree_test.cc"],
+    deps = [
+        ":hamt_tree_cc",
+        ":hamt_update_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_update_cc",
+    hdrs = ["internal/hamt_update.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_lookup_cc",
+        ":hamt_replace_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_root_owner_test",
+    size = "small",
+    srcs = ["internal/hamt_root_owner_test.cc"],
+    deps = [
+        ":hamt_root_owner_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_replace_test",
+    size = "small",
+    srcs = ["internal/hamt_replace_test.cc"],
+    deps = [
+        ":hamt_insert_cc",
+        ":hamt_replace_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_clone_test",
+    size = "small",
+    srcs = ["internal/hamt_clone_test.cc"],
+    deps = [
+        ":hamt_clone_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_iterator_test",
+    size = "small",
+    srcs = ["internal/hamt_iterator_test.cc"],
+    deps = [
+        ":hamt_insert_cc",
+        ":hamt_iterator_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_insert_cc",
+    hdrs = ["internal/hamt_insert.h"],
+    deps = [
+        ":hamt_branch_build_cc",
+        ":hamt_hash_path_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_library(
+    name = "hamt_erase_cc",
+    hdrs = ["internal/hamt_erase.h"],
+    deps = [
+        ":hamt_hash_path_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_erase_test",
+    size = "small",
+    srcs = ["internal/hamt_erase_test.cc"],
+    deps = [
+        ":hamt_erase_cc",
+        ":hamt_insert_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_insert_test",
+    size = "small",
+    srcs = ["internal/hamt_insert_test.cc"],
+    deps = [
+        ":hamt_insert_cc",
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_lookup_test",
+    size = "small",
+    srcs = ["internal/hamt_lookup_test.cc"],
+    deps = [
+        ":hamt_lookup_cc",
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_merge_path_cc",
+    hdrs = ["internal/hamt_merge_path.h"],
+    deps = [":hamt_hash_path_cc"],
+)
+
+cc_test(
+    name = "hamt_merge_path_test",
+    size = "small",
+    srcs = ["internal/hamt_merge_path_test.cc"],
+    deps = [
+        ":hamt_merge_path_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_node_index_cc",
+    hdrs = ["internal/hamt_node_index.h"],
+    deps = [":hamt_bitmap_cc"],
+)
+
+cc_test(
+    name = "hamt_node_index_test",
+    size = "small",
+    srcs = ["internal/hamt_node_index_test.cc"],
+    deps = [
+        ":hamt_node_index_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_packed_node_layout_cc",
+    hdrs = ["internal/hamt_packed_node_layout.h"],
+)
+
+cc_test(
+    name = "hamt_packed_node_layout_test",
+    size = "small",
+    srcs = ["internal/hamt_packed_node_layout_test.cc"],
+    deps = [
+        ":hamt_packed_node_layout_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_packed_node_block_cc",
+    hdrs = ["internal/hamt_packed_node_block.h"],
+    deps = [
+        ":hamt_packed_node_layout_cc",
+        "//mbo/config:require_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_packed_node_block_test",
+    size = "small",
+    srcs = ["internal/hamt_packed_node_block_test.cc"],
+    deps = [
+        ":hamt_packed_node_block_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_shared_node_cc",
+    hdrs = ["internal/hamt_shared_node.h"],
+    deps = [
+        ":hamt_node_index_cc",
+        ":hamt_packed_node_layout_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_shared_node_test",
+    size = "small",
+    srcs = ["internal/hamt_shared_node_test.cc"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_node_collision_cc",
+    hdrs = ["internal/hamt_node_collision.h"],
+    deps = [
+        ":hamt_options_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "hamt_node_collision_test",
+    size = "small",
+    srcs = ["internal/hamt_node_collision_test.cc"],
+    deps = [
+        ":hamt_node_collision_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "any_scan_cc",
     hdrs = ["any_scan.h"],
     visibility = ["//visibility:public"],

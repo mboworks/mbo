@@ -27,6 +27,49 @@ interner's default composition. Their public contracts remain separate from this
 
 ## Core model
 
+[`ContainerStringIndex`](container_string_index.h) adapts standard/Abseil-style maps
+with string-view keys and ID mapped values. The default is `std::unordered_map`;
+tests also cover Abseil flat and node maps. Duplicate insertion preserves the old ID
+and avoids calling native `emplace`. Iterators remain internal; string-view keys borrow
+the interner's character store. Native container allocation and callable exceptions
+terminate through the `noexcept` boundary, rather than being caught or misreported as
+recoverable exhaustion. This adapter is therefore not an allocation-failure-recoverable
+backend; choose a compatible bounded index for that guarantee. Container types determine
+their own storage and stability guarantees, without forcing a shared implementation.
+
+The initial [`StringInterner`](string_interner.h) implementation composes configurable
+character storage, a dense entry sequence, and an index constrained by
+`StringInternerIndex`. It implements captured parent cutoffs, forward/reverse lookup,
+whole-chain bidirectional iteration yielding only string views, and staged insertion
+with entry/byte rollback when indexing fails. Declared empty parents retain their
+identity; a zero local starting ID does not imply a null parent. Index/storage member
+destruction order preserves borrowed character lifetimes.
+
+The implementation is still incomplete: diagnostics, stateful backend construction,
+extended bounded-failure tests, and performance tuning remain outstanding. Forward
+lookup currently recurses through ancestors, while reverse lookup iterates. These are
+initial algorithms, not benchmark-selected strategies.
+
+The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
+private and returns only optional IDs. `try_insert` returns true for insertion, false
+for a duplicate, and an empty optional for size or allocation exhaustion. A duplicate
+preserves the existing ID; failed insertion commits no entry. Hash collisions use
+byte-and-length equality, not hash identity. Its keys borrow character storage, which
+must outlive the index. The HAMT options and block-source type are configurable;
+source-domain control allocation remains outside the block budget. Persistent path
+copying is the initial insertion implementation, not a performance-selected default.
+
+The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
+ownership independently of the index. `try_store` copies exactly the view length,
+including embedded NUL bytes, without adding a terminator. Empty strings need no
+allocation. Exhaustion returns an empty optional; successful views remain stable
+until destruction or an explicit rewind that covers their allocation. The adapter
+is neither copyable nor movable and requires external synchronization. Its arena
+type is configurable. Checkpoints permit rollback of uncommitted bytes, not deletion
+of published strings. Unexpected arena exceptions terminate through the adapter's
+`noexcept` boundary; it does not convert exceptions into allocation-failure results.
+This is an initial implementation, not a benchmark-selected storage strategy.
+
 An interner consists conceptually of three independent facilities:
 
 1. stable character storage that owns the bytes behind returned `std::string_view` values;

@@ -530,6 +530,12 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+Insertion rewinds its character-storage checkpoint on every recoverable downstream failure,
+including a character backend returning failure after making an uncommitted allocation. Backends
+need not implement their own allocation rollback, but must leave the checkpoint valid and preserve
+all previously published views. A failed insertion publishes no ID, descriptor, or index entry;
+retained arena capacity may remain available for reuse.
+
 The HAMT index accepts stateful hash/equality objects directly. Its `try_create(hash, equal,
 source_args...)` factory also constructs non-default-constructible block sources, preserving their
 configuration across persistent index mutations. Node-allocation failure remains recoverable;

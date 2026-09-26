@@ -309,6 +309,7 @@ cc_library(
 cc_library(
     name = "hamt_node_map_cc",
     hdrs = ["hamt_node_map.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hamt_contract_cc",
         ":hamt_key_of_cc",

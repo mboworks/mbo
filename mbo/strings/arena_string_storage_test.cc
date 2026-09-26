@@ -19,7 +19,8 @@ struct ArenaStringStorageTest : ::testing::Test {};
 TEST_F(ArenaStringStorageTest, ArenaFactoryConstructsConfiguredStorageExactlyOnce) {
   using SmallArena = mbo::memory::Arena<
       mbo::memory::NewDeleteBlockSource,
-      mbo::memory::ArenaOptions{.initial_block_size = 256, .maximum_block_size = 1'024}>;
+      mbo::memory::ArenaOptions{
+          .initial_block_size = 256, .maximum_block_size = 1'024, .growth_numerator = 1, .growth_denominator = 1}>;
   int calls = 0;
   ArenaStringStorage<SmallArena> storage([&calls]() noexcept {
     ++calls;

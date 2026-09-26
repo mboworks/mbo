@@ -22,10 +22,26 @@ The design should make the efficient configuration easy while allowing users to 
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
 index should be usable when they satisfy the eventual concepts.
 
-`SegmentedSequence` and `Arena` are independent production components and prerequisites for the
-interner's default composition. Their public contracts remain separate from this design.
+`SegmentedSequence` and `Arena` are independent production components. Their public contracts
+remain separate from this design, as do concrete character-storage and string-container adapters.
 
 ## Core model
+
+The initial [`StringInterner`](string_interner.h) implementation composes a templated string
+container, configurable character storage, and a dense entry sequence. The core does not select or
+depend on a particular hash-table implementation. Its `StringInternerStringContainer` contract
+requires heterogeneous lookup by `std::string_view` and recoverable insertion; separate adapters
+can satisfy that contract for different container families.
+
+The interner implements captured parent cutoffs, forward/reverse lookup, whole-chain bidirectional
+iteration yielding only string views, and staged insertion with entry/byte rollback when indexing
+fails. Declared empty parents retain their identity; a zero local starting ID does not imply a null
+parent. Member destruction order preserves borrowed character lifetimes.
+
+The implementation is still incomplete: concrete adapters, extended bounded-failure tests,
+injected backend construction, and performance tuning remain outstanding. Forward lookup currently
+recurses through ancestors, while reverse lookup iterates. These are initial algorithms, not
+benchmark-selected strategies.
 
 An interner consists conceptually of three independent facilities:
 

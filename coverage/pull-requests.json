@@ -171,31 +171,31 @@
     "number": 512,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "b0cf91f0ab2bf18e3d26cc66b52739d567104879"
+    "merge_commit_sha": "e8049754c0076b78c280ce677d14375909c05310"
   },
   {
     "number": 511,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "80b3dae89a5758c0332f607000f9f5e6cd03183f"
+    "merge_commit_sha": "0c6697f151dfb479b3a0337133ad3b7a457760a4"
   },
   {
     "number": 510,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "96d2b968dd70c6fd785469dbdccbc22adc649de0"
+    "merge_commit_sha": "9543a0b169103cf484f6ddfa6a709150119e4968"
   },
   {
     "number": 509,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "3a4dfe516d40d433b83d83a061975e26fb405d6e"
+    "merge_commit_sha": "382d77d35514f2f678fa2d3daaba1b4d0b6cb46c"
   },
   {
     "number": 508,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "c618d36451ebf86ee2f33b4b8edbf545e05d442e"
+    "merge_commit_sha": "c749cb9c25dbf7a207bacc027f60ab20d97e1a98"
   },
   {
     "number": 507,

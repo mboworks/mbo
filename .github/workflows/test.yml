@@ -16,7 +16,6 @@
 name: Reusable Test Runner
 
 permissions:
-  actions: write
   contents: read
   # The coverage target fallback associates a commit with its pull request.
   pull-requests: read
@@ -72,19 +71,10 @@ jobs:
         # leaves them as LFS pointers, so materialize just those (each is small).
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
       - uses: bazel-contrib/setup-bazel@0.19.0
-        with:
-          bazelisk-cache: false
-          disk-cache: false
-          external-cache: false
-          repository-cache: false
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
-          # Ubuntu 24.04's standard repositories stop before GCC 15.
-          if [[ "${{inputs.gcc_version}}" -ge 15 ]]; then
-            sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-          fi
-          sudo apt-get install --yes gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
+          sudo apt install gcc-${{inputs.gcc_version}} g++-${{inputs.gcc_version}}
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{inputs.gcc_version}} 100 --slave /usr/bin/g++ g++ /usr/bin/g++-${{inputs.gcc_version}} --slave /usr/bin/gcov gcov /usr/bin/gcov-${{inputs.gcc_version}}
           sudo update-alternatives --set gcc /usr/bin/gcc-${{inputs.gcc_version}}
       - name: Install coverage report tooling
@@ -101,11 +91,16 @@ jobs:
       # extracted ~4 GB hermetic LLVM, which crowded the 10 GB repo limit for no
       # benefit (LLVM re-downloads quickly, and the symbolizer wrapper resolves via
       # runfiles so a fresh fetch location is fine). Ported from mboworks/xff #409+#411.
-      - uses: ./.github/actions/bazel-cache-restore
+      - name: Restore Bazel ${{inputs.bazel_config}} disk cache
+        uses: actions/cache/restore@v6
         id: cache_restore
         with:
-          namespace: ${{ env.CACHE_KEY_PREFIX }}
-          legacy-prefix: ${{ env.CACHE_KEY_PREFIX }}-refs/heads/main
+          path: "~/.cache/bazel_disk-cache"
+          key: ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}-${{github.sha}}
+          restore-keys: |
+            ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}
+            ${{env.CACHE_KEY_PREFIX}}-refs/heads/main
+            ${{env.CACHE_KEY_PREFIX}}
       - name: Verify Xcode & SDK
         if: runner.os == 'macOS'
         run: |
@@ -144,7 +139,6 @@ jobs:
           declare -a BAZEL_ARGS=()
           CACHE_ROOT=~/.cache
           BAZEL_INIT+=("--output_user_root=${CACHE_ROOT}/bazel")
-          echo "BAZEL_OUTPUT_USER_ROOT=${CACHE_ROOT}/bazel" >>"${GITHUB_ENV}"
           BAZEL_ARGS+=("--repository_cache=${CACHE_ROOT}/bazel_repo-cache")
           BAZEL_ARGS+=("--disk_cache=${CACHE_ROOT}/bazel_disk-cache")
           EXPECT=""
@@ -156,14 +150,14 @@ jobs:
             # `--config=clang` selects the hermetic toolchains_llvm toolchain via
             # Bazel toolchain resolution (`--extra_toolchains`), independent of
             # CC/CXX (those only feed the unused `@local_config_cc` fallback). The
-            # `EXPECT="Compiler: Clang"` assertion in "Show compiler" then verifies the
+            # `EXPECT="Clang:"` assertion in "Show compiler" then verifies the
             # actually-selected compiler, which is a stronger guarantee than the
             # old blind `unset`. (Note: $GITHUB_ENV cannot truly unset a variable
             # anyway -- it can only set it empty, and an empty `CC=` can confuse
             # `@local_config_cc` autoconfig, so clearing it that way would be
             # worse than leaving it absent.)
             BAZEL_ARGS+=("--config=clang")
-            EXPECT="Compiler: Clang"
+            EXPECT="Clang:"
             if [ -r "bazelmod/llvm.${{inputs.llvm_version}}.MODULE.bazel" ]; then
               cp "bazelmod/llvm.${{inputs.llvm_version}}.MODULE.bazel" bazelmod/llvm.MODULE.bazel
             elif [ -n "${{inputs.llvm_version}}" ]; then
@@ -174,7 +168,7 @@ jobs:
           elif [ "${{inputs.compiler}}" == "gcc" ]; then
             echo "CC=/usr/bin/gcc" >> "${GITHUB_ENV}"
             echo "CXX=/usr/bin/g++" >> "${GITHUB_ENV}"
-            EXPECT="Compiler: GCC"
+            EXPECT="GCC:"
           elif [ "${{inputs.compiler}}" == "native" ]; then
             # Use whatever is found!
             if [ -n "${CC:-}" ] && [ -x "$(which gcc)" ]; then
@@ -191,6 +185,9 @@ jobs:
             BAZEL_ARGS+=("-c" "dbg" "--config=asan")
             if [ "${{inputs.compiler}}" == "gcc" ]; then
               BAZEL_ARGS+=("--config=asan-gcc")
+            fi
+            if [ "${RUNNER_OS}" == "macOS" ] && [ "${{inputs.compiler}}" == "clang" ]; then
+              BAZEL_ARGS+=("--config=asan-macos")
             fi
           elif [ "${{inputs.bazel_config}}" == "coverage" ]; then
             BAZEL_ARGS+=("-c" "dbg")
@@ -296,13 +293,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} \
-            --profile="${RUNNER_TEMP}/coverage-preparation.json.gz" \
-            --experimental_profile_additional_tasks=repository_fetch \
-            --experimental_profile_additional_tasks=starlark_repository_fn \
-            --experimental_profile_additional_tasks=starlark_builtin_fn \
-            --experimental_profile_additional_tasks=fetch \
-            //... \
+          bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} //... \
             --combined_report=lcov \
             --instrumentation_filter='^//mbo/.*' \
             --test_tag_filters=-lfs,-fuzz-test,-no-coverage
@@ -313,18 +304,13 @@ jobs:
           # supported exception policy and merge their observations into the
           # exception-free library's primary report.
           bazel ${BAZEL_INIT} coverage ${BAZEL_ARGS} \
-            --profile="${RUNNER_TEMP}/coverage-exceptions-preparation.json.gz" \
-            --experimental_profile_additional_tasks=repository_fetch \
-            --experimental_profile_additional_tasks=starlark_repository_fn \
-            --experimental_profile_additional_tasks=starlark_builtin_fn \
-            --experimental_profile_additional_tasks=fetch \
             --//mbo/config:require_throws=true \
             //mbo/container:limited_map_require_exceptions_test \
             //mbo/container:segmented_sequence_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
-            //mbo/memory:arena_exceptions_test \
+            //mbo/strings:string_interner_require_exceptions_test \
             --combined_report=lcov \
-            --instrumentation_filter='^//mbo/(container|json|memory)[/:].*'
+            --instrumentation_filter='^//mbo/(container|json|strings)[/:].*'
           cp "$(bazel ${BAZEL_INIT} info output_path)/_coverage/_coverage_report.dat" coverage-exceptions.lcov
           # Apply the source-owned normalization before LCOV reads and combines
           # GCC's repeated template records. This retains LCOV's integrity
@@ -360,8 +346,8 @@ jobs:
             --policy coverage_policy.json \
             --source-root coverage-source-tree
           python3 tools/coverage_lcovrc.py coverage_policy.json coverage.lcovrc
-          # LLVM can mark a hit line whose branches remain unevaluated, and GCC's
-          # coverage data cannot provide function-end exclusions. LCOV 2.5 classifies these as
+          # LLVM can mark a hit line whose branches remain unevaluated, and GCC 14
+          # cannot provide function-end exclusions. LCOV 2.5 classifies these as
           # inconsistent/corrupt and unsupported; repeated categories also suppress
           # their expected warning summaries.
           genhtml coverage-html.lcov \
@@ -410,15 +396,6 @@ jobs:
             cat coverage-summary.md
           } >>"${GITHUB_STEP_SUMMARY}"
 
-      - name: Preserve coverage preparation profiles
-        uses: actions/upload-artifact@v7
-        if: always() && inputs.bazel_config == 'coverage'
-        with:
-          name: coverage-preparation-profile
-          path: ${{ runner.temp }}/coverage*-preparation.json.gz
-          retention-days: 7
-          if-no-files-found: warn
-
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
         if: always() && inputs.bazel_config == 'coverage'
@@ -432,9 +409,27 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - uses: ./.github/actions/bazel-cache-save
-        if: "!cancelled() && github.ref == 'refs/heads/main'"
-        timeout-minutes: 20
+      - name: Check Bazel ${{inputs.bazel_config}} disk cache size
+        if: ${{!startsWith(github.ref, 'refs/tags/')}}
+        id: cache_size
+        run: |
+          cache_path="${HOME}/.cache/bazel_disk-cache"
+          cache_size_kib=0
+          if [[ -d "${cache_path}" ]]; then
+            cache_size_kib="$(du -sk "${cache_path}" | awk '{print $1}')"
+          fi
+          echo "Bazel disk cache: ${cache_size_kib} KiB (limit: 512000 KiB)"
+          if (( cache_size_kib >= 500 * 1024 )); then
+            echo "::warning::Not saving Bazel disk cache at or above the 500 MiB limit."
+            echo "save=false" >>"${GITHUB_OUTPUT}"
+          else
+            echo "save=true" >>"${GITHUB_OUTPUT}"
+          fi
+
+      - name: Save Bazel ${{inputs.bazel_config}} disk cache
+        uses: actions/cache/save@v6
+        if: ${{!startsWith(github.ref, 'refs/tags/') && steps.cache_size.outputs.save == 'true'}}
+        id: cache_save
         with:
-          key: ${{ steps.cache_restore.outputs.key }}
-          output-user-root: ${{ env.BAZEL_OUTPUT_USER_ROOT }}
+          path: "~/.cache/bazel_disk-cache"
+          key: ${{env.CACHE_KEY_PREFIX}}-${{github.ref}}-${{github.sha}}

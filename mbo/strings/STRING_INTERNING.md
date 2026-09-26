@@ -530,6 +530,11 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+Both HAMT string-index aliases expose `try_create_in(control_source, hash, equal, node_source_args...)`
+for bounded control-block storage. The control source must outlive every index snapshot and the
+interner that owns it. Node-source and control-source budgets are independent; supplying only an
+inline node source does not eliminate the ordinary factory's global-heap control allocation.
+
 `HamtNodeStringIndex` selects node-owned index payloads while reusing the flat index adapter's
 lookup, duplicate, failure, and source-configuration implementation. The payload owns a string-view
 descriptor and ID, not the characters; string storage must still outlive the index and its snapshots.

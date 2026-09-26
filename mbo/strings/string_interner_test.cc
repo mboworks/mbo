@@ -20,14 +20,22 @@ struct StringInternerTest : ::testing::Test {};
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
 
 TEST_F(StringInternerTest, CharacterAndEntryExhaustionLeavePublishedStringsUnchanged) {
-  using EmptyStorage = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<1>>>;
+  constexpr mbo::memory::ArenaOptions kEmptyArenaOptions{
+      .initial_block_size = 16,
+      .maximum_block_size = 16,
+      .growth_numerator = 1,
+      .growth_denominator = 1,
+  };
+  using EmptyStorage =
+      ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<1>, kEmptyArenaOptions>>;
   StringInterner<std::uint32_t, EmptyStorage> bounded;
   EXPECT_THAT(bounded.intern("x"), VariantWith<StringInternError>(StringInternError::kCharacterStorageExhausted));
   EXPECT_THAT(bounded.size(), Eq(0));
   EXPECT_THAT(bounded.intern("").index(), Eq(0));
   EXPECT_THAT(bounded.get(StringId<>(0)), Optional(std::string_view{}));
   using Entries = mbo::container::SegmentedSequence<
-      std::string_view, mbo::container::SegmentedSequenceOptions{.segment_capacities = {1}, .maximum_size = 1}>;
+      std::string_view,
+      mbo::container::SegmentedSequenceOptions{.segment_size = 1, .segment_capacity = 1, .segment_reservation = 1}>;
   StringInterner<std::uint32_t, ArenaStringStorage<>, Entries> one;
   EXPECT_THAT(one.intern("first").index(), Eq(0));
   const auto original = one.get(StringId<>(0)).value_or(std::string_view{});

@@ -423,7 +423,7 @@ int main(int argc, char** argv) {
   benchmark::AddCustomContext("component", "StringInterner");
   benchmark::AddCustomContext("hash", "DefaultHasher/64-bit; Fold32 profiles XOR-fold the same 64-bit hash");
   benchmark::AddCustomContext("id_bits", "per-benchmark id_bits counter");
-  benchmark::AddCustomContext("cxx_standard", "c++20");
+  benchmark::AddCustomContext("cxx_standard", "c++23");
 #if defined(__clang__)
   benchmark::AddCustomContext("compiler_version", __clang_version__);
 #elif defined(__GNUC__)

@@ -20,7 +20,8 @@ class BenchmarkReportTest(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         fixture.raw["benchmarks"] = [
-            {"name": "Example", "cpu_time": index + 1, "time_unit": "us",
+            {"name": "Example", "run_name": "Example", "run_type": "iteration",
+             "cpu_time": index + 1, "real_time": index + 1, "time_unit": "us",
              "iterations": 10, "repetition_index": index}
             for index in range(9)
         ]
@@ -82,6 +83,7 @@ class BenchmarkReportTest(unittest.TestCase):
     def test_even_sample_median_does_not_overflow(self):
         rows = self.data["google_benchmark"]["benchmarks"]
         rows.append(dict(rows[0], repetition_index=9))
+        self.data["controls"]["repetitions"] = 10
         for row in rows:
             row.update(cpu_time=1e308, time_unit="ns")
         self.rehash()

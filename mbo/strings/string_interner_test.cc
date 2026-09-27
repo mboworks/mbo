@@ -88,6 +88,48 @@ struct UnmeasuredStorage final {
   ArenaStringStorage<> storage;
 };
 
+struct FailAfterCopyStorage final {
+  // These names intentionally implement StringInternerStorage's STL-style protocol.
+  using checkpoint_type = ArenaStringStorage<>::checkpoint_type;  // NOLINT(readability-identifier-naming)
+
+  std::optional<std::string_view> try_store(  // NOLINT(readability-identifier-naming)
+      std::string_view text) noexcept {
+    const auto stored = storage.try_store(text);
+    if (fail_next) {
+      fail_next = false;
+      return std::nullopt;
+    }
+    return stored;
+  }
+
+  checkpoint_type checkpoint() const noexcept {  // NOLINT(readability-identifier-naming)
+    return storage.checkpoint();
+  }
+
+  void rewind(const checkpoint_type& checkpoint) noexcept {  // NOLINT(readability-identifier-naming)
+    storage.rewind(checkpoint);
+  }
+
+  std::size_t bytes_used() const noexcept {  // NOLINT(readability-identifier-naming)
+    return storage.bytes_used();
+  }
+
+  ArenaStringStorage<> storage;
+  bool fail_next = true;
+};
+
+TEST_F(StringInternerTest, CharacterFailureRewindsUncommittedBytesBeforeRetry) {
+  StringInterner<std::uint32_t, FailAfterCopyStorage> interner;
+  EXPECT_THAT(
+      interner.intern("uncommitted"), VariantWith<StringInternError>(StringInternError::kCharacterStorageExhausted));
+  EXPECT_THAT(interner.local_character_bytes_used(), Optional(0));
+  EXPECT_THAT(interner.size(), Eq(0));
+  EXPECT_THAT(interner.find("uncommitted").has_value(), Eq(false));
+  EXPECT_THAT(interner.intern("retry").index(), Eq(0));
+  EXPECT_THAT(interner.local_character_bytes_used(), Optional(5));
+  EXPECT_THAT(interner.get(StringId<>(0)), Optional(std::string_view("retry")));
+}
+
 TEST_F(StringInternerTest, UnsupportedStorageStatisticsAreUnknownRatherThanZero) {
   StringInterner<std::uint32_t, UnmeasuredStorage> interner;
   EXPECT_THAT(interner.local_character_bytes_used().has_value(), Eq(false));

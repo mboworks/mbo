@@ -555,6 +555,22 @@ TEST_F(SegmentedSequenceTest, FiniteDirectoryIgnoresReservationWithoutAllocation
   EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(0));
 }
 
+TEST_F(SegmentedSequenceTest, LargerFiniteDirectoryReservesThroughItsMaximum) {
+  constexpr SegmentedSequenceOptions kLargeFinite{
+      .segment_size = 1,
+      .segment_capacity = 128,
+      .segment_reservation = 1,
+  };
+  using Sequence = SegmentedSequence<int, kLargeFinite>;
+  static_assert(!Sequence::has_bounded_directory());
+  Sequence sequence;
+
+  sequence.reserve(128);
+  EXPECT_THAT(sequence.segment_count(), Eq(128));
+  EXPECT_THAT(sequence.capacity(), Eq(128));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(128 * sizeof(void*)));
+}
+
 TEST_F(SegmentedSequenceTest, GrowthPreservesAddresses) {
   IntSequence sequence;
   int& first = sequence.emplace_back(1);

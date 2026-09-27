@@ -78,6 +78,13 @@ must outlive the index. The HAMT options and block-source type are configurable;
 source-domain control allocation remains outside the block budget. Persistent path
 copying is the initial insertion implementation, not a performance-selected default.
 
+For a stateful hash or equality function, construct `HamtStringIndex` with the desired
+objects; the block source must then be nothrow default-constructible. To supply a
+non-default block source, call `HamtStringIndex::try_create(hash, equal, source_args...)`
+with arguments that nothrow-construct the source. It returns `std::nullopt` if the
+underlying HAMT cannot be constructed. Later node-allocation failure still reports an
+empty `try_insert` result and does not publish an entry.
+
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,
 including embedded NUL bytes, without adding a terminator. Empty strings need no

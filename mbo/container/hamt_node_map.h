@@ -119,7 +119,7 @@ class HamtNodeMap final {
 
   template<typename LookupKey, typename Editor>
   requires(
-      std::is_nothrow_invocable_v<const Editor&, Mapped&>
+      std::is_nothrow_copy_constructible_v<value_type> && std::is_nothrow_invocable_v<const Editor&, Mapped&>
       && std::same_as<std::invoke_result_t<const Editor&, Mapped&>, void>
       && requires(Tree& tree, const LookupKey& key) { tree.Find(key); })
   [[nodiscard]] mutation_result try_update(const LookupKey& key, const Editor& editor) const noexcept {
@@ -170,7 +170,8 @@ class HamtNodeMap final {
   }
 
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
-  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  requires(
+      std::is_nothrow_constructible_v<OtherSource, SourceArgs...> && std::is_nothrow_copy_constructible_v<value_type>)
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) const & noexcept {
     using Destination = HamtNodeMap<Key, Mapped, Hash, Equal, Options, OtherSource>;
     auto cloned = Destination::try_create(hash_function(), key_eq(), std::forward<SourceArgs>(source_args)...);
@@ -186,7 +187,8 @@ class HamtNodeMap final {
   }
 
   template<mbo::memory::BlockSource OtherSource, typename... SourceArgs>
-  requires std::is_nothrow_constructible_v<OtherSource, SourceArgs...>
+  requires(
+      std::is_nothrow_constructible_v<OtherSource, SourceArgs...> && std::is_nothrow_copy_constructible_v<value_type>)
   [[nodiscard]] auto try_clone_to(SourceArgs&&... source_args) && noexcept {
     auto cloned = std::as_const(*this).template try_clone_to<OtherSource>(std::forward<SourceArgs>(source_args)...);
     if (cloned) {
@@ -439,7 +441,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   template<typename LookupKey, typename Editor>
   requires(
-      std::is_nothrow_invocable_v<const Editor&, Mapped&>
+      std::is_nothrow_copy_constructible_v<value_type> && std::is_nothrow_invocable_v<const Editor&, Mapped&>
       && std::same_as<std::invoke_result_t<const Editor&, Mapped&>, void>
       && requires(Tree& tree, const LookupKey& key) { tree.Find(key); })
   [[nodiscard]] update_result try_update(const LookupKey& key, const Editor& editor) noexcept {

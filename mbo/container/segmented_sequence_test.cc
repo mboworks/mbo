@@ -44,6 +44,11 @@ constexpr SegmentedSequenceOptions kSmallSegments{
     .segment_reservation = 8,
 };
 
+constexpr SegmentedSequenceOptions kDynamicSmallSegments{
+    .segment_size = 2,
+    .segment_reservation = 8,
+};
+
 using IntSequence = SegmentedSequence<int, kSmallSegments>;
 
 // NOLINTBEGIN(readability-identifier-naming): test double models BlockSource spelling.
@@ -476,13 +481,13 @@ TEST_F(SegmentedSequenceTest, GrowsAcrossFixedCapacitySegments) {
   EXPECT_THAT(sequence.at(8), Eq(8));
 }
 
-TEST_F(SegmentedSequenceTest, ReservationEqualToCapacityAvoidsDirectoryGrowth) {
+TEST_F(SegmentedSequenceTest, FiniteDirectoryUsesInlineSlotsWithoutAllocation) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
   using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   DirectoryAllocationState state;
   Sequence sequence(std::allocator_arg, Allocator(&state, 1));
-  ASSERT_THAT(state.request_counts[1], Eq(1));
-  EXPECT_THAT(state.requested_sizes[1][0], Eq(8));
+  static_assert(Sequence::has_bounded_directory());
+  ASSERT_THAT(state.request_counts[1], Eq(0));
 
   for (int value = 0; value < 11; ++value) {
     sequence.push_back(value);
@@ -490,7 +495,9 @@ TEST_F(SegmentedSequenceTest, ReservationEqualToCapacityAvoidsDirectoryGrowth) {
 
   EXPECT_THAT(sequence, SizeIs(11));
   EXPECT_THAT(sequence.segment_count(), Eq(6));
-  EXPECT_THAT(state.request_counts[1], Eq(1));
+  EXPECT_THAT(state.request_counts[1], Eq(0));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(0));
+  EXPECT_THAT(sequence.segment_directory_bytes_reserved(), Eq(8 * sizeof(void*)));
 }
 
 TEST_F(SegmentedSequenceTest, UnboundedDirectoryGrowthRequestsPowerOfTwoThresholds) {
@@ -529,7 +536,7 @@ TEST_F(SegmentedSequenceTest, DefaultDirectoryReservationRequestsOneSlot) {
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedSequenceTest, IntermediateReservationGrowsAtNextPowerOfTwoThreshold) {
+TEST_F(SegmentedSequenceTest, FiniteDirectoryIgnoresReservationWithoutAllocation) {
   constexpr SegmentedSequenceOptions kReservedTwo{
       .segment_size = 2,
       .segment_capacity = 8,
@@ -544,9 +551,24 @@ TEST_F(SegmentedSequenceTest, IntermediateReservationGrowsAtNextPowerOfTwoThresh
     sequence.push_back(value);
   }
 
-  ASSERT_THAT(state.request_counts[1], Eq(2));
-  EXPECT_THAT(state.requested_sizes[1][0], Eq(2));
-  EXPECT_THAT(state.requested_sizes[1][1], Eq(4));
+  ASSERT_THAT(state.request_counts[1], Eq(0));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(0));
+}
+
+TEST_F(SegmentedSequenceTest, LargerFiniteDirectoryReservesThroughItsMaximum) {
+  constexpr SegmentedSequenceOptions kLargeFinite{
+      .segment_size = 1,
+      .segment_capacity = 128,
+      .segment_reservation = 1,
+  };
+  using Sequence = SegmentedSequence<int, kLargeFinite>;
+  static_assert(!Sequence::has_bounded_directory());
+  Sequence sequence;
+
+  sequence.reserve(128);
+  EXPECT_THAT(sequence.segment_count(), Eq(128));
+  EXPECT_THAT(sequence.capacity(), Eq(128));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(128 * sizeof(void*)));
 }
 
 TEST_F(SegmentedSequenceTest, GrowthPreservesAddresses) {
@@ -644,7 +666,7 @@ TEST_F(SegmentedSequenceTest, CopyOwnsIndependentElements) {
 
 TEST_F(SegmentedSequenceTest, CopySelectsDirectoryAllocatorThroughAllocatorTraits) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  using Sequence = SegmentedSequence<int, kDynamicSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   static_assert(std::uses_allocator_v<Sequence, Allocator>);
   DirectoryAllocationState state;
   Sequence source(std::allocator_arg, Allocator(&state, 1));
@@ -660,7 +682,7 @@ TEST_F(SegmentedSequenceTest, CopySelectsDirectoryAllocatorThroughAllocatorTrait
 
 TEST_F(SegmentedSequenceTest, AllocatorExtendedCopyUsesRequestedDirectoryAllocator) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  using Sequence = SegmentedSequence<int, kDynamicSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   DirectoryAllocationState state;
   Sequence source(std::allocator_arg, Allocator(&state, 1));
   source.push_back(1);
@@ -690,7 +712,7 @@ TEST_F(SegmentedSequenceTest, MoveTransfersElementAddresses) {
 
 TEST_F(SegmentedSequenceTest, MoveAssignmentPreservesUnequalNonpropagatingDirectoryAllocators) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  using Sequence = SegmentedSequence<int, kDynamicSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   static_assert(std::is_move_assignable_v<Sequence>);
   static_assert(!std::is_nothrow_move_assignable_v<Sequence>);
   DirectoryAllocationState state;
@@ -724,7 +746,7 @@ TEST_F(SegmentedSequenceTest, SelfMoveAssignmentPreservesElementsAndAddresses) {
 
 TEST_F(SegmentedSequenceTest, MoveAssignmentTransfersWhenDirectoryAllocatorsCompareEqual) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  using Sequence = SegmentedSequence<int, kDynamicSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   DirectoryAllocationState state;
   Sequence destination(std::allocator_arg, Allocator(&state, 1));
   destination.push_back(9);
@@ -763,7 +785,7 @@ TEST_F(SegmentedSequenceTest, UnequalMoveAssignmentGrowsReplacementDirectoryBeyo
 
 TEST_F(SegmentedSequenceTest, SwapPreservesUnequalNonpropagatingDirectoryAllocators) {
   using Allocator = StatefulDirectoryAllocator<std::byte>;
-  using Sequence = SegmentedSequence<int, kSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
+  using Sequence = SegmentedSequence<int, kDynamicSmallSegments, mbo::memory::NewDeleteBlockSource, Allocator>;
   static_assert(std::is_swappable_v<Sequence>);
   static_assert(!std::is_nothrow_swappable_v<Sequence>);
   DirectoryAllocationState state;
@@ -1122,6 +1144,7 @@ TEST_F(SegmentedSequenceTest, TryAppendReportsFixedSourceExhaustionWithoutMutati
       .segment_capacity = 2,
   };
   using FixedSequence = SegmentedSequence<int, kFixedOptions, mbo::memory::FixedBlockSource>;
+  static_assert(FixedSequence::has_bounded_directory());
   FixedSequence sequence(mbo::memory::FixedBlockSource(std::span<std::byte>(storage), 128));
 
   const auto first = sequence.try_push_back(1);
@@ -1138,6 +1161,8 @@ TEST_F(SegmentedSequenceTest, TryAppendReportsFixedSourceExhaustionWithoutMutati
       Eq(std::addressof(sequence.back())));
   EXPECT_THAT(sequence.try_push_back(3), Eq(std::nullopt));
   EXPECT_THAT(sequence, ElementsAre(1, 2));
+  EXPECT_THAT(sequence.directory_bytes_reserved(), Eq(0));
+  EXPECT_THAT(sequence.segment_directory_bytes_reserved(), Eq(2 * sizeof(void*)));
 }
 
 TEST_F(SegmentedSequenceTest, DestructionCoversEveryConstructedElement) {

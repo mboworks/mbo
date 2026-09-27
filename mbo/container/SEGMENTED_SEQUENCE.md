@@ -61,25 +61,31 @@ segment in that block. Individual `T` lifetimes begin and end in inactive union 
 `construct_at` and `destroy_at`. Releasing a segment destroys its typed header before returning the
 original block to the source.
 
-The separate flat directory is `std::vector<Segment*>`. Its allocator is the fourth template
-parameter, `DirectoryAllocator`, rebound internally to `Segment*`. Consequently, ordinary segment
-growth is one source allocation except when the directory also crosses a reserve threshold. The
-three options make that behavior explicit:
+Finite configurations with `segment_capacity <= 64` keep their segment pointers inline, so
+directory growth makes no allocator call. `has_bounded_directory()` identifies this representation.
+The inline slots occupy `segment_capacity * sizeof(Segment*)` bytes in the sequence object;
+`segment_directory_bytes_reserved()` reports that footprint and `directory_bytes_reserved()` is
+zero. `segment_reservation` has no allocation effect in this representation.
+
+Other configurations use a flat `std::vector<Segment*>`. Its allocator is the fourth template
+parameter, `DirectoryAllocator`, rebound internally to `Segment*`. Their directory growth can
+allocate at reserve thresholds:
 
 - `segment_reservation == 0` keeps empty construction allocation-free.
 - The default reservation of one requests one pointer slot during construction, so default
   construction is potentially throwing.
-- `segment_reservation == segment_capacity` for a finite configuration requests the whole directory
-  once; every later segment growth then performs only its source allocation.
+- `segment_reservation == segment_capacity` for a larger finite configuration requests the whole
+  directory once; every later segment growth then performs only its source allocation.
 - Intermediate reservations grow with power-of-two requests up to the hard capacity. `std::vector`
   may reserve more than requested, so its reported capacity is not promised to equal a request.
 
-The element block source does not govern this directory. A fixed segment source alone is not a
-no-heap guarantee: directory allocation failure is recoverable with exceptions enabled, while
-standard allocator exhaustion terminates without them. An interner that requires strictly inline
-descriptors can use `LimitedVector<string_view, N>` instead of segment and directory allocations.
-`directory_bytes_reserved()` reports the flat pointer directory's current capacity in bytes,
-separately from `bytes_reserved()` for element segments.
+The element block source does not govern a dynamic directory. A fixed segment source alone is not a
+no-heap guarantee in that case: directory allocation failure is recoverable with exceptions
+enabled, while standard allocator exhaustion terminates without them. A small finite inline
+directory combined with a bounded multi-block source can avoid general allocator calls during
+growth. An interner that requires inline descriptors can also use `LimitedVector<string_view, N>`.
+For dynamic directories, `directory_bytes_reserved()` reports allocated pointer capacity separately
+from `bytes_reserved()` for element segments.
 
 The container is allocator-aware for its directory: it defines `allocator_type`, `get_allocator()`,
 and leading `allocator_arg_t` constructors. Copy construction applies
@@ -87,14 +93,16 @@ and leading `allocator_arg_t` constructors. Copy construction applies
 It is disabled for allocators that request `propagate_on_container_copy_assignment`, because changing
 the directory allocator independently of the block-owning source would not be transactional.
 Move assignment and swap preserve unequal non-propagating allocators by first building replacement
-pointer directories; they never invoke `vector::swap` with unequal non-propagating allocators.
+pointer directories; the inline representation needs no allocator allocation for these replacements.
+The dynamic representation never invokes `vector::swap` with unequal non-propagating allocators.
 Their participation and `noexcept` specifications also account for the `Source` operations.
 
 Segment storage and directory storage are independent choices. They can use different resources, or
 a `PmrBlockSource` and `pmr::polymorphic_allocator` can direct both to the same memory resource.
 `FixedBlockSource` and `InlineBlockSource` each permit one outstanding block, so they support
-bounded one-segment configurations unless a different multi-block source is supplied. The pointer
-directory still uses its configured allocator.
+bounded one-segment configurations unless a different multi-block source is supplied.
+`ArenaBlockSource` provides reusable size-class blocks from a caller-owned arena for multi-segment
+bounded configurations. Only dynamic pointer directories call their configured allocator.
 
 ## Constant evaluation
 
@@ -148,9 +156,12 @@ class SegmentedSequence {
   bool empty() const noexcept;
   size_type size() const noexcept;
   size_type capacity() const noexcept;
+  static constexpr bool has_bounded_directory() noexcept;
   size_type segment_count() const noexcept;
   size_type bytes_reserved() const noexcept;
   size_type directory_bytes_reserved() const noexcept;
+  // Available only when has_bounded_directory() is true.
+  size_type segment_directory_bytes_reserved() const noexcept;
 
   void reserve(size_type n);
   void resize(size_type n);

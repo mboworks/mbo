@@ -143,6 +143,14 @@ be caught. In the repository's normal exception-disabled mode they support hard 
 This is a compile-time API distinction: mbo does not label an operation “try” when the selected
 upstream API can terminate before returning failure.
 
+`ArenaBlockSource<ArenaType, Options>` adapts a caller-owned recoverable arena for consumers that
+hold multiple blocks at once, including HAMT nodes and segmented storage. It rounds requests into
+power-of-two size classes and keeps released blocks in exact-size free lists. Reuse does not advance
+the arena cursor; a new block returns failure if the arena is exhausted. The arena must outlive the
+adapter and all blocks it supplies. Configure the arena's source, block sizes, and growth ratio
+explicitly; `ArenaOptions{}` is invalid. A single-live-block `FixedBlockSource` is insufficient for
+multi-node HAMT storage without this adapter or another multi-block source.
+
 `ArenaOptions` defines the initial and maximum normal block sizes and a rational growth factor.
 It deliberately supplies no performance default: `ArenaOptions{}` is invalid, and every `Arena`
 specialization names both its block source and a fully specified options value. This keeps the

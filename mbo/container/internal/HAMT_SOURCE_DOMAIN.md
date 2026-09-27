@@ -10,9 +10,10 @@ outlive every clone or snapshot using that span.
 
 `TryCreate` requires nothrow source construction and reports control-block allocation
 failure with `std::nullopt`. It uses one global nothrow allocation, independently of
-the source's allocation budget. Consequently this candidate is not an allocation-free
-domain for caller-provided fixed storage; that adapter still needs implementation.
-No ownership metadata is added to individual HAMT nodes.
+the source's allocation budget. `TryCreateIn` instead places that control block in a
+separate caller-provided block source, enabling a fully bounded composition when both
+the control and node sources are bounded. The control source must outlive every domain
+handle. No ownership metadata is added to individual HAMT nodes.
 
 The atomic count protects handle ownership, not concurrent container mutation or
 source operations. Those still require external synchronization. Counter overflow
@@ -36,6 +37,7 @@ ownership without changing the original. The rvalue overload consumes only after
 successful cloning, leaving the original empty and reusable. Empty trees still
 need the destination control-block allocation, but allocate no destination nodes.
 
-Public map/set interfaces and performance comparisons remain outstanding. This
-internal candidate does not establish that shared domain ownership is the best
-representation for every storage configuration.
+The public flat and node map/set interfaces use this domain, including bounded
+control-source construction and independent cross-source cloning. Performance
+comparisons remain outstanding; this internal representation is not therefore
+declared best for every storage configuration.

@@ -24,6 +24,7 @@ using ::testing::Field;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
+using ::testing::Ne;
 using ::testing::NotNull;
 using ::testing::Optional;
 using ::testing::SizeIs;
@@ -764,6 +765,44 @@ TEST_F(HamtTreeTest, DifferentContainerRangesDoNotCompareEqualEvenWhenTheEntireR
   EXPECT_THAT(tree.find(1) == copied.find(1), IsFalse());
   auto last = copied.begin();
   EXPECT_THAT(++last, Eq(copied.end()));
+}
+
+TEST_F(HamtTreeTest, CopyInvalidatesBothPreviouslyProvenUniqueTrees) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  Tree snapshot = tree;
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(snapshot.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  source.remaining = 64;
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  auto result = tree.TryMutableFind(1);
+  auto* const position = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(position, NotNull());
+  ASSERT_THAT(*position, Ne(tree.end()));
+  (*position)->value = 99;
+  ASSERT_THAT(snapshot.Find(1), NotNull());
+  EXPECT_THAT(snapshot.Find(1)->value, Eq(10));
+  EXPECT_THAT(tree.Find(1)->value, Eq(99));
+}
+
+TEST_F(HamtTreeTest, MoveAndSwapKeepUniquenessProofAttachedToItsTree) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree shared = tree;
+  Tree private_tree(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(private_tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  EXPECT_THAT(private_tree.TryMakeUnique(), Eq(std::nullopt));
+  tree.swap(private_tree);
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  EXPECT_THAT(private_tree.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  Tree moved(std::move(tree));
+  EXPECT_THAT(moved.TryMakeUnique(), Eq(std::nullopt));
+  EXPECT_THAT(tree, IsEmpty());
+  shared = moved;
+  EXPECT_THAT(moved.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(shared.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(shared, ElementsAre(Entry{.key = 2, .value = 20}));
 }
 
 }  // namespace

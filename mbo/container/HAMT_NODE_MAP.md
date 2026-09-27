@@ -21,6 +21,15 @@ whole tree and all payloads before exposing a forward iterator. Iterator copies
 then traverse independently without lazy allocation during dereference. Keys
 remain const. Mutable iterators convert to const iterators, not conversely.
 
+Successful whole-tree payload preparation is remembered by the move-only transient.
+Repeated mutable lookup, iteration, and insertion do not repeat that payload walk.
+Failed partial preparation never establishes the proof. Moves and swaps keep the
+proof with its map; consuming publication leaves an empty reusable transient.
+A new transient created from a shared snapshot must establish its own proof.
+Structural mutation introduces only newly owned payload records, preserving a
+successful proof. The underlying tree separately caches node-ownership uniqueness;
+node uniqueness alone cannot prove payload uniqueness.
+
 Preparation may change topology or payload addresses even when a later allocation
 fails; logical values and existing snapshots remain unchanged. Do not retain
 editable references across publishing snapshots or subsequent ownership preparation.
@@ -31,14 +40,20 @@ domain, rather than accidentally retaining payloads allocated by the original so
 Failure destroys the partial destination; consuming clones empty the source only
 after success. Consuming `persistent` leaves a valid empty transient.
 
-This implementation is still under validation. Mutable traversal currently performs
-whole-tree preparation; this is not a benchmark-selected performance strategy.
+This implementation is still under validation. First mutable traversal of an
+unprepared transient can perform whole-tree preparation; subsequent preparation
+uses the retained proof. Performance decisions still require the complete benchmarks.
 The copying entry interfaces require nothrow key and mapped-value copies. Tests cover
 full-hash collisions, duplicate preservation, erasure, address stability, bounded
 insertion, size limits, consuming-clone failure, heterogeneous lookup, source lifetime,
 and all fragment widths from four to seven bits. Intermediate payload and topology
-allocation failures preserve snapshots and release temporary ownership. More complex
-multi-level allocation-failure combinations still need review. Source-domain control
-allocation remains separate
-from the supplied block-source budget. Benchmark comparisons follow the complete
-implementation stack; no fastest-container claim is made here.
+allocation failures preserve snapshots and release temporary ownership. Full-width
+shared-prefix persistent mapped updates, new-key insertions, and chain-collapsing
+erasures sweep every allocation boundary through success for fragment widths 4–7,
+checking temporary release balance, snapshot values, and unchanged sibling payload
+addresses. Mutable whole-tree preparation tests cover partial failure, retry, swap,
+move assignment, snapshot preservation, and proof-cache invalidation. These focused
+sweeps do not claim to enumerate every possible user topology. Source-domain control
+allocation remains separate from the supplied block-source budget. Benchmark
+comparisons follow the complete implementation stack; no fastest-container claim is
+made here.

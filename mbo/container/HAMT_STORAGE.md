@@ -386,10 +386,20 @@ It requires exclusive ownership of every node. `TryMutableBegin` first checks th
 ownership; shared trees are cloned before returning mutable references, and failed
 cloning preserves the original. Iterator copies remain multipass and advancement
 does not allocate or change the tree. Empty and already unique trees need no clone.
-The uniqueness scan is linear in the node count; this is a baseline candidate, not
-a benchmark-backed performance decision. Detachment invalidates prior references
+An unknown ownership state requires a linear scan in the node count. A successful
+proof is cached, so repeated preparation on the same unshared tree does not rescan
+its nodes. Snapshot copying invalidates the source and destination proofs; moves
+and swaps transfer the proof with its tree. Internal adoption starts unknown.
+Successful structural mutations preserve a proven unique tree because newly
+allocated nodes are private and superseded roots are released before return.
+Copying a logically const snapshot updates this cache and therefore also requires
+external synchronization. This does not add concurrent snapshot-copy support.
+The cache proves node ownership only, not separately shared element payloads.
+Node-map mutable preparation must additionally detach those payloads.
+Performance decisions remain provisional until the complete matrix is measured.
+Detachment invalidates prior references
 and iterators from the modified container, but not those from unchanged snapshots.
-Public mutable map-iterator integration remains outstanding.
+Public flat/node maps integrate mutable iterators with the same preparation contract.
 
 `TryMutableFind` uses the same whole-tree preparation for found keys so that
 advancing a returned iterator cannot expose shared descendants. Missing keys

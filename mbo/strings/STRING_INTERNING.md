@@ -108,7 +108,6 @@ it terminates with a diagnostic because it is a configuration/programming error,
 storage exhaustion. With a finite value, every parent walk and cached-iterator boundary transition
 has a compile-time upper bound without adding a depth field or branch to ordinary lookup loops.
 
-
 ## Core model
 
 `StringInterner(parent, storage_factory, entries_factory, index_factory)` directly
@@ -121,9 +120,10 @@ its anchored lifetime. Returning an already populated backend violates the inter
 ownership and dense-ID invariants; concepts verify types, not that semantic contract.
 
 Stateful index construction is supported by `StringInterner(parent, index_factory)`.
-The nothrow factory returns a fresh, empty index of the configured type; guaranteed
-copy elision initializes it without imposing index moveability. Storage and entry
-containers must be nothrow-default-constructible for this overload. A
+The factory returns a fresh, empty index of the configured type; guaranteed copy
+elision initializes it without imposing index moveability. This constructor is
+`noexcept` only when the factory and default storage and entry constructors are
+nothrow; otherwise their construction failures propagate. A
 `ContainerStringIndex` may take an rvalue native container when its move construction
 is nothrow, preserving allocator, hash, and equality state. When used to initialize
 an interner, that container must be empty: prepopulated index entries would have no
@@ -161,7 +161,8 @@ strategies.
 [`StringInternerMap<Mapped, Core, Values>`](string_interner_map.h) composes the set-like core with a
 parallel dense mapped-value sequence instead of duplicating string ownership, lookup, or cascade
 logic. Its default `Values` backend is `SegmentedSequence<Mapped>`; compatible bounded backends are
-accepted through the same append/pop contract. `try_emplace` checks the visible key first, appends a
+accepted through the same append/pop contract. Child construction permits a default value backend
+that reserves directory storage and propagates its construction failure. `try_emplace` checks the visible key first, appends a
 mapped object only for a new string, and removes that uncommitted object if character, descriptor, or
 index insertion fails. Mapped-storage exhaustion reports `kMappedStorageExhausted` and never
 publishes the string. A child exposes inherited mapped objects as const and preserves the captured

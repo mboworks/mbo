@@ -139,9 +139,13 @@ TEST_F(StringInternerMapTest, InvalidIteratorOperationsFailDebugContracts) {
 #endif
 
 TEST_F(StringInternerMapTest, EveryStorageLayerCanUseCallerOwnedBoundedMemory) {
-  constexpr mbo::container::SegmentedSequenceOptions kMappedSequenceOptions{
-      .segment_capacities = {5}, .repeat_last = false, .maximum_size = 5};
-  constexpr mbo::memory::ArenaOptions kArenaOptions{.initial_block_size = 512, .maximum_block_size = 512};
+  constexpr mbo::container::SegmentedSequenceOptions kMappedSequenceOptions{.segment_size = 8, .segment_capacity = 1};
+  constexpr mbo::memory::ArenaOptions kArenaOptions{
+      .initial_block_size = 512,
+      .maximum_block_size = 512,
+      .growth_numerator = 1,
+      .growth_denominator = 1,
+  };
   using CharacterArena = mbo::memory::Arena<mbo::memory::InlineBlockSource<1'024>, kArenaOptions>;
   using Storage = ArenaStringStorage<CharacterArena>;
   using Entries =

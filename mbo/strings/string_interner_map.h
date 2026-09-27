@@ -146,8 +146,9 @@ class StringInternerMap final {
   requires(std::default_initializable<Core> && std::default_initializable<Values>)
   = default;
 
-  explicit StringInternerMap(const StringInternerMap* parent) noexcept
-  requires(std::is_nothrow_constructible_v<Core, const Core*> && std::is_nothrow_default_constructible_v<Values>)
+  explicit StringInternerMap(const StringInternerMap* parent) noexcept(
+      std::is_nothrow_constructible_v<Core, const Core*> && std::is_nothrow_default_constructible_v<Values>)
+  requires(std::constructible_from<Core, const Core*> && std::default_initializable<Values>)
       : parent_(parent), core_(parent == nullptr ? nullptr : std::addressof(parent->core_)) {}
 
   template<typename CoreFactory, typename ValuesFactory>

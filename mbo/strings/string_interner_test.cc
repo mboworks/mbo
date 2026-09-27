@@ -288,7 +288,7 @@ TEST_F(StringInternerTest, StorageDiagnosticsCombineEveryLocalStorageLayer) {
   EXPECT_THAT(measured.live_descriptor_bytes, Eq(sizeof(std::string_view)));
   EXPECT_THAT(measured.descriptor_segment_bytes_reserved.has_value(), Eq(true));
   EXPECT_THAT(measured.descriptor_lookup_directory_bytes_reserved.has_value(), Eq(true));
-  EXPECT_THAT(measured.descriptor_segment_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.descriptor_segment_directory_bytes_reserved.has_value(), Eq(false));
   EXPECT_THAT(measured.index_nodes.has_value(), Eq(true));
   EXPECT_THAT(measured.index_entries, Optional(std::size_t{1}));
   EXPECT_THAT(measured.index_collision_nodes, Optional(std::size_t{0}));

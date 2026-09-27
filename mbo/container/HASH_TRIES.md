@@ -5,7 +5,7 @@ must not be conflated merely because their acronyms and use of hashes are simila
 
 HAMT is the implementation target. HART remains documented as a separate concurrency-oriented
 research option, but is not planned for implementation. Neither is a prerequisite for
-`SegmentedSequence` or the arena. HAMT becomes a string-interner dependency only if benchmarks show
+`SegmentedVector` or the arena. HAMT becomes a string-interner dependency only if benchmarks show
 that it is the best index for the representative workloads.
 
 ## Structures under consideration
@@ -69,7 +69,7 @@ and must justify its own speed and memory cost.
 | Fixed-segment directory         | Not applicable to shift/mask indexed lookup   | Not applicable to shift/mask indexed lookup    |
 | Deterministic ID iteration      | Requires a defined traversal                  | Requires a defined traversal or separate table |
 
-Neither known structure has a role in current `SegmentedSequence` index-to-segment location. Its
+Neither known structure has a role in current `SegmentedVector` index-to-segment location. Its
 uniform power-of-two segments use direct shift/mask mapping into a flat pointer directory; no range
 or predecessor query is involved.
 

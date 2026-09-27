@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MBO_CONTAINER_SEGMENTED_SEQUENCE_H_
-#define MBO_CONTAINER_SEGMENTED_SEQUENCE_H_
+#ifndef MBO_CONTAINER_SEGMENTED_VECTOR_H_
+#define MBO_CONTAINER_SEGMENTED_VECTOR_H_
 
 #include <array>
 #include <bit>
@@ -27,11 +27,11 @@
 
 namespace mbo::container {
 
-// NOLINTBEGIN(readability-identifier-naming): SegmentedSequence models the STL container interface.
+// NOLINTBEGIN(readability-identifier-naming): SegmentedVector models the STL container interface.
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access):
 // bounded internal storage and checked logical positions.
 
-struct SegmentedSequenceOptions final {
+struct SegmentedVectorOptions final {
   std::size_t segment_size = 256;
   // Maximum number of segment slots. SIZE_MAX selects unbounded directory growth.
   std::size_t segment_capacity = std::numeric_limits<std::size_t>::max();
@@ -46,17 +46,17 @@ struct SegmentedSequenceOptions final {
   }
 };
 
-template<SegmentedSequenceOptions Options>
-concept ValidSegmentedSequenceOptions = Options.IsValid();
+template<SegmentedVectorOptions Options>
+concept ValidSegmentedVectorOptions = Options.IsValid();
 
 template<typename T>
-concept SegmentedSequenceElement = std::is_object_v<T> && !std::is_array_v<T> && std::same_as<T, std::remove_cv_t<T>>
-                                   && requires { sizeof(T); } && std::destructible<T>;
+concept SegmentedVectorElement = std::is_object_v<T> && !std::is_array_v<T> && std::same_as<T, std::remove_cv_t<T>>
+                                 && requires { sizeof(T); } && std::destructible<T>;
 
 namespace container_internal {
 
-template<SegmentedSequenceElement T>
-constexpr std::size_t SegmentedSequenceRepresentationCapacityLimit() noexcept {
+template<SegmentedVectorElement T>
+constexpr std::size_t SegmentedVectorRepresentationCapacityLimit() noexcept {
   constexpr auto kDifferenceLimit = static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
   constexpr std::size_t kObjectLimit = std::numeric_limits<std::size_t>::max() / sizeof(T);
   return kDifferenceLimit < kObjectLimit ? kDifferenceLimit : kObjectLimit;
@@ -64,9 +64,9 @@ constexpr std::size_t SegmentedSequenceRepresentationCapacityLimit() noexcept {
 
 }  // namespace container_internal
 
-template<typename T, SegmentedSequenceOptions Options>
-concept RepresentableSegmentedSequenceOptions =
-    SegmentedSequenceElement<T> && ValidSegmentedSequenceOptions<Options>
+template<typename T, SegmentedVectorOptions Options>
+concept RepresentableSegmentedVectorOptions =
+    SegmentedVectorElement<T> && ValidSegmentedVectorOptions<Options>
     && Options.segment_size
            <= (static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max()) - sizeof(mbo::memory::MemoryBlock)
                - (2 * sizeof(std::size_t)) - (alignof(T) - 1)
@@ -75,17 +75,17 @@ concept RepresentableSegmentedSequenceOptions =
                   / sizeof(T)
     && (Options.segment_capacity == std::numeric_limits<std::size_t>::max()
         || Options.segment_capacity
-               <= container_internal::SegmentedSequenceRepresentationCapacityLimit<T>() / Options.segment_size)
+               <= container_internal::SegmentedVectorRepresentationCapacityLimit<T>() / Options.segment_size)
     && Options.segment_reservation
-           <= container_internal::SegmentedSequenceRepresentationCapacityLimit<T>() / Options.segment_size;
+           <= container_internal::SegmentedVectorRepresentationCapacityLimit<T>() / Options.segment_size;
 
 template<
-    SegmentedSequenceElement T,
-    SegmentedSequenceOptions Options = {},
+    SegmentedVectorElement T,
+    SegmentedVectorOptions Options = {},
     mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
     typename DirectoryAllocator = std::allocator<std::byte>>
-requires RepresentableSegmentedSequenceOptions<T, Options>
-class SegmentedSequence final {
+requires RepresentableSegmentedVectorOptions<T, Options>
+class SegmentedVector final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
   static constexpr bool kFiniteDirectory = Options.segment_capacity != std::numeric_limits<std::size_t>::max();
@@ -169,11 +169,11 @@ class SegmentedSequence final {
   template<bool IsConst>
   class Iterator final {
    private:
-    using Owner = std::conditional_t<IsConst, const SegmentedSequence, SegmentedSequence>;
+    using Owner = std::conditional_t<IsConst, const SegmentedVector, SegmentedVector>;
 
     template<bool>
     friend class Iterator;
-    friend class SegmentedSequence;
+    friend class SegmentedVector;
 
     constexpr Iterator(Owner* owner, std::size_t pos) noexcept : owner_(owner), pos_(pos) {}
 
@@ -350,7 +350,7 @@ class SegmentedSequence final {
       std::size_t pos_ = 0;
     };
 
-    friend class SegmentedSequence;
+    friend class SegmentedVector;
 
     constexpr explicit SegmentView(SegmentType* segment) noexcept : segment_(segment) {}
 
@@ -374,7 +374,7 @@ class SegmentedSequence final {
   template<bool IsConst>
   class SegmentRange final {
    private:
-    using Owner = std::conditional_t<IsConst, const SegmentedSequence, SegmentedSequence>;
+    using Owner = std::conditional_t<IsConst, const SegmentedVector, SegmentedVector>;
     using View = SegmentView<IsConst>;
 
     class SegmentIterator final {
@@ -408,7 +408,7 @@ class SegmentedSequence final {
       std::size_t pos_ = 0;
     };
 
-    friend class SegmentedSequence;
+    friend class SegmentedVector;
 
     constexpr SegmentRange(Owner* owner, std::size_t size) noexcept : owner_(owner), size_(size) {}
 
@@ -444,7 +444,7 @@ class SegmentedSequence final {
   using segment_range = SegmentRange<false>;
   using const_segment_range = SegmentRange<true>;
 
-  constexpr SegmentedSequence() noexcept(
+  constexpr SegmentedVector() noexcept(
       Options.segment_reservation == 0
       && std::is_nothrow_default_constructible_v<Source> && std::is_nothrow_default_constructible_v<Directory>)
   requires(std::default_initializable<Source> && std::default_initializable<Directory>) {
@@ -455,14 +455,14 @@ class SegmentedSequence final {
   requires(
       std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
       && std::default_initializable<Directory>)
-  constexpr explicit SegmentedSequence(SourceArg&& source) noexcept(
+  constexpr explicit SegmentedVector(SourceArg&& source) noexcept(
       Options.segment_reservation == 0
       && std::is_nothrow_constructible_v<Source, SourceArg&&> && std::is_nothrow_default_constructible_v<Directory>)
       : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
   }
 
-  constexpr explicit SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator) noexcept(
+  constexpr explicit SegmentedVector(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator) noexcept(
       Options.segment_reservation == 0 && std::is_nothrow_default_constructible_v<Source>
       && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
   requires(
@@ -474,7 +474,7 @@ class SegmentedSequence final {
   template<typename SourceArg>
   requires(std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-  constexpr SegmentedSequence(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, SourceArg&& source) noexcept(
+  constexpr SegmentedVector(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, SourceArg&& source) noexcept(
       Options.segment_reservation == 0 && std::is_nothrow_constructible_v<Source, SourceArg&&>
       && std::is_nothrow_constructible_v<SegmentPointerAllocator, const DirectoryAllocator&>)
       : source_(std::forward<SourceArg>(source)), segments_(SegmentPointerAllocator(directory_allocator)) {
@@ -483,7 +483,7 @@ class SegmentedSequence final {
 
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
   requires(std::default_initializable<Source> && std::constructible_from<T, std::iter_reference_t<Iterator>>)
-  constexpr SegmentedSequence(Iterator first, Sentinel last) {
+  constexpr SegmentedVector(Iterator first, Sentinel last) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {
@@ -501,7 +501,7 @@ class SegmentedSequence final {
   requires(
       std::constructible_from<T, std::iter_reference_t<Iterator>>
       && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
-  constexpr SegmentedSequence(Iterator first, Sentinel last, SourceArg&& source)
+  constexpr SegmentedVector(Iterator first, Sentinel last, SourceArg&& source)
       : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
 #if __cpp_exceptions
@@ -518,7 +518,7 @@ class SegmentedSequence final {
 
   template<std::ranges::input_range Range>
   requires(std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>)
-  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range) {
+  constexpr SegmentedVector(std::from_range_t /*from_range*/, Range&& range) {
     InitializeDirectory();
 #if __cpp_exceptions
     try {
@@ -536,7 +536,7 @@ class SegmentedSequence final {
   requires(
       std::constructible_from<T, std::ranges::range_reference_t<Range>>
       && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
-  constexpr SegmentedSequence(std::from_range_t /*from_range*/, Range&& range, SourceArg&& source)
+  constexpr SegmentedVector(std::from_range_t /*from_range*/, Range&& range, SourceArg&& source)
       : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
 #if __cpp_exceptions
@@ -555,7 +555,7 @@ class SegmentedSequence final {
   requires(
       std::default_initializable<Source> && std::constructible_from<T, std::iter_reference_t<Iterator>>
       && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       Iterator first,
@@ -578,7 +578,7 @@ class SegmentedSequence final {
   requires(std::constructible_from<T, std::iter_reference_t<Iterator>>
            && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       Iterator first,
@@ -602,7 +602,7 @@ class SegmentedSequence final {
   requires(
       std::default_initializable<Source> && std::constructible_from<T, std::ranges::range_reference_t<Range>>
       && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       std::from_range_t /*from_range*/,
@@ -625,7 +625,7 @@ class SegmentedSequence final {
   requires(std::constructible_from<T, std::ranges::range_reference_t<Range>>
            && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
       std::from_range_t /*from_range*/,
@@ -645,37 +645,37 @@ class SegmentedSequence final {
 #endif
   }
 
-  constexpr SegmentedSequence(const SegmentedSequence& other)
+  constexpr SegmentedVector(const SegmentedVector& other)
   requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
-      : SegmentedSequence(
+      : SegmentedVector(
             CopyWithAllocatorTag{},
             other,
             SegmentPointerAllocator(
                 DirectoryAllocatorTraits::select_on_container_copy_construction(
                     DirectoryAllocator(other.segments_.get_allocator())))) {}
 
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       std::allocator_arg_t /*unused*/,
       const DirectoryAllocator& directory_allocator,
-      const SegmentedSequence& other)
+      const SegmentedVector& other)
   requires(
       std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>
       && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
-      : SegmentedSequence(CopyWithAllocatorTag{}, other, SegmentPointerAllocator(directory_allocator)) {}
+      : SegmentedVector(CopyWithAllocatorTag{}, other, SegmentPointerAllocator(directory_allocator)) {}
 
-  constexpr SegmentedSequence& operator=(const SegmentedSequence& other)
+  constexpr SegmentedVector& operator=(const SegmentedVector& other)
   requires(
       std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>
       && !DirectoryAllocatorTraits::propagate_on_container_copy_assignment::value
       && std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     if (this != &other) {
-      SegmentedSequence copy(CopyWithAllocatorTag{}, other, segments_.get_allocator());
+      SegmentedVector copy(CopyWithAllocatorTag{}, other, segments_.get_allocator());
       swap(copy);
     }
     return *this;
   }
 
-  constexpr SegmentedSequence(SegmentedSequence&& other) noexcept
+  constexpr SegmentedVector(SegmentedVector&& other) noexcept
   requires(std::is_nothrow_move_constructible_v<Source> && std::is_nothrow_move_constructible_v<Directory>)
       : source_(std::move(other.source_)),
         segments_(std::move(other.segments_)),
@@ -686,7 +686,7 @@ class SegmentedSequence final {
     other.segments_.clear();
   }
 
-  constexpr SegmentedSequence& operator=(SegmentedSequence&& other) noexcept(
+  constexpr SegmentedVector& operator=(SegmentedVector&& other) noexcept(
       std::is_nothrow_move_assignable_v<Source> && std::is_nothrow_move_assignable_v<Directory>)
   requires(
       std::is_nothrow_move_assignable_v<Source> && std::is_move_assignable_v<Directory>
@@ -716,9 +716,9 @@ class SegmentedSequence final {
     return *this;
   }
 
-  constexpr ~SegmentedSequence() { release(); }
+  constexpr ~SegmentedVector() { release(); }
 
-  constexpr void swap(SegmentedSequence& other) noexcept(
+  constexpr void swap(SegmentedVector& other) noexcept(
       std::is_nothrow_swappable_v<Source> && kDirectorySwapAlwaysSafe && noexcept(segments_.swap(other.segments_)))
   requires(std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     using std::swap;
@@ -742,7 +742,7 @@ class SegmentedSequence final {
     swap(capacity_, other.capacity_);
   }
 
-  friend constexpr void swap(SegmentedSequence& lhs, SegmentedSequence& rhs) noexcept(noexcept(lhs.swap(rhs)))
+  friend constexpr void swap(SegmentedVector& lhs, SegmentedVector& rhs) noexcept(noexcept(lhs.swap(rhs)))
   requires requires { lhs.swap(rhs); } {
     lhs.swap(rhs);
   }
@@ -774,12 +774,12 @@ class SegmentedSequence final {
   constexpr const_reference operator[](size_type pos) const noexcept { return ElementAt(pos); }
 
   constexpr reference at(size_type pos) noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(pos < size_, "SegmentedSequence index is out of range");
+    MBO_CONFIG_REQUIRE(pos < size_, "SegmentedVector index is out of range");
     return (*this)[pos];
   }
 
   constexpr const_reference at(size_type pos) const noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(pos < size_, "SegmentedSequence index is out of range");
+    MBO_CONFIG_REQUIRE(pos < size_, "SegmentedVector index is out of range");
     return (*this)[pos];
   }
 
@@ -818,7 +818,7 @@ class SegmentedSequence final {
     const bool added_segment = size_ == capacity_;
 #endif
     if (size_ == capacity_) {
-      MBO_CONFIG_REQUIRE(TryAddSegment(), "SegmentedSequence allocation failed");
+      MBO_CONFIG_REQUIRE(TryAddSegment(), "SegmentedVector allocation failed");
     }
 #if __cpp_exceptions
     try {
@@ -861,10 +861,10 @@ class SegmentedSequence final {
   template<typename... Args>
   requires std::constructible_from<T, Args...>
   constexpr reference unchecked_emplace_back(Args&&... args) {
-    MBO_CONFIG_REQUIRE(size_ < capacity_, "SegmentedSequence unchecked append requires reserved capacity");
+    MBO_CONFIG_REQUIRE(size_ < capacity_, "SegmentedVector unchecked append requires reserved capacity");
     const auto [segment_index, offset] = Locate(size_);
     Segment& segment = *segments_[segment_index];
-    MBO_CONFIG_REQUIRE(offset == segment.size(), "SegmentedSequence segment prefix is inconsistent");
+    MBO_CONFIG_REQUIRE(offset == segment.size(), "SegmentedVector segment prefix is inconsistent");
     T& result = segment.emplace_back(std::forward<Args>(args)...);
     ++size_;
     return result;
@@ -912,7 +912,7 @@ class SegmentedSequence final {
         const auto count = std::ranges::size(range);
         MBO_CONFIG_REQUIRE(
             std::in_range<size_type>(count) && static_cast<size_type>(count) <= MaxCapacity() - size_,
-            "SegmentedSequence append exceeds maximum capacity");
+            "SegmentedVector append exceeds maximum capacity");
         reserve(size_ + static_cast<size_type>(count));
       }
       for (auto&& value : std::forward<Range>(range)) {
@@ -928,7 +928,7 @@ class SegmentedSequence final {
   }
 
   constexpr void reserve(size_type requested) {
-    MBO_CONFIG_REQUIRE(requested <= MaxCapacity(), "SegmentedSequence reserve exceeds maximum capacity");
+    MBO_CONFIG_REQUIRE(requested <= MaxCapacity(), "SegmentedVector reserve exceeds maximum capacity");
     const std::size_t original_segment_count = segments_.size();
 #if __cpp_exceptions
     try {
@@ -936,7 +936,7 @@ class SegmentedSequence final {
       while (capacity_ < requested) {
         if (!TryAddSegment()) {
           ReleaseSegmentsFrom(original_segment_count);
-          MBO_CONFIG_REQUIRE(false, "SegmentedSequence allocation failed");
+          MBO_CONFIG_REQUIRE(false, "SegmentedVector allocation failed");
         }
       }
 #if __cpp_exceptions
@@ -996,7 +996,7 @@ class SegmentedSequence final {
   }
 
   constexpr void pop_back() noexcept(!kRequireThrows) {
-    MBO_CONFIG_REQUIRE(!empty(), "Cannot pop from an empty SegmentedSequence");
+    MBO_CONFIG_REQUIRE(!empty(), "Cannot pop from an empty SegmentedVector");
     DestroySuffix(size_ - 1);
   }
 
@@ -1034,7 +1034,7 @@ class SegmentedSequence final {
   constexpr const_segment_range segments() const noexcept { return const_segment_range(this, LiveSegmentCount()); }
 
  private:
-  constexpr bool DirectoryAllocatorsAllowMoveTransfer(const SegmentedSequence& other) const noexcept {
+  constexpr bool DirectoryAllocatorsAllowMoveTransfer(const SegmentedVector& other) const noexcept {
     if constexpr (kDirectoryMoveAssignmentAlwaysSafe) {
       return true;
     } else {
@@ -1042,7 +1042,7 @@ class SegmentedSequence final {
     }
   }
 
-  constexpr bool DirectoryAllocatorsAllowSwap(const SegmentedSequence& other) const noexcept {
+  constexpr bool DirectoryAllocatorsAllowSwap(const SegmentedVector& other) const noexcept {
     if constexpr (kDirectorySwapAlwaysSafe) {
       return true;
     } else {
@@ -1060,10 +1060,10 @@ class SegmentedSequence final {
 #endif
       if constexpr (std::sized_sentinel_for<Sentinel, Iterator>) {
         const auto count = last - first;
-        MBO_CONFIG_REQUIRE(count >= 0, "SegmentedSequence range has negative size");
+        MBO_CONFIG_REQUIRE(count >= 0, "SegmentedVector range has negative size");
         MBO_CONFIG_REQUIRE(
             std::in_range<size_type>(count) && static_cast<size_type>(count) <= MaxCapacity() - size_,
-            "SegmentedSequence append exceeds maximum capacity");
+            "SegmentedVector append exceeds maximum capacity");
         reserve(size_ + static_cast<size_type>(count));
       }
       for (; first != last; ++first) {
@@ -1083,7 +1083,7 @@ class SegmentedSequence final {
   }
 
   static constexpr std::size_t RepresentationCapacityLimit() noexcept {
-    return container_internal::SegmentedSequenceRepresentationCapacityLimit<T>();
+    return container_internal::SegmentedVectorRepresentationCapacityLimit<T>();
   }
 
   static constexpr std::size_t MaxSegmentCount() noexcept {
@@ -1217,9 +1217,9 @@ class SegmentedSequence final {
     }
   }
 
-  constexpr SegmentedSequence(
+  constexpr SegmentedVector(
       CopyWithAllocatorTag /*unused*/,
-      const SegmentedSequence& other,
+      const SegmentedVector& other,
       const SegmentPointerAllocator& directory_allocator)
   requires(std::constructible_from<T, const T&> && mbo::memory::CopyableBlockSource<Source>)
       : source_(other.source_.CopyForContainer()), segments_(directory_allocator) {
@@ -1250,4 +1250,4 @@ class SegmentedSequence final {
 // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 // NOLINTEND(readability-identifier-naming)
 
-#endif  // MBO_CONTAINER_SEGMENTED_SEQUENCE_H_
+#endif  // MBO_CONTAINER_SEGMENTED_VECTOR_H_

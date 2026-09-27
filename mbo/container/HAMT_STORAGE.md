@@ -1,5 +1,38 @@
 # Packed HAMT storage
 
+The public Bazel set targets are `//mbo/container:hamt_flat_set_cc` and
+`//mbo/container:hamt_node_set_cc`, matching the public map targets. A separate-package integration
+test verifies these exports and exercises persistent/transient membership and diagnostics.
+
+Internal trees offer on-demand `structural_diagnostics()`: reachable node and entry counts,
+terminal collision counts and largest bucket, maximum depth (root depth zero), and node block
+bytes reported by the creating source. Traversal allocates nothing and adds no mutation or lookup
+counters. Shared nodes count toward each inspected snapshot, not exclusive ownership. Node payload
+allocations, control blocks, and retained free storage are not included in node block bytes.
+As with other tree access, callers must externally synchronize inspection with mutation.
+
+Erasing one of two leaf entries now propagates the remaining entry directly through single-child
+ancestors. Singleton compaction therefore needs only the final root allocation, instead of
+allocating and immediately destroying temporary singleton nodes at each level. Exhaustion of that
+final allocation leaves the original tree and all snapshots unchanged.
+
+Owned-tree erasure also reuses unique parent child-link slots after constructing a replacement
+child. Descendant mutation is disabled where singleton propagation could require a subsequent
+allocation, preserving rollback if compaction fails. Resized leaves and bitmap layout changes
+still require allocation; standalone immutable erasure keeps its non-mutating default.
+
+Owned-tree insertion can replace child links in unique ancestors after the new child has been
+successfully constructed. It still allocates resized entry blocks, but avoids copying unchanged
+unique ancestors. Mutation permission is propagated only through a wholly unique prefix; a shared
+ancestor disables mutation below it, preserving snapshots even if a later allocation fails. The
+standalone immutable insertion primitive retains its original non-mutating default.
+
+Entry replacement on a wholly unique root-to-entry path now updates the existing entry slot
+without node allocation, including terminal collision nodes. Shared paths still detach before
+replacement so snapshots retain their values. The replacement is copied before destroying the old
+entry, and exact self-replacement is a no-op with successful replacement semantics. This does not
+yet make structural insertion or erasure allocation-free.
+
 `HamtSourceDomain::TryCreateIn(control_source, node_source_args...)` can place the shared control
 block and its stable node-source object in caller-supplied block storage. Control exhaustion returns
 `std::nullopt` before constructing the node source. Copies retain the same block, and the last handle

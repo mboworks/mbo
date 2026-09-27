@@ -67,6 +67,13 @@ struct HamtNodeMapTest : ::testing::Test {
   }
 };
 
+TEST_F(HamtNodeMapTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
+  CopyableMap container;
+  EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
+  auto transient = std::move(container).transient();
+  EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
+}
+
 TEST_F(HamtNodeMapTest, FourBitFragmentsPreserveSnapshotsAcrossAllEdits) {
   CheckFragmentWidth<4>();
 }

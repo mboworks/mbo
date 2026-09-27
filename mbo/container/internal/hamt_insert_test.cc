@@ -137,7 +137,8 @@ TEST_F(HamtInsertTest, RejectsInsertionPastTheCompleteHashPath) {
   ASSERT_THAT(first.root, NotNull());
   constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
   const auto failed = hamt_insert_internal::TryInsertAt<std::uint64_t, 5>(
-      source, first.root, std::uint64_t{2}, 20, Entry{.hash = 2, .key = 20}, kPastHashPath, HashOf{}, KeyOf{}, Equal{});
+      source, first.root, std::uint64_t{2}, 20, Entry{.hash = 2, .key = 20}, kPastHashPath, HashOf{}, KeyOf{}, Equal{},
+      false);
   EXPECT_THAT(failed, Eq(std::nullopt));
   EXPECT_THAT(Find(first.root, 1, 10), NotNull());
   EXPECT_THAT(Find(first.root, 2, 20), IsNull());

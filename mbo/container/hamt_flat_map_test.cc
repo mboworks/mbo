@@ -74,6 +74,13 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
   EXPECT_THAT(snapshot.at(2), Eq(20));
 }
 
+TEST_F(HamtFlatMapTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
+  Map container;
+  EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
+  auto transient = std::move(container).transient();
+  EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
+}
+
 TEST_F(HamtFlatMapTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
   mbo::memory::InlineBlockSource<4'096> storage;
   {

@@ -70,6 +70,13 @@ TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
   EXPECT_THAT(snapshot.size(), Eq(2));
 }
 
+TEST_F(HamtFlatSetTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
+  Set container;
+  EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
+  auto transient = std::move(container).transient();
+  EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
+}
+
 TEST_F(HamtFlatSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation) {
   mbo::memory::InlineBlockSource<4'096> storage;
   {

@@ -245,7 +245,7 @@ TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
   ASSERT_THAT(first.root, NotNull());
   constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
   const auto missing = hamt_erase_internal::TryEraseAt<std::uint64_t, 5>(
-      source, first.root, std::uint64_t{2}, 20, kPastHashPath, HashOf{}, KeyOf{}, Equal{});
+      source, first.root, std::uint64_t{2}, 20, kPastHashPath, HashOf{}, KeyOf{}, Equal{}, false);
   using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
   ASSERT_THAT(missing, Optional(Field("node", &Step::node, NotNull())));
   EXPECT_THAT(missing, Optional(Field("erased", &Step::erased, Eq(false))));

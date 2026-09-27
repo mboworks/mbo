@@ -1,5 +1,12 @@
 # Packed HAMT storage
 
+`HamtSourceDomain::TryCreateIn(control_source, node_source_args...)` can place the shared control
+block and its stable node-source object in caller-supplied block storage. Control exhaustion returns
+`std::nullopt` before constructing the node source. Copies retain the same block, and the last handle
+destroys the node source before releasing the control block through its original allocator. The
+control source is borrowed and must outlive all snapshots. The ordinary factory continues to use
+the global heap; public container construction still needs to expose this separate budget.
+
 Node-map mutable payload access, updates, and independent cloning require nothrow-copyable
 entries: detaching shared payloads must preserve the original snapshot. Public constraints expose
 this requirement to generic capability checks. Move-only payloads still support persistent rvalue

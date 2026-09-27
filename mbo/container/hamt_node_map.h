@@ -566,8 +566,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   }
 
   std::optional<HamtError> TryPrepareMutable() noexcept
-  requires std::is_nothrow_copy_constructible_v<value_type>
-  {
+  requires std::is_nothrow_copy_constructible_v<value_type> {
     if (mutable_prepared_) {
       return std::nullopt;
     }

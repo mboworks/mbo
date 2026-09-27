@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <memory_resource>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -21,6 +22,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Gt;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::SizeIs;
@@ -368,6 +370,29 @@ TEST_F(SegmentedDequeRequireExceptionsTest, FailedRangeConstructionDestroysEleme
     EXPECT_THAT(releases, Eq(acquisitions));
   }
   EXPECT_THAT(ThrowingElement::live, Eq(0));
+}
+
+TEST_F(SegmentedDequeRequireExceptionsTest, PmrExhaustionPreservesBothEndsAndExistingIterators) {
+  std::array<std::byte, 256> storage{};
+  std::pmr::monotonic_buffer_resource resource(storage.data(), storage.size(), std::pmr::null_memory_resource());
+  constexpr SegmentedOptions kSmallSegments{.segment_size = 2};
+  using Sequence = SegmentedDeque<int, kSmallSegments, mbo::memory::PmrBlockSource>;
+  Sequence sequence{mbo::memory::PmrBlockSource(&resource)};
+  std::size_t inserted = 0;
+  while (sequence.try_emplace_back(static_cast<int>(inserted))) {
+    ++inserted;
+  }
+  ASSERT_THAT(inserted, Gt(0));
+  const auto stable = sequence.begin();
+  const auto capacity = sequence.capacity();
+
+  EXPECT_THAT(sequence.try_emplace_front(-1).has_value(), false);
+  EXPECT_THAT(sequence.try_emplace_back(-1).has_value(), false);
+  EXPECT_THAT(sequence.size(), Eq(inserted));
+  EXPECT_THAT(sequence.capacity(), Eq(capacity));
+  EXPECT_THAT(sequence.front(), Eq(0));
+  EXPECT_THAT(sequence.back(), Eq(static_cast<int>(inserted - 1)));
+  EXPECT_THAT(*stable, Eq(0));
 }
 
 TEST_F(SegmentedDequeRequireExceptionsTest, FrontInsertionFailureRestoresSegmentAndIteratorState) {

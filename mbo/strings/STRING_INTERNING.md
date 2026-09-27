@@ -77,8 +77,9 @@ for a duplicate, and an empty optional for size or allocation exhaustion. A dupl
 preserves the existing ID; failed insertion commits no entry. Hash collisions use
 byte-and-length equality, not hash identity. Its keys borrow character storage, which
 must outlive the index. The HAMT options and block-source type are configurable;
-source-domain control allocation remains outside the block budget. Persistent path
-copying is the initial insertion implementation, not a performance-selected default.
+the ordinary factory allocates source-domain control outside the node block budget.
+Persistent path copying is the initial insertion implementation, not a
+performance-selected default.
 
 For a stateful hash or equality function, construct `HamtStringIndex` with the desired
 objects; the block source must then be nothrow default-constructible. To supply a
@@ -92,6 +93,13 @@ with node-backed HAMT entries. Build it with
 `//mbo/strings:hamt_node_string_index_cc`; the node-backed adapter has a separate
 `//mbo/strings:hamt_node_string_index_test` test target. Its keys still borrow
 character bytes from storage, so that storage must outlive the index.
+
+Both HAMT string-index aliases expose
+`try_create_in(control_source, hash, equal, node_source_args...)` for caller-owned
+control-block storage. Control and node sources have independent budgets; exhausting
+the control source returns an empty optional before node-source construction. The
+borrowed control source must outlive every retained index snapshot and any interner
+that owns one.
 
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,

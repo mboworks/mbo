@@ -97,3 +97,113 @@ For AMD Zen 5, substitute `--config=opt_zen5` for the machine configuration and 
 identity in the output filename. Compare the same clean source commit and workload families.
 The first available-host report is diagnostic. Matching Zen 5 data remains necessary before
 claiming cross-platform superiority or selecting a performance-tuned default.
+
+## Apple M5 Pro evidence and decisions
+
+The [complete generated report](data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.md) contains all 110 families and links the four
+immutable JSON envelopes. They were recorded from clean, published source
+[`478dd4036d`](https://github.com/mboworks/mbo/commit/478dd4036dce507eab7f0530cebb06416fd34ae0) on Apple M5 Pro with Clang 22.1.8,
+C++23, libc++ 220106, Bazel 9.2.0, and `--config=opt_apple_m5`. Each family has nine randomized
+repetitions, a one-second minimum, and a one-second warm-up. All benchmark correctness checks pass.
+The later evidence commit changes documentation and data only; the measured implementation and
+benchmark sources are unchanged.
+
+The results support keeping `SegmentedDeque` separate from `SegmentedVector`. The offset and circular
+directory have a measurable indexing cost, while the deque provides both-end mutation, stable
+surviving iterators, and allocation-free arena queue reuse after reservation. Keep the directory
+internal and experimental: these results establish a usable initial implementation, not a public
+circular-array contract. No implementation fix or tuning-default change is required by these data.
+The shared 256-element segment size and initial directory reservation of one remain the comparison
+baseline. Matching Zen 5 evidence is still needed before selecting different tuning defaults.
+
+### Access cost
+
+These rows use 16,384 `uint64_t` elements, S256, and an aligned origin. Work means one visited
+element. Deque sequential indexing costs 0.104 ns/element more than vector indexing at the median
+(38.4%); its fastest sample is slower than the vector's slowest. Permuted indexing is 16.9% slower
+at the median. Ordinary forward and reverse iterators also carry a cost relative to the vector.
+Segment traversal is essentially equal: the median difference is 0.3%, within observed variation.
+Reverse iteration and iterator arithmetic are faster than the host standard deque in these cases.
+
+| Workload                     | Deque ns/work | Vector ns/work | Standard deque ns/work | Deque CV |
+| ---------------------------- | ------------: | -------------: | ---------------------: | -------: |
+| Sequential index             |         0.374 |          0.270 |                  0.279 |    0.71% |
+| Permuted index               |         0.478 |          0.408 |                  0.364 |    1.35% |
+| Forward iterator             |         0.358 |          0.271 |                  0.398 |    0.41% |
+| Reverse iterator             |         0.372 |          0.324 |                  0.730 |    0.25% |
+| Permuted iterator arithmetic |         0.470 |          0.407 |                  0.777 |    0.33% |
+| Segment traversal            |         0.114 |          0.114 |                    n/a |    1.68% |
+
+The default-source deque object is 56 bytes on this build, versus 40 for the vector and 48 for the
+standard deque. The deque's extra origin and spare-list state account for its 16-byte increase over
+the vector. PMR-backed deque cases use 72-byte objects. These are measured implementation sizes,
+not portable ABI guarantees; allocated storage is accounted for separately.
+
+### Queue and lifecycle cost
+
+Queue work means one pop/push pair in a 256-pair batch with a 16,384-element window. Other rows
+normalize the full lifecycle iteration by its 16,384 inserted elements, so their numbers are
+throughput measurements, not isolated insertion latencies. Fresh construction includes destruction
+and storage release. n/a means that the operation was not included for that baseline.
+
+| Workload                 | Deque ns/work | Vector ns/work | Standard deque ns/work | Deque CV |
+| ------------------------ | ------------: | -------------: | ---------------------: | -------: |
+| Fresh back construction  |         2.888 |          3.003 |                  1.018 |    1.67% |
+| Fresh front construction |         3.376 |            n/a |                  2.504 |    0.76% |
+| Forward queue            |         2.827 |            n/a |                  3.060 |    0.50% |
+| Reverse queue            |         3.094 |            n/a |                  3.214 |    0.15% |
+| Clear and rebuild        |         2.860 |          4.857 |                    n/a |    1.55% |
+| Release and rebuild      |         2.983 |          2.944 |                    n/a |    2.02% |
+
+Steady S256 queues take 7.6% less CPU time per pair than the standard deque forward and 3.7% less
+in reverse. Fresh back construction costs 2.84 times the standard deque's time; fresh front
+construction costs 1.35 times as much. Fresh back and release/rebuild are close to the vector,
+while clear/rebuild is faster in this experiment. These distinct workloads do not establish a
+universally faster container or isolate an allocation's cost by subtracting lifecycle medians.
+
+Segment sizes show tradeoffs: S1024 improves fresh growth over S256 on this host, while S256 has
+the lowest measured forward queue median and the smallest warm arena byte count for this window.
+This one-window, one-machine experiment is insufficient to select a general segment-size winner.
+
+### Arena reuse and directory growth
+
+All six arena queue families, across both directions and S64/S256/S1024, report zero timed
+allocations and zero timed deallocations in every raw repetition. Both segment and directory
+storage use the same bounded caller-owned arena. The following warm-up counts are identical in
+both queue directions; they include obsolete directory arrays retained by the monotonic resource.
+Requested bytes exclude alignment padding and the resource object's own storage.
+
+| Segment size | Acquired segments | Element capacity | Warm allocation calls | Warm requested bytes |
+| -----------: | ----------------: | ---------------: | --------------------: | -------------------: |
+|           64 |               257 |            16448 |                   267 |               147992 |
+|          256 |                65 |            16640 |                    73 |               137240 |
+|         1024 |                17 |            17408 |                    23 |               140312 |
+
+The isolated third-segment insertion compares initial directory reservation one with 128. Full
+preallocation removes one 32-byte directory allocation and one deallocation from that event;
+element segment storage is unchanged. It reduces the recorded median by about 4.0% at the back
+and 3.2% at the front. The event means include benchmark timing/instrumentation overhead and do
+not establish a tail-latency percentile or a general latency benefit from full preallocation.
+The default reservation therefore remains one; callers can reserve for their known workloads.
+
+| End   | Directory    | Median ns/event | Allocation calls | Requested bytes | Deallocation calls |
+| ----- | ------------ | --------------: | ---------------: | --------------: | -----------------: |
+| back  | Grows 2 to 4 |        1199.306 |                2 |            2112 |                  1 |
+| back  | 128 reserved |        1151.594 |                1 |            2080 |                  0 |
+| front | Grows 2 to 4 |        1198.245 |                2 |            2112 |                  1 |
+| front | 128 reserved |        1159.923 |                1 |            2080 |                  0 |
+
+### Evidence limits
+
+The indexed group has 21 of 40 families above 10% CV, with a maximum of 31.46%; larger working-set
+and shaped-element close rankings are diagnostic. The traversal group has one noisy family,
+`SegmentedVector/S64/Arithmetic/Offset0/16384` at 23.79% CV. Its S256 comparisons above are steady.
+All 31 lifecycle and 10 arena/growth families remain below 3% CV. The generated report retains
+all samples' summaries, including minimum, fastest-three mean, median, mean, sample SD, CV, and
+maximum; it does not discard the noisy families.
+
+macOS did not provide usable CPU-frequency metadata or thread affinity. Host load snapshots are
+recorded in each envelope; local build, test, and lint jobs finished before timing began. UTC spans
+and monotonic durations agree within 0.01 seconds for each run. These limits and the missing Zen 5
+run restrict the conclusions to this available-host experiment. No result changes the vector
+representation, introduces a public ring container, or selects a performance-tuned default.

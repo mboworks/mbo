@@ -222,30 +222,31 @@ option becomes public only when at least one measured workload needs it. A candi
 access family but violates constant-time lookup, pointer stability, or failure transactionality is
 ineligible regardless of speed.
 
-## Provisional configuration decision matrix
+## Current configuration guidance
 
-The table maps requirements to public `SegmentedSequenceOptions`, not to private benchmark-only
-layouts. It records the current Apple M5 Pro decision and is deliberately provisional until the
-same cases are measured on AMD Zen 5. Where the evidence does not select one universal numeric
-budget, the recommendation says so instead of encoding an arbitrary default.
+The current public `SegmentedSequenceOptions` has a fixed power-of-two `segment_size`, an optional
+power-of-two `segment_capacity` limit on the number of segments, and a `segment_reservation` for
+the segment-pointer directory. Earlier measurement artifacts studied listed growth schedules,
+retention budgets, and alternative page mappings; those are historical candidates, not current
+public options. The fixed-segment implementation still needs its complete Apple M5 Pro and AMD
+Zen 5 measurement matrix before performance defaults can be selected from this evidence.
 
-| Requirement or workload                            | Provisional configuration                                                                                               | Rationale and limits                                                                                                                                    |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| General-purpose stable-address sequence            | `SegmentedSequenceOptions{}`: repeating 256-element segments and unbounded size/retention                               | Balanced current default; 256 is page-directory compatible and avoids the high segment count of 64 without 1,024-element tail waste                     |
-| StringInterner pointer-plus-size descriptors       | Default 256-element schedule, or a measured repeating 1,024-element schedule for large long-lived tables                | M5 descriptor lookup strongly favors the automatic 64-element page directory; choose 1,024 only when lower segment metadata outweighs larger tail waste |
-| Heterogeneous growth with small initial footprint  | `{.segment_capacities = {64, 256, 1'024, 4'096}, .listed_capacities = 4, .repeat_last = true}`                          | Starts small and reduces later allocations; all capacities preserve automatic page-directory eligibility                                                |
-| Compile-time fixed maximum and bounded directory   | Set a complete capacity list, `repeat_last = false`, and `maximum_size` no greater than the listed sum                  | Uses the inline bounded segment directory and rejects growth beyond the declared schedule                                                               |
-| Repeating schedule with a hard element bound       | Keep `repeat_last = true` and set `maximum_size` to the application limit                                               | Preserves the normal growth/mapping path while making exhaustion explicit and testable                                                                  |
-| Hot pop/regrow cycles                              | Leave both retention limits unbounded, or set measured nonzero `retained_segment_limit` / `retained_byte_limit` budgets | Retention avoids reacquisition; budgets must come from the application's steady-state rollback depth and memory envelope                                |
-| Memory-first reclamation                           | Set `retained_segment_limit = 0` and `retained_byte_limit = 0`                                                          | Releases every unused tail segment; lifecycle evidence shows this trades regrowth latency for minimum retained payload bytes                            |
-| Bounded reuse under a byte envelope                | Set `retained_byte_limit` to the allowed payload budget and optionally cap `retained_segment_limit`                     | Both limits are enforced; use the byte limit for heterogeneous capacities and the count limit to bound directory work                                   |
-| Bulk scans where per-element indexing is avoidable | Keep the storage schedule selected above and traverse `segments()`                                                      | Contiguous-span traversal avoids per-element mapping and remains the preferred public path for bulk algorithms                                          |
-| Large or over-aligned elements                     | Start with the default schedule; measure application element size and tail waste before selecting a larger segment      | M5 lookup gains narrow as element traffic dominates; current public API intentionally has no mapping-layout selector                                    |
+| Requirement                                                | Current configuration                                                         | Behavior and limit                                                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| General stable-address sequence                            | `SegmentedSequenceOptions{}`                                                  | Uses 256 elements per segment, an unbounded directory, and one initially reserved directory slot.                                     |
+| Smaller element blocks                                     | Set `.segment_size` to a smaller power of two.                                | Reduces unused tail capacity but increases the number of segment pointers and source acquisitions. Measure the actual workload.       |
+| Bounded number of element segments                         | Set `.segment_capacity` to a power of two.                                    | Growth fails after that many segments; the element limit is `segment_size * segment_capacity`, subject to type and arithmetic limits. |
+| Inline segment-pointer directory                           | Set `.segment_capacity` to a power of two no greater than 64.                 | Keeps segment pointers inside the sequence object; combine with a bounded `BlockSource` when general allocator avoidance matters.     |
+| Allocation-free empty construction for a dynamic directory | Set `.segment_reservation = 0`.                                               | Defers the first directory allocation until growth; it does not make later growth allocation-free.                                    |
+| Pre-reserved finite dynamic directory                      | For `.segment_capacity > 64`, set `.segment_reservation = .segment_capacity`. | Requests the pointer slots during construction; standard allocator capacity may exceed the request.                                   |
+| Reclaim empty tail segments after pop                      | Call `trim_capacity()` when the application chooses to release them.          | Live element addresses remain stable; subsequent regrowth may reacquire element blocks.                                               |
+| Bulk scans                                                 | Traverse `segments()`.                                                        | Visits contiguous constructed spans without promising whole-container contiguity.                                                     |
 
-The page directory is selected internally when every configured capacity is divisible by 64; it
-is not an additional option users should copy from a benchmark. The matrix does not claim that
-256, 1,024, or any retention budget is universally optimal. Zen 5 results may change the default,
-the recommended segment size for descriptors, or whether a new measured option is justified.
+`segment_size` must be a power of two. A finite `segment_capacity` and a nonzero
+`segment_reservation` must also be powers of two, and reservation cannot exceed finite capacity.
+No current option selects a page mapping, heterogeneous segment schedule, element `maximum_size`,
+or retained-segment budget. The historical charts above remain useful for designing new experiments,
+but they do not establish an optimum for the current representation.
 
 ## Review method
 

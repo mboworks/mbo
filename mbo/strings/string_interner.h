@@ -194,8 +194,7 @@ class StringInterner final {
   auto local_index_diagnostics() const noexcept
   requires requires(const Index& index) {
     { index.structural_diagnostics() } noexcept;
-  }
-  {
+  } {
     return index_.structural_diagnostics();
   }
 

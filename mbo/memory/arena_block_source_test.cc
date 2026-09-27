@@ -21,9 +21,21 @@ using ::testing::NotNull;
 
 struct ArenaBlockSourceTest : ::testing::Test {};
 
+using GeneralArena = Arena<
+    NewDeleteBlockSource,
+    ArenaOptions{
+        .initial_block_size = 256,
+        .maximum_block_size = 1'024,
+        .growth_numerator = 2,
+        .growth_denominator = 1}>;
+static_assert(BlockSource<ArenaBlockSource<GeneralArena>>);
+
 TEST_F(ArenaBlockSourceTest, ReusesReleasedBlocksWithoutConsumingMoreArenaCapacity) {
   alignas(std::max_align_t) std::array<std::byte, 1'024> storage{};
-  using FixedArena = Arena<FixedBlockSource, ArenaOptions{.initial_block_size = 512, .maximum_block_size = 512}>;
+  using FixedArena = Arena<
+      FixedBlockSource,
+      ArenaOptions{
+          .initial_block_size = 512, .maximum_block_size = 512, .growth_numerator = 1, .growth_denominator = 1}>;
   FixedArena arena{FixedBlockSource(std::span<std::byte>(storage))};
   ArenaBlockSource source(arena);
 
@@ -43,7 +55,10 @@ TEST_F(ArenaBlockSourceTest, ReusesReleasedBlocksWithoutConsumingMoreArenaCapaci
 
 TEST_F(ArenaBlockSourceTest, SeparatesSizeClassesAndRejectsUnsupportedRequests) {
   alignas(std::max_align_t) std::array<std::byte, 2'048> storage{};
-  using FixedArena = Arena<FixedBlockSource, ArenaOptions{.initial_block_size = 1'024, .maximum_block_size = 1'024}>;
+  using FixedArena = Arena<
+      FixedBlockSource,
+      ArenaOptions{
+          .initial_block_size = 1'024, .maximum_block_size = 1'024, .growth_numerator = 1, .growth_denominator = 1}>;
   FixedArena arena{FixedBlockSource(std::span<std::byte>(storage))};
   using Source =
       ArenaBlockSource<FixedArena, ArenaBlockSourceOptions{.minimum_block_size = 32, .maximum_block_size = 128}>;
@@ -75,7 +90,10 @@ TEST_F(ArenaBlockSourceTest, OptionsRejectInvalidSizesAndAlignments) {
 
 TEST_F(ArenaBlockSourceTest, ReusesEachReleasedBlockAndIgnoresMalformedReleases) {
   alignas(std::max_align_t) std::array<std::byte, 512> storage{};
-  using FixedArena = Arena<FixedBlockSource, ArenaOptions{.initial_block_size = 256, .maximum_block_size = 256}>;
+  using FixedArena = Arena<
+      FixedBlockSource,
+      ArenaOptions{
+          .initial_block_size = 256, .maximum_block_size = 256, .growth_numerator = 1, .growth_denominator = 1}>;
   FixedArena arena{FixedBlockSource(std::span<std::byte>(storage))};
   using Source = ArenaBlockSource<
       FixedArena, ArenaBlockSourceOptions{
@@ -104,7 +122,10 @@ TEST_F(ArenaBlockSourceTest, ReusesEachReleasedBlockAndIgnoresMalformedReleases)
 
 TEST_F(ArenaBlockSourceTest, ReportsArenaExhaustionWithoutChangingEarlierBlocks) {
   alignas(std::max_align_t) std::array<std::byte, 128> storage{};
-  using FixedArena = Arena<FixedBlockSource, ArenaOptions{.initial_block_size = 128, .maximum_block_size = 128}>;
+  using FixedArena = Arena<
+      FixedBlockSource,
+      ArenaOptions{
+          .initial_block_size = 128, .maximum_block_size = 128, .growth_numerator = 1, .growth_denominator = 1}>;
   FixedArena arena{FixedBlockSource(std::span<std::byte>(storage))};
   using Source =
       ArenaBlockSource<FixedArena, ArenaBlockSourceOptions{.minimum_block_size = 32, .maximum_block_size = 32}>;

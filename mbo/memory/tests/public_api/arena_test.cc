@@ -17,7 +17,11 @@ using ::testing::NotNull;
 struct ArenaPublicApiTest : ::testing::Test {};
 
 TEST_F(ArenaPublicApiTest, CheckpointAllocationIsUsableOutsideItsDefiningPackage) {
-  Arena arena;
+  Arena<
+      NewDeleteBlockSource,
+      ArenaOptions{
+          .initial_block_size = 256, .maximum_block_size = 1'024, .growth_numerator = 2, .growth_denominator = 1}>
+      arena;
   EXPECT_THAT(arena.Allocate(3, alignof(std::max_align_t)), NotNull());
   const auto checkpoint = arena.checkpoint();
   auto* const before_rewind = arena.Allocate(11);

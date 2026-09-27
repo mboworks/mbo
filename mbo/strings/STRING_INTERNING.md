@@ -27,6 +27,14 @@ interner's default composition. Their public contracts remain separate from this
 the implementation stack and its local/CI validation before comparative measurements select defaults
 or configuration recommendations; the initial composition is a starting point.
 
+Bounded operation needs separate budgets for character bytes, dense descriptors, and index nodes.
+Caller-owned buffers or an `ArenaBlockSource` can provision those budgets without a general
+allocator call during insertion; exhausted `try_*` operations must leave published entries intact.
+Allocator and PMR sources permit recoverable general use where their failure contracts support it.
+The default new-delete source provides unrestricted convenience growth. These are distinct storage
+envelopes, and a fixed single-live-block source alone does not prove that multi-node index updates
+are bounded. External synchronization remains required.
+
 ## Core model
 
 `StringInterner(parent, storage_factory, entries_factory, index_factory)` directly
@@ -183,6 +191,10 @@ unsigned integer so applications can trade capacity against memory footprint. Th
 supported POD representations; other underlying types, including signed integers, are not
 supported without a demonstrated use. ID exhaustion must be detected before mutating either
 storage or the index. The default underlying representation is `std::uint32_t`.
+
+`max_size()` reports the smaller of the ID representation's cardinality limit and `SIZE_MAX`.
+The largest underlying value is reserved as `invalid_value`, so an 8-bit ID supports 255 entries
+with valid IDs `0..254`. Insertion checks this limit before changing storage or the index.
 
 ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload
 may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output
@@ -424,15 +436,20 @@ The interner exposes these operations (template parameters omitted):
 
 ```cpp
 using insertion_result = std::variant<std::pair<id_type, bool>, StringInternError>;
-insertion_result intern(std::string_view value) noexcept;
-insertion_result intern_parent_first(std::string_view value) noexcept;
-insertion_result intern_child_first(std::string_view value) noexcept;
-std::optional<std::pair<id_type, bool>> try_intern(std::string_view value) noexcept;
-std::optional<id_type> try_intern_id(std::string_view value) noexcept;
+static constexpr size_type max_size() noexcept;
+insertion_result intern(std::string_view value);
+insertion_result intern_parent_first(std::string_view value);
+insertion_result intern_child_first(std::string_view value);
+std::optional<std::pair<id_type, bool>> try_intern(std::string_view value);
+std::optional<id_type> try_intern_id(std::string_view value);
 std::optional<id_type> find(std::string_view value) const noexcept;
 std::optional<id_type> rfind(std::string_view value) const noexcept;
 std::optional<std::string_view> get(id_type id) const noexcept;
 ```
+
+Insertion and its optional adapters are `noexcept` in the normal non-throwing requirement
+configuration. When requirement failures are configured to throw, their exception specification
+allows that failure policy to propagate.
 
 `find` searches parent first and `rfind` searches child first; each returns an optional ID, with a
 miss represented by an empty optional. Iteration yields only `string_view`; callers can count dense

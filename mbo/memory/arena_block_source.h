@@ -125,8 +125,6 @@ class ArenaBlockSource final {
 // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 // NOLINTEND(readability-identifier-naming)
 
-static_assert(BlockSource<ArenaBlockSource<Arena<>>>);
-
 }  // namespace mbo::memory
 
 #endif  // MBO_MEMORY_ARENA_BLOCK_SOURCE_H_

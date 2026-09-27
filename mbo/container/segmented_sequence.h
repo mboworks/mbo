@@ -55,6 +55,81 @@ concept SegmentedSequenceElement = std::is_object_v<T> && !std::is_array_v<T> &&
 
 namespace container_internal {
 
+// A small finite segment directory keeps its pointer slots inside the sequence.
+// Carrying the allocator preserves the public allocator contract even though
+// this representation never requests directory storage from it.
+template<typename Pointer, std::size_t Capacity, typename Allocator>
+class InlineSegmentDirectory final {
+ public:
+  using allocator_type = Allocator;
+  using iterator = Pointer*;
+  using const_iterator = const Pointer*;
+
+  constexpr InlineSegmentDirectory() = default;
+
+  constexpr explicit InlineSegmentDirectory(const Allocator& allocator) : allocator_(allocator) {}
+
+  constexpr Allocator get_allocator() const { return allocator_; }
+
+  constexpr std::size_t size() const noexcept { return size_; }
+
+  constexpr std::size_t capacity() const noexcept { return Capacity; }
+
+  constexpr bool empty() const noexcept { return size_ == 0; }
+
+  constexpr iterator begin() noexcept { return slots_.data(); }
+
+  constexpr const_iterator begin() const noexcept { return slots_.data(); }
+
+  constexpr iterator end() noexcept { return slots_.data() + size_; }
+
+  constexpr const_iterator end() const noexcept { return slots_.data() + size_; }
+
+  constexpr Pointer& operator[](std::size_t pos) noexcept { return slots_[pos]; }
+
+  constexpr const Pointer& operator[](std::size_t pos) const noexcept { return slots_[pos]; }
+
+  constexpr Pointer& back() noexcept { return slots_[size_ - 1]; }
+
+  constexpr const Pointer& back() const noexcept { return slots_[size_ - 1]; }
+
+  constexpr void reserve(std::size_t count) const {
+    MBO_CONFIG_REQUIRE(count <= Capacity, "Inline segment directory capacity exceeded");
+  }
+
+  constexpr void push_back(Pointer value) {
+    MBO_CONFIG_REQUIRE(size_ < Capacity, "Inline segment directory capacity exceeded");
+    slots_[size_++] = value;
+  }
+
+  constexpr void pop_back() noexcept { --size_; }
+
+  constexpr void clear() noexcept { size_ = 0; }
+
+  template<typename InputIt>
+  constexpr iterator insert(const_iterator position, InputIt first, InputIt last) {
+    MBO_CONFIG_REQUIRE(position == end(), "Inline segment directory supports tail insertion only");
+    for (; first != last; ++first) {
+      push_back(*first);
+    }
+    return end();
+  }
+
+  constexpr void swap(InlineSegmentDirectory& other) noexcept(
+      std::is_nothrow_move_constructible_v<Allocator> && std::is_nothrow_move_assignable_v<Allocator>) {
+    slots_.swap(other.slots_);
+    std::swap(size_, other.size_);
+    if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value) {
+      std::swap(allocator_, other.allocator_);
+    }
+  }
+
+ private:
+  std::array<Pointer, Capacity> slots_{};
+  std::size_t size_ = 0;
+  [[no_unique_address]] Allocator allocator_{};
+};
+
 template<SegmentedSequenceElement T>
 constexpr std::size_t SegmentedSequenceRepresentationCapacityLimit() noexcept {
   constexpr auto kDifferenceLimit = static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
@@ -89,6 +164,8 @@ class SegmentedSequence final {
  private:
   static constexpr bool kRequireThrows = ::mbo::config::kRequireThrows;
   static constexpr bool kFiniteDirectory = Options.segment_capacity != std::numeric_limits<std::size_t>::max();
+  static constexpr std::size_t kInlineDirectoryLimit = 64;
+  static constexpr bool kInlineDirectory = kFiniteDirectory && Options.segment_capacity <= kInlineDirectoryLimit;
   static constexpr std::size_t kSegmentShift = std::countr_zero(Options.segment_size);
   static constexpr std::size_t kSegmentMask = Options.segment_size - 1;
 
@@ -157,7 +234,11 @@ class SegmentedSequence final {
   using SegmentPointerAllocator = std::allocator_traits<DirectoryAllocator>::template rebind_alloc<Segment*>;
   using DirectoryAllocatorTraits = std::allocator_traits<DirectoryAllocator>;
   using SegmentPointerAllocatorTraits = std::allocator_traits<SegmentPointerAllocator>;
-  using Directory = std::vector<Segment*, SegmentPointerAllocator>;
+  using Directory = std::conditional_t<
+      kInlineDirectory,
+      container_internal::
+          InlineSegmentDirectory<Segment*, kInlineDirectory ? Options.segment_capacity : 1, SegmentPointerAllocator>,
+      std::vector<Segment*, SegmentPointerAllocator>>;
   static constexpr bool kDirectorySwapAlwaysSafe = SegmentPointerAllocatorTraits::propagate_on_container_swap::value
                                                    || SegmentPointerAllocatorTraits::is_always_equal::value;
   static constexpr bool kDirectoryMoveAssignmentAlwaysSafe =
@@ -753,6 +834,8 @@ class SegmentedSequence final {
 
   constexpr size_type capacity() const noexcept { return capacity_; }
 
+  static constexpr bool has_bounded_directory() noexcept { return kInlineDirectory; }
+
   constexpr size_type segment_count() const noexcept { return segments_.size(); }
 
   constexpr allocator_type get_allocator() const
@@ -769,7 +852,14 @@ class SegmentedSequence final {
     return result;
   }
 
-  constexpr size_type directory_bytes_reserved() const noexcept { return segments_.capacity() * sizeof(Segment*); }
+  constexpr size_type directory_bytes_reserved() const noexcept {
+    return kInlineDirectory ? 0 : segments_.capacity() * sizeof(Segment*);
+  }
+
+  constexpr size_type segment_directory_bytes_reserved() const noexcept
+  requires(kInlineDirectory) {
+    return segments_.capacity() * sizeof(Segment*);
+  }
 
   constexpr reference operator[](size_type pos) noexcept { return ElementAt(pos); }
 

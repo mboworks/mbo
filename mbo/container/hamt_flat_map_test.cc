@@ -107,7 +107,8 @@ TEST_F(HamtFlatMapTest, ArenaBackedNodesReportStableExhaustionWithoutLosingEntri
   alignas(std::max_align_t) std::array<std::byte, 4'096> node_storage{};
   using NodeArena = mbo::memory::Arena<
       mbo::memory::FixedBlockSource,
-      mbo::memory::ArenaOptions{.initial_block_size = 4'096, .maximum_block_size = 4'096}>;
+      mbo::memory::ArenaOptions{
+          .initial_block_size = 4'096, .maximum_block_size = 4'096, .growth_numerator = 1, .growth_denominator = 1}>;
   NodeArena arena{mbo::memory::FixedBlockSource(std::span<std::byte>(node_storage))};
   using NodeSource = mbo::memory::ArenaBlockSource<
       NodeArena, mbo::memory::ArenaBlockSourceOptions{.minimum_block_size = 32, .maximum_block_size = 1'024}>;

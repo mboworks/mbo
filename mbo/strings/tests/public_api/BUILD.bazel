@@ -9,6 +9,7 @@ cc_test(
     srcs = ["string_interner_test.cc"],
     deps = [
         "//mbo/strings:string_interner_cc",
+        "//mbo/strings:string_interner_map_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

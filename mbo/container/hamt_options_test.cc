@@ -35,8 +35,15 @@ TEST_F(HamtOptionsTest, RejectsAZeroMaximumSize) {
   EXPECT_THAT(options.IsValid(), Eq(false));
 }
 
+TEST_F(HamtOptionsTest, RejectsAZeroMaximumCollisionSize) {
+  HamtOptions options;
+  options.maximum_collision_size = 0;
+  EXPECT_THAT(options.IsValid(), Eq(false));
+}
+
 static_assert(ValidHamtOptions<HamtOptions{}>);
 static_assert(!ValidHamtOptions<HamtOptions{.fragment_bits = 3}>);
+static_assert(!ValidHamtOptions<HamtOptions{.maximum_collision_size = 0}>);
 
 }  // namespace
 }  // namespace mbo::container

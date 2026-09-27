@@ -414,7 +414,8 @@ storage component whose capacity could not grow.
 `intern` returns `variant<pair<StringId, bool>, StringInternError>`, preserving the inserted flag
 and a detailed failure reason. `try_intern` returns an optional pair, discarding the reason, and
 `try_intern_id` returns only an optional ID. Both adapters use the same insertion and rollback path.
-Zero and the maximum representable ID remain valid successes; there is no invalid-ID sentinel.
+Zero and every ID below the reserved `StringId::invalid_value` remain valid successes. These
+adapters report failure through an empty optional rather than returning that reserved value.
 Other result adapters may be added when their value is measured.
 
 ## Implemented core operations

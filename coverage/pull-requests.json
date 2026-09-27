@@ -171,7 +171,7 @@
     "number": 512,
     "state": "open",
     "merged_at": null,
-    "merge_commit_sha": "e8049754c0076b78c280ce677d14375909c05310"
+    "merge_commit_sha": null
   },
   {
     "number": 511,

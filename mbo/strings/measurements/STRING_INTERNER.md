@@ -301,7 +301,11 @@ collision behavior, and AMD Zen 5 results still need comparison.
 - Run the same retained matrices on AMD Zen 5 before finalizing fragment width or defaults.
 - Compare fully caller-provisioned control storage and report allocation counts and peak memory.
 - Retain representative mbo/xff/proto string-size and duplication distributions.
-- Add collision-heavy and persistent-branching comparisons for the general HAMT containers.
+- Compare the current separate-descriptor storage with an inline-record benchmark prototype.
+
+Collision-heavy lookup/fill/erase and sparse/full persistent branch updates are already retained in
+the general [HAMT measurements](../../container/measurements/HAMT.md); they are inputs to interner
+configuration decisions rather than missing benchmark families.
 
 Those follow-ups may change performance recommendations, but they do not weaken the implemented
 lifetime, dense-ID, rollback, pointer-stability, or allocation guarantees.

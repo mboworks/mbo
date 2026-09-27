@@ -23,7 +23,9 @@ container guarantees. Standard unordered containers, Abseil hash containers, and
 index should be usable when they satisfy the eventual concepts.
 
 `SegmentedSequence` and `Arena` are independent production components and prerequisites for the
-interner's default composition. Their public contracts remain separate from this design.
+interner's default composition. Their public contracts remain separate from this design. Complete
+the implementation stack and its local/CI validation before comparative measurements select defaults
+or configuration recommendations; the initial composition is a starting point.
 
 ## Core model
 
@@ -66,10 +68,10 @@ published strings or IDs. Declared empty parents retain their identity; a zero l
 starting ID does not imply a null parent. Index/storage member destruction order
 preserves borrowed character lifetimes.
 
-The implementation is still incomplete: diagnostics, stateful backend construction,
-extended bounded-failure tests, and performance tuning remain outstanding. Forward
-lookup currently recurses through ancestors, while reverse lookup iterates. These are
-initial algorithms, not benchmark-selected strategies.
+The implementation provides on-demand diagnostics, stateful and injected backend construction,
+and extended bounded-failure tests. Complete memory accounting and benchmark-selected performance
+tuning remain outstanding. Forward lookup recurses through ancestors, while reverse lookup iterates.
+These are initial algorithms, not benchmark-selected strategies.
 
 The initial [`HamtStringIndex`](hamt_string_index.h) adapter keeps index iterators
 private and returns only optional IDs. `try_insert` returns true for insertion, false
@@ -100,6 +102,8 @@ control-block storage. Control and node sources have independent budgets; exhaus
 the control source returns an empty optional before node-source construction. The
 borrowed control source must outlive every retained index snapshot and any interner
 that owns one.
+The control object contains the node source itself. An inline node buffer and source-domain metadata
+therefore consume control storage too; an equally sized control buffer may be insufficient.
 
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,
@@ -407,67 +411,46 @@ storage component whose capacity could not grow.
 
 ### Failure APIs
 
-The following interfaces are candidates and may coexist as adapters over one implementation:
+`intern` returns `variant<pair<StringId, bool>, StringInternError>`, preserving the inserted flag
+and a detailed failure reason. `try_intern` returns an optional pair, discarding the reason, and
+`try_intern_id` returns only an optional ID. Both adapters use the same insertion and rollback path.
+Zero and every ID below the reserved `StringId::invalid_value` remain valid successes. These
+adapters report failure through an empty optional rather than returning that reserved value.
+Other result adapters may be added when their value is measured.
 
-| Form                         | Information                  | Intended use                         |
-| ---------------------------- | ---------------------------- | ------------------------------------ |
-| Invalid `StringId` sentinel  | Success/failure only         | Smallest and fastest hot-path result |
-| `std::optional<StringId>`    | Success/failure only         | Conventional non-throwing API        |
-| `absl::StatusOr<StringId>`   | Detailed failure             | Existing mbo/Abseil callers          |
-| `std::expected<StringId, E>` | Typed detailed failure       | C++23 callers                        |
-| Exception                    | Detailed out-of-band failure | Explicit throwing adapter only       |
+## Implemented core operations
 
-The C++23 baseline makes `std::expected` available, but it need not be the only public mechanism.
-Exceptions should not be the primary interface for a latency-sensitive container and must remain
-optional for builds with exceptions disabled. Successful-hit and successful-insert performance,
-result size, generated code, and failure behavior should be measured for each serious candidate.
-
-## Candidate operations
-
-Names and exact return types are deliberately provisional:
+The interner exposes these operations (template parameters omitted):
 
 ```cpp
-struct InsertResult {
-  StringId id;
-  bool inserted;
-};
-
-InsertResult intern(std::string_view value);
-InsertResult intern(std::string&& value);
-InsertResult intern_parent_first(std::string_view value);
-InsertResult intern_child_first(std::string_view value);
-
-iterator find(std::string_view value) const;
-reverse_iterator rfind(std::string_view value) const;
-std::optional<std::string_view> lookup(StringId id) const;
-
-std::size_t size() const;
-std::size_t local_size() const;
-bool empty() const;
+using insertion_result = std::variant<std::pair<id_type, bool>, StringInternError>;
+insertion_result intern(std::string_view value) noexcept;
+insertion_result intern_parent_first(std::string_view value) noexcept;
+insertion_result intern_child_first(std::string_view value) noexcept;
+std::optional<std::pair<id_type, bool>> try_intern(std::string_view value) noexcept;
+std::optional<id_type> try_intern_id(std::string_view value) noexcept;
+std::optional<id_type> find(std::string_view value) const noexcept;
+std::optional<id_type> rfind(std::string_view value) const noexcept;
+std::optional<std::string_view> get(id_type id) const noexcept;
 ```
 
-Insertion follows the standard associative-container convention and reports both the ID and whether
-it created a local entry. This result should have no measurable cost over returning only the ID. If
-measurement finds a material cost, or ID-only use is sufficiently common, an additional convenience
-method may return only `StringId`. The fast hard-failing API and failure-aware API may still need
-distinct names such as `intern` and `try_intern`.
+`find` searches parent first and `rfind` searches child first; each returns an optional ID, with a
+miss represented by an empty optional. Iteration yields only `string_view`; callers can count dense
+ordinal IDs as needed. Passing a `std::string` as a view copies its bytes into arena-backed storage;
+moved-string adoption is not implemented by this core.
 
-`find` returns a forward iterator and uses `end()` for a miss. `rfind` returns a reverse iterator and
-uses `rend()` for a miss. Iteration itself exposes only `string_view`; callers can count dense
-ordinal IDs when needed.
+All three backend concepts require non-throwing destruction. Cleanup does not report exhaustion:
+a destructor declared `noexcept(false)` is rejected. Supported storage exhaustion returns the
+documented error, while an exception escaping a declared non-throwing backend operation terminates
+through the interner's `noexcept` boundary.
 
-Search direction and result orientation are independent choices:
-
-| Operation model              | Result                  | Consequence                                      |
-| ---------------------------- | ----------------------- | ------------------------------------------------ |
-| Associative-container `find` | Forward `iterator`      | Familiar `end()` miss; direction stays internal  |
-| Reverse-range search         | `reverse_iterator`      | Miss compares with `rend()`                      |
-| String-like position lookup  | Optional or sentinel ID | Direct dense ID; not associative-container style |
-| Counted forward iteration    | Forward `iterator`      | Natural string-view range; caller counts IDs     |
-
-Because visible strings are unique, a reverse search need not force a reverse-oriented result.
-Returning `reverse_iterator` from `rfind` intentionally exposes its traversal orientation, while
-dereference still yields only `string_view`.
+`StringInternerEntries` requires a `string_view` value type, a non-throwing `size()` returning
+`size_t`, indexed `at()`, boolean-testable fallible append, and `pop_back()`. These syntax checks
+cannot prove its semantic contract: a successful append adds one descriptor, a failed append adds
+none, and popping an uncommitted descriptor preserves published views. A
+`LimitedVector<string_view, N>` provides strictly inline descriptor storage. Its
+`try_emplace_back` reports capacity exhaustion without consuming arguments and requires non-throwing
+element construction. Character and index storage need separate bounded sources.
 
 ## Serialization
 
@@ -538,6 +521,18 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+When its index supports node diagnostics, `visit_local_index_nodes(visitor)` supplies a read-only
+record for each node in this interner's local index. Callers can build occupancy, depth, collision,
+and block-size histograms in their own storage. Traversal allocates nothing; the non-throwing
+callback must not mutate the inspected interner.
+
+`local_entry_storage_diagnostics()` reports local descriptor count and live `string_view` descriptor
+bytes separately from optional segment, lookup-directory, and segment-directory reservations.
+Unsupported reservation statistics remain unknown (`nullopt`). The result excludes ancestor
+descriptors, characters, index nodes, allocator bookkeeping, and the interner object. Reserved
+segment bytes include unused capacity; directory reservations are separate values rather than
+additions to live descriptor bytes.
+
 `trace_find(text)` and `trace_rfind(text)` perform instrumented lookups in their respective
 directions. Each returns an optional ID, the number of local index queries, and an optional parent
 depth (zero means this interner). Misses have no parent depth. Queries include misses and
@@ -565,8 +560,10 @@ Both HAMT string-index variants expose `structural_diagnostics()` for their own 
 Public flat and node HAMT maps and sets, including transients, expose the same operation. These
 cold traversals report reachable node and entry counts, collision node and entry counts, largest
 collision bucket, root-zero maximum depth, and source-reported node block bytes. Shared blocks are
-included in each snapshot rather than counted as exclusively owned. Payloads, control blocks,
-retained free allocator storage, and character bytes are excluded. An ancestor index may contain
+included in each snapshot rather than counted as exclusively owned. Separate node-value payload
+blocks are reported as `entry_allocation_bytes`; flat inline entries report zero there. Source
+control blocks, retained free allocator storage, character bytes, and user-value internal allocations
+are excluded. An ancestor index may contain
 strings inserted after a child's cutoff, so its structural totals are not the child's visible-string
 totals.
 

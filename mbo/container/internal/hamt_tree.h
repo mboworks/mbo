@@ -40,6 +40,15 @@ struct HamtStructuralDiagnostics final {
   std::size_t largest_collision = 0;
   std::size_t maximum_depth = 0;
   std::size_t node_allocation_bytes = 0;
+  std::size_t entry_allocation_bytes = 0;
+};
+
+struct HamtNodeDiagnostics final {
+  std::size_t depth = 0;
+  std::size_t entries = 0;
+  std::size_t children = 0;
+  bool collision = false;
+  std::size_t allocation_bytes = 0;
 };
 
 // Shared map/set implementation over immutable stored entries. Mutations use
@@ -109,10 +118,35 @@ class HamtTree final {
 
   bool empty() const noexcept { return size_ == 0; }
 
+  // Records are values, not node handles; callers cannot mutate the tree through
+  // inspection. Borrowed callback storage determines any histogram allocation.
+  template<typename Visitor>
+  requires std::is_nothrow_invocable_r_v<void, Visitor&, const HamtNodeDiagnostics&>
+  void VisitNodeDiagnostics(Visitor&& visitor) const noexcept {
+    auto&& callback = std::forward<Visitor>(visitor);
+    const auto visit = [&callback](auto&& self, const node_type* node, size_type depth) noexcept -> void {
+      if (node == nullptr) {
+        return;
+      }
+      const HamtNodeDiagnostics record{
+          .depth = depth,
+          .entries = node->entries().size(),
+          .children = node->children().size(),
+          .collision = node->is_collision(),
+          .allocation_bytes = node->allocation_bytes()};
+      std::invoke(callback, record);
+      for (const node_type* child : node->children()) {
+        self(self, child, depth + 1);
+      }
+    };
+    visit(visit, root_.get(), 0);
+  }
+
   // Cold, allocation-free traversal. Shared nodes are included once in this
   // snapshot; their bytes are not attributed exclusively to this owner. Node
-  // payload allocations, source control blocks and retained free blocks are
-  // deliberately excluded. External synchronization is required as usual.
+  // payload blocks are reported separately when entries expose allocation_bytes;
+  // source control blocks and retained free blocks are excluded. External
+  // synchronization is required as usual.
   HamtStructuralDiagnostics structural_diagnostics() const noexcept {
     HamtStructuralDiagnostics result;
     const auto visit = [&result](auto&& self, const node_type* node, std::size_t depth) noexcept -> void {
@@ -122,6 +156,13 @@ class HamtTree final {
       ++result.nodes;
       result.entries += node->entries().size();
       result.node_allocation_bytes += node->allocation_bytes();
+      if constexpr (requires(const Entry& entry) {
+                      { entry.allocation_bytes() } noexcept -> std::same_as<std::size_t>;
+                    }) {
+        for (const Entry& entry : node->entries()) {
+          result.entry_allocation_bytes += entry.allocation_bytes();
+        }
+      }
       result.maximum_depth = std::max(depth, result.maximum_depth);
       if (node->is_collision()) {
         ++result.collision_nodes;

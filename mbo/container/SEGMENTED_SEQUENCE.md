@@ -74,6 +74,13 @@ three options make that behavior explicit:
 - Intermediate reservations grow with power-of-two requests up to the hard capacity. `std::vector`
   may reserve more than requested, so its reported capacity is not promised to equal a request.
 
+The element block source does not govern this directory. A fixed segment source alone is not a
+no-heap guarantee: directory allocation failure is recoverable with exceptions enabled, while
+standard allocator exhaustion terminates without them. An interner that requires strictly inline
+descriptors can use `LimitedVector<string_view, N>` instead of segment and directory allocations.
+`directory_bytes_reserved()` reports the flat pointer directory's current capacity in bytes,
+separately from `bytes_reserved()` for element segments.
+
 The container is allocator-aware for its directory: it defines `allocator_type`, `get_allocator()`,
 and leading `allocator_arg_t` constructors. Copy construction applies
 `select_on_container_copy_construction`. Copy assignment retains the destination directory allocator.
@@ -143,6 +150,7 @@ class SegmentedSequence {
   size_type capacity() const noexcept;
   size_type segment_count() const noexcept;
   size_type bytes_reserved() const noexcept;
+  size_type directory_bytes_reserved() const noexcept;
 
   void reserve(size_type n);
   void resize(size_type n);

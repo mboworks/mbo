@@ -79,7 +79,8 @@ struct BoundedCharacterProfile final {};
 template<>
 struct BenchmarkStorage<BoundedCharacterProfile> final {
   using IndexType = FlatIndex<5>;
-  using StorageType = ArenaStringStorage<mbo::memory::Arena<mbo::memory::InlineBlockSource<4'096>>>;
+  using StorageType = ArenaStringStorage<
+      mbo::memory::Arena<mbo::memory::InlineBlockSource<4'096>, arena_string_storage_internal::kDefaultArenaOptions>>;
   using EntriesType = mbo::container::SegmentedSequence<std::string_view>;
 };
 
@@ -739,11 +740,12 @@ void RegisterIndex(std::string_view name) {
 [[maybe_unused]] const bool kRegistered = [] {
   // Google Benchmark copies names supplied through its C-string API.
   auto* exhausted = benchmark::RegisterBenchmark(
-      "StringInterner/HamtFlat5Id8/IdExhaustion", BmCapacity<WidthIndex<std::uint8_t>, 256, false>);
+      "StringInterner/HamtFlat5Id8/IdExhaustion", BmCapacity<WidthIndex<std::uint8_t>, 255, false>);
   auto* duplicate = benchmark::RegisterBenchmark(
-      "StringInterner/HamtFlat5Id8/DuplicateAtIdCapacity", BmCapacity<WidthIndex<std::uint8_t>, 256, true>);
+      "StringInterner/HamtFlat5Id8/DuplicateAtIdCapacity", BmCapacity<WidthIndex<std::uint8_t>, 255, true>);
   using BoundedEntries = StorageProfile<
-      FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {64}, .maximum_size = 64}>;
+      FlatIndex<5>, arena_string_storage_internal::kDefaultArenaOptions,
+      mbo::container::SegmentedSequenceOptions{.segment_size = 64, .segment_capacity = 1}>;
   auto* entries_exhausted = benchmark::RegisterBenchmark(
       "StringInterner/HamtFlat5Entries64Bounded/EntryExhaustion",
       BmCapacity<BoundedEntries, 64, false, StringInternError::kEntryStorageExhausted>);
@@ -782,15 +784,22 @@ void RegisterIndex(std::string_view name) {
   index_duplicate->ArgNames({"bytes", "embedded_nul"});
   RegisterIndex<FlatIndex<4>>("HamtFlat4");
   RegisterIndex<FlatIndex<5>>("HamtFlat5");
-  RegisterIndex<StorageProfile<FlatIndex<5>, mbo::memory::ArenaOptions{.initial_block_size = 512}, {}>>(
-      "HamtFlat5Arena512");
-  RegisterIndex<StorageProfile<FlatIndex<5>, mbo::memory::ArenaOptions{.initial_block_size = 16'384}, {}>>(
-      "HamtFlat5Arena16384");
-  RegisterIndex<StorageProfile<FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {64}}>>(
-      "HamtFlat5Entries64");
-  RegisterIndex<
-      StorageProfile<FlatIndex<5>, {}, mbo::container::SegmentedSequenceOptions{.segment_capacities = {1'024}}>>(
-      "HamtFlat5Entries1024");
+  RegisterIndex<StorageProfile<
+      FlatIndex<5>,
+      mbo::memory::ArenaOptions{
+          .initial_block_size = 512, .maximum_block_size = 1'024, .growth_numerator = 2, .growth_denominator = 1},
+      {}>>("HamtFlat5Arena512");
+  RegisterIndex<StorageProfile<
+      FlatIndex<5>,
+      mbo::memory::ArenaOptions{
+          .initial_block_size = 16'384, .maximum_block_size = 16'384, .growth_numerator = 2, .growth_denominator = 1},
+      {}>>("HamtFlat5Arena16384");
+  RegisterIndex<StorageProfile<
+      FlatIndex<5>, arena_string_storage_internal::kDefaultArenaOptions,
+      mbo::container::SegmentedSequenceOptions{.segment_size = 64}>>("HamtFlat5Entries64");
+  RegisterIndex<StorageProfile<
+      FlatIndex<5>, arena_string_storage_internal::kDefaultArenaOptions,
+      mbo::container::SegmentedSequenceOptions{.segment_size = 1'024}>>("HamtFlat5Entries1024");
   RegisterIndex<FlatIndex<6>>("HamtFlat6");
   RegisterIndex<FlatIndex<7>>("HamtFlat7");
   RegisterIndex<NodeIndex<4>>("HamtNode4");

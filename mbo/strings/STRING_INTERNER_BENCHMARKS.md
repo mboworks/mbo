@@ -63,7 +63,8 @@ The `id_bits` counter records ID width for every case. Changing ID width does no
 Registration omits input counts outside that ID representation's capacity rather than timing
 setup failures as successful insertions; the 8-bit profile currently uses only the 64-string cases.
 
-Separate `IdExhaustion` and `DuplicateAtIdCapacity` cases prepopulate all 256 eight-bit IDs.
+Separate `IdExhaustion` and `DuplicateAtIdCapacity` cases prepopulate all 255 valid eight-bit IDs
+(0 through 254; 255 is reserved as invalid).
 Each timed iteration attempts one missing string or one existing string, respectively.
 Untimed preflight verifies failure or duplicate success and unchanged size. These measure ID
 exhaustion, not arena exhaustion: duplicates remain valid when no new ID can be assigned.
@@ -118,9 +119,10 @@ For a registration-only check, build the target and invoke the binary with
 The manual target is explicitly registered for the CI-owned clang-tidy compilation database.
 
 Storage profiles hold the flat HAMT at five fragment bits and change one storage setting at a
-time: `Arena512` and `Arena16384` change the initial character block size from the default 4,096
-bytes, retaining the default doubling growth and maximum block size. `Entries64` and `Entries1024`
-change descriptor segment capacity from the default 256 views. They reuse the same benchmark core,
+time: `Arena512` and `Arena16384` change the initial character block size from the default 256
+bytes while retaining doubling growth. The maximum block size is 1,024 for `Arena512` and 16,384
+for `Arena16384` so it is never smaller than the initial block. `Entries64` and `Entries1024`
+change descriptor segment size from the default 256 views. They reuse the same benchmark core,
 inputs, preflight, and cascade lifetime handling as the default profile. Compare lifecycle cases
 for allocation effects and populated lookup cases for layout effects; these are candidates, not
 measured recommendations.

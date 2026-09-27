@@ -507,6 +507,19 @@ The version-one semantic contract has no remaining open questions. Measurements 
   offset width;
 - whether a later owning-`std::string` backend has a meaningful winning workload.
 
+## On-demand diagnostics
+
+`visit_string_sizes(visitor)` invokes a nothrow visitor once per visible string, in dense-ID order.
+It includes empty strings and embedded NUL bytes and excludes later parent insertions. Callers can
+build exact histograms, totals, and maxima without adding counters to insertion or lookup. The
+visitor must not mutate the interner or its ancestor chain during traversal. Traversal itself does
+not allocate; caller-owned diagnostic storage determines any additional allocation costs.
+
+`local_character_bytes_used()` and `local_character_bytes_reserved()` report only this node's
+character backend, excluding ancestors, entry descriptors, and index storage. Unsupported backend
+statistics return `std::nullopt`, never a misleading zero. These are initial diagnostics, not a
+complete memory breakdown or collision/probe analysis; index-specific diagnostics remain separate.
+
 ## Language baseline
 
 The repository targets C++23 with its supported GCC and Clang toolchains. The implementation may

@@ -85,9 +85,19 @@ class InlineSegmentDirectory final {
 
   constexpr const_iterator end() const noexcept { return slots_.data() + size_; }
 
-  constexpr Pointer& operator[](std::size_t pos) noexcept { return slots_[pos]; }
+  constexpr Pointer& operator[](std::size_t pos) noexcept {
+    if (pos >= Capacity) {
+      std::unreachable();
+    }
+    return slots_[pos];
+  }
 
-  constexpr const Pointer& operator[](std::size_t pos) const noexcept { return slots_[pos]; }
+  constexpr const Pointer& operator[](std::size_t pos) const noexcept {
+    if (pos >= Capacity) {
+      std::unreachable();
+    }
+    return slots_[pos];
+  }
 
   constexpr Pointer& back() noexcept { return slots_[size_ - 1]; }
 

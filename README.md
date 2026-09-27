@@ -37,6 +37,12 @@ The C++ library is organized in functional groups each residing in their own dir
     - class `LimitedSet`: A space limited, constexpr compliant `set`.
   - mbo/container:limited_vector_cc, mbo/container/limited_vector.h
     - class `LimitedVector`: A space limited, constexpr compliant `vector`.
+  - mbo/container:segmented_options_cc, mbo/container/segmented_options.h
+    - `SegmentedOptions` and the shared element/representation concepts configure both segmented containers.
+  - mbo/container:segmented_vector_cc, mbo/container/segmented_vector.h
+    - class [`SegmentedVector`](mbo/container/SEGMENTED_VECTOR.md): Append-oriented storage with stable element addresses, constant-time indexing, and configurable block sources.
+  - mbo/container:segmented_deque_cc, mbo/container/segmented_deque.h
+    - class [`SegmentedDeque`](mbo/container/SEGMENTED_DEQUE.md): Double-ended segmented storage with stable element iterators and arena-compatible segment reuse at either end.
 - Diff
   - `namespace mbo::diff` - library docs: [mbo/diff/README.md](mbo/diff/README.md)
   - mbo/diff:diff_cc, mbo/diff/diff.h

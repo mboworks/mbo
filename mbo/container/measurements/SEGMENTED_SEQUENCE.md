@@ -79,6 +79,20 @@ calls and bytes. Vector reports capacity bytes; deque is timing-only because it 
 retained-allocation metadata. Unused tail slots are derivable where the final size is fixed. The
 harness does not claim to capture every allocator or metadata consequence.
 
+### Historical production comparison charts
+
+These charts come from the retained earlier production artifact. Bars show median CPU nanoseconds per
+element; whiskers show the observed nine-sample minimum and maximum, not confidence intervals.
+The raw artifact records the corresponding capacity and reserved-byte counters.
+
+![Fresh append comparison](charts/macos-arm64-apple-m5-pro_clang-22_append.svg)
+
+![Iteration comparison](charts/macos-arm64-apple-m5-pro_clang-22_iteration.svg)
+
+The charts include schedules and mapping candidates removed from the current container. They are
+historical evidence, not a current default-selection result. The current benchmark families and
+configuration choices above describe the executable target.
+
 ## Element-shape benchmark
 
 `//mbo/container:segmented_sequence_element_shape_benchmark` measures the actual fixed-segment
@@ -207,6 +221,32 @@ are future lower-level experiments and are not part of the current container or 
 option becomes public only when at least one measured workload needs it. A candidate that wins one
 access family but violates constant-time lookup, pointer stability, or failure transactionality is
 ineligible regardless of speed.
+
+## Current configuration guidance
+
+The current public `SegmentedSequenceOptions` has a fixed power-of-two `segment_size`, an optional
+power-of-two `segment_capacity` limit on the number of segments, and a `segment_reservation` for
+the segment-pointer directory. Earlier measurement artifacts studied listed growth schedules,
+retention budgets, and alternative page mappings; those are historical candidates, not current
+public options. The fixed-segment implementation still needs its complete Apple M5 Pro and AMD
+Zen 5 measurement matrix before performance defaults can be selected from this evidence.
+
+| Requirement                                                | Current configuration                                                         | Behavior and limit                                                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| General stable-address sequence                            | `SegmentedSequenceOptions{}`                                                  | Uses 256 elements per segment, an unbounded directory, and one initially reserved directory slot.                                     |
+| Smaller element blocks                                     | Set `.segment_size` to a smaller power of two.                                | Reduces unused tail capacity but increases the number of segment pointers and source acquisitions. Measure the actual workload.       |
+| Bounded number of element segments                         | Set `.segment_capacity` to a power of two.                                    | Growth fails after that many segments; the element limit is `segment_size * segment_capacity`, subject to type and arithmetic limits. |
+| Inline segment-pointer directory                           | Set `.segment_capacity` to a power of two no greater than 64.                 | Keeps segment pointers inside the sequence object; combine with a bounded `BlockSource` when general allocator avoidance matters.     |
+| Allocation-free empty construction for a dynamic directory | Set `.segment_reservation = 0`.                                               | Defers the first directory allocation until growth; it does not make later growth allocation-free.                                    |
+| Pre-reserved finite dynamic directory                      | For `.segment_capacity > 64`, set `.segment_reservation = .segment_capacity`. | Requests the pointer slots during construction; standard allocator capacity may exceed the request.                                   |
+| Reclaim empty tail segments after pop                      | Call `trim_capacity()` when the application chooses to release them.          | Live element addresses remain stable; subsequent regrowth may reacquire element blocks.                                               |
+| Bulk scans                                                 | Traverse `segments()`.                                                        | Visits contiguous constructed spans without promising whole-container contiguity.                                                     |
+
+`segment_size` must be a power of two. A finite `segment_capacity` and a nonzero
+`segment_reservation` must also be powers of two, and reservation cannot exceed finite capacity.
+No current option selects a page mapping, heterogeneous segment schedule, element `maximum_size`,
+or retained-segment budget. The historical charts above remain useful for designing new experiments,
+but they do not establish an optimum for the current representation.
 
 ## Review method
 

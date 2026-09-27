@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1116" role="img">
+<title>StringInterner empty-string operations, Apple M5 Pro</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">StringInterner empty-string operations, Apple M5 Pro</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>StringInterner/HamtFlat5Id8/EmptyLifecycle</title>
+<text x="16" y="92" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id8/EmptyLifecycle</text>
+<rect x="580" y="76" width="441.039" height="24" fill="#2563eb"/>
+<path d="M 1012.100 88 H 1034.133 M 1012.100 82 V 94 M 1034.133 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">165 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id8/EmptyDuplicate</title>
+<text x="16" y="140" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id8/EmptyDuplicate</text>
+<rect x="580" y="124" width="52.352" height="24" fill="#2563eb"/>
+<path d="M 631.317 136 H 634.058 M 631.317 130 V 142 M 634.058 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">19.6 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id8/EmptyFind</title>
+<text x="16" y="188" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id8/EmptyFind</text>
+<rect x="580" y="172" width="49.436" height="24" fill="#2563eb"/>
+<path d="M 627.584 184 H 630.230 M 627.584 178 V 190 M 630.230 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">18.5 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id8/EmptyRfind</title>
+<text x="16" y="236" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id8/EmptyRfind</text>
+<rect x="580" y="220" width="74.386" height="24" fill="#2563eb"/>
+<path d="M 653.930 232 H 666.345 M 653.930 226 V 238 M 666.345 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">27.9 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id16/EmptyLifecycle</title>
+<text x="16" y="284" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id16/EmptyLifecycle</text>
+<rect x="580" y="268" width="450.161" height="24" fill="#2563eb"/>
+<path d="M 1006.294 280 H 1039.630 M 1006.294 274 V 286 M 1039.630 274 V 286" stroke="#111827" fill="none"/>
+<text x="1080" y="284" font-family="sans-serif" font-size="12">169 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id16/EmptyDuplicate</title>
+<text x="16" y="332" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id16/EmptyDuplicate</text>
+<rect x="580" y="316" width="55.449" height="24" fill="#2563eb"/>
+<path d="M 634.282 328 H 635.905 M 634.282 322 V 334 M 635.905 322 V 334" stroke="#111827" fill="none"/>
+<text x="1080" y="332" font-family="sans-serif" font-size="12">20.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id16/EmptyFind</title>
+<text x="16" y="380" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id16/EmptyFind</text>
+<rect x="580" y="364" width="51.117" height="24" fill="#2563eb"/>
+<path d="M 629.447 376 H 631.521 M 629.447 370 V 382 M 631.521 370 V 382" stroke="#111827" fill="none"/>
+<text x="1080" y="380" font-family="sans-serif" font-size="12">19.2 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id16/EmptyRfind</title>
+<text x="16" y="428" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id16/EmptyRfind</text>
+<rect x="580" y="412" width="75.892" height="24" fill="#2563eb"/>
+<path d="M 655.456 424 H 656.263 M 655.456 418 V 430 M 656.263 418 V 430" stroke="#111827" fill="none"/>
+<text x="1080" y="428" font-family="sans-serif" font-size="12">28.5 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/EmptyLifecycle</title>
+<text x="16" y="476" font-family="monospace" font-size="11">StringInterner/HamtFlat5/EmptyLifecycle</text>
+<rect x="580" y="460" width="452.153" height="24" fill="#2563eb"/>
+<path d="M 1010.824 472 H 1044.460 M 1010.824 466 V 478 M 1044.460 466 V 478" stroke="#111827" fill="none"/>
+<text x="1080" y="476" font-family="sans-serif" font-size="12">170 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/EmptyDuplicate</title>
+<text x="16" y="524" font-family="monospace" font-size="11">StringInterner/HamtFlat5/EmptyDuplicate</text>
+<rect x="580" y="508" width="52.758" height="24" fill="#2563eb"/>
+<path d="M 631.915 520 H 633.403 M 631.915 514 V 526 M 633.403 514 V 526" stroke="#111827" fill="none"/>
+<text x="1080" y="524" font-family="sans-serif" font-size="12">19.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/EmptyFind</title>
+<text x="16" y="572" font-family="monospace" font-size="11">StringInterner/HamtFlat5/EmptyFind</text>
+<rect x="580" y="556" width="50.163" height="24" fill="#2563eb"/>
+<path d="M 627.810 568 H 630.800 M 627.810 562 V 574 M 630.800 562 V 574" stroke="#111827" fill="none"/>
+<text x="1080" y="572" font-family="sans-serif" font-size="12">18.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5/EmptyRfind</title>
+<text x="16" y="620" font-family="monospace" font-size="11">StringInterner/HamtFlat5/EmptyRfind</text>
+<rect x="580" y="604" width="74.755" height="24" fill="#2563eb"/>
+<path d="M 654.584 616 H 655.064 M 654.584 610 V 622 M 655.064 610 V 622" stroke="#111827" fill="none"/>
+<text x="1080" y="620" font-family="sans-serif" font-size="12">28 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id64/EmptyLifecycle</title>
+<text x="16" y="668" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id64/EmptyLifecycle</text>
+<rect x="580" y="652" width="463.292" height="24" fill="#2563eb"/>
+<path d="M 1024.599 664 H 1060.000 M 1024.599 658 V 670 M 1060.000 658 V 670" stroke="#111827" fill="none"/>
+<text x="1080" y="668" font-family="sans-serif" font-size="12">174 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id64/EmptyDuplicate</title>
+<text x="16" y="716" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id64/EmptyDuplicate</text>
+<rect x="580" y="700" width="55.449" height="24" fill="#2563eb"/>
+<path d="M 634.882 712 H 635.937 M 634.882 706 V 718 M 635.937 706 V 718" stroke="#111827" fill="none"/>
+<text x="1080" y="716" font-family="sans-serif" font-size="12">20.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id64/EmptyFind</title>
+<text x="16" y="764" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id64/EmptyFind</text>
+<rect x="580" y="748" width="49.988" height="24" fill="#2563eb"/>
+<path d="M 629.547 760 H 631.627 M 629.547 754 V 766 M 631.627 754 V 766" stroke="#111827" fill="none"/>
+<text x="1080" y="764" font-family="sans-serif" font-size="12">18.8 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Id64/EmptyRfind</title>
+<text x="16" y="812" font-family="monospace" font-size="11">StringInterner/HamtFlat5Id64/EmptyRfind</text>
+<rect x="580" y="796" width="76.550" height="24" fill="#2563eb"/>
+<path d="M 656.157 808 H 656.899 M 656.157 802 V 814 M 656.899 802 V 814" stroke="#111827" fill="none"/>
+<text x="1080" y="812" font-family="sans-serif" font-size="12">28.7 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Fold32/EmptyLifecycle</title>
+<text x="16" y="860" font-family="monospace" font-size="11">StringInterner/HamtFlat5Fold32/EmptyLifecycle</text>
+<rect x="580" y="844" width="432.977" height="24" fill="#2563eb"/>
+<path d="M 1000.158 856 H 1018.764 M 1000.158 850 V 862 M 1018.764 850 V 862" stroke="#111827" fill="none"/>
+<text x="1080" y="860" font-family="sans-serif" font-size="12">162 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Fold32/EmptyDuplicate</title>
+<text x="16" y="908" font-family="monospace" font-size="11">StringInterner/HamtFlat5Fold32/EmptyDuplicate</text>
+<rect x="580" y="892" width="52.408" height="24" fill="#2563eb"/>
+<path d="M 630.505 904 H 633.828 M 630.505 898 V 910 M 633.828 898 V 910" stroke="#111827" fill="none"/>
+<text x="1080" y="908" font-family="sans-serif" font-size="12">19.7 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Fold32/EmptyFind</title>
+<text x="16" y="956" font-family="monospace" font-size="11">StringInterner/HamtFlat5Fold32/EmptyFind</text>
+<rect x="580" y="940" width="47.852" height="24" fill="#2563eb"/>
+<path d="M 626.694 952 H 629.697 M 626.694 946 V 958 M 629.697 946 V 958" stroke="#111827" fill="none"/>
+<text x="1080" y="956" font-family="sans-serif" font-size="12">18 ns; n=9</text>
+</g>
+<g><title>StringInterner/HamtFlat5Fold32/EmptyRfind</title>
+<text x="16" y="1004" font-family="monospace" font-size="11">StringInterner/HamtFlat5Fold32/EmptyRfind</text>
+<rect x="580" y="988" width="70.817" height="24" fill="#2563eb"/>
+<path d="M 650.390 1000 H 651.680 M 650.390 994 V 1006 M 651.680 994 V 1006" stroke="#111827" fill="none"/>
+<text x="1080" y="1004" font-family="sans-serif" font-size="12">26.6 ns; n=9</text>
+</g>
+<text x="16" y="1064" font-family="sans-serif" font-size="11">Apple M5 Pro / 21.0.0 (clang-2100.3.34.2) / c++20 / opt</text>
+<text x="16" y="1082" font-family="monospace" font-size="11">Measured commit: f645e745f81248dfae7742e3cf52fe9fe76857f7</text>
+<text x="16" y="1100" font-family="monospace" font-size="11">Source artifact SHA-256: be06c57b39509158406c31a655003498bb46cf2b84c1c65d1cac7aaaaf7546f1</text>
+</svg>

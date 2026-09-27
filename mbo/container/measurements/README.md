@@ -1,5 +1,12 @@
 # Ordered lookup microbenchmarks
 
+Current retained component reports:
+
+- [`SEGMENTED_SEQUENCE.md`](SEGMENTED_SEQUENCE.md) for append-oriented stable storage;
+- [`HAMT.md`](HAMT.md) for general flat/node persistent map comparisons.
+
+## Historical ordered lookup study
+
 The production and proof protocol for the new append-oriented stable-address container lives in
 [`SEGMENTED_SEQUENCE.md`](SEGMENTED_SEQUENCE.md). Its measurements use immutable JSON artifacts and
 the two-machine evidence gate; the historical ordered-lookup study below predates that shared

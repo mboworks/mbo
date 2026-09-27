@@ -1,0 +1,107 @@
+{
+  "benchmarks": [
+    {
+      "best_three_mean_cpu_ns": 49.80349511599542,
+      "maximum_cpu_ns": 50.995879120877696,
+      "median_cpu_ns": 49.97281364468719,
+      "minimum_cpu_ns": 49.75103021978272,
+      "name": "HamtMap/FullHashCollision/Flat5/FindMiss/256",
+      "operations_per_iteration": 256,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 113.72986694677644,
+      "maximum_cpu_ns": 115.38209033613231,
+      "median_cpu_ns": 115.05383403361644,
+      "minimum_cpu_ns": 113.428965336129,
+      "name": "HamtMap/FullHashCollision/Node5/FindMiss/256",
+      "operations_per_iteration": 256,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 317.52664728681486,
+      "maximum_cpu_ns": 321.8114098837213,
+      "median_cpu_ns": 318.7681686046699,
+      "minimum_cpu_ns": 317.269258720921,
+      "name": "HamtMap/FullHashCollision/Standard/FindMiss/256",
+      "operations_per_iteration": 256,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 213.0869708994672,
+      "maximum_cpu_ns": 226.5624999999891,
+      "median_cpu_ns": 213.57266865082568,
+      "minimum_cpu_ns": 212.82862103174293,
+      "name": "HamtMap/FullHashCollision/AbseilFlat/FindMiss/256",
+      "operations_per_iteration": 256,
+      "samples": 9
+    },
+    {
+      "best_three_mean_cpu_ns": 198.55365707433836,
+      "maximum_cpu_ns": 205.1764838129497,
+      "median_cpu_ns": 203.18120503596694,
+      "minimum_cpu_ns": 196.83003597122953,
+      "name": "HamtMap/FullHashCollision/AbseilNode/FindMiss/256",
+      "operations_per_iteration": 256,
+      "samples": 9
+    }
+  ],
+  "measurement": {
+    "build": {
+      "mode": "opt",
+      "target": "//mbo/container:hamt_map_benchmark"
+    },
+    "component": "hamt-map-full-hash-collision",
+    "controls": {
+      "minimum_time": "0.005s",
+      "random_interleaving": true,
+      "repetitions": 9,
+      "warmup_time": 0.01
+    },
+    "git": {
+      "branch": "perf/string-interner-m5-report",
+      "commit": "15d3217bcdebf49803965366ec2f83b6c2f29e07",
+      "dirty": false,
+      "repository": "git@github.com:mboworks/mbo"
+    },
+    "host": {
+      "architecture": "arm64",
+      "cpu_model": "Apple M5 Pro",
+      "hostname": "Mac",
+      "load_average": [2.06103515625, 2.83935546875, 3.1279296875],
+      "logical_cpu_count": 18,
+      "memory_bytes": 68719476736,
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "physical_cpu_count": 18
+    },
+    "provenance": {
+      "command": "bazel-bin/mbo/container/hamt_map_benchmark --benchmark_filter=HamtMap/FullHashCollision/ --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-m0getawv/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "runner": "tools/benchmark_artifact.py",
+      "runner_version": 1
+    },
+    "source_relation": {
+      "baseline_commit": null
+    },
+    "timing": {
+      "duration_seconds": 5.040626875,
+      "ended_utc": "2026-09-16T03:51:52.216180+00:00",
+      "started_utc": "2026-09-16T03:51:47.175387+00:00",
+      "time_source": "google-benchmark steady clock"
+    },
+    "toolchain": {
+      "bazel_configurations": ["-c", "opt"],
+      "bazel_version": "9.2.0",
+      "build_flags": "bazel-bin/mbo/container/hamt_map_benchmark --benchmark_filter=HamtMap/FullHashCollision/ --benchmark_out=/var/folders/63/hryz23f53nz8c1556gqxh4sm0000gn/T/mbo-benchmark-m0getawv/raw.json --benchmark_out_format=json --benchmark_repetitions=9 --benchmark_min_time=0.005s --benchmark_min_warmup_time=0.01 --benchmark_enable_random_interleaving=true --benchmark_report_aggregates_only=false",
+      "compiler": "21.0.0 (clang-2100.3.34.2)",
+      "compiler_version": "21.0.0 (clang-2100.3.34.2)",
+      "cxx_standard": "c++20",
+      "library_build_type": "release"
+    },
+    "validity": {
+      "note": null,
+      "status": "valid"
+    }
+  },
+  "source_content_sha256": "2c423b3a75ccc2416467fec68ef82daaca52cd7845d48c5374b12b151070f44f"
+}

@@ -769,6 +769,8 @@ class SegmentedSequence final {
     return result;
   }
 
+  constexpr size_type directory_bytes_reserved() const noexcept { return segments_.capacity() * sizeof(Segment*); }
+
   constexpr reference operator[](size_type pos) noexcept { return ElementAt(pos); }
 
   constexpr const_reference operator[](size_type pos) const noexcept { return ElementAt(pos); }

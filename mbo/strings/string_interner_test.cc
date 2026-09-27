@@ -131,7 +131,8 @@ TEST_F(StringInternerTest, InlineLimitedVectorDescriptorsSupportRecoverableCapac
 TEST_F(StringInternerTest, CallerOwnedBuffersAndInlineDescriptorsSupportBoundedCascades) {
   using Arena = mbo::memory::Arena<
       mbo::memory::InlineBlockSource<256>,
-      mbo::memory::ArenaOptions{.initial_block_size = 128, .maximum_block_size = 128}>;
+      mbo::memory::ArenaOptions{
+          .initial_block_size = 128, .maximum_block_size = 128, .growth_numerator = 1, .growth_denominator = 1}>;
   using Storage = ArenaStringStorage<Arena>;
   using Entries = mbo::container::LimitedVector<std::string_view, 1>;
   using Index = HamtStringIndex<
@@ -224,7 +225,8 @@ TEST_F(StringInternerTest, EntryStorageDiagnosticsSeparateLiveDescriptorsFromRes
   ASSERT_THAT(measured.segment_bytes_reserved.has_value(), Eq(true));
   EXPECT_THAT(measured.segment_bytes_reserved.value_or(0) >= measured.live_descriptor_bytes, Eq(true));
   EXPECT_THAT(measured.lookup_directory_bytes_reserved.has_value(), Eq(true));
-  EXPECT_THAT(measured.segment_directory_bytes_reserved.has_value(), Eq(true));
+  EXPECT_THAT(measured.lookup_directory_bytes_reserved.value_or(0) >= sizeof(void*), Eq(true));
+  EXPECT_THAT(measured.segment_directory_bytes_reserved.has_value(), Eq(false));
   EXPECT_THAT(child.size(), Eq(2));
 }
 

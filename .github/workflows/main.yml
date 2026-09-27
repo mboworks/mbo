@@ -368,10 +368,18 @@ jobs:
         os: [ubuntu-latest, macos-26]
         compiler: [clang]
         # Hermetic toolchains_llvm clang (independent of the runner's Apple clang).
-        # Optimized LLVM 22 builds run in test-bcr with explicit Bazel versions;
-        # this job owns the sanitizer coverage without duplicating them.
-        llvm_version: [22.1.8]
-        bazel_config: [asan]
+        # LLVM 22.1.8 remains the minimum/default and owns sanitizer coverage.
+        # LLVM 23.1.1 is an optimized forward-compatibility signal; it does not
+        # raise the supported minimum or replace the pinned development tools.
+        llvm_version: [22.1.8, 23.1.1]
+        bazel_config: [asan, opt]
+        exclude:
+          # Optimized LLVM 22 builds run in test-bcr with explicit Bazel versions.
+          - llvm_version: 22.1.8
+            bazel_config: opt
+          # Forward compatibility does not need to duplicate sanitizer coverage.
+          - llvm_version: 23.1.1
+            bazel_config: asan
 
     uses: ./.github/workflows/test.yml
     with:

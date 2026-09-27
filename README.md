@@ -339,6 +339,8 @@ The C++ library is organized in functional groups each residing in their own dir
 
 This repository requires C++23 with GCC 15 and matching libstdc++ 15, Clang/LLVM 22 and matching
 libc++ 22, or Xcode 16.3 and its matching Apple Clang/libc++. Bazel 8 and newer remain supported.
+Clang/LLVM 22.1.8 remains the minimum and default hermetic toolchain; CI also tests 23.1.1 as a
+forward-compatibility signal without changing the supported minimum or the formatting toolchain.
 
 The project only comes with a Bazel BUILD.bazel file and can be added to other Bazel projects.
 

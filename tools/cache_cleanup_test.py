@@ -157,6 +157,21 @@ class WorkflowCachePolicyTest(unittest.TestCase):
         self.assertIn("contains(needs.*.result, 'failure')", done)
         self.assertIn("contains(needs.*.result, 'cancelled')", done)
 
+    def test_compiler_policy_keeps_llvm_22_minimum_and_tests_llvm_23_forward(self):
+        bcr = self.main.split("  test-bcr:\n", 1)[1].split("  test-clang:\n", 1)[0]
+        clang = self.main.split("  test-clang:\n", 1)[1].split("  done:\n", 1)[0]
+        self.assertIn("llvm_version: [22.1.8]", bcr)
+        self.assertIn("llvm_version: [22.1.8, 23.1.1]", clang)
+        self.assertIn("bazel_config: [asan, opt]", clang)
+        self.assertRegex(
+            clang,
+            r"- llvm_version: 22\.1\.8\s+bazel_config: opt",
+        )
+        self.assertRegex(
+            clang,
+            r"- llvm_version: 23\.1\.1\s+bazel_config: asan",
+        )
+
 
 if __name__ == "__main__":
   unittest.main()

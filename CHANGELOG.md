@@ -9,6 +9,9 @@
 - Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
   and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.9.1`.
 
+- Kept Clang/LLVM 22.1.8 as the minimum and default while adding Clang/LLVM 23.1.1 as a
+  cross-platform forward-compatibility CI signal.
+
 - Replaced the remaining C++20 compatibility branches with the selected C++23 facilities, including
   static constexpr locals, `string_view::contains`, and `std::byteswap`.
 

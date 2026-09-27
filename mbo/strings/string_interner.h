@@ -8,9 +8,11 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -121,6 +123,13 @@ class StringInterner final {
 
   explicit StringInterner(const StringInterner* parent) noexcept
       : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()) {}
+
+  template<typename IndexFactory>
+  requires(std::invocable<IndexFactory&> && std::same_as<std::invoke_result_t<IndexFactory&>, Index>)
+  StringInterner(const StringInterner* parent, IndexFactory factory) noexcept(
+      std::is_nothrow_invocable_v<IndexFactory&> && std::is_nothrow_default_constructible_v<Storage>
+      && std::is_nothrow_default_constructible_v<Entries>)
+      : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()), index_(std::invoke(factory)) {}
 
   StringInterner(const StringInterner&) = delete;
   StringInterner& operator=(const StringInterner&) = delete;

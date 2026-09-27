@@ -370,7 +370,7 @@ cc_library(
     hdrs = ["segmented_deque.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":experimental_circular_directory_cc",
+        ":experimental_circular_buffer_cc",
         ":segmented_options_cc",
         "//mbo/config:require_cc",
         "//mbo/memory:block_source_cc",
@@ -412,17 +412,40 @@ cc_test(
 )
 
 cc_library(
-    name = "experimental_circular_directory_cc",
-    hdrs = ["internal/experimental_circular_directory.h"],
+    name = "experimental_circular_buffer_cc",
+    hdrs = ["internal/experimental_circular_buffer.h"],
     visibility = ["//visibility:private"],
+    deps = [
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
+    ],
 )
 
 cc_test(
-    name = "experimental_circular_directory_test",
+    name = "experimental_circular_buffer_test",
     size = "small",
-    srcs = ["internal/experimental_circular_directory_test.cc"],
+    srcs = ["internal/experimental_circular_buffer_test.cc"],
     deps = [
-        ":experimental_circular_directory_cc",
+        ":experimental_circular_buffer_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "experimental_circular_buffer_require_exceptions_test",
+    size = "small",
+    srcs = ["internal/experimental_circular_buffer_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":experimental_circular_buffer_cc",
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        "//mbo/config:config_cc",
+        "//mbo/memory:block_source_cc",
         "@googletest//:gtest_main",
     ],
 )

@@ -23,7 +23,7 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
-#include "mbo/container/internal/experimental_circular_directory.h"
+#include "mbo/container/internal/experimental_circular_buffer.h"
 #include "mbo/container/segmented_options.h"
 #include "mbo/memory/block_source.h"
 
@@ -74,7 +74,7 @@ class SegmentedDeque final {
   using SegmentPointerAllocator = std::allocator_traits<DirectoryAllocator>::template rebind_alloc<Segment*>;
   using DirectoryAllocatorTraits = std::allocator_traits<DirectoryAllocator>;
   using SegmentPointerAllocatorTraits = std::allocator_traits<SegmentPointerAllocator>;
-  using Directory = container_internal::ExperimentalCircularDirectory<Segment*, SegmentPointerAllocator>;
+  using Directory = container_internal::ExperimentalCircularBuffer<Segment*, SegmentPointerAllocator>;
   static constexpr bool kDirectorySwapAlwaysSafe = SegmentPointerAllocatorTraits::propagate_on_container_swap::value
                                                    || SegmentPointerAllocatorTraits::is_always_equal::value;
   static constexpr bool kDirectoryMoveAssignmentAlwaysSafe =
@@ -577,7 +577,7 @@ class SegmentedDeque final {
             other,
             SegmentPointerAllocator(
                 DirectoryAllocatorTraits::select_on_container_copy_construction(
-                    DirectoryAllocator(other.segments_.GetAllocator())))) {}
+                    DirectoryAllocator(other.segments_.get_allocator())))) {}
 
   constexpr SegmentedDeque(
       std::allocator_arg_t /*unused*/,
@@ -594,7 +594,7 @@ class SegmentedDeque final {
       && !DirectoryAllocatorTraits::propagate_on_container_copy_assignment::value
       && std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     if (this != &other) {
-      SegmentedDeque copy(CopyWithAllocatorTag{}, other, segments_.GetAllocator());
+      SegmentedDeque copy(CopyWithAllocatorTag{}, other, segments_.get_allocator());
       swap(copy);
     }
     return *this;
@@ -612,7 +612,7 @@ class SegmentedDeque final {
     other.capacity_ = 0;
     other.origin_ = 0;
     other.spare_ = nullptr;
-    other.segments_.Clear();
+    other.segments_.clear();
   }
 
   constexpr SegmentedDeque& operator=(SegmentedDeque&& other) noexcept(
@@ -626,10 +626,10 @@ class SegmentedDeque final {
         segments_ = std::move(other.segments_);
         source_ = std::move(other.source_);
       } else {
-        Directory replacement(other.segments_, segments_.GetAllocator());
+        Directory replacement(other.segments_, segments_.get_allocator());
         release();
-        segments_.Swap(replacement);
-        other.segments_.Clear();
+        segments_.swap(replacement);
+        other.segments_.clear();
         source_ = std::move(other.source_);
       }
       size_ = other.size_;
@@ -640,7 +640,7 @@ class SegmentedDeque final {
       other.capacity_ = 0;
       other.origin_ = 0;
       other.spare_ = nullptr;
-      other.segments_.Clear();
+      other.segments_.clear();
     }
     return *this;
   }
@@ -648,18 +648,18 @@ class SegmentedDeque final {
   constexpr ~SegmentedDeque() { release(); }
 
   constexpr void swap(SegmentedDeque& other) noexcept(
-      std::is_nothrow_swappable_v<Source> && kDirectorySwapAlwaysSafe && noexcept(segments_.Swap(other.segments_)))
+      std::is_nothrow_swappable_v<Source> && kDirectorySwapAlwaysSafe && noexcept(segments_.swap(other.segments_)))
   requires(std::is_nothrow_swappable_v<Source> && std::copy_constructible<SegmentPointerAllocator>) {
     using std::swap;
     if (DirectoryAllocatorsAllowSwap(other)) {
       swap(source_, other.source_);
-      segments_.Swap(other.segments_);
+      segments_.swap(other.segments_);
     } else {
-      Directory this_directory(other.segments_, segments_.GetAllocator());
-      Directory other_directory(segments_, other.segments_.GetAllocator());
+      Directory this_directory(other.segments_, segments_.get_allocator());
+      Directory other_directory(segments_, other.segments_.get_allocator());
       swap(source_, other.source_);
-      segments_.Swap(this_directory);
-      other.segments_.Swap(other_directory);
+      segments_.swap(this_directory);
+      other.segments_.swap(other_directory);
     }
     swap(size_, other.size_);
     swap(capacity_, other.capacity_);
@@ -683,13 +683,13 @@ class SegmentedDeque final {
   constexpr allocator_type get_allocator() const
       noexcept(std::is_nothrow_constructible_v<DirectoryAllocator, SegmentPointerAllocator>)
   requires std::constructible_from<DirectoryAllocator, SegmentPointerAllocator> {
-    return DirectoryAllocator(segments_.GetAllocator());
+    return DirectoryAllocator(segments_.get_allocator());
   }
 
   constexpr size_type bytes_reserved() const noexcept {
     size_type result = 0;
-    for (size_type index = 0; index < LiveSegmentCount(); ++index) {
-      result += segments_.At((origin_ >> kSegmentShift) + index)->block.size;
+    for (const Segment* segment : segments_) {
+      result += segment->block.size;
     }
     for (const Segment* segment = spare_; segment != nullptr; segment = segment->next_spare) {
       result += segment->block.size;
@@ -923,7 +923,8 @@ class SegmentedDeque final {
     ++origin_;
     --size_;
     if (empty() || (origin_ & kSegmentMask) == 0) {
-      RecycleCoordinate(coordinate);
+      ReturnSpare(segments_.front());
+      segments_.pop_front();
     }
     if (empty()) {
       origin_ = 0;
@@ -936,7 +937,8 @@ class SegmentedDeque final {
     std::destroy_at(std::addressof(AtCoordinate(coordinate)));
     --size_;
     if (empty() || (coordinate & kSegmentMask) == 0) {
-      RecycleCoordinate(coordinate);
+      ReturnSpare(segments_.back());
+      segments_.pop_back();
     }
     if (empty()) {
       origin_ = 0;
@@ -981,7 +983,7 @@ class SegmentedDeque final {
     if constexpr (kDirectoryMoveAssignmentAlwaysSafe) {
       return true;
     } else {
-      return segments_.GetAllocator() == other.segments_.GetAllocator();
+      return segments_.get_allocator() == other.segments_.get_allocator();
     }
   }
 
@@ -989,7 +991,7 @@ class SegmentedDeque final {
     if constexpr (kDirectorySwapAlwaysSafe) {
       return true;
     } else {
-      return segments_.GetAllocator() == other.segments_.GetAllocator();
+      return segments_.get_allocator() == other.segments_.get_allocator();
     }
   }
 
@@ -1025,39 +1027,47 @@ class SegmentedDeque final {
     }
 #if __cpp_exceptions
     const size_type original_capacity = capacity_;
+    const size_type original_origin = origin_;
 #endif
     reserve_front(count);
     const size_type start = origin_ - count;
+    const size_type required_segments = (((start & kSegmentMask) + size_ + count - 1) >> kSegmentShift) + 1;
+    const size_type new_segments = required_segments - segments_.size();
     size_type constructed = 0;
 #if __cpp_exceptions
     size_type attached = 0;
     try {
 #endif
-      for (; constructed < count; ++constructed, ++first) {
-        const size_type coordinate = start + constructed;
-        Segment*& segment = segments_.At(coordinate >> kSegmentShift);
-        if (segment == nullptr) {
-          segment = TakeSpare();
+      for (size_type index = 0; index < new_segments; ++index) {
+        // Publish the pointer before removing it from the spare list: a throwing
+        // allocator construction must leave the spare owned by the deque.
+        segments_.push_front(spare_);
+        TakeSpare();
 #if __cpp_exceptions
-          ++attached;
+        ++attached;
 #endif
-        }
-        std::construct_at(std::addressof((*segment)[coordinate & kSegmentMask]), *first);
+      }
+      // Existing element coordinates still identify the same objects, including
+      // when the input range uses this deque's own iterators.
+      origin_ = start;
+      for (; constructed < count; ++constructed, ++first) {
+        std::construct_at(std::addressof(AtCoordinate(start + constructed)), *first);
       }
 #if __cpp_exceptions
     } catch (...) {
       for (size_type index = 0; index < constructed; ++index) {
         std::destroy_at(std::addressof(AtCoordinate(start + index)));
       }
-      for (size_type index = 0; index < attached; ++index) {
-        Segment*& segment = segments_.At((start >> kSegmentShift) + index);
-        ReturnSpare(std::exchange(segment, nullptr));
+      while (attached != 0) {
+        ReturnSpare(segments_.front());
+        segments_.pop_front();
+        --attached;
       }
+      origin_ = original_origin;
       trim_capacity(original_capacity);
       throw;
     }
 #endif
-    origin_ = start;
     size_ += count;
   }
 
@@ -1097,34 +1107,35 @@ class SegmentedDeque final {
 
   static constexpr size_type MaxCapacity() noexcept { return MaxSegmentCount() * Options.segment_size; }
 
-  constexpr size_type LiveSegmentCount() const noexcept {
-    return empty() ? 0 : (((origin_ & kSegmentMask) + size_ - 1) >> kSegmentShift) + 1;
-  }
+  constexpr size_type LiveSegmentCount() const noexcept { return segments_.size(); }
 
   constexpr size_type SpareCapacity() const noexcept { return capacity_ - (LiveSegmentCount() * Options.segment_size); }
 
-  constexpr reference AtCoordinate(size_type coordinate) noexcept {
-    return (*segments_.At(coordinate >> kSegmentShift))[coordinate & kSegmentMask];
-  }
+  constexpr reference AtCoordinate(size_type coordinate) noexcept { return ElementAt(coordinate - origin_); }
 
   constexpr const_reference AtCoordinate(size_type coordinate) const noexcept {
-    return (*segments_.At(coordinate >> kSegmentShift))[coordinate & kSegmentMask];
+    return ElementAt(coordinate - origin_);
   }
 
-  constexpr reference ElementAt(size_type pos) noexcept { return AtCoordinate(origin_ + pos); }
+  constexpr reference ElementAt(size_type pos) noexcept {
+    const size_type offset = (origin_ & kSegmentMask) + pos;
+    return (*segments_[offset >> kSegmentShift])[offset & kSegmentMask];
+  }
 
-  constexpr const_reference ElementAt(size_type pos) const noexcept { return AtCoordinate(origin_ + pos); }
+  constexpr const_reference ElementAt(size_type pos) const noexcept {
+    const size_type offset = (origin_ & kSegmentMask) + pos;
+    return (*segments_[offset >> kSegmentShift])[offset & kSegmentMask];
+  }
 
   template<bool IsConst>
   constexpr SegmentView<IsConst> MakeSegmentView(size_type index) const noexcept {
     const size_type first = index == 0 ? origin_ & kSegmentMask : 0;
     const size_type remaining = size_ - (index == 0 ? 0 : (index * Options.segment_size) - (origin_ & kSegmentMask));
     const size_type available = Options.segment_size - first;
-    return SegmentView<IsConst>(
-        segments_.At((origin_ >> kSegmentShift) + index), first, remaining < available ? remaining : available);
+    return SegmentView<IsConst>(segments_[index], first, remaining < available ? remaining : available);
   }
 
-  constexpr void InitializeDirectory() { segments_.Grow(Options.segment_reservation, MaxSegmentCount(), 0, 0); }
+  constexpr void InitializeDirectory() { segments_.reserve(Options.segment_reservation); }
 
   template<bool Front>
   constexpr void ReserveDirectional(size_type additional) {
@@ -1152,7 +1163,7 @@ class SegmentedDeque final {
     if (segment_count() >= MaxSegmentCount()) {
       return false;
     }
-    segments_.Grow(segment_count() + 1, MaxSegmentCount(), origin_ >> kSegmentShift, LiveSegmentCount());
+    segments_.reserve(segment_count() + 1);
     Segment* const segment = [this]() constexpr -> Segment* {  // NOLINT(misc-const-correctness)
       if consteval {
         if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {
@@ -1197,10 +1208,6 @@ class SegmentedDeque final {
     spare_ = segment;
   }
 
-  constexpr void RecycleCoordinate(size_type coordinate) noexcept {
-    ReturnSpare(std::exchange(segments_.At(coordinate >> kSegmentShift), nullptr));
-  }
-
   template<bool Front, bool Acquire, typename... Args>
   constexpr std::optional<std::reference_wrapper<T>> Emplace(Args&&... args) {
     const bool needs_segment =
@@ -1210,14 +1217,24 @@ class SegmentedDeque final {
       return std::nullopt;
     }
     const size_type coordinate = Front ? origin_ - 1 : origin_ + size_;
-    Segment* const segment = needs_segment ? TakeSpare() : segments_.At(coordinate >> kSegmentShift);
+    Segment* const segment = needs_segment ? TakeSpare() : (Front ? segments_.front() : segments_.back());
     T* result = nullptr;
 #if __cpp_exceptions
     try {
 #endif
       result = std::construct_at(std::addressof((*segment)[coordinate & kSegmentMask]), std::forward<Args>(args)...);
+      if (needs_segment) {
+        if constexpr (Front) {
+          segments_.push_front(segment);
+        } else {
+          segments_.push_back(segment);
+        }
+      }
 #if __cpp_exceptions
     } catch (...) {
+      if (result != nullptr) {
+        std::destroy_at(result);
+      }
       if (needs_segment) {
         ReturnSpare(segment);
       }
@@ -1227,9 +1244,6 @@ class SegmentedDeque final {
       throw;
     }
 #endif
-    if (needs_segment) {
-      segments_.At(coordinate >> kSegmentShift) = segment;
-    }
     if constexpr (Front) {
       origin_ = coordinate;
     }

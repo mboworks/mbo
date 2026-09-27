@@ -52,25 +52,27 @@ No claim that those costs are negligible is part of the contract.
 
 ## Representation and indexing
 
-The initial directory is an experimental internal implementation in
-`internal/experimental_circular_directory.h`, with a narrow coordinate-lookup and growth interface.
-It is replaceable without changing the public deque API or shared options. It is not a public
-circular-container API and is not used by `SegmentedVector`.
+The directory uses the internal
+[`ExperimentalCircularBuffer`](internal/EXPERIMENTAL_CIRCULAR_BUFFER.md) from
+`internal/experimental_circular_buffer.h`. It is replaceable without changing the public deque API
+or shared options and is not used by `SegmentedVector`.
 
-The directory is a power-of-two-sized `std::vector<Segment*>` whose unused entries are null. A
-wrapping unsigned element coordinate identifies the first element. For a valid logical index `i`,
-the mapping is conceptually:
+The circular buffer owns the live segment-pointer range through separate begin and end indices,
+with power-of-two allocated capacity. Adding or recycling a live segment pushes or pops the
+corresponding buffer end. Only live pointers are constructed; spare segments stay on their separate
+intrusive list. A wrapping unsigned element coordinate identifies the deque's first element.
+For a valid logical index `i`, the mapping is conceptually:
 
 ```cpp
-coordinate = origin + i;
-directory_slot = (coordinate >> segment_shift) & directory_mask;
-element_slot = coordinate & segment_mask;
+offset = (origin & segment_mask) + i;
+segment = directory[offset >> segment_shift];
+element_slot = offset & segment_mask;
 ```
 
-Unsigned wrap is intentional. The acquired-segment and live-size bounds ensure that simultaneously
-live segments never alias a directory slot. Growing the directory allocates a larger pointer array
-and remaps live segment pointers using their coordinates; it never moves segment storage. This
-event is linear in the directory size. Endpoint insertion is amortized constant time with respect
+Unsigned wrap is intentional. The circular buffer maps logical indices to its wrapped allocation;
+its live interval never overlaps itself. Growing the directory allocates a larger pointer array
+and relocates live pointers in logical order; it never moves segment storage. This
+event is linear in the live segment count. Endpoint insertion is amortized constant time with respect
 to directory management, plus the source's allocation and the element's construction costs.
 Preallocating the directory removes directory-growth events within its reserved limit.
 

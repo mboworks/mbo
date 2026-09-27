@@ -19,6 +19,31 @@ struct StringInternerTest : ::testing::Test {};
 
 static_assert(std::bidirectional_iterator<StringInterner<>::iterator>);
 
+TEST_F(StringInternerTest, FactoriesConstructAllBackendsOnceWithoutMovingCharacterStorage) {
+  int storage_calls = 0;
+  int entry_calls = 0;
+  int index_calls = 0;
+  StringInterner<> interner(
+      nullptr,
+      [&storage_calls]() noexcept {
+        ++storage_calls;
+        return ArenaStringStorage<>();
+      },
+      [&entry_calls]() noexcept {
+        ++entry_calls;
+        return mbo::container::SegmentedSequence<std::string_view>();
+      },
+      [&index_calls]() noexcept {
+        ++index_calls;
+        return HamtStringIndex<>();
+      });
+  EXPECT_THAT(storage_calls, Eq(1));
+  EXPECT_THAT(entry_calls, Eq(1));
+  EXPECT_THAT(index_calls, Eq(1));
+  EXPECT_THAT(interner.intern("configured").index(), Eq(0));
+  EXPECT_THAT(interner.get(StringId<>(0)), Optional(std::string_view("configured")));
+}
+
 TEST_F(StringInternerTest, CharacterAndEntryExhaustionLeavePublishedStringsUnchanged) {
   constexpr mbo::memory::ArenaOptions kEmptyArenaOptions{
       .initial_block_size = 16,

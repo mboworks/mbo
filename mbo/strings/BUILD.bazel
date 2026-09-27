@@ -48,6 +48,7 @@ cc_library(
         ":arena_string_storage_cc",
         ":hamt_string_index_cc",
         ":string_id_cc",
+        "//mbo/config:require_cc",
         "//mbo/container:segmented_sequence_cc",
     ],
 )
@@ -58,6 +59,21 @@ cc_test(
     srcs = ["string_interner_test.cc"],
     deps = [
         ":string_id_cc",
+        ":string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_require_exceptions_test",
+    size = "small",
+    srcs = ["string_interner_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    deps = [
         ":string_interner_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",

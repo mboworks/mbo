@@ -52,6 +52,7 @@ struct Value final {
 };
 
 struct ExperimentalCircularBufferRequireExceptionsTest : ::testing::Test {
+ protected:
   void SetUp() override {
     Value::remaining = -1;
     EXPECT_THAT(Value::live, Eq(0));
@@ -172,7 +173,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, RelocationAndCopyFailure
     Value::remaining = failure;
     EXPECT_THAT([&buffer] { buffer.reserve(16); }, Throws<std::runtime_error>());
     Value::remaining = failure;
-    EXPECT_THAT([&buffer] { const Buffer copy(buffer); }, Throws<std::runtime_error>());
+    EXPECT_THAT([&buffer] { return Buffer(buffer); }, Throws<std::runtime_error>());
     Value::remaining = -1;
     Buffer destination;
     destination.emplace_back(9);
@@ -226,7 +227,7 @@ struct FailingAllocator final {
   explicit FailingAllocator(AllocationState* state) : state(state) {}
 
   template<typename U>
-  FailingAllocator(const FailingAllocator<U>& other) : state(other.state) {}
+  explicit FailingAllocator(const FailingAllocator<U>& other) : state(other.state) {}
 
   T* allocate(std::size_t count) {
     if (state->fail_allocate) {

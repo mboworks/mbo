@@ -111,7 +111,7 @@ TEST_F(ExperimentalCircularBufferTest, BothEndsWrapAndReuseAllReservedSlots) {
   buffer.push_back(4);
   EXPECT_THAT(buffer, ElementsAre(1, 2, 3, 4));
   EXPECT_THAT(buffer.full(), IsTrue());
-  int* const second = std::addressof(buffer[1]);
+  int* const second = std::addressof(buffer.at(1));
   buffer.pop_front();
   buffer.push_back(5);
   EXPECT_THAT(buffer, ElementsAre(2, 3, 4, 5));
@@ -153,6 +153,7 @@ TEST_F(ExperimentalCircularBufferTest, IteratorsTraverseLogicalOrderAcrossTheWra
   EXPECT_THAT(constant.front(), Eq(5));
   EXPECT_THAT(constant.back(), Eq(2));
   EXPECT_THAT(constant.at(2), Eq(1));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): test valid unchecked access.
   EXPECT_THAT(constant[3], Eq(4));
   EXPECT_THAT(std::ranges::subrange(buffer.rbegin(), buffer.rend()), ElementsAre(2, 4, 1, 3, 5));
   EXPECT_THAT(std::ranges::subrange(constant.rbegin(), constant.rend()), ElementsAre(2, 4, 1, 3, 5));
@@ -165,6 +166,7 @@ TEST_F(ExperimentalCircularBufferTest, IteratorsTraverseLogicalOrderAcrossTheWra
   iter += 4;
   EXPECT_THAT(*iter, Eq(2));
   iter -= 2;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): test iterator indexing.
   EXPECT_THAT(iter[1], Eq(4));
   EXPECT_THAT(*(2 + buffer.begin()), Eq(1));
   EXPECT_THAT(*(buffer.end() - 1), Eq(2));
@@ -212,12 +214,14 @@ TEST_F(ExperimentalCircularBufferTest, ConstructorsCopyMoveAndAssignWrappedConte
   EXPECT_THAT(assigned, Eq(original));
   IntBuffer moved(std::move(copy));
   EXPECT_THAT(moved, ElementsAre(8, 2, 3));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verify the moved-from empty state and reuse below.
   EXPECT_THAT(copy, IsEmpty());
   EXPECT_THAT(copy.capacity(), Eq(0));
   copy.push_front(9);
   EXPECT_THAT(copy, ElementsAre(9));
   assigned = std::move(moved);
   EXPECT_THAT(assigned, ElementsAre(8, 2, 3));
+  // NOLINTNEXTLINE(bugprone-use-after-move): verify the moved-from empty state.
   EXPECT_THAT(moved, IsEmpty());
   assigned = std::move(self);
   EXPECT_THAT(assigned, ElementsAre(8, 2, 3));
@@ -434,7 +438,7 @@ struct TrackingAllocator final {
     std::allocator<T>().deallocate(data, count);
   }
 
-  TrackingAllocator select_on_container_copy_construction() const { return {state, id + 1}; }
+  TrackingAllocator select_on_container_copy_construction() const { return {.state = state, .id = id + 1}; }
 
   friend bool operator==(const TrackingAllocator&, const TrackingAllocator&) noexcept = default;
 };
@@ -445,8 +449,8 @@ TEST_F(ExperimentalCircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirS
   AllocationState state;
   using Allocator = TrackingAllocator<int>;
   using Buffer = ExperimentalCircularBuffer<int, Allocator>;
-  const Allocator first{&state, 1};
-  const Allocator second{&state, 2};
+  const Allocator first{.state = &state, .id = 1};
+  const Allocator second{.state = &state, .id = 2};
   {
     Buffer source({1, 2, 3}, first);
     source.reserve(16);
@@ -454,7 +458,7 @@ TEST_F(ExperimentalCircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirS
     source.push_front(0);
     Buffer selected(source);
     EXPECT_THAT(selected.get_allocator().id, Eq(2));
-    Buffer explicit_copy(source, second);
+    const Buffer explicit_copy(source, second);
     EXPECT_THAT(explicit_copy.capacity(), Eq(16));
     Buffer target({9}, second);
     target = source;
@@ -464,9 +468,11 @@ TEST_F(ExperimentalCircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirS
     EXPECT_THAT(target.get_allocator().id, Eq(2));
     EXPECT_THAT(target.capacity(), Eq(16));
     EXPECT_THAT(target, ElementsAre(0, 1, 2));
+    // NOLINTNEXTLINE(bugprone-use-after-move): unequal-allocator relocation empties the source.
     EXPECT_THAT(source, IsEmpty());
     Buffer equal(std::move(target), second);
     EXPECT_THAT(equal, ElementsAre(0, 1, 2));
+    // NOLINTNEXTLINE(bugprone-use-after-move): equal-allocator transfer releases the source allocation.
     EXPECT_THAT(target.capacity(), Eq(0));
     Buffer transfer(second);
     transfer = std::move(equal);
@@ -483,15 +489,15 @@ TEST_F(ExperimentalCircularBufferTest, PropagatingAllocatorsFollowCopyMoveAndSwa
   using Allocator = TrackingAllocator<int, true>;
   using Buffer = ExperimentalCircularBuffer<int, Allocator>;
   {
-    Buffer source({1, 2}, Allocator{&state, 1});
-    Buffer target({9}, Allocator{&state, 2});
+    const Buffer source({1, 2}, Allocator{.state = &state, .id = 1});
+    Buffer target({9}, Allocator{.state = &state, .id = 2});
     target = source;
     EXPECT_THAT(target.get_allocator().id, Eq(1));
-    Buffer moved({3}, Allocator{&state, 3});
+    Buffer moved({3}, Allocator{.state = &state, .id = 3});
     moved = std::move(target);
     EXPECT_THAT(moved.get_allocator().id, Eq(1));
     EXPECT_THAT(moved, ElementsAre(1, 2));
-    Buffer other({4}, Allocator{&state, 4});
+    Buffer other({4}, Allocator{.state = &state, .id = 4});
     swap(moved, other);
     EXPECT_THAT(moved.get_allocator().id, Eq(4));
     EXPECT_THAT(moved, ElementsAre(4));
@@ -505,7 +511,7 @@ TEST_F(ExperimentalCircularBufferTest, ReservedQueueDoesNotAllocateOrDeallocate)
   AllocationState state;
   using Allocator = TrackingAllocator<int>;
   {
-    ExperimentalCircularBuffer<int, Allocator> buffer(Allocator{&state, 1});
+    ExperimentalCircularBuffer<int, Allocator> buffer(Allocator{.state = &state, .id = 1});
     buffer.reserve(4);
     for (int value = 0; value < 4; ++value) {
       buffer.push_back(value);
@@ -562,7 +568,7 @@ TEST_F(ExperimentalCircularBufferTest, MixedOperationsMatchStandardDeque) {
   std::deque<int> expected;
   std::uint32_t state = 17;
   for (int step = 0; step < 10'000; ++step) {
-    state = state * 1'664'525U + 1'013'904'223U;
+    state = (state * 1'664'525U) + 1'013'904'223U;
     const auto operation = (state >> 24) % 8;
     if (operation == 0 || expected.empty()) {
       buffer.push_front(step);

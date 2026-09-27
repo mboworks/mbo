@@ -24,6 +24,8 @@ namespace mbo::container::container_internal {
 
 // NOLINTBEGIN(readability-identifier-naming): STL container, iterator, and allocator interface.
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic): indexed allocator-owned storage.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): STL preconditions and bounded internal
+// loops.
 
 // Internal, experimental, growable ring. Only [begin_, end_) contains live T objects;
 // the unsigned counters wrap, and their difference distinguishes full from empty.
@@ -149,8 +151,8 @@ class ExperimentalCircularBuffer final {
   using difference_type = std::ptrdiff_t;
   using reference = T&;
   using const_reference = const T&;
-  using pointer = typename Traits::pointer;
-  using const_pointer = typename Traits::const_pointer;
+  using pointer = Traits::pointer;
+  using const_pointer = Traits::const_pointer;
   using iterator = Iterator<false>;
   using const_iterator = Iterator<true>;
   using reverse_iterator = std::reverse_iterator<iterator>;
@@ -215,6 +217,7 @@ class ExperimentalCircularBuffer final {
     SwapStorage(other);
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved): transfer storage or relocate its elements.
   constexpr ExperimentalCircularBuffer(ExperimentalCircularBuffer&& other, const Allocator& allocator)
       : ExperimentalCircularBuffer(allocator) {
     if (AllocatorsEqual(other)) {
@@ -461,6 +464,7 @@ class ExperimentalCircularBuffer final {
 
   template<std::ranges::input_range Range>
   requires std::constructible_from<T, std::ranges::range_reference_t<Range>>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward): iterate the named range, including nonborrowed temporaries.
   constexpr iterator insert_range(const_iterator pos, Range&& range) {
     return insert(pos, std::ranges::begin(range), std::ranges::end(range));
   }
@@ -531,6 +535,7 @@ class ExperimentalCircularBuffer final {
 
   template<std::ranges::input_range Range>
   requires std::constructible_from<T, std::ranges::range_reference_t<Range>>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward): iterate the named range, including nonborrowed temporaries.
   constexpr void assign_range(Range&& range) {
     assign(std::ranges::begin(range), std::ranges::end(range));
   }
@@ -716,6 +721,7 @@ class ExperimentalCircularBuffer final {
   size_type end_ = 0;
 };
 
+// NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 // NOLINTEND(readability-identifier-naming)
 

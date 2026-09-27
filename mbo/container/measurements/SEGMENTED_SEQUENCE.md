@@ -93,7 +93,6 @@ The charts include schedules and mapping candidates removed from the current con
 historical evidence, not a current default-selection result. The current benchmark families and
 configuration choices above describe the executable target.
 
-
 ## Element-shape benchmark
 
 `//mbo/container:segmented_sequence_element_shape_benchmark` measures the actual fixed-segment

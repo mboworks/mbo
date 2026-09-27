@@ -256,9 +256,9 @@ benchmark names refer to the explicit configuration in that historical executabl
 `ArenaOptions{}` is invalid in the current API. This single-machine run is diagnostic evidence,
 not a selected default or a cross-architecture recommendation.
 
-| Machine | Compiler | Implementation SHA | Artifact | Status |
-| ------- | -------- | ------------------ | -------- | ------ |
-| Apple M5 Pro | Apple Clang 21 | `704c3bcb1` | `macos-arm64-apple-m5-pro_clang-21_arena.json` | validated historical run |
+| Machine      | Compiler       | Implementation SHA | Artifact                                       | Status                   |
+| ------------ | -------------- | ------------------ | ---------------------------------------------- | ------------------------ |
+| Apple M5 Pro | Apple Clang 21 | `704c3bcb1`        | `macos-arm64-apple-m5-pro_clang-21_arena.json` | validated historical run |
 
 The charts normalize a 1,024-allocation batch to CPU nanoseconds per allocation. Bars show the
 median of nine randomly interleaved observations; whiskers show the observed minimum and maximum.

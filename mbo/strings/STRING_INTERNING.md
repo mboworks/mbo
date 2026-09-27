@@ -538,6 +538,18 @@ The version-one semantic contract has no remaining open questions. Measurements 
 
 ## On-demand diagnostics
 
+`trace_find(text)` and `trace_rfind(text)` perform instrumented lookups in their respective
+directions. Each returns an optional ID, the number of local index queries, and an optional parent
+depth (zero means this interner). Misses have no parent depth. Queries include misses and
+cutoff-rejected hits; they do not count hash-table probes or individual trie nodes. Ordinary
+lookups do not update trace counters. Both traces apply the same captured-prefix filtering as
+their ordinary counterparts, and stateful hashers observe the lookup calls as usual.
+
+Existing mbo hash functors need no string-interner-specific adapter. For example,
+`HamtStringIndex<StringId<uint8_t>, mbo::hash::DefaultHasher>` uses 64-bit hashes with one-byte
+dense IDs. Hash width does not limit the ID representation or reserve hash values as failure
+sentinels. Empty strings and embedded NUL bytes keep their length-aware semantics.
+
 `visit_string_sizes(visitor)` invokes a nothrow visitor once per visible string, in dense-ID order.
 It includes empty strings and embedded NUL bytes and excludes later parent insertions. Callers can
 build exact histograms, totals, and maxima without adding counters to insertion or lookup. The
@@ -548,6 +560,19 @@ not allocate; caller-owned diagnostic storage determines any additional allocati
 character backend, excluding ancestors, entry descriptors, and index storage. Unsupported backend
 statistics return `std::nullopt`, never a misleading zero. These are initial diagnostics, not a
 complete memory breakdown or collision/probe analysis; index-specific diagnostics remain separate.
+
+Both HAMT string-index variants expose `structural_diagnostics()` for their own index snapshot.
+Public flat and node HAMT maps and sets, including transients, expose the same operation. These
+cold traversals report reachable node and entry counts, collision node and entry counts, largest
+collision bucket, root-zero maximum depth, and source-reported node block bytes. Shared blocks are
+included in each snapshot rather than counted as exclusively owned. Payloads, control blocks,
+retained free allocator storage, and character bytes are excluded. An ancestor index may contain
+strings inserted after a child's cutoff, so its structural totals are not the child's visible-string
+totals.
+
+`StringInterner::local_index_diagnostics()` forwards this node's index diagnostics when its backend
+provides a nonthrowing `structural_diagnostics()` method. It excludes ancestor indexes; inspect
+those explicitly through `parent()`. Unsupported backends do not expose this method.
 
 ## Language baseline
 

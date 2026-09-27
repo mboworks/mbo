@@ -8,7 +8,8 @@
 #include <memory>
 #include <optional>
 
-#include "mbo/container/internal/segmented_vector_benchmark_context.h"
+#include "mbo/container/internal/segmented_benchmark_context.h"
+#include "mbo/container/segmented_options.h"
 #include "mbo/container/segmented_vector.h"
 
 namespace mbo::container {
@@ -17,8 +18,8 @@ namespace {
 // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores): Google Benchmark's range variable drives iterations.
 
 constexpr std::size_t kElementCount = 16'384;
-constexpr SegmentedVectorOptions kSegment64{.segment_size = 64};
-constexpr SegmentedVectorOptions kSegment256{.segment_size = 256};
+constexpr SegmentedOptions kSegment64{.segment_size = 64};
+constexpr SegmentedOptions kSegment256{.segment_size = 256};
 
 struct AllocationCounters final {
   std::size_t source_allocations = 0;
@@ -122,7 +123,7 @@ void SetAllocationCounters(benchmark::State& state, const AllocationCounters& co
   state.counters["source_releases"] = static_cast<double>(counters.source_releases) / iterations;
 }
 
-template<SegmentedVectorOptions Options, bool Trim>
+template<SegmentedOptions Options, bool Trim>
 void BmPopRegrow(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
   using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
@@ -174,7 +175,7 @@ void BmPopRegrow(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(depth));
 }
 
-template<SegmentedVectorOptions Options, bool Release>
+template<SegmentedOptions Options, bool Release>
 void BmClearRegrow(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
   using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
@@ -230,7 +231,7 @@ REGISTER_LIFECYCLE("S256", kSegment256);
 int main(int argc, char** argv) {
   benchmark::MaybeReenterWithoutASLR(argc, argv);
   benchmark::Initialize(&argc, argv);
-  mbo::container::container_internal::AddSegmentedVectorBenchmarkContext("segmented-vector-lifecycle-v3");
+  mbo::container::container_internal::AddSegmentedBenchmarkContext("segmented-vector-lifecycle-v3");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

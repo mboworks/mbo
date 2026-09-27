@@ -12,7 +12,8 @@
 #include <utility>
 #include <vector>
 
-#include "mbo/container/internal/segmented_vector_benchmark_context.h"
+#include "mbo/container/internal/segmented_benchmark_context.h"
+#include "mbo/container/segmented_options.h"
 #include "mbo/container/segmented_vector.h"
 
 namespace mbo::container {
@@ -22,26 +23,26 @@ namespace {
 
 constexpr std::size_t kElementCount = 16'384;
 
-constexpr SegmentedVectorOptions kUniform64{
+constexpr SegmentedOptions kUniform64{
     .segment_size = 64,
 };
-constexpr SegmentedVectorOptions kUniform256{
+constexpr SegmentedOptions kUniform256{
     .segment_size = 256,
 };
-constexpr SegmentedVectorOptions kUniform1024{
+constexpr SegmentedOptions kUniform1024{
     .segment_size = 1'024,
 };
-constexpr SegmentedVectorOptions kFinite256Reservation0{
+constexpr SegmentedOptions kFinite256Reservation0{
     .segment_size = 256,
     .segment_capacity = kElementCount / 256,
     .segment_reservation = 0,
 };
-constexpr SegmentedVectorOptions kFinite256Reservation1{
+constexpr SegmentedOptions kFinite256Reservation1{
     .segment_size = 256,
     .segment_capacity = kElementCount / 256,
     .segment_reservation = 1,
 };
-constexpr SegmentedVectorOptions kFinite256Reservation64{
+constexpr SegmentedOptions kFinite256Reservation64{
     .segment_size = 256,
     .segment_capacity = kElementCount / 256,
     .segment_reservation = kElementCount / 256,
@@ -120,7 +121,7 @@ struct CountingDirectoryAllocator final {
 
 // NOLINTEND(readability-identifier-naming)
 
-template<SegmentedVectorOptions Options, mbo::memory::BlockSource Source, typename DirectoryAllocator>
+template<SegmentedOptions Options, mbo::memory::BlockSource Source, typename DirectoryAllocator>
 void SetMemoryCounters(
     benchmark::State& state,
     const SegmentedVector<std::uint64_t, Options, Source, DirectoryAllocator>& sequence) {
@@ -129,7 +130,7 @@ void SetMemoryCounters(
   state.counters["segments"] = static_cast<double>(sequence.segment_count());
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmGrowthBoundary(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
   using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
@@ -158,7 +159,7 @@ void BmGrowthBoundary(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations());
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmFreshConstructAppendDestroy(benchmark::State& state) {
   std::size_t capacity = 0;
   std::size_t reserved = 0;
@@ -180,7 +181,7 @@ void BmFreshConstructAppendDestroy(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmRetainedAppendClear(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.reserve(kElementCount);
@@ -196,7 +197,7 @@ void BmRetainedAppendClear(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options, bool Permuted>
+template<SegmentedOptions Options, bool Permuted>
 void BmIndexedLookup(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.reserve(kElementCount);
@@ -216,7 +217,7 @@ void BmIndexedLookup(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmIteratorForward(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
@@ -232,7 +233,7 @@ void BmIteratorForward(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmIteratorArithmetic(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
@@ -249,7 +250,7 @@ void BmIteratorArithmetic(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmIteratorReverse(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
@@ -266,7 +267,7 @@ void BmIteratorReverse(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kElementCount));
 }
 
-template<SegmentedVectorOptions Options>
+template<SegmentedOptions Options>
 void BmSegmentLookup(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
@@ -353,7 +354,7 @@ BENCHMARK(BmDequeFreshConstructAppendDestroy)->Name("Deque/FreshConstructAppendD
 int main(int argc, char** argv) {
   benchmark::MaybeReenterWithoutASLR(argc, argv);
   benchmark::Initialize(&argc, argv);
-  mbo::container::container_internal::AddSegmentedVectorBenchmarkContext("segmented-vector-v3");
+  mbo::container::container_internal::AddSegmentedBenchmarkContext("segmented-vector-v3");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

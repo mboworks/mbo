@@ -12,13 +12,14 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/config/config.h"
+#include "mbo/container/segmented_deque.h"
 #include "mbo/container/segmented_options.h"
-#include "mbo/container/segmented_vector.h"
 #include "mbo/memory/block_source.h"
 
 namespace mbo::container {
 namespace {
 
+using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
@@ -35,7 +36,7 @@ constexpr SegmentedOptions kBoundedTwoSegments{
     .segment_capacity = 2,
 };
 
-struct SegmentedVectorRequireExceptionsTest : ::testing::Test {};
+struct SegmentedDequeRequireExceptionsTest : ::testing::Test {};
 
 // NOLINTBEGIN(readability-identifier-naming): test double models BlockSource spelling.
 struct CountingBlockSource final {
@@ -137,92 +138,92 @@ struct MutatesThenThrowsOnMove final {
   int value;
 };
 
-static_assert(noexcept(std::declval<SegmentedVector<int>&>().at(0)) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedVector<int>&>().front()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedVector<int>&>().back()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedVector<int>&>().pop_back()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<SegmentedVector<int>&>().pop_back_value()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedVector<int>&>().at(0)) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedVector<int>&>().front()) == !config::kRequireThrows);
-static_assert(noexcept(std::declval<const SegmentedVector<int>&>().back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedDeque<int>&>().at(0)) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedDeque<int>&>().front()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedDeque<int>&>().back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedDeque<int>&>().pop_back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<SegmentedDeque<int>&>().pop_back_value()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedDeque<int>&>().at(0)) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedDeque<int>&>().front()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<const SegmentedDeque<int>&>().back()) == !config::kRequireThrows);
 
-TEST_F(SegmentedVectorRequireExceptionsTest, AtPropagatesOutOfRangeRequirement) {
+TEST_F(SegmentedDequeRequireExceptionsTest, AtPropagatesOutOfRangeRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int> sequence;
+  SegmentedDeque<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.at(0)); }, ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, FrontPropagatesEmptyRequirement) {
+TEST_F(SegmentedDequeRequireExceptionsTest, FrontPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int> sequence;
+  SegmentedDeque<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.front()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, BackPropagatesEmptyRequirement) {
+TEST_F(SegmentedDequeRequireExceptionsTest, BackPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int> sequence;
+  SegmentedDeque<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.back()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, PopBackPropagatesEmptyRequirement) {
+TEST_F(SegmentedDequeRequireExceptionsTest, PopBackPropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int> sequence;
+  SegmentedDeque<int> sequence;
 
   EXPECT_THAT([&sequence] { sequence.pop_back(); }, ThrowsMessage<std::runtime_error>(HasSubstr("Cannot pop")));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, PopBackValuePropagatesEmptyRequirement) {
+TEST_F(SegmentedDequeRequireExceptionsTest, PopBackValuePropagatesEmptyRequirement) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int> sequence;
+  SegmentedDeque<int> sequence;
 
   EXPECT_THAT(
       [&sequence] { static_cast<void>(sequence.pop_back_value()); },
       ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, ReserveRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedDequeRequireExceptionsTest, ReserveRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int, kBoundedTwoSegments> sequence;
+  SegmentedDeque<int, kBoundedTwoSegments> sequence;
 
   EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, ResizeRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedDequeRequireExceptionsTest, ResizeRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int, kBoundedTwoSegments> sequence;
+  SegmentedDeque<int, kBoundedTwoSegments> sequence;
 
   EXPECT_THAT([&sequence] { sequence.resize(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegmentCapacity) {
+TEST_F(SegmentedDequeRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegmentCapacity) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int, kBoundedTwoSegments> sequence;
+  SegmentedDeque<int, kBoundedTwoSegments> sequence;
   const std::array values = {1, 2, 3, 4, 5};
 
   EXPECT_THAT(
@@ -231,11 +232,11 @@ TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRejectsGrowthBeyondSegme
   EXPECT_THAT(sequence, IsEmpty());
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAllocationFailure) {
+TEST_F(SegmentedDequeRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAllocationFailure) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int, kTwoSegments, OneBlockSource> sequence;
+  SegmentedDeque<int, kTwoSegments, OneBlockSource> sequence;
 
   EXPECT_THAT([&sequence] { sequence.reserve(5); }, ThrowsMessage<std::runtime_error>(HasSubstr("allocation failed")));
   EXPECT_THAT(sequence, IsEmpty());
@@ -243,11 +244,11 @@ TEST_F(SegmentedVectorRequireExceptionsTest, ReserveRollsBackNewSegmentsAfterAll
   EXPECT_THAT(sequence.segment_count(), 0);
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRollsBackSegmentsAfterAllocationFailure) {
+TEST_F(SegmentedDequeRequireExceptionsTest, SizedAppendRollsBackSegmentsAfterAllocationFailure) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "requires --//mbo/config:require_throws=true";
   }
-  SegmentedVector<int, kTwoSegments, OneBlockSource> sequence;
+  SegmentedDeque<int, kTwoSegments, OneBlockSource> sequence;
   const std::array values = {1, 2, 3};
 
   EXPECT_THAT(
@@ -258,14 +259,14 @@ TEST_F(SegmentedVectorRequireExceptionsTest, SizedAppendRollsBackSegmentsAfterAl
   EXPECT_THAT(sequence.segment_count(), 0);
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, ValueResizeRollsBackAfterConstructionFailure) {
+TEST_F(SegmentedDequeRequireExceptionsTest, ValueResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   constexpr SegmentedOptions kResizeOptions{
       .segment_size = 2,
       .segment_capacity = 2,
   };
   {
-    SegmentedVector<ThrowingElement, kResizeOptions> sequence;
+    SegmentedDeque<ThrowingElement, kResizeOptions> sequence;
     sequence.emplace_back(1);
     const ThrowingElement value(9);
     ThrowingElement::Arm(1);
@@ -284,14 +285,14 @@ TEST_F(SegmentedVectorRequireExceptionsTest, ValueResizeRollsBackAfterConstructi
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, DefaultResizeRollsBackAfterConstructionFailure) {
+TEST_F(SegmentedDequeRequireExceptionsTest, DefaultResizeRollsBackAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   constexpr SegmentedOptions kResizeOptions{
       .segment_size = 2,
       .segment_capacity = 2,
   };
   {
-    SegmentedVector<ThrowingElement, kResizeOptions> sequence;
+    SegmentedDeque<ThrowingElement, kResizeOptions> sequence;
     sequence.emplace_back(1);
     ThrowingElement::Arm(1);
 
@@ -308,10 +309,10 @@ TEST_F(SegmentedVectorRequireExceptionsTest, DefaultResizeRollsBackAfterConstruc
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, AppendRangeRestoresNonemptySequenceAfterConstructionFailure) {
+TEST_F(SegmentedDequeRequireExceptionsTest, AppendRangeRestoresNonemptySequenceAfterConstructionFailure) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   {
-    SegmentedVector<ThrowingElement, kTwoSegments> sequence;
+    SegmentedDeque<ThrowingElement, kTwoSegments> sequence;
     sequence.emplace_back(7);
     const std::array source = {ThrowingElement(1), ThrowingElement(2), ThrowingElement(3)};
     ThrowingElement::Arm(1);
@@ -330,8 +331,8 @@ TEST_F(SegmentedVectorRequireExceptionsTest, AppendRangeRestoresNonemptySequence
   EXPECT_THAT(ThrowingElement::live, Eq(0));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, AliasedThrowingMoveRestoresStructureButCanModifySourceElement) {
-  SegmentedVector<MutatesThenThrowsOnMove, kTwoSegments> sequence;
+TEST_F(SegmentedDequeRequireExceptionsTest, AliasedThrowingMoveRestoresStructureButCanModifySourceElement) {
+  SegmentedDeque<MutatesThenThrowsOnMove, kTwoSegments> sequence;
   sequence.emplace_back(1);
   sequence.emplace_back(2);
 
@@ -346,7 +347,7 @@ TEST_F(SegmentedVectorRequireExceptionsTest, AliasedThrowingMoveRestoresStructur
   EXPECT_THAT(sequence.segment_count(), Eq(1));
 }
 
-TEST_F(SegmentedVectorRequireExceptionsTest, FailedRangeConstructionDestroysElementsAndReleasesStorage) {
+TEST_F(SegmentedDequeRequireExceptionsTest, FailedRangeConstructionDestroysElementsAndReleasesStorage) {
   ASSERT_THAT(ThrowingElement::live, Eq(0));
   int acquisitions = 0;
   int releases = 0;
@@ -356,7 +357,7 @@ TEST_F(SegmentedVectorRequireExceptionsTest, FailedRangeConstructionDestroysElem
 
     EXPECT_THAT(
         ([&source, &acquisitions, &releases] {
-          return SegmentedVector<ThrowingElement, kTwoSegments, CountingBlockSource>(
+          return SegmentedDeque<ThrowingElement, kTwoSegments, CountingBlockSource>(
               std::from_range, source, CountingBlockSource{.acquisitions = &acquisitions, .releases = &releases});
         }),
         ThrowsMessage<std::runtime_error>(HasSubstr("construction failed")));
@@ -367,6 +368,89 @@ TEST_F(SegmentedVectorRequireExceptionsTest, FailedRangeConstructionDestroysElem
     EXPECT_THAT(releases, Eq(acquisitions));
   }
   EXPECT_THAT(ThrowingElement::live, Eq(0));
+}
+
+TEST_F(SegmentedDequeRequireExceptionsTest, FrontInsertionFailureRestoresSegmentAndIteratorState) {
+  constexpr SegmentedOptions kOptions{.segment_size = 2};
+  ASSERT_THAT(ThrowingElement::live, Eq(0));
+  for (int retained = 0; retained < 2; ++retained) {
+    SegmentedDeque<ThrowingElement, kOptions> deque;
+    deque.emplace_back(42);
+    if (retained != 0) {
+      deque.reserve_front(2);
+    }
+    const auto saved = deque.begin();
+    const auto capacity = deque.capacity();
+    ThrowingElement::Arm(0);
+    EXPECT_THAT(
+        [&deque] { deque.emplace_front(9); }, ThrowsMessage<std::runtime_error>(HasSubstr("construction failed")));
+    ThrowingElement::Disarm();
+    EXPECT_THAT(deque, SizeIs(1));
+    EXPECT_THAT(deque.capacity(), Eq(capacity));
+    EXPECT_THAT(saved->value, Eq(42));
+    EXPECT_THAT(saved - deque.begin(), Eq(0));
+    deque.emplace_front(9);
+    EXPECT_THAT(deque.front().value, Eq(9));
+  }
+  EXPECT_THAT(ThrowingElement::live, Eq(0));
+}
+
+TEST_F(SegmentedDequeRequireExceptionsTest, PrependRollsBackEveryConstructionFailurePosition) {
+  constexpr SegmentedOptions kOptions{.segment_size = 2};
+  ASSERT_THAT(ThrowingElement::live, Eq(0));
+  {
+    const std::array input{
+        ThrowingElement(1), ThrowingElement(2), ThrowingElement(3), ThrowingElement(4), ThrowingElement(5)};
+    for (int offset = 0; offset < 2; ++offset) {
+      for (int failure = 0; failure < 5; ++failure) {
+        SegmentedDeque<ThrowingElement, kOptions> deque;
+        deque.emplace_back(42);
+        if (offset != 0) {
+          deque.emplace_front(41);
+        }
+        const auto count = deque.size();
+        const auto capacity = deque.capacity();
+        const auto saved = deque.begin();
+        const auto* address = &*saved;
+        ThrowingElement::Arm(failure);
+        EXPECT_THAT(
+            ([&deque, &input] { deque.prepend_range(input); }),
+            ThrowsMessage<std::runtime_error>(HasSubstr("construction failed")));
+        ThrowingElement::Disarm();
+        EXPECT_THAT(deque, SizeIs(count));
+        EXPECT_THAT(deque.capacity(), Eq(capacity));
+        EXPECT_THAT(&*saved, Eq(address));
+        EXPECT_THAT(saved - deque.begin(), Eq(0));
+        EXPECT_THAT(deque.back().value, Eq(42));
+        EXPECT_THAT(ThrowingElement::live, Eq(5 + static_cast<int>(count)));
+        deque.prepend_range(input);
+        EXPECT_THAT(deque.front().value, Eq(1));
+        EXPECT_THAT(deque.at(4).value, Eq(5));
+        EXPECT_THAT(saved - deque.begin(), Eq(5));
+      }
+    }
+  }
+  EXPECT_THAT(ThrowingElement::live, Eq(0));
+}
+
+TEST_F(SegmentedDequeRequireExceptionsTest, DirectionalRequirementsRejectWrongEndAndEmptyPops) {
+  if constexpr (!config::kRequireThrows) {
+    GTEST_SKIP() << "Requires the throwing requirement policy";
+  }
+  SegmentedDeque<int, SegmentedOptions{.segment_size = 2, .segment_capacity = 1}> deque;
+  EXPECT_THAT([&deque] { deque.pop_front(); }, ThrowsMessage<std::runtime_error>(HasSubstr("Cannot pop")));
+  EXPECT_THAT(
+      [&deque] { static_cast<void>(deque.pop_front_value()); },
+      ThrowsMessage<std::runtime_error>(HasSubstr("out of range")));
+  EXPECT_THAT(
+      [&deque] { deque.unchecked_emplace_front(1); }, ThrowsMessage<std::runtime_error>(HasSubstr("front capacity")));
+  EXPECT_THAT(
+      [&deque] { deque.unchecked_emplace_back(1); }, ThrowsMessage<std::runtime_error>(HasSubstr("back capacity")));
+  deque.push_back(1);
+  EXPECT_THAT([&deque] { deque.reserve_front(1); }, ThrowsMessage<std::runtime_error>(HasSubstr("allocation failed")));
+  EXPECT_THAT([&deque] { deque.push_front(0); }, ThrowsMessage<std::runtime_error>(HasSubstr("allocation failed")));
+  EXPECT_THAT([&deque] { deque.reserve_back(3); }, ThrowsMessage<std::runtime_error>(HasSubstr("maximum capacity")));
+  EXPECT_THAT(deque, ElementsAre(1));
 }
 
 }  // namespace

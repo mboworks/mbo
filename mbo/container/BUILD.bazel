@@ -47,6 +47,7 @@ cc_library(
     hdrs = ["segmented_vector.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":segmented_options_cc",
         "//mbo/config:require_cc",
         "//mbo/memory:block_source_cc",
     ],
@@ -57,6 +58,7 @@ cc_test(
     size = "small",
     srcs = ["segmented_vector_test.cc"],
     deps = [
+        ":segmented_options_cc",
         ":segmented_vector_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
@@ -76,6 +78,7 @@ cc_test(
     }),
     tags = ["no-coverage"],
     deps = [
+        ":segmented_options_cc",
         ":segmented_vector_cc",
         "//mbo/config:config_cc",
         "//mbo/memory:block_source_cc",
@@ -87,7 +90,7 @@ cc_binary(
     name = "segmented_vector_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_vector_benchmark_context.h",
+        "internal/segmented_benchmark_context.h",
         "segmented_vector_benchmark.cc",
     ],
     tags = [
@@ -95,6 +98,7 @@ cc_binary(
         "manual",
     ],
     deps = [
+        ":segmented_options_cc",
         ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
@@ -104,7 +108,7 @@ cc_binary(
     name = "segmented_vector_element_shape_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_vector_benchmark_context.h",
+        "internal/segmented_benchmark_context.h",
         "segmented_vector_element_shape_benchmark.cc",
     ],
     tags = [
@@ -112,6 +116,7 @@ cc_binary(
         "manual",
     ],
     deps = [
+        ":segmented_options_cc",
         ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
@@ -121,7 +126,7 @@ cc_binary(
     name = "segmented_vector_lifecycle_benchmark",
     testonly = 1,
     srcs = [
-        "internal/segmented_vector_benchmark_context.h",
+        "internal/segmented_benchmark_context.h",
         "segmented_vector_lifecycle_benchmark.cc",
     ],
     tags = [
@@ -129,6 +134,7 @@ cc_binary(
         "manual",
     ],
     deps = [
+        ":segmented_options_cc",
         ":segmented_vector_cc",
         "@com_github_google_benchmark//:benchmark",
     ],
@@ -339,5 +345,104 @@ cc_test(
         "@abseil-cpp//absl/log:initialize",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "segmented_options_cc",
+    hdrs = ["segmented_options.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//mbo/memory:block_source_cc"],
+)
+
+cc_test(
+    name = "segmented_options_test",
+    size = "small",
+    srcs = ["segmented_options_test.cc"],
+    deps = [
+        ":segmented_options_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "segmented_deque_cc",
+    hdrs = ["segmented_deque.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":experimental_circular_directory_cc",
+        ":segmented_options_cc",
+        "//mbo/config:require_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "segmented_deque_test",
+    size = "small",
+    srcs = ["segmented_deque_test.cc"],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        "//mbo/memory:arena_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Exercises SegmentedDeque precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
+cc_test(
+    name = "segmented_deque_require_exceptions_test",
+    size = "small",
+    srcs = ["segmented_deque_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        "//mbo/config:config_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "experimental_circular_directory_cc",
+    hdrs = ["internal/experimental_circular_directory.h"],
+    visibility = ["//visibility:private"],
+)
+
+cc_test(
+    name = "experimental_circular_directory_test",
+    size = "small",
+    srcs = ["internal/experimental_circular_directory_test.cc"],
+    deps = [
+        ":experimental_circular_directory_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "segmented_deque_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_benchmark_context.h",
+        "segmented_deque_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "//mbo/memory:block_source_cc",
+        "@com_github_google_benchmark//:benchmark",
     ],
 )

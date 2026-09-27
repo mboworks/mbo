@@ -11,7 +11,8 @@
 #include <string>
 #include <type_traits>
 
-#include "mbo/container/internal/segmented_vector_benchmark_context.h"
+#include "mbo/container/internal/segmented_benchmark_context.h"
+#include "mbo/container/segmented_options.h"
 #include "mbo/container/segmented_vector.h"
 
 namespace mbo::container {
@@ -20,9 +21,9 @@ namespace {
 // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores): Google Benchmark's range variable drives iterations.
 
 constexpr std::size_t kElementCount = 16'384;
-constexpr SegmentedVectorOptions kSegment64{.segment_size = 64};
-constexpr SegmentedVectorOptions kSegment256{.segment_size = 256};
-constexpr SegmentedVectorOptions kSegment1024{.segment_size = 1'024};
+constexpr SegmentedOptions kSegment64{.segment_size = 64};
+constexpr SegmentedOptions kSegment256{.segment_size = 256};
+constexpr SegmentedOptions kSegment1024{.segment_size = 1'024};
 constexpr std::array<char, kElementCount + 32> kStringBacking{};
 
 template<std::size_t Bytes, std::size_t Alignment = alignof(std::uint64_t)>
@@ -76,7 +77,7 @@ std::uint64_t ReadValue(const T& value) noexcept {
   }
 }
 
-template<typename T, SegmentedVectorOptions Options, bool Permuted>
+template<typename T, SegmentedOptions Options, bool Permuted>
 void BmIndexed(benchmark::State& state) {
   SegmentedVector<T, Options> sequence;
   sequence.reserve(kElementCount);
@@ -131,7 +132,7 @@ REGISTER_ELEMENT_SHAPE("String", std::string);
 int main(int argc, char** argv) {
   benchmark::MaybeReenterWithoutASLR(argc, argv);
   benchmark::Initialize(&argc, argv);
-  mbo::container::container_internal::AddSegmentedVectorBenchmarkContext("segmented-vector-element-shape-v3");
+  mbo::container::container_internal::AddSegmentedBenchmarkContext("segmented-vector-element-shape-v3");
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }

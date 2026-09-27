@@ -10,6 +10,10 @@ type, options, concepts, tests, and Bazel labels from `segmented_sequence` / `Se
 `segmented_vector` / `SegmentedVector`. Historical benchmark JSON and links keep their measured
 names and source SHAs unchanged.
 
+The shared options and element/representation concepts live in `segmented_options.h`: `SegmentedOptions`,
+`ValidSegmentedOptions`, `SegmentedElement`, and `RepresentableSegmentedOptions`. Both segmented
+containers use these names; the former vector-specific option and concept names have been removed.
+
 ## Purpose
 
 `SegmentedVector<T>` avoids relocating existing elements when it grows. It is useful for dense ID
@@ -19,7 +23,7 @@ contiguous allocation for every element.
 ## Current contract
 
 - `T` is a complete, cv-unqualified, non-array object type with a non-throwing destructor.
-- `SegmentedVectorOptions::segment_size` is the power-of-two element count in every segment and is
+- `SegmentedOptions::segment_size` is the power-of-two element count in every segment and is
   part of the segment type. `segment_capacity` is the maximum number of segment slots: a finite value
   is a nonzero power of two, while `SIZE_MAX` selects growth up to the private representation limit.
   `segment_reservation` is the initial directory reservation; it is zero or a power of two, cannot
@@ -116,8 +120,8 @@ source-reported reserved bytes.
 The principal C++23 surface is:
 
 ```cpp
-template<SegmentedVectorElement T,
-         SegmentedVectorOptions Options = {},
+template<SegmentedElement T,
+         SegmentedOptions Options = {},
          mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
          typename DirectoryAllocator = std::allocator<std::byte>>
 class SegmentedVector {

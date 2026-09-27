@@ -111,3 +111,6 @@ combined median movement of 0.4%. The existing `index_of` optimization should th
 The improvement held across `std::less`, `std::greater`, and `CompareLess`, and across every lookup
 position. The single 1.0% apparent loss was consistent with the control noise. This is conclusive
 evidence to retain the existing small-container `index_of` unrolling.
+
+The [SegmentedDeque measurements](SEGMENTED_DEQUE.md) compare double-ended segmented storage
+against SegmentedVector and the standard deque, including arena-backed queue reuse.

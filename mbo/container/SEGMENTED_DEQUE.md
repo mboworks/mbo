@@ -250,5 +250,5 @@ Raw measurement envelopes use `tools/benchmark_artifact.py`, a clean implementat
 nine randomly interleaved repetitions. Reports retain dispersion and source/toolchain/host metadata.
 Available-host evidence is diagnostic; choosing a tuned default requires matching Apple M5 Pro and
 AMD Zen 5 evidence. The initial 256-element default matches the vector for comparability and is
-not a claim of optimal deque tuning. The [measurement report](measurements/SEGMENTED_DEQUE.md) records the first Apple M5 Pro results,
-design decisions, evidence limits, workloads, counters, and reproducible commands.
+not a claim of optimal deque tuning. The [benchmark guide](SEGMENTED_DEQUE_BENCHMARKS.md) describes workloads, counters, and
+reproduction commands. Retained segmented measurement results have been removed.

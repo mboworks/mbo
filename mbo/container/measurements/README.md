@@ -1,15 +1,11 @@
 # Ordered lookup microbenchmarks
 
-Current segmented reports: [SegmentedVector](SEGMENTED_VECTOR.md) and
-[SegmentedDeque](SEGMENTED_DEQUE.md). Historical HAMT results live with
-[the experimental HAMT package](../hamt/measurements/HAMT.md).
+This directory retains the ordered-lookup study. Segmented-container results have been removed;
+current harnesses and reproduction commands are described in the
+[vector](../SEGMENTED_VECTOR_BENCHMARKS.md) and [deque](../SEGMENTED_DEQUE_BENCHMARKS.md) guides.
+Historical HAMT results live with [the experimental HAMT package](../hamt/measurements/HAMT.md).
 
 ## Historical ordered lookup study
-
-The production and proof protocol for the new append-oriented stable-address container lives in
-[`SEGMENTED_VECTOR.md`](SEGMENTED_VECTOR.md). Its measurements use immutable JSON artifacts and
-the two-machine evidence gate; the historical ordered-lookup study below predates that shared
-artifact contract.
 
 The ordered-lookup experiment for mbo pull request 411 measured 648 cases with nine repetitions
 each. It was built with `-c opt` on an 18-core Apple M5 Pro (Mac17,9, 64 GB) and measured on
@@ -117,6 +113,3 @@ combined median movement of 0.4%. The existing `index_of` optimization should th
 The improvement held across `std::less`, `std::greater`, and `CompareLess`, and across every lookup
 position. The single 1.0% apparent loss was consistent with the control noise. This is conclusive
 evidence to retain the existing small-container `index_of` unrolling.
-
-The [SegmentedDeque measurements](SEGMENTED_DEQUE.md) compare double-ended segmented storage
-against SegmentedVector and the standard deque, including arena-backed queue reuse.

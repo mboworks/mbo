@@ -6,11 +6,8 @@
     "docs/coverage.md": "docs/coverage.html",
     "mbo/container/SEGMENTED_DEQUE.md": "mbo/container/SEGMENTED_DEQUE.html",
     "mbo/container/experimental/CIRCULAR_BUFFER.md": "mbo/container/experimental/CIRCULAR_BUFFER.html",
-    "mbo/container/measurements/SEGMENTED_DEQUE.md": "mbo/container/measurements/SEGMENTED_DEQUE.html",
     "mbo/container/SEGMENTED_VECTOR.md": "mbo/container/SEGMENTED_SEQUENCE.html",
     "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",
-    "mbo/container/measurements/SEGMENTED_VECTOR.md": "mbo/container/measurements/SEGMENTED_VECTOR.html",
-    "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-summary.md": "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-summary.html",
     "mbo/diff/README.md": "mbo/diff/README.html",
     "mbo/digest/README.md": "mbo/digest/README.html",
     "mbo/file/README.md": "mbo/file/README.html",
@@ -30,7 +27,6 @@
     "mbo/types/REFLECTION.md": "mbo/types/REFLECTION.html",
     "docs/release-website.md": "docs/release-website.html",
     "docs/infrastructure.md": "docs/infrastructure.html",
-    "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.md": "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.html",
     "mbo/container/README.md": "mbo/container/README.html",
     "mbo/container/hamt/measurements/HAMT.md": "mbo/container/hamt/measurements/HAMT.html",
     "mbo/memory/ARENA.md": "mbo/memory/ARENA.html",
@@ -51,7 +47,9 @@
     "mbo/container/hamt/experimental/internal/HAMT_NODE_ITERATOR.md": "mbo/container/hamt/experimental/internal/HAMT_NODE_ITERATOR.html",
     "mbo/container/hamt/experimental/internal/HAMT_NODE_KEY_OF.md": "mbo/container/hamt/experimental/internal/HAMT_NODE_KEY_OF.html",
     "mbo/container/hamt/experimental/internal/HAMT_SOURCE_DOMAIN.md": "mbo/container/hamt/experimental/internal/HAMT_SOURCE_DOMAIN.html",
-    "mbo/container/hamt/experimental/internal/HAMT_NODE_VALUE.md": "mbo/container/hamt/experimental/internal/HAMT_NODE_VALUE.html"
+    "mbo/container/hamt/experimental/internal/HAMT_NODE_VALUE.md": "mbo/container/hamt/experimental/internal/HAMT_NODE_VALUE.html",
+    "mbo/container/SEGMENTED_VECTOR_BENCHMARKS.md": "mbo/container/SEGMENTED_VECTOR_BENCHMARKS.html",
+    "mbo/container/SEGMENTED_DEQUE_BENCHMARKS.md": "mbo/container/SEGMENTED_DEQUE_BENCHMARKS.html"
   },
   "links": [
     {

@@ -150,7 +150,17 @@ struct ContainerProxy : T {
   constexpr auto& front() requires(requires(C& v) { v.front(); }) { return Get().front(); }
 
   constexpr void pop_back() requires(requires(C& v) { v.pop_back(); }) { Get().pop_back(); }
-  constexpr void pop_front() requires(requires(C& v) { v.pop_frontk(); }) { Get().pop_front(); }
+  constexpr void pop_front() requires(requires(C& v) { v.pop_front(); }) { Get().pop_front(); }
+
+  constexpr auto pop_back_value() noexcept(noexcept(Get().pop_back_value()))
+  requires requires(C& container) { container.pop_back_value(); } {
+    return Get().pop_back_value();
+  }
+
+  constexpr auto pop_front_value() noexcept(noexcept(Get().pop_front_value()))
+  requires requires(C& container) { container.pop_front_value(); } {
+    return Get().pop_front_value();
+  }
 
   auto operator<=>(const ContainerProxy& other) const
   requires std::three_way_comparable<T>

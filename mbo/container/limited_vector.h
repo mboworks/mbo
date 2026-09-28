@@ -31,6 +31,7 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
+#include "mbo/container/internal/value_pop.h"
 #include "mbo/container/limited_options.h"  // IWYU pragma: export
 #include "mbo/types/traits.h"
 
@@ -540,6 +541,12 @@ class LimitedVector final {
   constexpr void pop_back() noexcept(!kRequireThrows) {
     MBO_CONFIG_REQUIRE(size_ > 0, "No element to pop.");
     std::destroy_at(&values_[--size_].data);
+  }
+
+  constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    MBO_CONFIG_REQUIRE(size_ > 0, "No element to pop.");
+    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
   }
 
   constexpr void assign(std::size_t num, const T& value)

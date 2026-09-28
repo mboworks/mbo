@@ -15,18 +15,23 @@
 
 #include "mbo/types/container_proxy.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mbo/container/experimental/circular_buffer.h"
+#include "mbo/container/limited_vector.h"
 
 namespace mbo::types {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::IsTrue;
+using ::testing::Pointee;
 
 // NOLINTBEGIN(*-magic-numbers)
 
@@ -56,6 +61,42 @@ using HeldVec = ContainerProxy<
     std::vector<int>,
     &Holder<std::vector<int>>::GetData,
     &Holder<std::vector<int>>::GetData>;
+
+template<typename C>
+using Held = ContainerProxy<Holder<C>, C, &Holder<C>::GetData, &Holder<C>::GetData>;
+
+template<typename C>
+concept HasPopBackValue = requires(C& container) { container.pop_back_value(); };
+
+template<typename C>
+concept HasPopFrontValue = requires(C& container) { container.pop_front_value(); };
+
+using HeldLimited = Held<mbo::container::LimitedVector<int, 4>>;
+using HeldCircular = Held<mbo::container::experimental::CircularBuffer<std::unique_ptr<int>>>;
+
+static_assert(!HasPopBackValue<HeldVec>);
+static_assert(!HasPopFrontValue<HeldVec>);
+static_assert(HasPopBackValue<HeldLimited>);
+static_assert(!HasPopFrontValue<HeldLimited>);
+static_assert(HasPopBackValue<HeldCircular>);
+static_assert(HasPopFrontValue<HeldCircular>);
+
+TEST_F(ContainerProxyTest, ForwardsValuePopsForAvailableEndpoints) {
+  HeldLimited limited;
+  limited.push_back(1);
+  limited.push_back(2);
+  EXPECT_THAT(limited.pop_back_value(), Eq(2));
+  EXPECT_THAT(limited, ElementsAre(1));
+
+  HeldCircular circular;
+  circular.push_front(std::make_unique<int>(1));
+  circular.push_back(std::make_unique<int>(2));
+  circular.push_back(std::make_unique<int>(3));
+  EXPECT_THAT(circular.pop_front_value(), Pointee(Eq(1)));
+  EXPECT_THAT(circular.pop_back_value(), Pointee(Eq(3)));
+  circular.pop_front();
+  EXPECT_THAT(circular, IsEmpty());
+}
 
 TEST_F(ContainerProxyTest, ForwardsIterationToAMemberViaAccessors) {
   const HeldVec proxy{{.data = {1, 2, 3}}};

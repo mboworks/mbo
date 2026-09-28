@@ -8,7 +8,7 @@ Current retained component reports:
 ## Historical ordered lookup study
 
 The production and proof protocol for the new append-oriented stable-address container lives in
-[`SEGMENTED_SEQUENCE.md`](SEGMENTED_SEQUENCE.md). Its measurements use immutable JSON artifacts and
+[`SEGMENTED_VECTOR.md`](SEGMENTED_VECTOR.md). Its measurements use immutable JSON artifacts and
 the two-machine evidence gate; the historical ordered-lookup study below predates that shared
 artifact contract.
 
@@ -118,3 +118,6 @@ combined median movement of 0.4%. The existing `index_of` optimization should th
 The improvement held across `std::less`, `std::greater`, and `CompareLess`, and across every lookup
 position. The single 1.0% apparent loss was consistent with the control noise. This is conclusive
 evidence to retain the existing small-container `index_of` unrolling.
+
+The [SegmentedDeque measurements](SEGMENTED_DEQUE.md) compare double-ended segmented storage
+against SegmentedVector and the standard deque, including arena-backed queue reuse.

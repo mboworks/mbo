@@ -33,6 +33,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "mbo/config/require.h"
+#include "mbo/container/internal/value_pop.h"
 #include "mbo/log/demangle.h"
 #include "mbo/types/cases.h"
 #include "mbo/types/compare.h"
@@ -494,6 +495,13 @@ class Json {
     } else {
       MBO_CONFIG_REQUIRE(IsArray(), "Is not an Array or Null.");
     }
+  }
+
+  Json pop_back_value() noexcept(!::mbo::config::kRequireThrows) {
+    MBO_CONFIG_REQUIRE(IsArray(), "Is not an Array.");
+    auto& values = *std::get<Array>(data_);
+    MBO_CONFIG_REQUIRE(!values.empty(), "Cannot pop an empty Json array.");
+    return ::mbo::container::container_internal::PopValue(values.back(), [&values]() noexcept { values.pop_back(); });
   }
 
   // NOLINTBEGIN(*-avoid-unchecked-container-access): Json's own accessors. Each

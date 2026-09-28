@@ -16,6 +16,491 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 cc_library(
+    name = "any_scan_cc",
+    hdrs = ["any_scan.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mbo/types:cases_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/log:absl_check",
+    ],
+)
+
+cc_test(
+    name = "any_scan_test",
+    size = "small",
+    srcs = ["any_scan_test.cc"],
+    deps = [
+        ":any_scan_cc",
+        ":limited_set_cc",
+        ":limited_vector_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/hash",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "segmented_vector_cc",
+    hdrs = ["segmented_vector.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":segmented_options_cc",
+        ":value_pop_cc",
+        "//mbo/config:require_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "segmented_vector_test",
+    size = "small",
+    srcs = ["segmented_vector_test.cc"],
+    deps = [
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Exercises SegmentedVector precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
+cc_test(
+    name = "segmented_vector_require_exceptions_test",
+    size = "small",
+    srcs = ["segmented_vector_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "//mbo/config:config_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "segmented_vector_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_benchmark_context.h",
+        "segmented_vector_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "segmented_vector_element_shape_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_benchmark_context.h",
+        "segmented_vector_element_shape_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "segmented_vector_lifecycle_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_benchmark_context.h",
+        "segmented_vector_lifecycle_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "convert_container_cc",
+    hdrs = ["convert_container.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//mbo/types:traits_cc"],
+)
+
+cc_test(
+    name = "convert_container_test",
+    size = "small",
+    srcs = ["convert_container_test.cc"],
+    deps = [
+        ":convert_container_cc",
+        ":limited_set_cc",
+        ":limited_vector_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "limited_map_cc",
+    hdrs = ["limited_map.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":limited_options_cc",
+        ":limited_ordered_cc",
+        "//mbo/types:compare_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/log:absl_log",
+    ],
+)
+
+cc_test(
+    name = "limited_map_test",
+    size = "small",
+    srcs = ["limited_map_test.cc"],
+    deps = [
+        ":limited_map_cc",
+        "//mbo/config:config_cc",
+        "//mbo/testing:matchers_cc",
+        "@abseil-cpp//absl/log:initialize",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Exercises LimitedMap precondition failures in-process so coverage data is
+# flushed. Its test skips unless the exception policy is selected; the
+# supplemental coverage pass invokes it with that policy.
+cc_test(
+    name = "limited_map_require_exceptions_test",
+    size = "small",
+    srcs = ["limited_map_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    # Do not add exception-only compiler branches to the primary report. The
+    # supplemental pass invokes this target explicitly and overlays only
+    # matching production coverpoints.
+    tags = ["no-coverage"],
+    deps = [
+        ":limited_map_cc",
+        "//mbo/config:config_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "limited_options_cc",
+    hdrs = ["limited_options.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "limited_ordered_cc",
+    hdrs = ["internal/limited_ordered.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":limited_options_cc",
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
+        "//mbo/types:compare_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/log:absl_log",
+    ],
+)
+
+cc_test(
+    name = "limited_ordered_test",
+    size = "small",
+    srcs = ["limited_ordered_test.cc"],
+    deps = [
+        ":limited_ordered_cc",
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
+        "//mbo/testing:matchers_cc",
+        "@abseil-cpp//absl/log:initialize",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "limited_set_cc",
+    hdrs = ["limited_set.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":limited_options_cc",
+        ":limited_ordered_cc",
+        "//mbo/types:compare_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/log:absl_log",
+    ],
+)
+
+cc_test(
+    name = "limited_set_test",
+    size = "small",
+    srcs = ["limited_set_test.cc"],
+    deps = [
+        ":limited_options_cc",
+        ":limited_set_cc",
+        "//mbo/config:config_cc",
+        "//mbo/testing:matchers_cc",
+        "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "limited_set_benchmark_cc",
+    testonly = 1,
+    hdrs = ["limited_set_benchmark.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":limited_set_cc",
+        ":limited_vector_cc",
+        "//mbo/testing:matchers_cc",
+        "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/strings",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "limited_set_benchmark",
+    testonly = 1,
+    srcs = ["limited_set_benchmark_main.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":limited_options_cc",
+        ":limited_set_benchmark_cc",
+        "//mbo/types:compare_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "ordered_lookup_benchmark",
+    testonly = 1,
+    srcs = ["ordered_lookup_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":limited_map_cc",
+        ":limited_set_cc",
+        "//mbo/types:compare_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "limited_vector_cc",
+    hdrs = ["limited_vector.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":limited_options_cc",
+        ":value_pop_cc",
+        "//mbo/config:require_cc",
+        "//mbo/types:traits_cc",
+        "@abseil-cpp//absl/log:absl_log",
+    ],
+)
+
+cc_test(
+    name = "limited_vector_test",
+    size = "small",
+    srcs = ["limited_vector_test.cc"],
+    deps = [
+        ":limited_vector_cc",
+        "//mbo/testing:matchers_cc",
+        "@abseil-cpp//absl/log:initialize",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "segmented_options_cc",
+    hdrs = ["segmented_options.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//mbo/memory:block_source_cc"],
+)
+
+cc_test(
+    name = "segmented_options_test",
+    size = "small",
+    srcs = ["segmented_options_test.cc"],
+    deps = [
+        ":segmented_options_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "segmented_deque_cc",
+    hdrs = ["segmented_deque.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":segmented_options_cc",
+        ":value_pop_cc",
+        "//mbo/config:require_cc",
+        "//mbo/container/experimental:circular_buffer_cc",
+        "//mbo/memory:block_source_cc",
+    ],
+)
+
+cc_test(
+    name = "segmented_deque_test",
+    size = "small",
+    srcs = ["segmented_deque_test.cc"],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        "//mbo/memory:arena_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Exercises SegmentedDeque precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
+cc_test(
+    name = "segmented_deque_require_exceptions_test",
+    size = "small",
+    srcs = ["segmented_deque_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        "//mbo/config:config_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "segmented_deque_benchmark",
+    testonly = 1,
+    srcs = [
+        "internal/segmented_benchmark_context.h",
+        "segmented_deque_benchmark.cc",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "//mbo/memory:block_source_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "value_pop_cc",
+    hdrs = ["internal/value_pop.h"],
+    visibility = ["//mbo:__subpackages__"],
+)
+
+cc_test(
+    name = "container_readme_test",
+    size = "small",
+    srcs = ["container_readme_test.cc"],
+    deps = [
+        ":any_scan_cc",
+        ":convert_container_cc",
+        ":limited_map_cc",
+        ":limited_set_cc",
+        ":limited_vector_cc",
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        "//mbo/container/experimental:circular_buffer_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "value_pop_test",
+    size = "small",
+    srcs = ["value_pop_test.cc"],
+    deps = [
+        ":limited_vector_cc",
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        ":value_pop_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container/experimental:circular_buffer_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Verify consumer exception guarantees and require exactly one move without optional NRVO.
+cc_test(
+    name = "value_pop_require_exceptions_test",
+    size = "small",
+    srcs = ["value_pop_test.cc"],
+    copts = [
+        "-fexceptions",
+        "-fno-elide-constructors",
+    ] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":limited_vector_cc",
+        ":segmented_deque_cc",
+        ":segmented_options_cc",
+        ":segmented_vector_cc",
+        ":value_pop_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container/experimental:circular_buffer_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hamt_options_cc",
     hdrs = ["hamt_options.h"],
     visibility = ["//visibility:public"],
@@ -686,33 +1171,6 @@ cc_test(
 )
 
 cc_library(
-    name = "any_scan_cc",
-    hdrs = ["any_scan.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//mbo/types:cases_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/log:absl_check",
-    ],
-)
-
-cc_test(
-    name = "any_scan_test",
-    size = "small",
-    srcs = ["any_scan_test.cc"],
-    deps = [
-        ":any_scan_cc",
-        ":limited_set_cc",
-        ":limited_vector_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/hash",
-        "@abseil-cpp//absl/strings",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "segmented_sequence_cc",
     hdrs = ["segmented_sequence.h"],
     visibility = ["//visibility:public"],
@@ -734,9 +1192,6 @@ cc_test(
     ],
 )
 
-# Exercises SegmentedSequence precondition and rollback failures in-process so
-# coverage data is flushed. The supplemental coverage pass selects the
-# exception policy and overlays only matching production coverpoints.
 cc_test(
     name = "segmented_sequence_require_exceptions_test",
     size = "small",
@@ -819,213 +1274,5 @@ cc_binary(
     deps = [
         ":segmented_sequence_cc",
         "@com_github_google_benchmark//:benchmark",
-    ],
-)
-
-cc_library(
-    name = "convert_container_cc",
-    hdrs = ["convert_container.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//mbo/types:traits_cc"],
-)
-
-cc_test(
-    name = "convert_container_test",
-    size = "small",
-    srcs = ["convert_container_test.cc"],
-    deps = [
-        ":convert_container_cc",
-        ":limited_set_cc",
-        ":limited_vector_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/strings",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "limited_map_cc",
-    hdrs = ["limited_map.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":limited_options_cc",
-        ":limited_ordered_cc",
-        "//mbo/types:compare_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/log:absl_log",
-    ],
-)
-
-cc_test(
-    name = "limited_map_test",
-    size = "small",
-    srcs = ["limited_map_test.cc"],
-    deps = [
-        ":limited_map_cc",
-        "//mbo/config:config_cc",
-        "//mbo/testing:matchers_cc",
-        "@abseil-cpp//absl/log:initialize",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-# Exercises LimitedMap precondition failures in-process so coverage data is
-# flushed. Its test skips unless the exception policy is selected; the
-# supplemental coverage pass invokes it with that policy.
-cc_test(
-    name = "limited_map_require_exceptions_test",
-    size = "small",
-    srcs = ["limited_map_require_exceptions_test.cc"],
-    copts = ["-fexceptions"] + select({
-        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
-        "//conditions:default": [],
-    }),
-    # Do not add exception-only compiler branches to the primary report. The
-    # supplemental pass invokes this target explicitly and overlays only
-    # matching production coverpoints.
-    tags = ["no-coverage"],
-    deps = [
-        ":limited_map_cc",
-        "//mbo/config:config_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "limited_options_cc",
-    hdrs = ["limited_options.h"],
-    visibility = ["//visibility:private"],
-)
-
-cc_library(
-    name = "limited_ordered_cc",
-    hdrs = ["internal/limited_ordered.h"],
-    visibility = ["//visibility:private"],
-    deps = [
-        ":limited_options_cc",
-        "//mbo/config:config_cc",
-        "//mbo/config:require_cc",
-        "//mbo/types:compare_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/log:absl_log",
-    ],
-)
-
-cc_test(
-    name = "limited_ordered_test",
-    size = "small",
-    srcs = ["limited_ordered_test.cc"],
-    deps = [
-        ":limited_ordered_cc",
-        "//mbo/config:config_cc",
-        "//mbo/config:require_cc",
-        "//mbo/testing:matchers_cc",
-        "@abseil-cpp//absl/log:initialize",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "limited_set_cc",
-    hdrs = ["limited_set.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":limited_options_cc",
-        ":limited_ordered_cc",
-        "//mbo/types:compare_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/log:absl_log",
-    ],
-)
-
-cc_test(
-    name = "limited_set_test",
-    size = "small",
-    srcs = ["limited_set_test.cc"],
-    deps = [
-        ":limited_options_cc",
-        ":limited_set_cc",
-        "//mbo/config:config_cc",
-        "//mbo/testing:matchers_cc",
-        "@abseil-cpp//absl/log:initialize",
-        "@abseil-cpp//absl/strings",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "limited_set_benchmark_cc",
-    testonly = 1,
-    hdrs = ["limited_set_benchmark.h"],
-    visibility = ["//visibility:private"],
-    deps = [
-        ":limited_set_cc",
-        ":limited_vector_cc",
-        "//mbo/testing:matchers_cc",
-        "@abseil-cpp//absl/log:initialize",
-        "@abseil-cpp//absl/strings",
-        "@com_github_google_benchmark//:benchmark",
-    ],
-)
-
-cc_binary(
-    name = "limited_set_benchmark",
-    testonly = 1,
-    srcs = ["limited_set_benchmark_main.cc"],
-    tags = [
-        "clang-tidy",
-        "manual",
-    ],
-    visibility = ["//visibility:private"],
-    deps = [
-        ":limited_options_cc",
-        ":limited_set_benchmark_cc",
-        "//mbo/types:compare_cc",
-        "@com_github_google_benchmark//:benchmark",
-    ],
-)
-
-cc_binary(
-    name = "ordered_lookup_benchmark",
-    testonly = 1,
-    srcs = ["ordered_lookup_benchmark.cc"],
-    tags = [
-        "clang-tidy",
-        "manual",
-    ],
-    deps = [
-        ":limited_map_cc",
-        ":limited_set_cc",
-        "//mbo/types:compare_cc",
-        "@com_github_google_benchmark//:benchmark",
-    ],
-)
-
-cc_library(
-    name = "limited_vector_cc",
-    hdrs = ["limited_vector.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":limited_options_cc",
-        "//mbo/config:require_cc",
-        "//mbo/types:traits_cc",
-        "@abseil-cpp//absl/log:absl_log",
-    ],
-)
-
-cc_test(
-    name = "limited_vector_test",
-    size = "small",
-    srcs = ["limited_vector_test.cc"],
-    deps = [
-        ":limited_vector_cc",
-        "//mbo/testing:matchers_cc",
-        "@abseil-cpp//absl/log:initialize",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
     ],
 )

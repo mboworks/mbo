@@ -19,7 +19,7 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/config:require_cc, mbo/config/require.h
     - Macro `MBO_CONFIG_REQUIRE(condition, message)` which checks a `condition` and either throws an exception or crashes with Abseil FATAL logging. Throwing requires both `--//mbo/config:require_throws=true` and an exception-enabled consumer build.
 - Container
-  - `namespace mbo::container`
+  - `namespace mbo::container` - [container guide](mbo/container/README.md)
   - mbo/container:any_scan_cc, mbo/container/any_scan.h
     - class `AnyScan`: A container type independent iteration view - or scan over the container.
     - class `ConstScan`: A container type independent iteration view for const value_types.
@@ -32,11 +32,20 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/container:limited_map_cc, mbo/container/limited_map.h
     - class `LimitedMap`: A space limited, constexpr compliant `map`.
   - mbo/container:limited_options_cc, mbo/container/limited_options.h
-    - class `LimitedOptions`: A compile time configuration option for `LimitedSet` and `LimitedMap`.
+    - class `LimitedOptions`: Compile-time capacity and flags for the Limited containers.
   - mbo/container:limited_set_cc, mbo/container/limited_set.h
     - class `LimitedSet`: A space limited, constexpr compliant `set`.
   - mbo/container:limited_vector_cc, mbo/container/limited_vector.h
     - class `LimitedVector`: A space limited, constexpr compliant `vector`.
+  - mbo/container:segmented_options_cc, mbo/container/segmented_options.h
+    - `SegmentedOptions` and the shared element/representation concepts configure both segmented containers.
+  - mbo/container:segmented_vector_cc, mbo/container/segmented_vector.h
+    - class [`SegmentedVector`](mbo/container/SEGMENTED_VECTOR.md): Append-oriented storage with stable element addresses, constant-time indexing, and configurable block sources.
+  - mbo/container:segmented_deque_cc, mbo/container/segmented_deque.h
+    - class [`SegmentedDeque`](mbo/container/SEGMENTED_DEQUE.md): Double-ended segmented storage with stable element iterators and arena-compatible segment reuse at either end.
+  - mbo/container/experimental:circular_buffer_cc, mbo/container/experimental/circular_buffer.h
+    - class [`experimental::CircularBuffer`](mbo/container/experimental/CIRCULAR_BUFFER.md): A public experimental growable ring with allocator support, random-access iterators, and insertion/removal at both ends. Its API may change between releases.
+  - Eligible sequences provide [value-returning endpoint pops](mbo/container/README.md#value-returning-pops), including move-only and potentially throwing element moves.
 - Diff
   - `namespace mbo::diff` - library docs: [mbo/diff/README.md](mbo/diff/README.md)
   - mbo/diff:diff_cc, mbo/diff/diff.h
@@ -124,6 +133,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - enum `Json::SerializeMode`: Selects `kCompact`, `kLine`, or `kPretty` JSON output.
     - function `Json::Serialize`: Returns the JSON value as a `std::string`.
     - function `Json::Stream`: Writes the JSON value to a `std::ostream`.
+    - function `Json::pop_back_value`: Removes and returns the last value of a nonempty array, with checked kind and empty preconditions.
     - concept `ConvertibleToJson`: Determines whether a value can be stored in a `Json`.
 - Log
   - `namespace mbo::log`
@@ -135,6 +145,14 @@ The C++ library is organized in functional groups each residing in their own dir
     - struct `VoidStream`: A suppressing output stream.
     - template struct `ScopedStream`: A scoped output stream for function location logging.
     - enum `ScopedStreamMode`: Controls how `scopedStream` handles output.
+- Memory
+  - `namespace mbo::memory`
+  - mbo/memory:block_source_cc, mbo/memory/block_source.h
+    - `MemoryBlock`, `BlockSource`, and `CopyableBlockSource`: Aligned raw-block ownership and acquisition/release contracts shared by arenas and segmented containers.
+    - `NewDeleteBlockSource`, `AllocatorBlockSource`, `PmrBlockSource`, `FixedBlockSource`, and `InlineBlockSource`: Heap, allocator, memory-resource, caller-owned, and inline storage sources.
+  - mbo/memory:arena_cc, mbo/memory/arena.h
+    - class `Arena<Source, Options>`: Raw byte allocation with explicit growth policy, alignment, reset/reuse, release, and allocation accounting. It does not manage typed object destruction.
+    - `ArenaOptions` and `ValidArenaOptions`: Compile-time initial/maximum block sizes and growth ratio validation.
 - Mope
   - `namespace mbo::mope`
   - The `MOPE` templating engine. Run `bazel run //mbo/mope -- --help` for detailed documentation.
@@ -224,7 +242,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - concept `ThreeWayComparableTo` which is similar to `std::three_way_comparable_with` but we only verify that `L <=> R` can be interpreted as `Cat` in the presented argument order.
     - function `WeakToStrong` which converts a `std::weak_ordering` to a `std::strong_ordering`.
   - mbo/types:container_proxy_cc, mbo/types/container_proxy.h
-    - struct `ContainerProxy` which allows to add container access to other types including smart pointers of containers.
+    - struct `ContainerProxy`: Adds container access through a wrapped type's accessors, forwarding `pop_front_value` and `pop_back_value` when available.
   - mbo/types:extend_cc, mbo/types/extend.h
     - crtp-struct `Extend`: Enables extending of struct/class types with basic functionality.
     - crtp-struct `ExtendNoDefault` Like `Extend` but without default extender functionality.
@@ -348,14 +366,17 @@ after `bazel build --config=clang //...`, and pre-commit pins the same release.
 
 Lint and format are driven by [Trunk](https://docs.trunk.io/cli) plus [pre-commit](https://pre-commit.com). Devs are **required** to install both - `curl https://get.trunk.io -fsSL | bash` and `pip install pre-commit` (or your package manager's equivalent) - then run `pre-commit install` **once**. pre-commit is this repo's single git-hook entry point and delegates `trunk fmt` to trunk on every commit; trunk's own git-hook actions are deliberately disabled in `.trunk/trunk.yaml` so the two cannot fight over `.git/hooks` (a CI check fails the build if they are re-enabled). CI runs `pre-commit`, `trunk check` and `clang-tidy` as separate jobs and never auto-fixes; failing lint must be fixed locally and re-pushed.
 
-`clang-tidy` is one of these pre-commit hooks as well - it moved there from trunk, which pinned a version too old to parse this code. It is opt-in for now (`pre-commit run clang-tidy --all-files --hook-stage manual`) and becomes automatic like the rest once the finding sweep lands. See [STYLE_CPP.md](STYLE_CPP.md) for how to run it and how to build the `compile_commands.json` it needs.
+`clang-tidy` is an automatic pre-commit gate and a separate CI job. Prepare its generated headers
+and compilation database with `bazel build --config=clang-tidy //...` and
+`./compile_commands-update.sh`. See [STYLE_CPP.md](STYLE_CPP.md) and the
+[infrastructure guide](docs/infrastructure.md) for scope and concurrency requirements.
 
-### MODULES.bazel
+### MODULE.bazel
 
 Check [Releases](https://github.com/mboworks/mbo/releases) for details. All that is needed is a `bazel_dep` instruction with the correct version.
 
 ```starlark
-bazel_dep(name = "mboworks_mbo", version = "0.15.0")
+bazel_dep(name = "mboworks_mbo", version = "0.16.0")
 ```
 
 The [Bazel-Central-Registry](https://registry.bazel.build/modules/mboworks_mbo) installation does not provide the LLVM tools and thus does not come with its own compiler - a restriction in how Bazel handles toolchains under bzlmod. To pull in the bundled toolchain, vendor `bazelmod/llvm.MODULE.bazel` as described in the release notes. Current versions are tested with GCC 15+ and Clang 22+ on Ubuntu and macOS. Other platforms and compilers are likely to work as well. However, Windows lacks some of the necessary tools and the library as well as its build system mostly assume Unix-style file and path names. That unfortunately means that on Windows some code cannot even be built.

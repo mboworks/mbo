@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <stdexcept>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -12,11 +13,35 @@ namespace mbo::json {
 namespace {
 
 using ::testing::HasSubstr;
+using ::testing::IsEmpty;
+using ::testing::IsTrue;
 using ::testing::ThrowsMessage;
 
 static_assert(config::kRequireThrows);
 
 struct JsonRequireExceptionsTest : ::testing::Test {};
+
+static_assert(!noexcept(std::declval<Json&>().pop_back_value()));
+
+TEST_F(JsonRequireExceptionsTest, ValuePopRequirementsPreserveTheOriginalKind) {
+  Json empty;
+  empty.MakeArray();
+  EXPECT_THAT(
+      [&empty] { static_cast<void>(empty.pop_back_value()); },
+      ThrowsMessage<std::runtime_error>(HasSubstr("Cannot pop an empty Json array")));
+  EXPECT_THAT(empty, IsEmpty());
+  EXPECT_THAT(empty.IsArray(), IsTrue());
+  Json scalar{1};
+  EXPECT_THAT(
+      [&scalar] { static_cast<void>(scalar.pop_back_value()); },
+      ThrowsMessage<std::runtime_error>(HasSubstr("Is not an Array")));
+  EXPECT_THAT(scalar, 1);
+  Json null;
+  EXPECT_THAT(
+      [&null] { static_cast<void>(null.pop_back_value()); },
+      ThrowsMessage<std::runtime_error>(HasSubstr("Is not an Array")));
+  EXPECT_THAT(null.IsNull(), IsTrue());
+}
 
 TEST_F(JsonRequireExceptionsTest, ReportsInvalidSerializationAndContainerMutation) {
   Json scalar{1};

@@ -256,6 +256,7 @@ cc_test(
 cc_library(
     name = "container_proxy_cc",
     hdrs = ["container_proxy.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@abseil-cpp//absl/hash",
     ],
@@ -278,6 +279,8 @@ cc_test(
     srcs = ["container_proxy_test.cc"],
     deps = [
         ":container_proxy_cc",
+        "//mbo/container:limited_vector_cc",
+        "//mbo/container/experimental:circular_buffer_cc",
         "@googletest//:gtest_main",
     ],
 )

@@ -55,6 +55,38 @@ using ::testing::UnorderedElementsAreArray;
 
 struct JsonTest : ::testing::Test {};
 
+TEST_F(JsonTest, PopBackValueTransfersNestedValuesAndRetainsArrayKind) {
+  Json array;
+  array.emplace_back("keep");
+  Json object;
+  object["name"] = "item";
+  object["items"].push_back(3);
+  array.push_back(std::move(object));
+  Json popped = array.pop_back_value();
+  EXPECT_THAT(array, ElementsAre(Json{"keep"}));
+  EXPECT_THAT(popped.at("name"), "item");
+  EXPECT_THAT(popped.at("items"), ElementsAre(Json{3}));
+  popped.at("items").push_back(4);
+  EXPECT_THAT(popped.at("items"), ElementsAre(Json{3}, Json{4}));
+  EXPECT_THAT(array.pop_back_value(), "keep");
+  EXPECT_THAT(array, IsEmpty());
+  EXPECT_THAT(array.IsArray(), true);
+  array.push_back(5);
+  EXPECT_THAT(array.pop_back_value(), 5);
+}
+
+struct JsonDeathTest : ::testing::Test {};
+
+TEST_F(JsonDeathTest, ValuePopRejectsEmptyArraysAndOtherKinds) {
+  Json empty;
+  empty.MakeArray();
+  EXPECT_DEATH(static_cast<void>(empty.pop_back_value()), "Cannot pop an empty Json array");
+  Json scalar{1};
+  EXPECT_DEATH(static_cast<void>(scalar.pop_back_value()), "Is not an Array");
+  Json null;
+  EXPECT_DEATH(static_cast<void>(null.pop_back_value()), "Is not an Array");
+}
+
 TEST_F(JsonTest, Test) {
   EXPECT_THAT(Json{}, IsNullopt());
   EXPECT_THAT(Json{}.Serialize(), EqualsText(R"({}

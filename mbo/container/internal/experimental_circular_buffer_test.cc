@@ -39,6 +39,14 @@ struct ExperimentalCircularBufferTest : ::testing::Test {};
 
 using IntBuffer = ExperimentalCircularBuffer<int>;
 
+template<typename T>
+concept HasValuePops = requires(ExperimentalCircularBuffer<T>& buffer) {
+  { buffer.pop_front_value() } -> std::same_as<T>;
+  { buffer.pop_back_value() } -> std::same_as<T>;
+};
+
+static_assert(HasValuePops<int>);
+static_assert(HasValuePops<std::unique_ptr<int>>);
 static_assert(std::random_access_iterator<IntBuffer::iterator>);
 static_assert(std::random_access_iterator<IntBuffer::const_iterator>);
 static_assert(std::random_access_iterator<IntBuffer::reverse_iterator>);
@@ -64,9 +72,13 @@ constexpr bool ConstantEvaluation() {
   if (!buffer.full() || buffer.size() != 4 || buffer.capacity() != 4) {
     return false;
   }
-  buffer.pop_front();
+  if (buffer.pop_front_value() != 1) {
+    return false;
+  }
   buffer.push_back(5);
-  buffer.pop_back();
+  if (buffer.pop_back_value() != 5) {
+    return false;
+  }
   buffer.push_front(1);
   buffer.push_back(5);
   if (buffer.capacity() != 8 || buffer.at(2) != 3 || buffer.back() != 5) {
@@ -402,6 +414,7 @@ TEST_F(ExperimentalCircularBufferTest, SupportsMoveOnlyAndReservedImmovableEleme
     int value;
   };
 
+  static_assert(!HasValuePops<Immovable>);
   ExperimentalCircularBuffer<Immovable> fixed;
   fixed.reserve(2);
   EXPECT_THAT(fixed.emplace_front(5).value, Eq(5));
@@ -409,6 +422,35 @@ TEST_F(ExperimentalCircularBufferTest, SupportsMoveOnlyAndReservedImmovableEleme
   fixed.pop_front();
   fixed.pop_back();
   EXPECT_THAT(fixed, IsEmpty());
+}
+
+TEST_F(ExperimentalCircularBufferTest, ValuePopsMoveWrappedEndpointsAndRetainReservation) {
+  ExperimentalCircularBuffer<std::unique_ptr<int>> buffer;
+  buffer.reserve(4);
+  buffer.push_front(std::make_unique<int>(2));
+  buffer.push_front(std::make_unique<int>(1));
+  buffer.push_back(std::make_unique<int>(3));
+  buffer.push_back(std::make_unique<int>(4));
+  const auto first = buffer.pop_front_value();
+  const auto last = buffer.pop_back_value();
+  EXPECT_THAT(first, Pointee(Eq(1)));
+  EXPECT_THAT(last, Pointee(Eq(4)));
+  EXPECT_THAT(buffer, ElementsAre(Pointee(Eq(2)), Pointee(Eq(3))));
+  EXPECT_THAT(buffer.pop_front_value(), Pointee(Eq(2)));
+  EXPECT_THAT(buffer.pop_back_value(), Pointee(Eq(3)));
+  EXPECT_THAT(buffer, IsEmpty());
+  EXPECT_THAT(buffer.capacity(), Eq(4));
+  buffer.push_back(std::make_unique<int>(5));
+  EXPECT_THAT(buffer.pop_front_value(), Pointee(Eq(5)));
+  EXPECT_THAT(buffer, IsEmpty());
+}
+
+struct ExperimentalCircularBufferDeathTest : ::testing::Test {};
+
+TEST_F(ExperimentalCircularBufferDeathTest, EmptyValuePopsEnforceRequirements) {
+  IntBuffer buffer;
+  EXPECT_DEATH(static_cast<void>(buffer.pop_front_value()), "Circular buffer index is out of range");
+  EXPECT_DEATH(static_cast<void>(buffer.pop_back_value()), "Circular buffer index is out of range");
 }
 
 TEST_F(ExperimentalCircularBufferTest, SupportsOveralignedElements) {

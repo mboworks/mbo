@@ -435,7 +435,11 @@ cc_test(
     name = "experimental_circular_buffer_require_exceptions_test",
     size = "small",
     srcs = ["internal/experimental_circular_buffer_require_exceptions_test.cc"],
-    copts = ["-fexceptions"] + select({
+    # Value pops must retain their single-move guarantee without optional return-value elision.
+    copts = [
+        "-fexceptions",
+        "-fno-elide-constructors",
+    ] + select({
         "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
         "//conditions:default": [],
     }),

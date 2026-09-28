@@ -71,6 +71,8 @@ static_assert(noexcept(std::declval<IntBuffer&>().at(0)) == !config::kRequireThr
 static_assert(noexcept(std::declval<const IntBuffer&>().at(0)) == !config::kRequireThrows);
 static_assert(noexcept(std::declval<IntBuffer&>().pop_front()) == !config::kRequireThrows);
 static_assert(noexcept(std::declval<IntBuffer&>().pop_back()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<IntBuffer&>().pop_front_value()) == !config::kRequireThrows);
+static_assert(noexcept(std::declval<IntBuffer&>().pop_back_value()) == !config::kRequireThrows);
 
 TEST_F(ExperimentalCircularBufferRequireExceptionsTest, EndInsertionRollsBackEachConstructionFailure) {
   for (int front = 0; front != 2; ++front) {
@@ -141,6 +143,101 @@ struct ThrowingMove final {
 
   int value;
 };
+
+static_assert(!noexcept(std::declval<ExperimentalCircularBuffer<ThrowingMove>&>().pop_front_value()));
+static_assert(!noexcept(std::declval<ExperimentalCircularBuffer<ThrowingMove>&>().pop_back_value()));
+
+TEST_F(ExperimentalCircularBufferRequireExceptionsTest, FailedValuePopRetainsModifiedMoveOnlyElement) {
+  for (int front = 0; front != 2; ++front) {
+    {
+      ExperimentalCircularBuffer<ThrowingMove> buffer;
+      buffer.reserve(2);
+      buffer.emplace_front(1);
+      buffer.emplace_back(2);
+      ThrowingMove* const endpoint = std::addressof(front != 0 ? buffer.front() : buffer.back());
+      ThrowingMove::remaining = 0;
+      EXPECT_THAT(
+          ([&buffer, front] { static_cast<void>(front != 0 ? buffer.pop_front_value() : buffer.pop_back_value()); }),
+          ThrowsMessage<std::runtime_error>(HasSubstr("move failed")));
+      EXPECT_THAT(buffer, SizeIs(2));
+      EXPECT_THAT(buffer.capacity(), Eq(2));
+      EXPECT_THAT(std::addressof(front != 0 ? buffer.front() : buffer.back()), Eq(endpoint));
+      EXPECT_THAT(
+          buffer | std::views::transform(&ThrowingMove::value), ElementsAre(front != 0 ? -1 : 1, front != 0 ? 2 : -1));
+      EXPECT_THAT(ThrowingMove::live, Eq(2));
+      endpoint->value = 9;
+      ThrowingMove::remaining = 1;
+      const auto popped = front != 0 ? buffer.pop_front_value() : buffer.pop_back_value();
+      EXPECT_THAT(popped.value, Eq(9));
+      EXPECT_THAT(ThrowingMove::remaining, Eq(0));
+      EXPECT_THAT(buffer, SizeIs(1));
+      EXPECT_THAT(ThrowingMove::live, Eq(2));
+    }
+    EXPECT_THAT(ThrowingMove::live, Eq(0));
+  }
+  ThrowingMove::remaining = -1;
+}
+
+struct CopyablePopValue final {
+  static inline int live = 0;
+  static inline int copies = 0;
+  static inline int moves = 0;
+  static inline bool fail_move = false;
+
+  explicit CopyablePopValue(int value) : value(value) { ++live; }
+
+  CopyablePopValue(const CopyablePopValue& other) : value(other.value) {
+    ++copies;
+    ++live;
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+  CopyablePopValue(CopyablePopValue&& other) {
+    ++moves;
+    if (fail_move) {
+      throw std::runtime_error("pop move failed");
+    }
+    value = std::exchange(other.value, -1);
+    ++live;
+  }
+
+  CopyablePopValue& operator=(const CopyablePopValue&) = default;
+  CopyablePopValue& operator=(CopyablePopValue&&) noexcept = default;
+
+  ~CopyablePopValue() noexcept { --live; }
+
+  int value = 0;
+};
+
+TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ValuePopsMoveOnceWithoutCopyFallback) {
+  for (int front = 0; front != 2; ++front) {
+    {
+      ExperimentalCircularBuffer<CopyablePopValue> buffer;
+      buffer.reserve(2);
+      buffer.emplace_front(1);
+      buffer.emplace_back(2);
+      CopyablePopValue::copies = 0;
+      CopyablePopValue::moves = 0;
+      CopyablePopValue::fail_move = true;
+      EXPECT_THAT(
+          ([&buffer, front] { static_cast<void>(front != 0 ? buffer.pop_front_value() : buffer.pop_back_value()); }),
+          ThrowsMessage<std::runtime_error>(HasSubstr("pop move failed")));
+      EXPECT_THAT(buffer | std::views::transform(&CopyablePopValue::value), ElementsAre(1, 2));
+      EXPECT_THAT(CopyablePopValue::moves, Eq(1));
+      EXPECT_THAT(CopyablePopValue::copies, Eq(0));
+      EXPECT_THAT(CopyablePopValue::live, Eq(2));
+      CopyablePopValue::fail_move = false;
+      CopyablePopValue::moves = 0;
+      const auto popped = front != 0 ? buffer.pop_front_value() : buffer.pop_back_value();
+      EXPECT_THAT(popped.value, Eq(front != 0 ? 1 : 2));
+      EXPECT_THAT(buffer | std::views::transform(&CopyablePopValue::value), ElementsAre(front != 0 ? 2 : 1));
+      EXPECT_THAT(CopyablePopValue::moves, Eq(1));
+      EXPECT_THAT(CopyablePopValue::copies, Eq(0));
+      EXPECT_THAT(CopyablePopValue::live, Eq(2));
+    }
+    EXPECT_THAT(CopyablePopValue::live, Eq(0));
+  }
+}
 
 TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ThrowingMovePreservesLifetimesAndAllowsReuse) {
   {
@@ -330,6 +427,8 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, CheckedAccessAndIterator
   EXPECT_THAT([&constant] { static_cast<void>(constant.back()); }, Throws<std::runtime_error>());
   EXPECT_THAT([&buffer] { buffer.pop_front(); }, Throws<std::runtime_error>());
   EXPECT_THAT([&buffer] { buffer.pop_back(); }, Throws<std::runtime_error>());
+  EXPECT_THAT([&buffer] { static_cast<void>(buffer.pop_front_value()); }, Throws<std::runtime_error>());
+  EXPECT_THAT([&buffer] { static_cast<void>(buffer.pop_back_value()); }, Throws<std::runtime_error>());
   EXPECT_THAT([&buffer] { buffer.reserve(buffer.max_size() + 1); }, Throws<std::runtime_error>());
   EXPECT_THAT([&buffer] { buffer.erase(buffer.cend()); }, Throws<std::runtime_error>());
   buffer.push_back(1);

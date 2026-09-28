@@ -13,7 +13,7 @@ Unsigned arithmetic deliberately wraps, including when pushing onto the front of
 
 ```cpp
 size = end_ - begin_;
-physical_slot = (begin_ + logical_index) & (capacity_ - 1);
+physical_slot = (begin_ + logical_index) & (capacity() - 1);
 ```
 
 Capacity is zero or a power of two. `max_size()` rounds down the smaller of the allocator's limit
@@ -50,6 +50,7 @@ The STL-style interface includes:
 - `iterator`, `const_iterator`, `reverse_iterator`, and `const_reverse_iterator`, with the
   `begin`/`end`, `cbegin`/`cend`, `rbegin`/`rend`, and `crbegin`/`crend` accessors;
 - `emplace_front`, `emplace_back`, `push_front`, `push_back`, `pop_front`, and `pop_back`;
+- `pop_front_value` and `pop_back_value` for removing and returning an endpoint value;
 - positional `emplace`, `insert`, `insert_range`, `erase`, `append_range`, and `prepend_range`;
 - `resize`, `reserve`, `shrink_to_fit`, `clear`, `swap`, equality and lexicographic ordering.
 
@@ -64,6 +65,21 @@ self-referential arguments, overlapping ranges, and single-pass input ranges wel
 Middle erasure shifts the suffix by assignment, then destroys the vacated elements. Prefix erasure
 only pops the front. Erasure requires move-assignable or copy-assignable elements. Immovable values
 can be emplaced into reserved storage, but relocating a nonempty buffer of them is rejected.
+
+### Value-returning pops
+
+`pop_front_value()` and `pop_back_value()` follow
+[P3182R1: Add container pop methods that return the popped value](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3182r1.html).
+They require a nonempty buffer and a move-constructible element type. Each initializes its return
+object from `std::move` of the endpoint, then removes that element. Removal waits until return
+construction succeeds, including when optional return-value elision is disabled. A throwing move
+leaves size and element lifetimes intact, though it may change the source value; there is no
+automatic copy fallback for a potentially throwing move.
+
+These operations retain capacity and take constant container work plus the element construction
+and destruction cost. They are `constexpr`, and `noexcept` when both move construction and the
+configured requirement policy are nonthrowing. Empty calls use `MBO_CONFIG_REQUIRE`, like the
+existing pops. A later failure assigning the returned value in caller code cannot undo removal.
 
 ## Invalidation, ownership and failure
 

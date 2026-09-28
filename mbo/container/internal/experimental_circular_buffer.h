@@ -415,6 +415,16 @@ class ExperimentalCircularBuffer final {
     ++begin_;
   }
 
+  constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    return PopValue<false>();
+  }
+
+  constexpr T pop_front_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    return PopValue<true>();
+  }
+
   template<typename... Args>
   requires std::constructible_from<T, Args...>
   constexpr iterator emplace(const_iterator pos, Args&&... args) {
@@ -609,8 +619,8 @@ class ExperimentalCircularBuffer final {
     constexpr Capacity() noexcept = default;
 
     constexpr explicit Capacity(size_type count) noexcept(!kRequireThrows) : value_(count) {
-      MBO_CONFIG_REQUIRE(
-          count == 0 || std::has_single_bit(count), "Circular buffer capacity must be zero or a power of two");
+      const bool valid = count == 0 || std::has_single_bit(count);
+      MBO_CONFIG_REQUIRE(valid, "Circular buffer capacity must be zero or a power of two");
     }
 
     constexpr size_type Get() const noexcept { return value_; }
@@ -625,6 +635,47 @@ class ExperimentalCircularBuffer final {
 
   constexpr const T* Slot(size_type coordinate) const noexcept {
     return std::to_address(storage_) + (coordinate & (capacity() - 1));
+  }
+
+  template<bool Front>
+  constexpr T PopValue() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>) {
+    T& value = Front ? front() : back();
+
+    // P3182R1: commit removal only after the return object has been constructed.
+    // NOLINTNEXTLINE(misc-const-correctness): throwing element types disarm this guard in the exception path.
+    struct PopOnSuccess final {
+      constexpr explicit PopOnSuccess(ExperimentalCircularBuffer* target) noexcept : buffer(target) {}
+
+      PopOnSuccess(const PopOnSuccess&) = delete;
+      PopOnSuccess& operator=(const PopOnSuccess&) = delete;
+      PopOnSuccess(PopOnSuccess&&) = delete;
+      PopOnSuccess& operator=(PopOnSuccess&&) = delete;
+
+      ExperimentalCircularBuffer* buffer;
+
+      constexpr ~PopOnSuccess() noexcept {
+        if (buffer != nullptr) {
+          if constexpr (Front) {
+            buffer->pop_front();
+          } else {
+            buffer->pop_back();
+          }
+        }
+      }
+    } guard{this};
+#if __cpp_exceptions
+    if constexpr (!std::is_nothrow_move_constructible_v<T>) {
+      try {
+        return std::move(value);
+      } catch (...) {
+        guard.buffer = nullptr;
+        throw;
+      }
+    } else
+#endif
+    {
+      return std::move(value);
+    }
   }
 
   constexpr size_type Position(const_iterator pos) const noexcept(!kRequireThrows) {

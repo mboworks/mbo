@@ -1,9 +1,8 @@
 # Ordered lookup microbenchmarks
 
-Current retained component reports:
-
-- [`SEGMENTED_SEQUENCE.md`](SEGMENTED_SEQUENCE.md) for append-oriented stable storage;
-- [`HAMT.md`](HAMT.md) for general flat/node persistent map comparisons.
+Current segmented reports: [SegmentedVector](SEGMENTED_VECTOR.md) and
+[SegmentedDeque](SEGMENTED_DEQUE.md). Historical HAMT results live with
+[the experimental HAMT package](../hamt/measurements/HAMT.md).
 
 ## Historical ordered lookup study
 

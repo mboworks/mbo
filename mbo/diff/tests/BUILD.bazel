@@ -15,7 +15,7 @@
 
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("//mbo/diff:diff.bzl", "diff_test")
-load("//mbo/diff/tests:diff_test_test.bzl", "diff_test_formats_test", "diff_test_test")
+load(":diff_test_test.bzl", "diff_test_formats_test", "diff_test_test")
 
 package(default_visibility = ["//visibility:private"])
 

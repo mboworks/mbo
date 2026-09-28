@@ -30,7 +30,7 @@ cc_library(
     name = "diff_options_cc",
     srcs = ["diff_options.cc"],
     hdrs = ["diff_options.h"],
-    visibility = ["//mbo/diff:__subpackages__"],
+    visibility = [":__subpackages__"],
     deps = [
         "//mbo/container:limited_map_cc",
         "//mbo/file:artefact_cc",

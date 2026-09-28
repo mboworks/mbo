@@ -1,0 +1,809 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#include "mbo/container/hamt/experimental/internal/hamt_tree.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <limits>
+#include <optional>
+#include <utility>
+
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "mbo/memory/block_source.h"
+
+namespace mbo::container::hamt::experimental::hamt_internal {
+namespace {
+
+using ::testing::AllOf;
+using ::testing::ElementsAre;
+using ::testing::Eq;
+using ::testing::Field;
+using ::testing::IsEmpty;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
+using ::testing::Ne;
+using ::testing::NotNull;
+using ::testing::Optional;
+using ::testing::SizeIs;
+using ::testing::UnorderedElementsAre;
+
+struct Entry final {
+  int key;
+  int value;
+  friend constexpr bool operator==(const Entry&, const Entry&) = default;
+};
+
+struct SeedHash final {
+  std::uint64_t seed = 13;
+  std::uint64_t mask = std::numeric_limits<std::uint64_t>::max();
+
+  constexpr std::uint64_t operator()(std::int64_t key) const noexcept {
+    return (static_cast<std::uint64_t>(key) & mask) ^ seed;
+  }
+};
+
+struct KeyOf final {
+  constexpr const int& operator()(const Entry& entry) const noexcept { return entry.key; }
+};
+
+struct Equal final {
+  int tag = 7;
+
+  constexpr bool operator()(int lhs, std::int64_t rhs) const noexcept { return lhs == rhs; }
+};
+
+struct BudgetSource final {
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr bool supports_recoverable_failure = true;
+
+  // NOLINTNEXTLINE(readability-identifier-naming): block-source contract.
+  static constexpr std::size_t max_alignment() noexcept { return mbo::memory::NewDeleteBlockSource::max_alignment(); }
+
+  std::optional<mbo::memory::MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+    if (remaining == 0) {
+      return std::nullopt;
+    }
+    const auto block = mbo::memory::NewDeleteBlockSource::TryAcquire(size, alignment);
+    if (block) {
+      --remaining;
+      ++acquired;
+    }
+    return block;
+  }
+
+  void Release(mbo::memory::MemoryBlock block) noexcept {
+    ++released;
+    mbo::memory::NewDeleteBlockSource::Release(block);
+  }
+
+  std::size_t remaining = 64;
+  std::size_t acquired = 0;
+  std::size_t released = 0;
+};
+
+constexpr HamtOptions kOptions{.fragment_bits = 5, .maximum_size = 2};
+using Tree = HamtTree<kOptions, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+
+static_assert(std::forward_iterator<Tree::mutable_iterator>);
+static_assert(std::convertible_to<Tree::mutable_iterator, Tree::iterator>);
+static_assert(!std::convertible_to<Tree::iterator, Tree::mutable_iterator>);
+
+::testing::Matcher<HamtMutationResult> MutationIs(bool changed, std::optional<HamtError> error = {}) {
+  return AllOf(
+      Field("changed", &HamtMutationResult::changed, Eq(changed)),
+      Field("error", &HamtMutationResult::error, Eq(error)));
+}
+
+struct HamtTreeTest : ::testing::Test {
+  BudgetSource source;
+  Tree tree{source, SeedHash{}, KeyOf{}, Equal{}};
+
+  template<std::size_t Bits>
+  void CheckEveryAllocationBudgetPreservesSharedSnapshots() {
+    using TestedTree =
+        HamtTree<HamtOptions{.fragment_bits = Bits, .maximum_size = 8}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+    BudgetSource budget;
+    {
+      TestedTree original(budget, SeedHash{.seed = 0}, KeyOf{}, Equal{});
+      constexpr int kSecond = 1 + (1 << Bits);
+      constexpr int kThird = 1 + (2 << Bits);
+      EXPECT_THAT(original.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+      EXPECT_THAT(original.try_insert(Entry{.key = kSecond, .value = 20}), MutationIs(true));
+      for (std::size_t available = 0; available < 5; ++available) {
+        TestedTree edited = original;
+        budget.remaining = available;
+        const auto inserted = edited.try_insert(Entry{.key = kThird, .value = 30});
+        if (available == 0) {
+          EXPECT_THAT(inserted, MutationIs(false, HamtError::kAllocationExhausted));
+        }
+        if (available == 4) {
+          EXPECT_THAT(inserted, MutationIs(true));
+        }
+        EXPECT_THAT(original.size(), Eq(2));
+        EXPECT_THAT(original.contains(kThird), IsFalse());
+        if (inserted.error) {
+          EXPECT_THAT(inserted, MutationIs(false, HamtError::kAllocationExhausted));
+          EXPECT_THAT(edited.size(), Eq(2));
+          EXPECT_THAT(edited.contains(kThird), IsFalse());
+        } else {
+          EXPECT_THAT(inserted, MutationIs(true));
+          EXPECT_THAT(edited.size(), Eq(3));
+          EXPECT_THAT(edited.contains(kThird), IsTrue());
+        }
+        budget.remaining = available;
+        const auto erased = edited.try_erase(kSecond);
+        if (available == 0) {
+          EXPECT_THAT(erased, MutationIs(false, HamtError::kAllocationExhausted));
+        }
+        if (available == 4) {
+          EXPECT_THAT(erased, MutationIs(true));
+        }
+        EXPECT_THAT(original.contains(kSecond), IsTrue());
+        if (erased.error) {
+          EXPECT_THAT(erased, MutationIs(false, HamtError::kAllocationExhausted));
+          EXPECT_THAT(edited.contains(kSecond), IsTrue());
+        } else {
+          EXPECT_THAT(erased, MutationIs(true));
+          EXPECT_THAT(edited.contains(kSecond), IsFalse());
+        }
+        ASSERT_THAT(edited.Find(1), NotNull());
+        EXPECT_THAT(edited.Find(1)->value, Eq(10));
+        EXPECT_THAT(edited.structural_diagnostics().entries, Eq(edited.size()));
+      }
+    }
+    EXPECT_THAT(budget.released, Eq(budget.acquired));
+  }
+};
+
+TEST_F(HamtTreeTest, FourBitFragmentsPreserveSnapshotsAcrossAllocationBudgets) {
+  CheckEveryAllocationBudgetPreservesSharedSnapshots<4>();
+}
+
+TEST_F(HamtTreeTest, FiveBitFragmentsPreserveSnapshotsAcrossAllocationBudgets) {
+  CheckEveryAllocationBudgetPreservesSharedSnapshots<5>();
+}
+
+TEST_F(HamtTreeTest, SixBitFragmentsPreserveSnapshotsAcrossAllocationBudgets) {
+  CheckEveryAllocationBudgetPreservesSharedSnapshots<6>();
+}
+
+TEST_F(HamtTreeTest, SevenBitFragmentsPreserveSnapshotsAcrossAllocationBudgets) {
+  CheckEveryAllocationBudgetPreservesSharedSnapshots<7>();
+}
+
+TEST_F(HamtTreeTest, StructuralDiagnosticsMeasureReachableNodesWithoutAllocating) {
+  const auto empty = tree.structural_diagnostics();
+  EXPECT_THAT(empty.nodes, Eq(0));
+  EXPECT_THAT(empty.entries, Eq(0));
+  EXPECT_THAT(empty.node_allocation_bytes, Eq(0));
+  EXPECT_THAT(empty.entry_allocation_bytes, Eq(0));
+  std::size_t empty_visits = 0;
+  tree.VisitNodeDiagnostics([&](const HamtNodeDiagnostics&) noexcept { ++empty_visits; });
+  EXPECT_THAT(empty_visits, Eq(0));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  const Tree snapshot = tree;
+  const auto acquired = source.acquired;
+  source.remaining = 0;
+  const auto measured = snapshot.structural_diagnostics();
+  EXPECT_THAT(measured.nodes, Eq(2));
+  EXPECT_THAT(measured.entry_allocation_bytes, Eq(0));
+  EXPECT_THAT(measured.entries, Eq(2));
+  EXPECT_THAT(measured.maximum_depth, Eq(1));
+  EXPECT_THAT(measured.collision_nodes, Eq(0));
+  EXPECT_THAT(measured.collision_entries, Eq(0));
+  EXPECT_THAT(measured.largest_collision, Eq(0));
+  EXPECT_THAT(measured.node_allocation_bytes > 0, IsTrue());
+  EXPECT_THAT(source.acquired, Eq(acquired));
+  std::size_t visited = 0;
+  std::size_t entries = 0;
+  std::size_t children = 0;
+  std::size_t bytes = 0;
+  snapshot.VisitNodeDiagnostics([&](const HamtNodeDiagnostics& node) noexcept {
+    ++visited;
+    entries += node.entries;
+    children += node.children;
+    bytes += node.allocation_bytes;
+    EXPECT_THAT(node.collision, IsFalse());
+    EXPECT_THAT(node.depth <= measured.maximum_depth, IsTrue());
+  });
+  EXPECT_THAT(visited, Eq(measured.nodes));
+  EXPECT_THAT(entries, Eq(measured.entries));
+  EXPECT_THAT(children, Eq(1));
+  EXPECT_THAT(bytes, Eq(measured.node_allocation_bytes));
+  EXPECT_THAT(source.acquired, Eq(acquired));
+}
+
+TEST_F(HamtTreeTest, StructuralDiagnosticsCountTerminalCollisionEntries) {
+  Tree collided(source, SeedHash{.mask = 0}, KeyOf{}, Equal{});
+  EXPECT_THAT(collided.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(collided.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  const auto measured = collided.structural_diagnostics();
+  EXPECT_THAT(measured.entries, Eq(2));
+  EXPECT_THAT(measured.collision_nodes, Eq(1));
+  EXPECT_THAT(measured.collision_entries, Eq(2));
+  EXPECT_THAT(measured.largest_collision, Eq(2));
+  std::size_t visited = 0;
+  std::size_t collision_nodes = 0;
+  collided.VisitNodeDiagnostics([&](const HamtNodeDiagnostics& node) noexcept {
+    ++visited;
+    if (node.collision) {
+      ++collision_nodes;
+      EXPECT_THAT(node.entries, Eq(2));
+      EXPECT_THAT(node.children, Eq(0));
+    } else {
+      EXPECT_THAT(node.entries, Eq(0));
+      EXPECT_THAT(node.children, Eq(1));
+    }
+  });
+  EXPECT_THAT(visited, Eq(2));
+  EXPECT_THAT(collision_nodes, Eq(1));
+}
+
+TEST_F(HamtTreeTest, StructuralDiagnosticsRetainTheLargestOfMultipleCollisions) {
+  using CollisionTree =
+      HamtTree<HamtOptions{.fragment_bits = 5, .maximum_size = 4}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  CollisionTree collided(source, SeedHash{.mask = 1}, KeyOf{}, Equal{});
+  EXPECT_THAT(collided.try_insert(Entry{.key = 0, .value = 10}), MutationIs(true));
+  EXPECT_THAT(collided.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  EXPECT_THAT(collided.try_insert(Entry{.key = 1, .value = 30}), MutationIs(true));
+  EXPECT_THAT(collided.try_insert(Entry{.key = 3, .value = 40}), MutationIs(true));
+  const auto measured = collided.structural_diagnostics();
+  EXPECT_THAT(measured.entries, Eq(4));
+  EXPECT_THAT(measured.collision_nodes, Eq(2));
+  EXPECT_THAT(measured.collision_entries, Eq(4));
+  EXPECT_THAT(measured.largest_collision, Eq(2));
+}
+
+TEST_F(HamtTreeTest, TwoEntryLeafErasurePropagatesEitherRemainingPosition) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  Tree erase_first = tree;
+  Tree erase_second = tree;
+  EXPECT_THAT(erase_first.try_erase(1), MutationIs(true));
+  EXPECT_THAT(erase_first, ElementsAre(Entry{.key = 2, .value = 20}));
+  EXPECT_THAT(erase_second.try_erase(2), MutationIs(true));
+  EXPECT_THAT(erase_second, ElementsAre(Entry{.key = 1, .value = 10}));
+}
+
+TEST_F(HamtTreeTest, TwoDirectEntriesDoNotCollapseWhileTheNodeAlsoHasAChild) {
+  using MixedTree =
+      HamtTree<HamtOptions{.fragment_bits = 5, .maximum_size = 4}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  MixedTree mixed(source, SeedHash{.seed = 0}, KeyOf{}, Equal{});
+  EXPECT_THAT(mixed.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(mixed.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  EXPECT_THAT(mixed.try_insert(Entry{.key = 2, .value = 30}), MutationIs(true));
+  EXPECT_THAT(mixed.try_insert(Entry{.key = 3, .value = 40}), MutationIs(true));
+  EXPECT_THAT(mixed.try_erase(2), MutationIs(true));
+  EXPECT_THAT(
+      mixed,
+      UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 33, .value = 20}, Entry{.key = 3, .value = 40}));
+}
+
+TEST_F(HamtTreeTest, DeepSingletonCompactionAllocatesOnlyTheFinalRootAndPreservesSnapshots) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 98'305, .value = 20}), MutationIs(true));
+  const Tree snapshot = tree;
+  const auto acquired = source.acquired;
+  source.remaining = 0;
+  EXPECT_THAT(tree.try_erase(98'305), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(tree.size(), Eq(2));
+  source.remaining = 1;
+  EXPECT_THAT(tree.try_erase(98'305), MutationIs(true));
+  EXPECT_THAT(source.acquired, Eq(acquired + 1));
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 10}));
+  EXPECT_THAT(snapshot, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 98'305, .value = 20}));
+}
+
+TEST_F(HamtTreeTest, UniqueErasureReusesParentAfterOneResizedLeafAllocation) {
+  using LargerTree = HamtTree<HamtOptions{.maximum_size = 3}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(true));
+  source.remaining = 0;
+  EXPECT_THAT(branch.try_erase(65), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(branch.size(), Eq(3));
+  const auto acquired = source.acquired;
+  source.remaining = 1;
+  EXPECT_THAT(branch.try_erase(65), MutationIs(true));
+  EXPECT_THAT(source.acquired, Eq(acquired + 1));
+  EXPECT_THAT(branch, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 33, .value = 20}));
+}
+
+TEST_F(HamtTreeTest, SharedErasureFailureReleasesTemporaryLeafAndPreservesSnapshots) {
+  using LargerTree = HamtTree<HamtOptions{.maximum_size = 3}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(true));
+  const LargerTree snapshot = branch;
+  const auto released = source.released;
+  source.remaining = 1;
+  EXPECT_THAT(branch.try_erase(65), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(source.released, Eq(released + 1));
+  EXPECT_THAT(branch.contains(65), IsTrue());
+  EXPECT_THAT(snapshot.contains(65), IsTrue());
+  source.remaining = 2;
+  EXPECT_THAT(branch.try_erase(65), MutationIs(true));
+  EXPECT_THAT(branch.contains(65), IsFalse());
+  EXPECT_THAT(snapshot.contains(65), IsTrue());
+}
+
+TEST_F(HamtTreeTest, UniqueInsertionReusesAncestorsWithOnlyOneLeafAllocation) {
+  using LargerTree = HamtTree<HamtOptions{.maximum_size = 3}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  const auto acquired = source.acquired;
+  source.remaining = 0;
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(branch.size(), Eq(2));
+  source.remaining = 1;
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(true));
+  EXPECT_THAT(source.acquired, Eq(acquired + 1));
+  EXPECT_THAT(
+      branch,
+      UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 33, .value = 20}, Entry{.key = 65, .value = 30}));
+}
+
+TEST_F(HamtTreeTest, SharedInsertionCannotMutateDescendantsBeforeAllocatingTheNewRoot) {
+  using LargerTree = HamtTree<HamtOptions{.maximum_size = 3}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  const LargerTree snapshot = branch;
+  const auto released = source.released;
+  source.remaining = 1;
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(source.released, Eq(released + 1));
+  EXPECT_THAT(branch.contains(65), IsFalse());
+  EXPECT_THAT(snapshot.contains(65), IsFalse());
+  EXPECT_THAT(branch.size(), Eq(2));
+  source.remaining = 2;
+  EXPECT_THAT(branch.try_insert(Entry{.key = 65, .value = 30}), MutationIs(true));
+  EXPECT_THAT(branch.contains(65), IsTrue());
+  EXPECT_THAT(snapshot.contains(65), IsFalse());
+  EXPECT_THAT(snapshot.size(), Eq(2));
+}
+
+TEST_F(HamtTreeTest, MutableIterationDetachesSnapshotsAndKeepsCopiedIteratorsMultipass) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  const Tree snapshot = tree;
+  auto result = tree.TryMutableBegin();
+  auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  auto current = *beginning;
+  auto copied = current;
+  Tree::iterator immutable = current;
+  EXPECT_THAT(immutable == current, IsTrue());
+  EXPECT_THAT(current == immutable, IsTrue());
+  const int key = current->key;
+  const int original_value = current->value;
+  current->value = 99;
+  EXPECT_THAT(copied->value, Eq(99));
+  const auto* const previous = snapshot.Find(key);
+  ASSERT_THAT(previous, NotNull());
+  EXPECT_THAT(previous->value, Eq(original_value));
+  ++current;
+  EXPECT_THAT(current == copied, IsFalse());
+  EXPECT_THAT(current == immutable, IsFalse());
+  ++copied;
+  ++immutable;
+  EXPECT_THAT(current == copied, IsTrue());
+  EXPECT_THAT(immutable == current, IsTrue());
+}
+
+TEST_F(HamtTreeTest, EmptyMutableIterationNeedsNoAllocationAndConvertsToTheCommonEnd) {
+  source.remaining = 0;
+  auto result = tree.TryMutableBegin();
+  const auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  EXPECT_THAT(*beginning == Tree::mutable_iterator{}, IsTrue());
+  EXPECT_THAT(*beginning == Tree::iterator{}, IsTrue());
+  EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtTreeTest, MutableIterationReportsExhaustionButNeedsNoAllocationAfterSharingEnds) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree snapshot = tree;
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMutableBegin(), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  EXPECT_THAT(tree.size(), Eq(1));
+  snapshot.clear();
+  const auto acquired = source.acquired;
+  auto result = tree.TryMutableBegin();
+  auto* const beginning = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  EXPECT_THAT((*beginning)->value, Eq(10));
+  EXPECT_THAT(source.acquired, Eq(acquired));
+}
+
+TEST_F(HamtTreeTest, MutableIterationDetachesSharedDescendantsEvenWhenTheRootIsUnique) {
+  constexpr HamtOptions kDeepOptions{.fragment_bits = 5, .maximum_size = 8};
+  using DeepTree = HamtTree<kDeepOptions, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  DeepTree current{source, SeedHash{}, KeyOf{}, Equal{}};
+  EXPECT_THAT(current.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(current.try_insert(Entry{.key = 33, .value = 330}), MutationIs(true));
+  const DeepTree snapshot = current;
+  EXPECT_THAT(current.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+
+  source.remaining = 0;
+  EXPECT_THAT(current.TryMutableBegin(), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  source.remaining = 64;
+  const auto* const root_entry = current.Find(2);
+  ASSERT_THAT(root_entry, NotNull());
+  auto borrowed_lookup = current.TryMutableFind(root_entry->key);
+  const auto* const borrowed_position = std::get_if<DeepTree::mutable_iterator>(&borrowed_lookup);
+  ASSERT_THAT(borrowed_position, NotNull());
+  ASSERT_THAT(*borrowed_position == DeepTree::mutable_iterator{}, IsFalse());
+  EXPECT_THAT((*borrowed_position)->key, Eq(2));
+  auto result = current.TryMutableBegin();
+  const auto* const beginning = std::get_if<DeepTree::mutable_iterator>(&result);
+  ASSERT_THAT(beginning, NotNull());
+  for (auto iter = *beginning; iter != DeepTree::mutable_iterator{}; ++iter) {
+    iter->value += 1'000;
+  }
+  const auto* const old_first = snapshot.Find(1);
+  const auto* const old_second = snapshot.Find(33);
+  ASSERT_THAT(old_first, NotNull());
+  ASSERT_THAT(old_second, NotNull());
+  EXPECT_THAT(old_first->value, Eq(10));
+  EXPECT_THAT(old_second->value, Eq(330));
+  EXPECT_THAT(current.size(), Eq(3));
+}
+
+TEST_F(HamtTreeTest, MutableFindDoesNotDetachForMissingKeysAndPreservesSnapshotsForFoundKeys) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree snapshot = tree;
+  source.remaining = 0;
+  auto missing = tree.TryMutableFind(std::int64_t{2});
+  const auto* const missing_iterator = std::get_if<Tree::mutable_iterator>(&missing);
+  ASSERT_THAT(missing_iterator, NotNull());
+  EXPECT_THAT(*missing_iterator == Tree::iterator{}, IsTrue());
+  EXPECT_THAT(
+      tree.TryMutableFind(std::int64_t{1}), ::testing::VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
+  source.remaining = 64;
+  auto found = tree.TryMutableFind(std::int64_t{1});
+  const auto* const found_iterator = std::get_if<Tree::mutable_iterator>(&found);
+  ASSERT_THAT(found_iterator, NotNull());
+  ASSERT_THAT(*found_iterator == Tree::mutable_iterator{}, IsFalse());
+  EXPECT_THAT(*found_iterator == tree.find(1), IsTrue());
+  (*found_iterator)->value = 99;
+  const auto* const original = snapshot.Find(1);
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(original->value, Eq(10));
+}
+
+struct SetValue final {
+  int value;
+  int& calls;
+
+  void operator()(Entry& entry) const noexcept {
+    ++calls;
+    entry.value = value;
+  }
+};
+
+struct ThrowingEditor final {
+  void operator()([[maybe_unused]] Entry& entry) const noexcept(false) {}
+};
+
+struct ReturningEditor final {
+  bool operator()([[maybe_unused]] Entry& entry) const noexcept { return false; }
+};
+
+template<typename Editor>
+concept SupportsUpdate = requires(Tree& tree, const Editor& editor) { tree.try_update(1, editor); };
+
+static_assert(SupportsUpdate<SetValue>);
+static_assert(!SupportsUpdate<ThrowingEditor>);
+static_assert(!SupportsUpdate<ReturningEditor>);
+
+TEST_F(HamtTreeTest, MissingUpdateOnAnEmptyTreeDoesNotInvokeTheEditorOrAllocate) {
+  int calls = 0;
+  EXPECT_THAT(tree.try_update(1, SetValue{.value = 99, .calls = calls}), MutationIs(false));
+  EXPECT_THAT(calls, Eq(0));
+  EXPECT_THAT(source.acquired, Eq(0));
+  EXPECT_THAT(tree, IsEmpty());
+}
+
+TEST_F(HamtTreeTest, ASharedAncestorPreventsEditingAnOtherwiseUniqueDescendant) {
+  constexpr HamtOptions kLargerOptions{.fragment_bits = 5, .maximum_size = 4};
+  using LargerTree = HamtTree<kLargerOptions, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 98'305, .value = 20}), MutationIs(true));
+  const LargerTree snapshot = branch;
+  EXPECT_THAT(branch.try_insert(Entry{.key = 2, .value = 30}), MutationIs(true));
+  int calls = 0;
+  EXPECT_THAT(branch.try_update(98'305, SetValue{.value = 99, .calls = calls}), MutationIs(true));
+  const Entry* const original = snapshot.Find(98'305);
+  const Entry* const changed = branch.Find(98'305);
+  ASSERT_THAT(original, NotNull());
+  ASSERT_THAT(changed, NotNull());
+  EXPECT_THAT(original->value, Eq(20));
+  EXPECT_THAT(changed->value, Eq(99));
+  EXPECT_THAT(calls, Eq(1));
+}
+
+TEST_F(HamtTreeTest, UniqueCollisionUpdatesPreserveSiblingValuesWithoutAllocation) {
+  Tree collisions(source, SeedHash{.seed = 29, .mask = 0}, KeyOf{}, Equal{});
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  const auto allocations = source.acquired;
+  source.remaining = 0;
+  int calls = 0;
+  EXPECT_THAT(collisions.try_update(2, SetValue{.value = 99, .calls = calls}), MutationIs(true));
+  EXPECT_THAT(collisions, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 2, .value = 99}));
+  EXPECT_THAT(source.acquired, Eq(allocations));
+  EXPECT_THAT(calls, Eq(1));
+}
+
+TEST_F(HamtTreeTest, UniqueDeepPathsUpdateWithoutAllocatingEvenWhenTheSourceIsExhausted) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 98'305, .value = 20}), MutationIs(true));
+  const auto allocations = source.acquired;
+  source.remaining = 0;
+  int calls = 0;
+  EXPECT_THAT(tree.try_update(98'305, SetValue{.value = 99, .calls = calls}), MutationIs(true));
+  const Entry* const updated = tree.Find(98'305);
+  ASSERT_THAT(updated, NotNull());
+  EXPECT_THAT(updated->value, Eq(99));
+  EXPECT_THAT(calls, Eq(1));
+  EXPECT_THAT(source.acquired, Eq(allocations));
+}
+
+TEST_F(HamtTreeTest, SharedUpdatesCopyInsteadOfEditingTheOriginalSnapshot) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree snapshot = tree;
+  int calls = 0;
+  EXPECT_THAT(tree.try_update(1, SetValue{.value = 99, .calls = calls}), MutationIs(true));
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 99}));
+  EXPECT_THAT(snapshot, ElementsAre(Entry{.key = 1, .value = 10}));
+  EXPECT_THAT(calls, Eq(1));
+}
+
+TEST_F(HamtTreeTest, FailedSharedUpdatesPreserveContainersButDoNotUndoEditorSideEffects) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree snapshot = tree;
+  source.remaining = 0;
+  int calls = 0;
+  EXPECT_THAT(
+      tree.try_update(1, SetValue{.value = 99, .calls = calls}), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 10}));
+  EXPECT_THAT(snapshot, ElementsAre(Entry{.key = 1, .value = 10}));
+  EXPECT_THAT(calls, Eq(1));
+  EXPECT_THAT(tree.try_update(2, SetValue{.value = 99, .calls = calls}), MutationIs(false));
+  EXPECT_THAT(calls, Eq(1));
+}
+
+TEST_F(HamtTreeTest, EmptyTreeHasAnEmptyRangeAndNoMissingKeyMutations) {
+  EXPECT_THAT(tree, IsEmpty());
+  EXPECT_THAT(tree.begin(), Eq(tree.end()));
+  EXPECT_THAT(Tree::max_size(), Eq(2));
+  EXPECT_THAT(tree.contains(1), IsFalse());
+  EXPECT_THAT(tree.find(1), Eq(tree.end()));
+  EXPECT_THAT(tree.try_erase(1), MutationIs(false));
+  EXPECT_THAT(tree.try_replace(Entry{.key = 1, .value = 10}), MutationIs(false));
+  EXPECT_THAT(source.acquired, Eq(0));
+}
+
+TEST_F(HamtTreeTest, DuplicateInsertionStillSucceedsAtTheMaximumWithoutAllocating) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  source.remaining = 0;
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 99}), MutationIs(false));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 3, .value = 30}), MutationIs(false, HamtError::kMaxSizeExceeded));
+  EXPECT_THAT(tree, SizeIs(2));
+  const Entry* const original = tree.Find(std::int64_t{1});
+  ASSERT_THAT(original, NotNull());
+  EXPECT_THAT(original->value, Eq(10));
+}
+
+TEST_F(HamtTreeTest, SharedSnapshotsPreserveValuesAndStatefulHashingAcrossMutations) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  const Tree snapshot = tree;
+  EXPECT_THAT(tree.try_replace(Entry{.key = 33, .value = 99}), MutationIs(true));
+  EXPECT_THAT(snapshot.hash_function().seed, Eq(13));
+  EXPECT_THAT(snapshot.key_eq().tag, Eq(7));
+  const Entry* const old = snapshot.Find(33);
+  const Entry* const updated = tree.Find(33);
+  ASSERT_THAT(old, NotNull());
+  ASSERT_THAT(updated, NotNull());
+  EXPECT_THAT(old->value, Eq(20));
+  EXPECT_THAT(updated->value, Eq(99));
+  EXPECT_THAT(tree.try_erase(1), MutationIs(true));
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 33, .value = 99}));
+  EXPECT_THAT(snapshot, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 33, .value = 20}));
+  EXPECT_THAT(tree.try_erase(33), MutationIs(true));
+  EXPECT_THAT(tree, IsEmpty());
+  EXPECT_THAT(snapshot, SizeIs(2));
+}
+
+TEST_F(HamtTreeTest, ExhaustionPreservesTheContainerForInsertReplaceAndErase) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree snapshot = tree;
+  source.remaining = 0;
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(tree.try_replace(Entry{.key = 1, .value = 99}), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(tree.try_erase(2), MutationIs(false));
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 10}));
+}
+
+TEST_F(HamtTreeTest, UniqueReplacementNeedsNoAllocationAndSupportsAliasedEntries) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  const auto acquired = source.acquired;
+  source.remaining = 0;
+  EXPECT_THAT(tree.try_replace(Entry{.key = 33, .value = 99}), MutationIs(true));
+  const auto* const updated = tree.Find(33);
+  ASSERT_THAT(updated, NotNull());
+  EXPECT_THAT(updated->value, Eq(99));
+  EXPECT_THAT(tree.try_replace(*updated), MutationIs(true));
+  EXPECT_THAT(source.acquired, Eq(acquired));
+}
+
+TEST_F(HamtTreeTest, UniqueCollisionReplacementNeedsNoAllocation) {
+  Tree collisions(source, SeedHash{.mask = 0}, KeyOf{}, Equal{});
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  source.remaining = 0;
+  EXPECT_THAT(collisions.try_replace(Entry{.key = 2, .value = 99}), MutationIs(true));
+  EXPECT_THAT(collisions, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 2, .value = 99}));
+}
+
+TEST_F(HamtTreeTest, UniqueRootDoesNotPermitReplacingAnEntryInASharedChild) {
+  using LargerTree = HamtTree<HamtOptions{.maximum_size = 3}, Entry, SeedHash, KeyOf, Equal, BudgetSource>;
+  LargerTree branch(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(branch.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 33, .value = 20}), MutationIs(true));
+  EXPECT_THAT(branch.try_insert(Entry{.key = 2, .value = 30}), MutationIs(true));
+  const LargerTree snapshot = branch;
+  EXPECT_THAT(branch.try_replace(Entry{.key = 2, .value = 99}), MutationIs(true));
+  source.remaining = 0;
+  EXPECT_THAT(branch.try_replace(Entry{.key = 33, .value = 100}), MutationIs(false, HamtError::kAllocationExhausted));
+  const auto* const old = snapshot.Find(33);
+  const auto* const current = branch.Find(33);
+  ASSERT_THAT(old, NotNull());
+  ASSERT_THAT(current, NotNull());
+  EXPECT_THAT(old->value, Eq(20));
+  EXPECT_THAT(current->value, Eq(20));
+}
+
+TEST_F(HamtTreeTest, FullHashCollisionsStillSupportHeterogeneousFindAndErase) {
+  Tree collisions(source, SeedHash{.seed = 29, .mask = 0}, KeyOf{}, Equal{});
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(collisions.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  const auto found = collisions.find(std::int64_t{2});
+  ASSERT_THAT(found != collisions.end(), IsTrue());
+  EXPECT_THAT(found->value, Eq(20));
+  EXPECT_THAT(collisions.try_erase(std::int64_t{1}), MutationIs(true));
+  EXPECT_THAT(collisions, ElementsAre(Entry{.key = 2, .value = 20}));
+}
+
+TEST_F(HamtTreeTest, MovesLeaveValidEmptyContainersWithTheSameHashSeed) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree moved(std::move(tree));
+  EXPECT_THAT(tree, IsEmpty());
+  EXPECT_THAT(tree.hash_function().seed, Eq(13));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  tree = std::move(moved);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): moved-from tree contract under test.
+  EXPECT_THAT(moved, IsEmpty());
+  EXPECT_THAT(tree, ElementsAre(Entry{.key = 1, .value = 10}));
+}
+
+TEST_F(HamtTreeTest, CopyAssignmentAndSwapPreserveThePairedHashAndAllocationDomain) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  BudgetSource other_source;
+  Tree other(other_source, SeedHash{.seed = 77}, KeyOf{}, Equal{.tag = 42});
+  EXPECT_THAT(other.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  swap(tree, other);
+  EXPECT_THAT(tree.contains(2), IsTrue());
+  EXPECT_THAT(tree.hash_function().seed, Eq(77));
+  EXPECT_THAT(tree.key_eq().tag, Eq(42));
+  other = tree;
+  EXPECT_THAT(other.contains(2), IsTrue());
+  EXPECT_THAT(source.acquired, Eq(source.released));
+  tree.clear();
+  other.clear();
+  EXPECT_THAT(other_source.acquired, Eq(other_source.released));
+}
+
+TEST_F(HamtTreeTest, CloningToADifferentSourcePreservesStateAndIndependentLifetime) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  mbo::memory::NewDeleteBlockSource destination;
+  using OtherTree = HamtTree<kOptions, Entry, SeedHash, KeyOf, Equal, mbo::memory::NewDeleteBlockSource>;
+  auto cloned = tree.try_clone_to(destination).value_or(OtherTree(destination, SeedHash{.seed = 99}, KeyOf{}, Equal{}));
+  EXPECT_THAT(cloned, ElementsAre(Entry{.key = 1, .value = 10}));
+  EXPECT_THAT(cloned.hash_function().seed, Eq(13));
+  tree.clear();
+  EXPECT_THAT(cloned.contains(1), IsTrue());
+  source.remaining = 0;
+  EXPECT_THAT(cloned.try_clone_to(source), Eq(std::nullopt));
+  EXPECT_THAT(tree.try_clone_to(source), Optional(IsEmpty()));
+}
+
+TEST_F(HamtTreeTest, FailedErasurePreservesBothEntriesAndTheVisibleSize) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  source.remaining = 0;
+  EXPECT_THAT(tree.try_erase(1), MutationIs(false, HamtError::kAllocationExhausted));
+  EXPECT_THAT(tree, UnorderedElementsAre(Entry{.key = 1, .value = 10}, Entry{.key = 2, .value = 20}));
+  EXPECT_THAT(tree, SizeIs(2));
+}
+
+struct IdentityKey final {
+  constexpr int operator()(int key) const noexcept { return key; }
+};
+
+TEST_F(HamtTreeTest, TheSameCoreAlsoSupportsSetEntriesWithoutMappedStorage) {
+  using SetTree = HamtTree<kOptions, int, SeedHash, IdentityKey, Equal, BudgetSource>;
+  SetTree values(source, SeedHash{}, IdentityKey{}, Equal{});
+  EXPECT_THAT(values.try_insert(1), MutationIs(true));
+  EXPECT_THAT(values.try_insert(33), MutationIs(true));
+  EXPECT_THAT(values.try_insert(1), MutationIs(false));
+  EXPECT_THAT(values.contains(std::int64_t{33}), IsTrue());
+  EXPECT_THAT(values, UnorderedElementsAre(1, 33));
+  EXPECT_THAT(values.try_erase(std::int64_t{1}), MutationIs(true));
+  EXPECT_THAT(values, ElementsAre(33));
+}
+
+TEST_F(HamtTreeTest, DifferentContainerRangesDoNotCompareEqualEvenWhenTheEntireRootIsShared) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  const Tree copied = tree;
+  EXPECT_THAT(tree.begin().operator->(), Eq(copied.begin().operator->()));
+  EXPECT_THAT(tree.begin() == copied.begin(), IsFalse());
+  EXPECT_THAT(tree.find(1), Eq(tree.begin()));
+  EXPECT_THAT(copied.find(1), Eq(copied.begin()));
+  EXPECT_THAT(tree.find(1) == copied.find(1), IsFalse());
+  auto last = copied.begin();
+  EXPECT_THAT(++last, Eq(copied.end()));
+}
+
+TEST_F(HamtTreeTest, CopyInvalidatesBothPreviouslyProvenUniqueTrees) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  Tree snapshot = tree;
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(snapshot.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  source.remaining = 64;
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  auto result = tree.TryMutableFind(1);
+  auto* const position = std::get_if<Tree::mutable_iterator>(&result);
+  ASSERT_THAT(position, NotNull());
+  ASSERT_THAT(*position, Ne(tree.end()));
+  (*position)->value = 99;
+  ASSERT_THAT(snapshot.Find(1), NotNull());
+  EXPECT_THAT(snapshot.Find(1)->value, Eq(10));
+  EXPECT_THAT(tree.Find(1)->value, Eq(99));
+}
+
+TEST_F(HamtTreeTest, MoveAndSwapKeepUniquenessProofAttachedToItsTree) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree shared = tree;
+  Tree private_tree(source, SeedHash{}, KeyOf{}, Equal{});
+  EXPECT_THAT(private_tree.try_insert(Entry{.key = 2, .value = 20}), MutationIs(true));
+  EXPECT_THAT(private_tree.TryMakeUnique(), Eq(std::nullopt));
+  tree.swap(private_tree);
+  source.remaining = 0;
+  EXPECT_THAT(tree.TryMakeUnique(), Eq(std::nullopt));
+  EXPECT_THAT(private_tree.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  Tree moved(std::move(tree));
+  EXPECT_THAT(moved.TryMakeUnique(), Eq(std::nullopt));
+  EXPECT_THAT(tree, IsEmpty());
+  shared = moved;
+  EXPECT_THAT(moved.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(shared.TryMakeUnique(), Optional(HamtError::kAllocationExhausted));
+  EXPECT_THAT(shared, ElementsAre(Entry{.key = 2, .value = 20}));
+}
+
+}  // namespace
+}  // namespace mbo::container::hamt::experimental::hamt_internal

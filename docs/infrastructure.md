@@ -47,6 +47,11 @@ The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays 
 
 ## Preparation profiles
 
+Experimental HAMT and string interning remain included in the `container` and `strings` coverage
+categories through their existing recursive globs. The supplemental exception-policy target for
+interning is `//mbo/strings/experimental:string_interner_require_exceptions_test`. Relocation does
+not exclude these headers, tests, or benchmark translation units from coverage or clang-tidy.
+
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
 targets include the experimental circular buffer's checked operations and its deque integration,
 the shared value-pop suite across all sequence endpoints, and Json array pop requirements. The

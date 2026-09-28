@@ -5,8 +5,8 @@ an append-oriented sequence with stable element addresses, fixed-capacity segmen
 indexed access.
 
 `SegmentedVector` is the current name for the fixed-size-segment container originally introduced as
-`SegmentedSequence`. There is intentionally no compatibility alias. Callers migrate the header,
-type, options, concepts, tests, and Bazel labels from `segmented_sequence` / `SegmentedSequence` to
+`SegmentedVector`. There is intentionally no compatibility alias. Callers migrate the header,
+type, options, concepts, tests, and Bazel labels from `segmented_vector` / `SegmentedVector` to
 `segmented_vector` / `SegmentedVector`. Historical benchmark JSON and links keep their measured
 names and source SHAs unchanged.
 
@@ -74,31 +74,18 @@ segment in that block. Individual `T` lifetimes begin and end in inactive union 
 `construct_at` and `destroy_at`. Releasing a segment destroys its typed header before returning the
 original block to the source.
 
-Finite configurations with `segment_capacity <= 64` keep their segment pointers inline, so
-directory growth makes no allocator call. `has_bounded_directory()` identifies this representation.
-The inline slots occupy `segment_capacity * sizeof(Segment*)` bytes in the sequence object;
-`segment_directory_bytes_reserved()` reports that footprint and `directory_bytes_reserved()` is
-zero. `segment_reservation` has no allocation effect in this representation.
-
-Other configurations use a flat `std::vector<Segment*>`. Its allocator is the fourth template
-parameter, `DirectoryAllocator`, rebound internally to `Segment*`. Their directory growth can
-allocate at reserve thresholds:
+The separate flat directory is `std::vector<Segment*>`. Its allocator is the fourth template
+parameter, `DirectoryAllocator`, rebound internally to `Segment*`. Consequently, ordinary segment
+growth is one source allocation except when the directory also crosses a reserve threshold. The
+three options make that behavior explicit:
 
 - `segment_reservation == 0` keeps empty construction allocation-free.
 - The default reservation of one requests one pointer slot during construction, so default
   construction is potentially throwing.
-- `segment_reservation == segment_capacity` for a larger finite configuration requests the whole
-  directory once; every later segment growth then performs only its source allocation.
+- `segment_reservation == segment_capacity` for a finite configuration requests the whole directory
+  once; every later segment growth then performs only its source allocation.
 - Intermediate reservations grow with power-of-two requests up to the hard capacity. `std::vector`
   may reserve more than requested, so its reported capacity is not promised to equal a request.
-
-The element block source does not govern a dynamic directory. A fixed segment source alone is not a
-no-heap guarantee in that case: directory allocation failure is recoverable with exceptions
-enabled, while standard allocator exhaustion terminates without them. A small finite inline
-directory combined with a bounded multi-block source can avoid general allocator calls during
-growth. An interner that requires inline descriptors can also use `LimitedVector<string_view, N>`.
-For dynamic directories, `directory_bytes_reserved()` reports allocated pointer capacity separately
-from `bytes_reserved()` for element segments.
 
 The container is allocator-aware for its directory: it defines `allocator_type`, `get_allocator()`,
 and leading `allocator_arg_t` constructors. Copy construction applies
@@ -106,16 +93,14 @@ and leading `allocator_arg_t` constructors. Copy construction applies
 It is disabled for allocators that request `propagate_on_container_copy_assignment`, because changing
 the directory allocator independently of the block-owning source would not be transactional.
 Move assignment and swap preserve unequal non-propagating allocators by first building replacement
-pointer directories; the inline representation needs no allocator allocation for these replacements.
-The dynamic representation never invokes `vector::swap` with unequal non-propagating allocators.
+pointer directories; they never invoke `vector::swap` with unequal non-propagating allocators.
 Their participation and `noexcept` specifications also account for the `Source` operations.
 
 Segment storage and directory storage are independent choices. They can use different resources, or
 a `PmrBlockSource` and `pmr::polymorphic_allocator` can direct both to the same memory resource.
 `FixedBlockSource` and `InlineBlockSource` each permit one outstanding block, so they support
-bounded one-segment configurations unless a different multi-block source is supplied.
-`ArenaBlockSource` provides reusable size-class blocks from a caller-owned arena for multi-segment
-bounded configurations. Only dynamic pointer directories call their configured allocator.
+bounded one-segment configurations unless a different multi-block source is supplied. The pointer
+directory still uses its configured allocator.
 
 ## Constant evaluation
 
@@ -169,12 +154,8 @@ class SegmentedVector {
   bool empty() const noexcept;
   size_type size() const noexcept;
   size_type capacity() const noexcept;
-  static constexpr bool has_bounded_directory() noexcept;
   size_type segment_count() const noexcept;
   size_type bytes_reserved() const noexcept;
-  size_type directory_bytes_reserved() const noexcept;
-  // Available only when has_bounded_directory() is true.
-  size_type segment_directory_bytes_reserved() const noexcept;
 
   void reserve(size_type n);
   void resize(size_type n);
@@ -266,21 +247,12 @@ single flat pointer directory and fixed power-of-two segments. Embedded jump tab
 directories, retained segment budgets, and relocating `shrink_to_fit()` remain future experiments
 rather than parallel public modes.
 
-## Comparable standard-container workloads
+## Additional comparison workloads
 
-The manual `//mbo/container:segmented_sequence_benchmark` harness compares fresh construction,
-append, and destruction with `std::vector`, `std::deque`, and `std::list`; retained append and clear
-with `std::vector`; sequential and permuted indexed reads with vector and deque; and forward iterator
-traversal with vector, deque, and list. Each case processes 16,384 `uint64_t` elements per iteration.
-Lookup fixtures are created outside timed loops. Indexed cases use the same values and permutation;
-iterator cases use the same constant values. List has no indexed case because it lacks random access.
-These baselines do not provide interchangeable pointer stability or allocation guarantees.
-
-For charts derived with `tools.benchmark_report`, use `--operations-per-iteration 16384` and select
-cases with the same operation. Compare segment traversal separately from iterator traversal.
-Fresh lifecycle timing includes construction, growth, and destruction. Memory counters for fresh
-sequence and vector cases are recorded after timing from the measured instance; deque and list have
-no reserved-byte counter. `Vector/RetainedAppendClear` reserves once outside timing, matching the
-SegmentedSequence retained-capacity workload. Deque and list `clear()` do not promise to retain
-reusable element storage, so they are not labeled retained-capacity baselines. Compilation and
-registration checks do not constitute performance measurements.
+The main benchmark also compares fresh construction/append/destruction against `std::list`,
+retained append/clear against `std::vector`, forward iteration against vector/deque/list, and
+sequential and permuted indexing against vector/deque. Push/pop cycles check reverse element
+order before timing and perform 32,768 operations per iteration; the other added comparisons
+process 16,384 elements. Setup stays outside lookup and traversal timing. Memory barriers within
+the timed traversal loop prevent repeated reads from being hoisted out. These additions change
+the main harness context to `segmented-vector-v4`; old results retain their original versions.

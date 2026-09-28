@@ -1,4 +1,30 @@
-# 0.15.1
+# 0.16.0
+
+- Added `SegmentedVector` and `SegmentedDeque`: fixed-size segments, stable element addresses,
+  constant-time indexing, shared `SegmentedOptions`, configurable block sources, and independent
+  directory allocators. The deque supports growth/removal at both ends and reuses empty segments.
+  The development name `SegmentedSequence` and vector-specific options are replaced without aliases.
+- Published `mbo::container::experimental::CircularBuffer` in
+  `mbo/container/experimental/circular_buffer.h`: a growable allocator-aware ring with the STL-style
+  sequence interface. Its experimental API can change between releases. This replaces the internal
+  `ExperimentalCircularBuffer` and remains the replaceable segment directory for `SegmentedDeque`.
+- Added P3182R1-style `pop_back_value` to `LimitedVector` and Json arrays, extended the segmented
+  containers' value pops to potentially throwing moves, and forwarded supported value pops through
+  `ContainerProxy`. All sequence endpoints share one guarded return-construction implementation:
+  a failed move retains the element and container size, though it can alter the source value.
+- Added a comprehensive container guide, compiled usage examples, and shared value-pop tests with
+  optional copy elision disabled. Made the documented `limited_options_cc` and `container_proxy_cc`
+  targets directly usable by downstream Bazel packages; fixed proxy forwarding of `pop_front`.
+- Added raw byte `Arena` storage with explicit growth options, alignment checks, reset/reuse,
+  release, and accounting; added shared new/delete, allocator, PMR, fixed, and inline block sources.
+  Segmented container constructors also support immovable and over-aligned sources without
+  passing them through by-value parameters.
+- Added strong value types and opt-in behaviors, dense identifiers, and compact `StringId` types
+  with explicit invalid states. HAMT and StringInterner remain separate development workstreams.
+- Added reproducible segmented-container benchmarks covering access, growth, element shape,
+  retention, and deque/vector comparisons, with source and toolchain provenance.
+- Published versioned static release websites with checked documentation links, bounded local
+  lint/cache resources, and enforced production coverage across compiler and sanitizer CI.
 
 - Refresh coverage metadata when PRs close or reopen, show one pre/post-merge result per PR,
   publish valid coverage when unrelated jobs fail, and support serialized source-run backfill.
@@ -7,7 +33,7 @@
   timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
 
 - Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
-  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.9.1`.
+  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.10.0`.
 
 - Replaced the remaining C++20 compatibility branches with the selected C++23 facilities, including
   static constexpr locals, `string_view::contains`, and `std::byteswap`.

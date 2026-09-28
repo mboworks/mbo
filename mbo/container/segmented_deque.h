@@ -23,7 +23,8 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
-#include "mbo/container/internal/experimental_circular_buffer.h"
+#include "mbo/container/experimental/circular_buffer.h"
+#include "mbo/container/internal/value_pop.h"
 #include "mbo/container/segmented_options.h"
 #include "mbo/memory/block_source.h"
 
@@ -74,7 +75,7 @@ class SegmentedDeque final {
   using SegmentPointerAllocator = std::allocator_traits<DirectoryAllocator>::template rebind_alloc<Segment*>;
   using DirectoryAllocatorTraits = std::allocator_traits<DirectoryAllocator>;
   using SegmentPointerAllocatorTraits = std::allocator_traits<SegmentPointerAllocator>;
-  using Directory = container_internal::ExperimentalCircularBuffer<Segment*, SegmentPointerAllocator>;
+  using Directory = experimental::CircularBuffer<Segment*, SegmentPointerAllocator>;
   static constexpr bool kDirectorySwapAlwaysSafe = SegmentPointerAllocatorTraits::propagate_on_container_swap::value
                                                    || SegmentPointerAllocatorTraits::is_always_equal::value;
   static constexpr bool kDirectoryMoveAssignmentAlwaysSafe =
@@ -945,18 +946,14 @@ class SegmentedDeque final {
     }
   }
 
-  constexpr T pop_front_value() noexcept(!kRequireThrows)
-  requires std::is_nothrow_move_constructible_v<T> {
-    T result(std::move(front()));
-    pop_front();
-    return result;
+  constexpr T pop_front_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    return container_internal::PopValue(front(), [this]() noexcept { pop_front(); });
   }
 
-  constexpr T pop_back_value() noexcept(!kRequireThrows)
-  requires std::is_nothrow_move_constructible_v<T> {
-    T result(std::move(back()));
-    pop_back();
-    return result;
+  constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
   }
 
   constexpr void clear() noexcept { DestroySuffix(0); }

@@ -185,7 +185,7 @@ The package also provides utilities that do not depend on `Extend`:
 | `Required`                             | Always-engaged value wrapper with configurable requirement failure behavior.           |
 | `NoDestruct`                           | Static-lifetime storage that deliberately does not invoke the contained destructor.    |
 | `OpaquePtr` / `OpaqueValue`            | Ownership wrappers suitable for forward-declared implementation types.                 |
-| `ContainerProxy`                       | Container access forwarding for wrapped values and pointers.                           |
+| `ContainerProxy`                       | Container access forwarding, including supported value-returning endpoint pops.        |
 | `RefWrap`                              | Reference wrapper with `*` and `->`.                                                   |
 | `TypedView`                            | View wrapper that supplies container-style type aliases.                               |
 | `CompareArithmetic` and family         | Strong/weak comparison helpers for mixed arithmetic and scalar types.                  |

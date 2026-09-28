@@ -1,9 +1,15 @@
 # Experimental circular buffer
 
-`ExperimentalCircularBuffer<T, Allocator>` is an internal, replaceable, growable circular buffer in
-`mbo::container::container_internal`. `SegmentedDeque` uses it for its live segment pointers.
-It is not a stable public container API. It also supports owning ordinary values, including
+`CircularBuffer<T, Allocator>` is a public experimental, growable circular buffer in
+`mbo::container::experimental`. Include `mbo/container/experimental/circular_buffer.h` and depend on
+`@mboworks_mbo//mbo/container/experimental:circular_buffer_cc`. It owns ordinary values, including
 move-only and over-aligned types, with allocator-controlled storage and explicit object lifetimes.
+
+The experimental directory and namespace are part of its name. Its interface and representation
+may change between releases without a compatibility alias or deprecation period. `SegmentedDeque`
+uses it for live segment pointers; that implementation detail remains replaceable independently of
+the public deque contract. See the [container guide](../README.md#experimental-circularbuffer) for
+usage and storage comparisons.
 
 ## Representation
 
@@ -88,7 +94,7 @@ modification, including swap or move, as invalidating them. Existing element ref
 survive endpoint insertion without growth and endpoint removal of other values. Growth, shrinking
 the allocation, middle insertion, bulk insertion, and assignment relocate or replace elements.
 Middle erasure invalidates references from the erased position onward. A no-op `reserve` does not
-invalidate anything. These rules concern the internal buffer; the deque's public element iterators
+invalidate anything. These rules concern the circular buffer; the deque's public element iterators
 retain their independently documented stability.
 
 Allocator traits control construction, destruction, allocation, deallocation and copy/move/swap

@@ -278,11 +278,11 @@ class ExperimentalCircularBuffer final {
 
   constexpr bool empty() const noexcept { return begin_ == end_; }
 
-  constexpr bool full() const noexcept { return size() == capacity_; }
+  constexpr bool full() const noexcept { return size() == capacity(); }
 
   constexpr size_type size() const noexcept { return end_ - begin_; }
 
-  constexpr size_type capacity() const noexcept { return capacity_; }
+  constexpr size_type capacity() const noexcept { return capacity_.Get(); }
 
   constexpr size_type max_size() const noexcept {
     return std::bit_floor(
@@ -339,14 +339,14 @@ class ExperimentalCircularBuffer final {
 
   constexpr void reserve(size_type requested) {
     MBO_CONFIG_REQUIRE(requested <= max_size(), "Circular buffer capacity exceeds max_size");
-    if (requested > capacity_) {
+    if (requested > capacity()) {
       Reallocate(std::bit_ceil(requested));
     }
   }
 
   constexpr void shrink_to_fit() {
     const size_type requested = empty() ? 0 : std::bit_ceil(size());
-    if (requested < capacity_) {
+    if (requested < capacity()) {
       Reallocate(requested);
     }
   }
@@ -603,12 +603,28 @@ class ExperimentalCircularBuffer final {
   }
 
  private:
+  // Only checked construction accepts an integer; copying and swapping preserve validity.
+  class Capacity final {
+   public:
+    constexpr Capacity() noexcept = default;
+
+    constexpr explicit Capacity(size_type count) noexcept(!kRequireThrows) : value_(count) {
+      MBO_CONFIG_REQUIRE(
+          count == 0 || std::has_single_bit(count), "Circular buffer capacity must be zero or a power of two");
+    }
+
+    constexpr size_type Get() const noexcept { return value_; }
+
+   private:
+    size_type value_ = 0;
+  };
+
   constexpr T* Slot(size_type coordinate) noexcept {
-    return std::to_address(storage_) + (coordinate & (capacity_ - 1));
+    return std::to_address(storage_) + (coordinate & (capacity() - 1));
   }
 
   constexpr const T* Slot(size_type coordinate) const noexcept {
-    return std::to_address(storage_) + (coordinate & (capacity_ - 1));
+    return std::to_address(storage_) + (coordinate & (capacity() - 1));
   }
 
   constexpr size_type Position(const_iterator pos) const noexcept(!kRequireThrows) {
@@ -633,18 +649,19 @@ class ExperimentalCircularBuffer final {
   }
 
   constexpr void Allocate(size_type count) {
+    const Capacity new_capacity(count);
     if (count != 0) {
       storage_ = Traits::allocate(allocator_, count);
-      capacity_ = count;
     }
+    capacity_ = new_capacity;
   }
 
   constexpr void Release() noexcept {
     clear();
-    if (capacity_ != 0) {
-      Traits::deallocate(allocator_, storage_, capacity_);
+    if (capacity() != 0) {
+      Traits::deallocate(allocator_, storage_, capacity());
       storage_ = pointer();
-      capacity_ = 0;
+      capacity_ = Capacity();
     }
   }
 
@@ -696,7 +713,7 @@ class ExperimentalCircularBuffer final {
     }
     MBO_CONFIG_REQUIRE(inserted.size() <= max_size() - size(), "Circular buffer insertion exceeds max_size");
     ExperimentalCircularBuffer replacement(allocator_);
-    replacement.reserve(std::max(capacity_, std::bit_ceil(size() + inserted.size())));
+    replacement.reserve(std::max(capacity(), size() + inserted.size()));
     replacement.begin_ = pos;
     replacement.end_ = pos;
     inserted.RelocateInto(replacement);
@@ -716,7 +733,7 @@ class ExperimentalCircularBuffer final {
 
   [[no_unique_address]] Allocator allocator_{};
   pointer storage_{};
-  size_type capacity_ = 0;
+  Capacity capacity_;
   size_type begin_ = 0;
   size_type end_ = 0;
 };

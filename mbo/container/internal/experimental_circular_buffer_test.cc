@@ -102,6 +102,30 @@ TEST_F(ExperimentalCircularBufferTest, EmptyReservationDoesNotCreateElements) {
   EXPECT_THAT(ConstantEvaluation(), IsTrue());
 }
 
+TEST_F(ExperimentalCircularBufferTest, CapacityRoundsThroughReserveGrowthShrinkAndReuse) {
+  IntBuffer buffer;
+  buffer.reserve(5);
+  EXPECT_THAT(buffer.capacity(), Eq(8));
+  for (int value = 0; value < 8; ++value) {
+    buffer.push_back(value);
+  }
+  buffer.pop_front();
+  buffer.push_back(8);
+  EXPECT_THAT(buffer, ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
+  buffer.push_back(9);
+  EXPECT_THAT(buffer.capacity(), Eq(16));
+  buffer.resize(3);
+  buffer.shrink_to_fit();
+  EXPECT_THAT(buffer.capacity(), Eq(4));
+  EXPECT_THAT(buffer, ElementsAre(1, 2, 3));
+  buffer.clear();
+  buffer.shrink_to_fit();
+  EXPECT_THAT(buffer.capacity(), Eq(0));
+  buffer.push_front(9);
+  EXPECT_THAT(buffer.capacity(), Eq(1));
+  EXPECT_THAT(buffer, ElementsAre(9));
+}
+
 TEST_F(ExperimentalCircularBufferTest, BothEndsWrapAndReuseAllReservedSlots) {
   IntBuffer buffer;
   buffer.reserve(4);

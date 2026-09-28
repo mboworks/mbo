@@ -22,6 +22,14 @@ unsigned length and iterator distances fit `difference_type`. A full buffer has 
 capacity()`; an empty buffer has `begin_ == end_`. No slot is sacrificed to distinguish the two.
 The zero-capacity state is both empty and full: its next insertion needs an allocation.
 
+Capacity is stored in a private `Capacity` value type. It defaults to zero; its explicit integer
+constructor uses `MBO_CONFIG_REQUIRE` to enforce zero or a power of two. The underlying integer
+is private, so buffer operations can only replace it with another validated value. Copies and swaps
+preserve the invariant. Validation happens before allocation; the new capacity is installed only
+after allocation succeeds. The check remains enabled in optimized builds and follows the configured
+fatal or throwing requirement policy. `Slot` relies on this invariant without repeating the check
+on element access. Zero-capacity storage has no valid slot.
+
 `push_front` constructs at `begin_ - 1` and then decrements `begin_`; `push_back` constructs at
 `end_` and then increments `end_`. Pops immediately destroy the removed object and advance the
 corresponding boundary. Freed slots are reusable from either end without moving other values.

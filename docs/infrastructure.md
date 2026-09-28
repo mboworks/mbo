@@ -48,8 +48,10 @@ The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays 
 ## Preparation profiles
 
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
-targets include the internal circular buffer's checked operations and its deque integration.
-Its primary and exception-policy
+targets include the experimental circular buffer's checked operations and its deque integration,
+the shared value-pop suite across all sequence endpoints, and Json array pop requirements. The
+value-pop exception tests disable optional return-value elision to exercise the single-move
+contract. Its primary and exception-policy
 coverage invocations write separate `coverage-preparation.json.gz` and
 `coverage-exceptions-preparation.json.gz` traces. Later `bazel info` calls do not overwrite them.
 The `coverage-preparation-profile` artifact retains both for seven days, even after failure.

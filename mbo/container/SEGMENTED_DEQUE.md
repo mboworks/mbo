@@ -36,6 +36,11 @@ No claim that those costs are negligible is part of the contract.
   references and iterators. Every size-changing mutation invalidates the old past-the-end iterator.
   `clear()` and `release()` invalidate all element iterators and references. Move and swap invalidate
   container-owned iterators; references to transferred elements remain valid.
+- `pop_front_value()` and `pop_back_value()` implement the shared
+  [value-pop contract](README.md#value-returning-pops): one move constructs the return value before
+  removal. A failed move preserves size and element lifetimes, but may alter the source value.
+  Both participate for move-constructible elements; `noexcept` accounts for the move and requirement
+  policy. They retain acquired segment capacity, as do the corresponding void pops.
 - Segment ranges and views describe a snapshot of the live segment intervals. Structural mutation
   invalidates them, including an endpoint change inside an existing segment.
 - `try_*` insertion returns an empty optional for recoverable segment-source exhaustion or the hard
@@ -52,9 +57,9 @@ No claim that those costs are negligible is part of the contract.
 
 ## Representation and indexing
 
-The directory uses the internal
-[`ExperimentalCircularBuffer`](internal/EXPERIMENTAL_CIRCULAR_BUFFER.md) from
-`internal/experimental_circular_buffer.h`. It is replaceable without changing the public deque API
+The directory uses the public experimental
+[`experimental::CircularBuffer`](experimental/CIRCULAR_BUFFER.md) from
+`experimental/circular_buffer.h`. It is replaceable without changing the public deque API
 or shared options and is not used by `SegmentedVector`.
 
 The circular buffer owns the live segment-pointer range through separate begin and end indices,
@@ -204,8 +209,8 @@ class SegmentedDeque {
 
   void pop_front();
   void pop_back();
-  T pop_front_value() requires std::is_nothrow_move_constructible_v<T>;
-  T pop_back_value() requires std::is_nothrow_move_constructible_v<T>;
+  T pop_front_value() requires std::move_constructible<T>;
+  T pop_back_value() requires std::move_constructible<T>;
   void clear() noexcept;
   void release() noexcept;
   void trim_capacity() noexcept;

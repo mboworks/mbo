@@ -29,6 +29,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//mbo/config:require_cc",
+        "//mbo/container:value_pop_cc",
         "//mbo/types:cases_cc",
         "//mbo/types:compare_cc",
         "//mbo/types:stringify_cc",

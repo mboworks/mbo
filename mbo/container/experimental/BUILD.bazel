@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+# SPDX-License-Identifier: Apache-2.0
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+cc_library(
+    name = "circular_buffer_cc",
+    hdrs = ["circular_buffer.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
+        "//mbo/container:value_pop_cc",
+    ],
+)
+
+cc_test(
+    name = "circular_buffer_test",
+    size = "small",
+    srcs = ["circular_buffer_test.cc"],
+    deps = [
+        ":circular_buffer_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "circular_buffer_require_exceptions_test",
+    size = "small",
+    srcs = ["circular_buffer_require_exceptions_test.cc"],
+    # Value pops must retain their single-move guarantee without optional return-value elision.
+    copts = [
+        "-fexceptions",
+        "-fno-elide-constructors",
+    ] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":circular_buffer_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_deque_cc",
+        "//mbo/container:segmented_options_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#include "mbo/container/internal/experimental_circular_buffer.h"
+#include "mbo/container/experimental/circular_buffer.h"
 
 #include <algorithm>
 #include <array>
@@ -21,7 +21,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace mbo::container::container_internal {
+namespace mbo::container::experimental {
 namespace {
 
 using ::testing::ElementsAre;
@@ -35,12 +35,12 @@ using ::testing::Lt;
 using ::testing::Pointee;
 using ::testing::SizeIs;
 
-struct ExperimentalCircularBufferTest : ::testing::Test {};
+struct CircularBufferTest : ::testing::Test {};
 
-using IntBuffer = ExperimentalCircularBuffer<int>;
+using IntBuffer = CircularBuffer<int>;
 
 template<typename T>
-concept HasValuePops = requires(ExperimentalCircularBuffer<T>& buffer) {
+concept HasValuePops = requires(CircularBuffer<T>& buffer) {
   { buffer.pop_front_value() } -> std::same_as<T>;
   { buffer.pop_back_value() } -> std::same_as<T>;
 };
@@ -60,7 +60,7 @@ static_assert(std::same_as<IntBuffer::reference, int&>);
 static_assert(std::same_as<IntBuffer::const_reference, const int&>);
 static_assert(std::is_nothrow_move_constructible_v<IntBuffer>);
 static_assert(std::is_nothrow_move_assignable_v<IntBuffer>);
-static_assert(!std::is_copy_constructible_v<ExperimentalCircularBuffer<std::unique_ptr<int>>>);
+static_assert(!std::is_copy_constructible_v<CircularBuffer<std::unique_ptr<int>>>);
 
 constexpr bool ConstantEvaluation() {
   IntBuffer buffer;
@@ -97,7 +97,7 @@ constexpr bool ConstantEvaluation() {
 
 static_assert(ConstantEvaluation());
 
-TEST_F(ExperimentalCircularBufferTest, EmptyReservationDoesNotCreateElements) {
+TEST_F(CircularBufferTest, EmptyReservationDoesNotCreateElements) {
   IntBuffer buffer;
   EXPECT_THAT(buffer, IsEmpty());
   EXPECT_THAT(buffer.capacity(), Eq(0));
@@ -114,7 +114,7 @@ TEST_F(ExperimentalCircularBufferTest, EmptyReservationDoesNotCreateElements) {
   EXPECT_THAT(ConstantEvaluation(), IsTrue());
 }
 
-TEST_F(ExperimentalCircularBufferTest, CapacityRoundsThroughReserveGrowthShrinkAndReuse) {
+TEST_F(CircularBufferTest, CapacityRoundsThroughReserveGrowthShrinkAndReuse) {
   IntBuffer buffer;
   buffer.reserve(5);
   EXPECT_THAT(buffer.capacity(), Eq(8));
@@ -138,7 +138,7 @@ TEST_F(ExperimentalCircularBufferTest, CapacityRoundsThroughReserveGrowthShrinkA
   EXPECT_THAT(buffer, ElementsAre(9));
 }
 
-TEST_F(ExperimentalCircularBufferTest, BothEndsWrapAndReuseAllReservedSlots) {
+TEST_F(CircularBufferTest, BothEndsWrapAndReuseAllReservedSlots) {
   IntBuffer buffer;
   buffer.reserve(4);
   buffer.push_front(2);
@@ -161,7 +161,7 @@ TEST_F(ExperimentalCircularBufferTest, BothEndsWrapAndReuseAllReservedSlots) {
   EXPECT_THAT(buffer.capacity(), Eq(8));
 }
 
-TEST_F(ExperimentalCircularBufferTest, OneSlotDistinguishesFullAndEmptyAcrossEitherEnd) {
+TEST_F(CircularBufferTest, OneSlotDistinguishesFullAndEmptyAcrossEitherEnd) {
   IntBuffer buffer;
   buffer.reserve(1);
   for (int value = 0; value < 32; ++value) {
@@ -177,7 +177,7 @@ TEST_F(ExperimentalCircularBufferTest, OneSlotDistinguishesFullAndEmptyAcrossEit
   }
 }
 
-TEST_F(ExperimentalCircularBufferTest, IteratorsTraverseLogicalOrderAcrossTheWrap) {
+TEST_F(CircularBufferTest, IteratorsTraverseLogicalOrderAcrossTheWrap) {
   IntBuffer buffer;
   buffer.reserve(8);
   buffer.push_front(3);
@@ -216,19 +216,19 @@ TEST_F(ExperimentalCircularBufferTest, IteratorsTraverseLogicalOrderAcrossTheWra
   EXPECT_THAT(buffer, ElementsAre(2, 3, 4, 5, 6));
 }
 
-TEST_F(ExperimentalCircularBufferTest, IteratorArrowExposesMutableAndConstElements) {
+TEST_F(CircularBufferTest, IteratorArrowExposesMutableAndConstElements) {
   struct Value {
     int number;
   };
 
-  ExperimentalCircularBuffer<Value> buffer;
+  CircularBuffer<Value> buffer;
   buffer.emplace_front(1);
   buffer.begin()->number = 2;
   EXPECT_THAT(std::as_const(buffer).begin()->number, Eq(2));
   EXPECT_THAT(buffer.rbegin()->number, Eq(2));
 }
 
-TEST_F(ExperimentalCircularBufferTest, ConstructorsCopyMoveAndAssignWrappedContents) {
+TEST_F(CircularBufferTest, ConstructorsCopyMoveAndAssignWrappedContents) {
   const IntBuffer zeros(3);
   EXPECT_THAT(zeros, ElementsAre(0, 0, 0));
   const IntBuffer repeated(2, 7);
@@ -269,8 +269,8 @@ TEST_F(ExperimentalCircularBufferTest, ConstructorsCopyMoveAndAssignWrappedConte
   EXPECT_THAT(reserved_copy.capacity(), Eq(8));
 }
 
-TEST_F(ExperimentalCircularBufferTest, GrowingInsertionAcceptsAliasedValues) {
-  ExperimentalCircularBuffer<std::string> buffer;
+TEST_F(CircularBufferTest, GrowingInsertionAcceptsAliasedValues) {
+  CircularBuffer<std::string> buffer;
   buffer.push_back(std::string(128, 'a'));
   buffer.push_back(buffer.front());
   buffer.push_front(buffer.back());
@@ -282,7 +282,7 @@ TEST_F(ExperimentalCircularBufferTest, GrowingInsertionAcceptsAliasedValues) {
   }
 }
 
-TEST_F(ExperimentalCircularBufferTest, InsertEraseAndResizeUseLogicalPositions) {
+TEST_F(CircularBufferTest, InsertEraseAndResizeUseLogicalPositions) {
   IntBuffer buffer{2, 4};
   buffer.reserve(8);
   EXPECT_THAT(*buffer.emplace(buffer.begin(), 1), Eq(1));
@@ -311,7 +311,7 @@ TEST_F(ExperimentalCircularBufferTest, InsertEraseAndResizeUseLogicalPositions) 
   EXPECT_THAT(buffer, ElementsAre(1, 2));
 }
 
-TEST_F(ExperimentalCircularBufferTest, RangeOperationsPreserveInputOrderAndAllowSelfInsertion) {
+TEST_F(CircularBufferTest, RangeOperationsPreserveInputOrderAndAllowSelfInsertion) {
   constexpr auto kValues = std::to_array({1, 2, 3});
   IntBuffer buffer(kValues.begin(), kValues.end());
   buffer.insert(buffer.begin() + 1, {7, 8});
@@ -329,7 +329,7 @@ TEST_F(ExperimentalCircularBufferTest, RangeOperationsPreserveInputOrderAndAllow
   EXPECT_THAT(single_pass, ElementsAre(8, 9));
 }
 
-TEST_F(ExperimentalCircularBufferTest, ClearAndShrinkControlRetainedStorage) {
+TEST_F(CircularBufferTest, ClearAndShrinkControlRetainedStorage) {
   IntBuffer buffer{1, 2, 3};
   buffer.reserve(16);
   buffer.pop_front();
@@ -363,10 +363,10 @@ struct Counted final {
   int value;
 };
 
-TEST_F(ExperimentalCircularBufferTest, ConstructsOnlyLiveObjectsAndDestroysPoppedValues) {
+TEST_F(CircularBufferTest, ConstructsOnlyLiveObjectsAndDestroysPoppedValues) {
   int live = 0;
   {
-    ExperimentalCircularBuffer<Counted> buffer;
+    CircularBuffer<Counted> buffer;
     buffer.reserve(8);
     EXPECT_THAT(live, Eq(0));
     buffer.emplace_front(live, 1);
@@ -386,16 +386,16 @@ TEST_F(ExperimentalCircularBufferTest, ConstructsOnlyLiveObjectsAndDestroysPoppe
   EXPECT_THAT(live, Eq(0));
 }
 
-TEST_F(ExperimentalCircularBufferTest, PointerValuesDoNotConferPointeeOwnership) {
+TEST_F(CircularBufferTest, PointerValuesDoNotConferPointeeOwnership) {
   int value = 7;
-  ExperimentalCircularBuffer<int*> buffer;
+  CircularBuffer<int*> buffer;
   buffer.push_front(&value);
   buffer.clear();
   EXPECT_THAT(value, Eq(7));
 }
 
-TEST_F(ExperimentalCircularBufferTest, SupportsMoveOnlyAndReservedImmovableElements) {
-  ExperimentalCircularBuffer<std::unique_ptr<int>> buffer;
+TEST_F(CircularBufferTest, SupportsMoveOnlyAndReservedImmovableElements) {
+  CircularBuffer<std::unique_ptr<int>> buffer;
   buffer.push_back(std::make_unique<int>(2));
   buffer.push_front(std::make_unique<int>(1));
   buffer.emplace(buffer.begin() + 1, std::make_unique<int>(3));
@@ -415,7 +415,7 @@ TEST_F(ExperimentalCircularBufferTest, SupportsMoveOnlyAndReservedImmovableEleme
   };
 
   static_assert(!HasValuePops<Immovable>);
-  ExperimentalCircularBuffer<Immovable> fixed;
+  CircularBuffer<Immovable> fixed;
   fixed.reserve(2);
   EXPECT_THAT(fixed.emplace_front(5).value, Eq(5));
   EXPECT_THAT(fixed.emplace_back(6).value, Eq(6));
@@ -424,8 +424,8 @@ TEST_F(ExperimentalCircularBufferTest, SupportsMoveOnlyAndReservedImmovableEleme
   EXPECT_THAT(fixed, IsEmpty());
 }
 
-TEST_F(ExperimentalCircularBufferTest, ValuePopsMoveWrappedEndpointsAndRetainReservation) {
-  ExperimentalCircularBuffer<std::unique_ptr<int>> buffer;
+TEST_F(CircularBufferTest, ValuePopsMoveWrappedEndpointsAndRetainReservation) {
+  CircularBuffer<std::unique_ptr<int>> buffer;
   buffer.reserve(4);
   buffer.push_front(std::make_unique<int>(2));
   buffer.push_front(std::make_unique<int>(1));
@@ -445,20 +445,20 @@ TEST_F(ExperimentalCircularBufferTest, ValuePopsMoveWrappedEndpointsAndRetainRes
   EXPECT_THAT(buffer, IsEmpty());
 }
 
-struct ExperimentalCircularBufferDeathTest : ::testing::Test {};
+struct CircularBufferDeathTest : ::testing::Test {};
 
-TEST_F(ExperimentalCircularBufferDeathTest, EmptyValuePopsEnforceRequirements) {
+TEST_F(CircularBufferDeathTest, EmptyValuePopsEnforceRequirements) {
   IntBuffer buffer;
   EXPECT_DEATH(static_cast<void>(buffer.pop_front_value()), "Circular buffer index is out of range");
   EXPECT_DEATH(static_cast<void>(buffer.pop_back_value()), "Circular buffer index is out of range");
 }
 
-TEST_F(ExperimentalCircularBufferTest, SupportsOveralignedElements) {
+TEST_F(CircularBufferTest, SupportsOveralignedElements) {
   struct alignas(128) Aligned final {
     int value;
   };
 
-  ExperimentalCircularBuffer<Aligned> buffer;
+  CircularBuffer<Aligned> buffer;
   buffer.emplace_front(1);
   buffer.emplace_back(2);
   for (const Aligned& value : buffer) {
@@ -511,10 +511,10 @@ struct TrackingAllocator final {
 
 // NOLINTEND(readability-identifier-naming)
 
-TEST_F(ExperimentalCircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirStorageOwnership) {
+TEST_F(CircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirStorageOwnership) {
   AllocationState state;
   using Allocator = TrackingAllocator<int>;
-  using Buffer = ExperimentalCircularBuffer<int, Allocator>;
+  using Buffer = CircularBuffer<int, Allocator>;
   const Allocator first{.state = &state, .id = 1};
   const Allocator second{.state = &state, .id = 2};
   {
@@ -550,10 +550,10 @@ TEST_F(ExperimentalCircularBufferTest, UnequalNonpropagatingAllocatorsKeepTheirS
   EXPECT_THAT(state.allocations, Eq(state.deallocations));
 }
 
-TEST_F(ExperimentalCircularBufferTest, PropagatingAllocatorsFollowCopyMoveAndSwap) {
+TEST_F(CircularBufferTest, PropagatingAllocatorsFollowCopyMoveAndSwap) {
   AllocationState state;
   using Allocator = TrackingAllocator<int, true>;
-  using Buffer = ExperimentalCircularBuffer<int, Allocator>;
+  using Buffer = CircularBuffer<int, Allocator>;
   {
     const Buffer source({1, 2}, Allocator{.state = &state, .id = 1});
     Buffer target({9}, Allocator{.state = &state, .id = 2});
@@ -573,11 +573,11 @@ TEST_F(ExperimentalCircularBufferTest, PropagatingAllocatorsFollowCopyMoveAndSwa
   EXPECT_THAT(state.owned, IsEmpty());
 }
 
-TEST_F(ExperimentalCircularBufferTest, ReservedQueueDoesNotAllocateOrDeallocate) {
+TEST_F(CircularBufferTest, ReservedQueueDoesNotAllocateOrDeallocate) {
   AllocationState state;
   using Allocator = TrackingAllocator<int>;
   {
-    ExperimentalCircularBuffer<int, Allocator> buffer(Allocator{.state = &state, .id = 1});
+    CircularBuffer<int, Allocator> buffer(Allocator{.state = &state, .id = 1});
     buffer.reserve(4);
     for (int value = 0; value < 4; ++value) {
       buffer.push_back(value);
@@ -596,10 +596,10 @@ TEST_F(ExperimentalCircularBufferTest, ReservedQueueDoesNotAllocateOrDeallocate)
   EXPECT_THAT(state.owned, IsEmpty());
 }
 
-TEST_F(ExperimentalCircularBufferTest, PmrBufferUsesCallerOwnedArena) {
+TEST_F(CircularBufferTest, PmrBufferUsesCallerOwnedArena) {
   std::array<std::byte, 2'048> storage{};
   std::pmr::monotonic_buffer_resource resource(storage.data(), storage.size(), std::pmr::null_memory_resource());
-  ExperimentalCircularBuffer<int, std::pmr::polymorphic_allocator<int>> buffer{&resource};
+  CircularBuffer<int, std::pmr::polymorphic_allocator<int>> buffer{&resource};
   buffer.reserve(64);
   for (int value = 0; value < 64; ++value) {
     buffer.push_front(value);
@@ -613,7 +613,7 @@ TEST_F(ExperimentalCircularBufferTest, PmrBufferUsesCallerOwnedArena) {
   EXPECT_THAT(buffer.get_allocator().resource(), Eq(&resource));
 }
 
-TEST_F(ExperimentalCircularBufferTest, ComparisonsUseValuesRatherThanPhysicalLayout) {
+TEST_F(CircularBufferTest, ComparisonsUseValuesRatherThanPhysicalLayout) {
   IntBuffer lhs{1, 2, 3};
   IntBuffer rhs;
   rhs.reserve(8);
@@ -629,7 +629,7 @@ TEST_F(ExperimentalCircularBufferTest, ComparisonsUseValuesRatherThanPhysicalLay
   EXPECT_THAT(rhs, ElementsAre(1, 2, 3));
 }
 
-TEST_F(ExperimentalCircularBufferTest, MixedOperationsMatchStandardDeque) {
+TEST_F(CircularBufferTest, MixedOperationsMatchStandardDeque) {
   IntBuffer buffer;
   std::deque<int> expected;
   std::uint32_t state = 17;
@@ -666,4 +666,4 @@ TEST_F(ExperimentalCircularBufferTest, MixedOperationsMatchStandardDeque) {
 }
 
 }  // namespace
-}  // namespace mbo::container::container_internal
+}  // namespace mbo::container::experimental

@@ -23,6 +23,7 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
+#include "mbo/container/internal/value_pop.h"
 #include "mbo/container/segmented_options.h"
 #include "mbo/memory/block_source.h"
 
@@ -953,11 +954,9 @@ class SegmentedVector final {
     DestroySuffix(size_ - 1);
   }
 
-  constexpr T pop_back_value() noexcept(!kRequireThrows)
-  requires std::is_nothrow_move_constructible_v<T> {
-    T result(std::move(back()));
-    pop_back();
-    return result;
+  constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
+  requires std::move_constructible<T> {
+    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
   }
 
   constexpr void clear() noexcept { DestroySuffix(0); }

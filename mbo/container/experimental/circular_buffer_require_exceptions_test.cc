@@ -12,10 +12,10 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/config/config.h"
-#include "mbo/container/internal/experimental_circular_buffer.h"
+#include "mbo/container/experimental/circular_buffer.h"
 #include "mbo/container/segmented_deque.h"
 
-namespace mbo::container::container_internal {
+namespace mbo::container::experimental {
 namespace {
 
 using ::testing::ElementsAre;
@@ -51,7 +51,7 @@ struct Value final {
   int value;
 };
 
-struct ExperimentalCircularBufferRequireExceptionsTest : ::testing::Test {
+struct CircularBufferRequireExceptionsTest : ::testing::Test {
  protected:
   void SetUp() override {
     Value::remaining = -1;
@@ -64,8 +64,8 @@ struct ExperimentalCircularBufferRequireExceptionsTest : ::testing::Test {
   }
 };
 
-using Buffer = ExperimentalCircularBuffer<Value>;
-using IntBuffer = ExperimentalCircularBuffer<int>;
+using Buffer = CircularBuffer<Value>;
+using IntBuffer = CircularBuffer<int>;
 
 static_assert(noexcept(std::declval<IntBuffer&>().at(0)) == !config::kRequireThrows);
 static_assert(noexcept(std::declval<const IntBuffer&>().at(0)) == !config::kRequireThrows);
@@ -74,7 +74,7 @@ static_assert(noexcept(std::declval<IntBuffer&>().pop_back()) == !config::kRequi
 static_assert(noexcept(std::declval<IntBuffer&>().pop_front_value()) == !config::kRequireThrows);
 static_assert(noexcept(std::declval<IntBuffer&>().pop_back_value()) == !config::kRequireThrows);
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, EndInsertionRollsBackEachConstructionFailure) {
+TEST_F(CircularBufferRequireExceptionsTest, EndInsertionRollsBackEachConstructionFailure) {
   for (int front = 0; front != 2; ++front) {
     for (int failure = 0; failure != 5; ++failure) {
       Buffer buffer;
@@ -102,7 +102,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, EndInsertionRollsBackEac
   }
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ReservedEndInsertionPreservesLiveRangeOnFailure) {
+TEST_F(CircularBufferRequireExceptionsTest, ReservedEndInsertionPreservesLiveRangeOnFailure) {
   Buffer buffer;
   buffer.reserve(8);
   buffer.emplace_back(1);
@@ -144,13 +144,13 @@ struct ThrowingMove final {
   int value;
 };
 
-static_assert(!noexcept(std::declval<ExperimentalCircularBuffer<ThrowingMove>&>().pop_front_value()));
-static_assert(!noexcept(std::declval<ExperimentalCircularBuffer<ThrowingMove>&>().pop_back_value()));
+static_assert(!noexcept(std::declval<CircularBuffer<ThrowingMove>&>().pop_front_value()));
+static_assert(!noexcept(std::declval<CircularBuffer<ThrowingMove>&>().pop_back_value()));
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, FailedValuePopRetainsModifiedMoveOnlyElement) {
+TEST_F(CircularBufferRequireExceptionsTest, FailedValuePopRetainsModifiedMoveOnlyElement) {
   for (int front = 0; front != 2; ++front) {
     {
-      ExperimentalCircularBuffer<ThrowingMove> buffer;
+      CircularBuffer<ThrowingMove> buffer;
       buffer.reserve(2);
       buffer.emplace_front(1);
       buffer.emplace_back(2);
@@ -209,10 +209,10 @@ struct CopyablePopValue final {
   int value = 0;
 };
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ValuePopsMoveOnceWithoutCopyFallback) {
+TEST_F(CircularBufferRequireExceptionsTest, ValuePopsMoveOnceWithoutCopyFallback) {
   for (int front = 0; front != 2; ++front) {
     {
-      ExperimentalCircularBuffer<CopyablePopValue> buffer;
+      CircularBuffer<CopyablePopValue> buffer;
       buffer.reserve(2);
       buffer.emplace_front(1);
       buffer.emplace_back(2);
@@ -239,9 +239,9 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ValuePopsMoveOnceWithout
   }
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ThrowingMovePreservesLifetimesAndAllowsReuse) {
+TEST_F(CircularBufferRequireExceptionsTest, ThrowingMovePreservesLifetimesAndAllowsReuse) {
   {
-    ExperimentalCircularBuffer<ThrowingMove> buffer;
+    CircularBuffer<ThrowingMove> buffer;
     buffer.reserve(4);
     for (int value = 1; value <= 4; ++value) {
       buffer.emplace_back(value);
@@ -261,7 +261,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ThrowingMovePreservesLif
   EXPECT_THAT(ThrowingMove::live, Eq(0));
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, RelocationAndCopyFailuresDestroyPartialReplacements) {
+TEST_F(CircularBufferRequireExceptionsTest, RelocationAndCopyFailuresDestroyPartialReplacements) {
   Buffer buffer;
   for (int value = 1; value <= 4; ++value) {
     buffer.emplace_back(value);
@@ -289,7 +289,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, RelocationAndCopyFailure
   EXPECT_THAT(Value::live, Eq(4));
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ResizeAndStagedInsertRollBackPartialConstruction) {
+TEST_F(CircularBufferRequireExceptionsTest, ResizeAndStagedInsertRollBackPartialConstruction) {
   Buffer buffer;
   buffer.reserve(8);
   buffer.emplace_back(1);
@@ -360,10 +360,10 @@ struct FailingAllocator final {
 
 // NOLINTEND(readability-identifier-naming)
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, AllocationFailurePreservesContentsAndOwnership) {
+TEST_F(CircularBufferRequireExceptionsTest, AllocationFailurePreservesContentsAndOwnership) {
   AllocationState state;
   {
-    ExperimentalCircularBuffer<int, FailingAllocator<int>> buffer{FailingAllocator<int>(&state)};
+    CircularBuffer<int, FailingAllocator<int>> buffer{FailingAllocator<int>(&state)};
     buffer.push_back(1);
     state.fail_allocate = true;
     EXPECT_THAT([&buffer] { buffer.push_front(0); }, Throws<std::bad_alloc>());
@@ -376,7 +376,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, AllocationFailurePreserv
   EXPECT_THAT(state.allocations, Eq(0));
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, DequeReturnsSegmentWhenPointerConstructionThrows) {
+TEST_F(CircularBufferRequireExceptionsTest, DequeReturnsSegmentWhenPointerConstructionThrows) {
   for (int front = 0; front != 2; ++front) {
     AllocationState state;
     {
@@ -413,7 +413,7 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, DequeReturnsSegmentWhenP
   }
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, CheckedAccessAndIteratorRequirementsPropagate) {
+TEST_F(CircularBufferRequireExceptionsTest, CheckedAccessAndIteratorRequirementsPropagate) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "Requires --//mbo/config:require_throws=true";
   }
@@ -443,13 +443,13 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, CheckedAccessAndIterator
   EXPECT_THAT([&input] { const IntBuffer invalid(input.end(), input.begin()); }, Throws<std::runtime_error>());
 }
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, CapacityLimitsAndUnequalAllocatorSwapAreChecked) {
+TEST_F(CircularBufferRequireExceptionsTest, CapacityLimitsAndUnequalAllocatorSwapAreChecked) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "Requires --//mbo/config:require_throws=true";
   }
   AllocationState first;
   AllocationState second;
-  using AllocatedBuffer = ExperimentalCircularBuffer<int, FailingAllocator<int>>;
+  using AllocatedBuffer = CircularBuffer<int, FailingAllocator<int>>;
   AllocatedBuffer lhs{FailingAllocator<int>(&first)};
   AllocatedBuffer rhs{FailingAllocator<int>(&second)};
   lhs.resize(8);
@@ -473,11 +473,11 @@ struct Immovable final {
   ~Immovable() = default;
 };
 
-TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ImmovableElementsRejectRelocation) {
+TEST_F(CircularBufferRequireExceptionsTest, ImmovableElementsRejectRelocation) {
   if constexpr (!config::kRequireThrows) {
     GTEST_SKIP() << "Requires --//mbo/config:require_throws=true";
   }
-  ExperimentalCircularBuffer<Immovable> buffer;
+  CircularBuffer<Immovable> buffer;
   buffer.emplace_back();
   EXPECT_THAT([&buffer] { buffer.reserve(2); }, Throws<std::runtime_error>());
   EXPECT_THAT([&buffer] { buffer.emplace_front(); }, Throws<std::runtime_error>());
@@ -486,4 +486,4 @@ TEST_F(ExperimentalCircularBufferRequireExceptionsTest, ImmovableElementsRejectR
 }
 
 }  // namespace
-}  // namespace mbo::container::container_internal
+}  // namespace mbo::container::experimental

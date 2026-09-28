@@ -51,9 +51,12 @@ contiguous allocation for every element.
 - `pop_back()` invalidates the removed element and old past-the-end iterator, but nothing referring
   to earlier elements. `clear()` and `release()` invalidate all element references and iterators.
   `trim_capacity()` preserves references and iterators to live elements.
-- `pop_back_value()` participates only when `T` is nothrow move constructible. Its conditional
-  `noexcept` follows the repository requirement policy because an empty sequence can report a
-  requirement error.
+- `pop_back_value()` participates when `T` is move constructible. It follows
+  [P3182R1](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3182r1.html):
+  construct the return value directly from the endpoint, then pop only after success. A throwing
+  move preserves size and element lifetimes but may change the source value. There is no copy
+  fallback. Its conditional `noexcept` accounts for both move construction and the requirement
+  policy. See the shared [value-pop contract](README.md#value-returning-pops).
 - Append, range append, and `resize()` roll back constructed suffix elements and newly acquired
   segments after allocation or construction failure. A successful directory reserve may remain.
   As with standard containers, an aliased argument whose throwing move already modified an existing
@@ -183,7 +186,7 @@ class SegmentedVector {
   void append_range(R&& range);
 
   void pop_back();
-  T pop_back_value() requires std::is_nothrow_move_constructible_v<T>;
+  T pop_back_value() requires std::move_constructible<T>;
   void clear() noexcept;
   void release() noexcept;
   void trim_capacity() noexcept;

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MBO_CONTAINER_INTERNAL_EXPERIMENTAL_CIRCULAR_BUFFER_H_
-#define MBO_CONTAINER_INTERNAL_EXPERIMENTAL_CIRCULAR_BUFFER_H_
+#ifndef MBO_CONTAINER_EXPERIMENTAL_CIRCULAR_BUFFER_H_
+#define MBO_CONTAINER_EXPERIMENTAL_CIRCULAR_BUFFER_H_
 
 #include <algorithm>
 #include <bit>
@@ -19,23 +19,24 @@
 
 #include "mbo/config/config.h"
 #include "mbo/config/require.h"
+#include "mbo/container/internal/value_pop.h"
 
-namespace mbo::container::container_internal {
+namespace mbo::container::experimental {
 
 // NOLINTBEGIN(readability-identifier-naming): STL container, iterator, and allocator interface.
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic): indexed allocator-owned storage.
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access): STL preconditions and bounded internal
 // loops.
 
-// Internal, experimental, growable ring. Only [begin_, end_) contains live T objects;
+// Public experimental growable ring; its API may change between releases. Only [begin_, end_) contains live T objects;
 // the unsigned counters wrap, and their difference distinguishes full from empty.
 // Capacity is zero or a power of two. Growth preserves contents, never overwrites them.
-// See EXPERIMENTAL_CIRCULAR_BUFFER.md for invalidation and exception guarantees.
+// See CIRCULAR_BUFFER.md for invalidation and exception guarantees.
 template<typename T, typename Allocator = std::allocator<T>>
 requires(
     std::is_object_v<T> && !std::is_array_v<T> && std::same_as<T, std::remove_cv_t<T>>
     && std::is_nothrow_destructible_v<T>)
-class ExperimentalCircularBuffer final {
+class CircularBuffer final {
  private:
   using Traits = std::allocator_traits<Allocator>;
   static_assert(std::same_as<T, typename Traits::value_type>);
@@ -52,10 +53,10 @@ class ExperimentalCircularBuffer final {
   template<bool IsConst>
   class Iterator final {
    private:
-    using Owner = std::conditional_t<IsConst, const ExperimentalCircularBuffer, ExperimentalCircularBuffer>;
+    using Owner = std::conditional_t<IsConst, const CircularBuffer, CircularBuffer>;
     template<bool>
     friend class Iterator;
-    friend class ExperimentalCircularBuffer;
+    friend class CircularBuffer;
 
     constexpr Iterator(Owner* owner, std::size_t pos) noexcept : owner_(owner), pos_(pos) {}
 
@@ -158,21 +159,21 @@ class ExperimentalCircularBuffer final {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  constexpr ExperimentalCircularBuffer() noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
+  constexpr CircularBuffer() noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 
-  constexpr explicit ExperimentalCircularBuffer(const Allocator& allocator) noexcept(
+  constexpr explicit CircularBuffer(const Allocator& allocator) noexcept(
       std::is_nothrow_copy_constructible_v<Allocator>)
       : allocator_(allocator) {}
 
-  constexpr explicit ExperimentalCircularBuffer(size_type count, const Allocator& allocator = Allocator())
+  constexpr explicit CircularBuffer(size_type count, const Allocator& allocator = Allocator())
   requires std::default_initializable<T>
-      : ExperimentalCircularBuffer(allocator) {
+      : CircularBuffer(allocator) {
     resize(count);
   }
 
-  constexpr ExperimentalCircularBuffer(size_type count, const T& value, const Allocator& allocator = Allocator())
+  constexpr CircularBuffer(size_type count, const T& value, const Allocator& allocator = Allocator())
   requires std::is_copy_constructible_v<T>
-      : ExperimentalCircularBuffer(allocator) {
+      : CircularBuffer(allocator) {
     reserve(count);
     for (size_type index = 0; index < count; ++index) {
       emplace_back(value);
@@ -181,8 +182,8 @@ class ExperimentalCircularBuffer final {
 
   template<std::input_iterator InputIterator, std::sentinel_for<InputIterator> Sentinel>
   requires std::constructible_from<T, std::iter_reference_t<InputIterator>>
-  constexpr ExperimentalCircularBuffer(InputIterator first, Sentinel last, const Allocator& allocator = Allocator())
-      : ExperimentalCircularBuffer(allocator) {
+  constexpr CircularBuffer(InputIterator first, Sentinel last, const Allocator& allocator = Allocator())
+      : CircularBuffer(allocator) {
     if constexpr (std::sized_sentinel_for<Sentinel, InputIterator>) {
       const auto count = last - first;
       MBO_CONFIG_REQUIRE(std::in_range<size_type>(count), "Circular buffer range size is invalid");
@@ -193,17 +194,17 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr ExperimentalCircularBuffer(std::initializer_list<T> values, const Allocator& allocator = Allocator())
+  constexpr CircularBuffer(std::initializer_list<T> values, const Allocator& allocator = Allocator())
   requires std::is_copy_constructible_v<T>
-      : ExperimentalCircularBuffer(values.begin(), values.end(), allocator) {}
+      : CircularBuffer(values.begin(), values.end(), allocator) {}
 
-  constexpr ExperimentalCircularBuffer(const ExperimentalCircularBuffer& other)
+  constexpr CircularBuffer(const CircularBuffer& other)
   requires std::is_copy_constructible_v<T>
-      : ExperimentalCircularBuffer(other, Traits::select_on_container_copy_construction(other.allocator_)) {}
+      : CircularBuffer(other, Traits::select_on_container_copy_construction(other.allocator_)) {}
 
-  constexpr ExperimentalCircularBuffer(const ExperimentalCircularBuffer& other, const Allocator& allocator)
+  constexpr CircularBuffer(const CircularBuffer& other, const Allocator& allocator)
   requires std::is_copy_constructible_v<T>
-      : ExperimentalCircularBuffer(allocator) {
+      : CircularBuffer(allocator) {
     // Retain reservation as well as live values, including an empty reserved ring.
     reserve(other.capacity());
     for (const T& value : other) {
@@ -211,15 +212,13 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr ExperimentalCircularBuffer(ExperimentalCircularBuffer&& other) noexcept(
-      std::is_nothrow_move_constructible_v<Allocator>)
+  constexpr CircularBuffer(CircularBuffer&& other) noexcept(std::is_nothrow_move_constructible_v<Allocator>)
       : allocator_(std::move(other.allocator_)) {
     SwapStorage(other);
   }
 
   // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved): transfer storage or relocate its elements.
-  constexpr ExperimentalCircularBuffer(ExperimentalCircularBuffer&& other, const Allocator& allocator)
-      : ExperimentalCircularBuffer(allocator) {
+  constexpr CircularBuffer(CircularBuffer&& other, const Allocator& allocator) : CircularBuffer(allocator) {
     if (AllocatorsEqual(other)) {
       SwapStorage(other);
     } else {
@@ -229,25 +228,25 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr ~ExperimentalCircularBuffer() { Release(); }
+  constexpr ~CircularBuffer() { Release(); }
 
-  constexpr ExperimentalCircularBuffer& operator=(const ExperimentalCircularBuffer& other)
+  constexpr CircularBuffer& operator=(const CircularBuffer& other)
   requires std::is_copy_constructible_v<T> {
     if (this != &other) {
       if constexpr (Traits::propagate_on_container_copy_assignment::value) {
-        ExperimentalCircularBuffer replacement(other, other.allocator_);
+        CircularBuffer replacement(other, other.allocator_);
         Release();
         allocator_ = other.allocator_;
         SwapStorage(replacement);
       } else {
-        ExperimentalCircularBuffer replacement(other, allocator_);
+        CircularBuffer replacement(other, allocator_);
         SwapStorage(replacement);
       }
     }
     return *this;
   }
 
-  constexpr ExperimentalCircularBuffer& operator=(ExperimentalCircularBuffer&& other) noexcept(
+  constexpr CircularBuffer& operator=(CircularBuffer&& other) noexcept(
       Traits::propagate_on_container_move_assignment::value ? std::is_nothrow_move_assignable_v<Allocator>
                                                             : Traits::is_always_equal::value) {
     if (this != &other) {
@@ -259,14 +258,14 @@ class ExperimentalCircularBuffer final {
         Release();
         SwapStorage(other);
       } else {
-        ExperimentalCircularBuffer replacement(std::move(other), allocator_);
+        CircularBuffer replacement(std::move(other), allocator_);
         SwapStorage(replacement);
       }
     }
     return *this;
   }
 
-  constexpr ExperimentalCircularBuffer& operator=(std::initializer_list<T> values)
+  constexpr CircularBuffer& operator=(std::initializer_list<T> values)
   requires std::is_copy_constructible_v<T> {
     assign(values);
     return *this;
@@ -417,12 +416,12 @@ class ExperimentalCircularBuffer final {
 
   constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return PopValue<false>();
+    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
   }
 
   constexpr T pop_front_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return PopValue<true>();
+    return container_internal::PopValue(front(), [this]() noexcept { pop_front(); });
   }
 
   template<typename... Args>
@@ -434,7 +433,7 @@ class ExperimentalCircularBuffer final {
     } else if (index == 0) {
       emplace_front(std::forward<Args>(args)...);
     } else {
-      ExperimentalCircularBuffer inserted(allocator_);
+      CircularBuffer inserted(allocator_);
       inserted.emplace_back(std::forward<Args>(args)...);
       return InsertStaged(index, inserted);
     }
@@ -455,7 +454,7 @@ class ExperimentalCircularBuffer final {
   requires std::is_copy_constructible_v<T> {
     const size_type index = Position(pos);
     MBO_CONFIG_REQUIRE(count <= max_size() - size(), "Circular buffer insertion exceeds max_size");
-    ExperimentalCircularBuffer inserted(count, value, allocator_);
+    CircularBuffer inserted(count, value, allocator_);
     return InsertStaged(index, inserted);
   }
 
@@ -463,7 +462,7 @@ class ExperimentalCircularBuffer final {
   requires std::constructible_from<T, std::iter_reference_t<InputIterator>>
   constexpr iterator insert(const_iterator pos, InputIterator first, Sentinel last) {
     const size_type index = Position(pos);
-    ExperimentalCircularBuffer inserted(std::move(first), std::move(last), allocator_);
+    CircularBuffer inserted(std::move(first), std::move(last), allocator_);
     return InsertStaged(index, inserted);
   }
 
@@ -527,14 +526,14 @@ class ExperimentalCircularBuffer final {
 
   constexpr void assign(size_type count, const T& value)
   requires std::is_copy_constructible_v<T> {
-    ExperimentalCircularBuffer replacement(count, value, allocator_);
+    CircularBuffer replacement(count, value, allocator_);
     SwapStorage(replacement);
   }
 
   template<std::input_iterator InputIterator, std::sentinel_for<InputIterator> Sentinel>
   requires std::constructible_from<T, std::iter_reference_t<InputIterator>>
   constexpr void assign(InputIterator first, Sentinel last) {
-    ExperimentalCircularBuffer replacement(std::move(first), std::move(last), allocator_);
+    CircularBuffer replacement(std::move(first), std::move(last), allocator_);
     SwapStorage(replacement);
   }
 
@@ -587,7 +586,7 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr void swap(ExperimentalCircularBuffer& other) noexcept(kSwapNoexcept) {
+  constexpr void swap(CircularBuffer& other) noexcept(kSwapNoexcept) {
     if constexpr (Traits::propagate_on_container_swap::value) {
       using std::swap;
       swap(allocator_, other.allocator_);
@@ -597,17 +596,16 @@ class ExperimentalCircularBuffer final {
     SwapStorage(other);
   }
 
-  friend constexpr void swap(ExperimentalCircularBuffer& lhs, ExperimentalCircularBuffer& rhs) noexcept(
-      noexcept(lhs.swap(rhs))) {
+  friend constexpr void swap(CircularBuffer& lhs, CircularBuffer& rhs) noexcept(noexcept(lhs.swap(rhs))) {
     lhs.swap(rhs);
   }
 
-  friend constexpr bool operator==(const ExperimentalCircularBuffer& lhs, const ExperimentalCircularBuffer& rhs)
+  friend constexpr bool operator==(const CircularBuffer& lhs, const CircularBuffer& rhs)
   requires std::equality_comparable<T> {
     return std::ranges::equal(lhs, rhs);
   }
 
-  friend constexpr auto operator<=>(const ExperimentalCircularBuffer& lhs, const ExperimentalCircularBuffer& rhs)
+  friend constexpr auto operator<=>(const CircularBuffer& lhs, const CircularBuffer& rhs)
   requires std::three_way_comparable<T> {
     return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
   }
@@ -637,53 +635,12 @@ class ExperimentalCircularBuffer final {
     return std::to_address(storage_) + (coordinate & (capacity() - 1));
   }
 
-  template<bool Front>
-  constexpr T PopValue() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>) {
-    T& value = Front ? front() : back();
-
-    // P3182R1: commit removal only after the return object has been constructed.
-    // NOLINTNEXTLINE(misc-const-correctness): throwing element types disarm this guard in the exception path.
-    struct PopOnSuccess final {
-      constexpr explicit PopOnSuccess(ExperimentalCircularBuffer* target) noexcept : buffer(target) {}
-
-      PopOnSuccess(const PopOnSuccess&) = delete;
-      PopOnSuccess& operator=(const PopOnSuccess&) = delete;
-      PopOnSuccess(PopOnSuccess&&) = delete;
-      PopOnSuccess& operator=(PopOnSuccess&&) = delete;
-
-      ExperimentalCircularBuffer* buffer;
-
-      constexpr ~PopOnSuccess() noexcept {
-        if (buffer != nullptr) {
-          if constexpr (Front) {
-            buffer->pop_front();
-          } else {
-            buffer->pop_back();
-          }
-        }
-      }
-    } guard{this};
-#if __cpp_exceptions
-    if constexpr (!std::is_nothrow_move_constructible_v<T>) {
-      try {
-        return std::move(value);
-      } catch (...) {
-        guard.buffer = nullptr;
-        throw;
-      }
-    } else
-#endif
-    {
-      return std::move(value);
-    }
-  }
-
   constexpr size_type Position(const_iterator pos) const noexcept(!kRequireThrows) {
     MBO_CONFIG_REQUIRE(pos.owner_ == this && pos.pos_ <= size(), "Circular buffer iterator is out of range");
     return pos.pos_;
   }
 
-  constexpr bool AllocatorsEqual(const ExperimentalCircularBuffer& other) const noexcept {
+  constexpr bool AllocatorsEqual(const CircularBuffer& other) const noexcept {
     if constexpr (Traits::is_always_equal::value) {
       return true;
     } else {
@@ -691,7 +648,7 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr void SwapStorage(ExperimentalCircularBuffer& other) noexcept {
+  constexpr void SwapStorage(CircularBuffer& other) noexcept {
     using std::swap;
     swap(storage_, other.storage_);
     swap(capacity_, other.capacity_);
@@ -716,7 +673,7 @@ class ExperimentalCircularBuffer final {
     }
   }
 
-  constexpr void RelocateInto(ExperimentalCircularBuffer& replacement) {
+  constexpr void RelocateInto(CircularBuffer& replacement) {
     if constexpr (kRelocatable) {
       for (T& value : *this) {
         replacement.emplace_back(std::move_if_noexcept(value));
@@ -727,7 +684,7 @@ class ExperimentalCircularBuffer final {
   }
 
   constexpr void Reallocate(size_type count) {
-    ExperimentalCircularBuffer replacement(allocator_);
+    CircularBuffer replacement(allocator_);
     replacement.Allocate(count);
     RelocateInto(replacement);
     SwapStorage(replacement);
@@ -736,7 +693,7 @@ class ExperimentalCircularBuffer final {
   template<bool Front, typename... Args>
   constexpr reference GrowAndEmplace(Args&&... args) {
     MBO_CONFIG_REQUIRE(size() < max_size(), "Circular buffer insertion exceeds max_size");
-    ExperimentalCircularBuffer replacement(allocator_);
+    CircularBuffer replacement(allocator_);
     replacement.Allocate(std::bit_ceil(size() + 1));
     // Construct the new value before relocating aliased arguments from this ring.
     if constexpr (Front) {
@@ -758,12 +715,12 @@ class ExperimentalCircularBuffer final {
     return Front ? front() : back();
   }
 
-  constexpr iterator InsertStaged(size_type pos, ExperimentalCircularBuffer& inserted) {
+  constexpr iterator InsertStaged(size_type pos, CircularBuffer& inserted) {
     if (inserted.empty()) {
       return iterator(this, pos);
     }
     MBO_CONFIG_REQUIRE(inserted.size() <= max_size() - size(), "Circular buffer insertion exceeds max_size");
-    ExperimentalCircularBuffer replacement(allocator_);
+    CircularBuffer replacement(allocator_);
     replacement.reserve(std::max(capacity(), size() + inserted.size()));
     replacement.begin_ = pos;
     replacement.end_ = pos;
@@ -793,6 +750,6 @@ class ExperimentalCircularBuffer final {
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 // NOLINTEND(readability-identifier-naming)
 
-}  // namespace mbo::container::container_internal
+}  // namespace mbo::container::experimental
 
-#endif  // MBO_CONTAINER_INTERNAL_EXPERIMENTAL_CIRCULAR_BUFFER_H_
+#endif  // MBO_CONTAINER_EXPERIMENTAL_CIRCULAR_BUFFER_H_

@@ -5,6 +5,7 @@
     "CONTRIBUTING.md": "CONTRIBUTING.html",
     "docs/coverage.md": "docs/coverage.html",
     "mbo/container/SEGMENTED_DEQUE.md": "mbo/container/SEGMENTED_DEQUE.html",
+    "mbo/container/internal/EXPERIMENTAL_CIRCULAR_BUFFER.md": "mbo/container/internal/EXPERIMENTAL_CIRCULAR_BUFFER.html",
     "mbo/container/measurements/SEGMENTED_DEQUE.md": "mbo/container/measurements/SEGMENTED_DEQUE.html",
     "mbo/container/SEGMENTED_VECTOR.md": "mbo/container/SEGMENTED_VECTOR.html",
     "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",

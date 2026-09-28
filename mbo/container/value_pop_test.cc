@@ -120,7 +120,7 @@ TYPED_TEST(ValuePopTest, ReturnsMoveOnlyValueAndPreservesRemainingElements) {
 
 TYPED_TEST(ValuePopTest, SupportsConstantEvaluationAndConditionalNoexcept) {
   static_assert(ConstexprPops<TypeParam>());
-  using Container = typename TypeParam::template Container<int>;
+  using Container = TypeParam::template Container<int>;
   if constexpr (TypeParam::kFront) {
     static_assert(noexcept(std::declval<Container&>().pop_front_value()) == !config::kRequireThrows);
   } else {
@@ -196,7 +196,7 @@ TYPED_TEST(ValuePopTest, FailedMovePreservesSizeOwnershipAndElementIdentity) {
   for (int modify_source = 0; modify_source != 2; ++modify_source) {
     MoveState state;
     {
-      using Container = typename TypeParam::template Container<TrackedValue<false>>;
+      using Container = TypeParam::template Container<TrackedValue<false>>;
       Container container;
       container.reserve(4);
       container.emplace_back(state, 1);

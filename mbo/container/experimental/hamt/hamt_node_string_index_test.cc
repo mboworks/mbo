@@ -19,8 +19,7 @@ struct HamtNodeStringIndexTest : ::testing::Test {};
 
 TEST_F(HamtNodeStringIndexTest, BoundedControlAndNodeStoragePropagateFailureThroughInterner) {
   using Index = HamtNodeStringIndex<
-      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>, {},
-      mbo::memory::InlineBlockSource<1>>;
+      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::InlineBlockSource<1>>;
   using Interner = mbo::strings::experimental::StringInterner<
       std::uint32_t, mbo::strings::experimental::ArenaStringStorage<>,
       mbo::container::SegmentedVector<std::string_view>, Index>;
@@ -61,8 +60,7 @@ TEST_F(HamtNodeStringIndexTest, BoundedSizePreservesDuplicateIdsAndExistingSnaps
 }
 
 TEST_F(HamtNodeStringIndexTest, PayloadAllocationFailureDoesNotPublishAnEntry) {
-  HamtNodeStringIndex<
-      mbo::strings::StringId<>, CollisionHash, std::equal_to<>, {}, mbo::memory::InlineBlockSource<1>>
+  HamtNodeStringIndex<mbo::strings::StringId<>, CollisionHash, std::equal_to<>, {}, mbo::memory::InlineBlockSource<1>>
       index;
   EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)).has_value(), Eq(false));
   EXPECT_THAT(index.find("a").has_value(), Eq(false));

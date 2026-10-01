@@ -82,8 +82,7 @@ TEST_F(HamtStringIndexTest, StatefulHashIsRetainedAcrossIndexMutation) {
 TEST_F(HamtStringIndexTest, FactoryConstructsNonDefaultSourceWithRecoverableNodeFailure) {
   std::byte buffer{};
   using Index = HamtStringIndex<
-      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>, {},
-      mbo::memory::FixedBlockSource>;
+      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::FixedBlockSource>;
   auto index = Index::try_create(std::hash<std::string_view>{}, std::equal_to<>{}, std::span<std::byte>(&buffer, 1));
   ASSERT_THAT(index.has_value(), Eq(true));
   auto& value = index.value();  // NOLINT(bugprone-unchecked-optional-access): guarded by ASSERT_THAT above.
@@ -94,8 +93,7 @@ TEST_F(HamtStringIndexTest, FactoryConstructsNonDefaultSourceWithRecoverableNode
 TEST_F(HamtStringIndexTest, FullHashCollisionsAndEmbeddedNulsRetainDistinctDenseIds) {
   HamtStringIndex<mbo::strings::StringId<>, CollisionHash> index;
   EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(Eq(true)));
-  EXPECT_THAT(
-      index.try_insert(std::string_view("a\0b", 3), mbo::strings::StringId<>(1)), Optional(Eq(true)));
+  EXPECT_THAT(index.try_insert(std::string_view("a\0b", 3), mbo::strings::StringId<>(1)), Optional(Eq(true)));
   EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(2)), Optional(Eq(false)));
   EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
   EXPECT_THAT(index.find(std::string_view("a\0b", 3)), Optional(Eq(mbo::strings::StringId<>(1))));
@@ -127,8 +125,8 @@ TEST_F(HamtStringIndexTest, EmptyKeyCanBeInsertedAndLookedUp) {
 TEST_F(HamtStringIndexTest, BlockExhaustionPreservesExistingIdsAndDuplicateLookup) {
   using Source = mbo::memory::InlineBlockSource<1'024>;
   HamtStringIndex<
-      mbo::strings::StringId<>, CollisionHash, std::equal_to<>,
-      mbo::container::experimental::hamt::HamtOptions{}, Source>
+      mbo::strings::StringId<>, CollisionHash, std::equal_to<>, mbo::container::experimental::hamt::HamtOptions{},
+      Source>
       index;
   ASSERT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(Eq(true)));
   // The source lends one block. Path copying needs a second live block, even

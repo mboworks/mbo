@@ -66,6 +66,9 @@ cc_test(
     ],
 )
 
+# Exercises SegmentedVector precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
 cc_test(
     name = "segmented_vector_require_exceptions_test",
     size = "small",
@@ -187,6 +190,9 @@ cc_test(
     ],
 )
 
+# Exercises LimitedMap precondition failures in-process so coverage data is
+# flushed. Its test skips unless the exception policy is selected; the
+# supplemental coverage pass invokes it with that policy.
 cc_test(
     name = "limited_map_require_exceptions_test",
     size = "small",
@@ -387,6 +393,9 @@ cc_test(
     ],
 )
 
+# Exercises SegmentedDeque precondition and rollback failures in-process so
+# coverage data is flushed. The supplemental coverage pass selects the
+# exception policy and overlays only matching production coverpoints.
 cc_test(
     name = "segmented_deque_require_exceptions_test",
     size = "small",
@@ -466,6 +475,7 @@ cc_test(
     ],
 )
 
+# Verify consumer exception guarantees and require exactly one move without optional NRVO.
 cc_test(
     name = "value_pop_require_exceptions_test",
     size = "small",

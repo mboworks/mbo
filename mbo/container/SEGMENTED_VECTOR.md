@@ -5,8 +5,8 @@ an append-oriented sequence with stable element addresses, fixed-capacity segmen
 indexed access.
 
 `SegmentedVector` is the current name for the fixed-size-segment container originally introduced as
-`SegmentedVector`. There is intentionally no compatibility alias. Callers migrate the header,
-type, options, concepts, tests, and Bazel labels from `segmented_vector` / `SegmentedVector` to
+`SegmentedSequence`. There is intentionally no compatibility alias. Callers migrate the header,
+type, options, concepts, tests, and Bazel labels from `segmented_sequence` / `SegmentedSequence` to
 `segmented_vector` / `SegmentedVector`. Historical benchmark JSON and links keep their measured
 names and source SHAs unchanged.
 

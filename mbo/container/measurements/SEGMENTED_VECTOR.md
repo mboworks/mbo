@@ -24,7 +24,7 @@ do not independently identify the linker executable's runtime version.
 ## Production benchmark
 
 `//mbo/container:segmented_vector_benchmark` measures the public implementation using 16,384
-64-bit elements. Its initial matrix separates the costs that a single aggregate result would hide:
+64-bit elements. Its baseline matrix separates the costs that a single aggregate result would hide:
 
 | Family                        | What it measures                                                                |
 | ----------------------------- | ------------------------------------------------------------------------------- |
@@ -58,6 +58,18 @@ paused for the isolated growth event. Growth and lifecycle cases add event alloc
 calls and bytes. Vector reports capacity bytes; deque is timing-only because it exposes no portable
 retained-allocation metadata. Unused tail slots are derivable where the final size is fixed. The
 harness does not claim to capture every allocator or metadata consequence.
+
+### Additional v4 comparison workloads
+
+The current main harness also compares fresh construction/append/destruction against `std::list`,
+retained append/clear against `std::vector`, forward iteration against vector/deque/list, and
+sequential and permuted indexing against vector/deque. Push/pop cycles check reverse element order
+before timing and perform 32,768 operations per iteration; the other added comparisons process
+16,384 elements. Setup stays outside lookup and traversal timing. Memory barriers within the timed
+traversal loops prevent repeated reads from being hoisted out. These additions change the main
+harness context to `segmented-vector-v4`; shape and lifecycle contexts remain v3. The evidence
+below predates v4, so these new comparisons require fresh artifacts and cannot be inferred from
+the retained results.
 
 ## Element-shape benchmark
 

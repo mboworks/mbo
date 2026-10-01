@@ -251,4 +251,5 @@ nine randomly interleaved repetitions. Reports retain dispersion and source/tool
 Available-host evidence is diagnostic; choosing a tuned default requires matching Apple M5 Pro and
 AMD Zen 5 evidence. The initial 256-element default matches the vector for comparability and is
 not a claim of optimal deque tuning. The [benchmark guide](SEGMENTED_DEQUE_BENCHMARKS.md) describes workloads, counters, and
-reproduction commands. Retained segmented measurement results have been removed.
+reproduction commands. The earlier [measurement report](measurements/SEGMENTED_DEQUE.md) and its
+evidence are retained; new comparisons require fresh artifacts.

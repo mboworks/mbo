@@ -255,5 +255,6 @@ sequential and permuted indexing against vector/deque. Push/pop cycles check rev
 order before timing and perform 32,768 operations per iteration; the other added comparisons
 process 16,384 elements. Setup stays outside lookup and traversal timing. Memory barriers within
 the timed traversal loop prevent repeated reads from being hoisted out. These additions change
-the main harness context to `segmented-vector-v4`. Retained segmented results have been removed;
-new comparisons require fresh artifacts.
+the main harness context to `segmented-vector-v4`. The earlier
+[measurement report](measurements/SEGMENTED_VECTOR.md) and its evidence are retained, but new
+comparisons require fresh artifacts.

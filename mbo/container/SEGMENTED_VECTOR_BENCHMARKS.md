@@ -1,7 +1,8 @@
 # SegmentedVector benchmark harnesses
 
-The public contract is [SegmentedVector](SEGMENTED_VECTOR.md). Retained segmented measurement
-results have been removed; rerun the harnesses for the source revision under consideration.
+The public contract is [SegmentedVector](SEGMENTED_VECTOR.md). The existing
+[measurement report](measurements/SEGMENTED_VECTOR.md) and its evidence are retained as historical
+results. Rerun the harnesses for the source revision under consideration.
 
 ## Production benchmark
 

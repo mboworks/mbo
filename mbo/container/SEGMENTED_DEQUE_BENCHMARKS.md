@@ -1,7 +1,8 @@
 # SegmentedDeque benchmark harness
 
-The public contract is [SegmentedDeque](SEGMENTED_DEQUE.md). Retained segmented measurement
-results have been removed; rerun the harness for the source revision under consideration.
+The public contract is [SegmentedDeque](SEGMENTED_DEQUE.md). The existing
+[measurement report](measurements/SEGMENTED_DEQUE.md) and its evidence are retained as historical
+results. Rerun the harness for the source revision under consideration.
 
 ## Workloads
 

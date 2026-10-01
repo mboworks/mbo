@@ -329,7 +329,8 @@ CI additionally runs the supported compiler/Bazel matrix, sanitizer builds, and 
 Historical [ordered lookup results](measurements/README.md) are retained separately.
 The [SegmentedVector](SEGMENTED_VECTOR_BENCHMARKS.md) and
 [SegmentedDeque](SEGMENTED_DEQUE_BENCHMARKS.md) guides describe runnable harnesses and
-reproduction commands. Segmented measurement artifacts and result reports have been removed;
+reproduction commands. Their earlier [vector](measurements/SEGMENTED_VECTOR.md) and
+[deque](measurements/SEGMENTED_DEQUE.md) measurement reports and evidence remain available;
 new comparisons must record their source SHA, compiler, element type, allocator, and workload.
 
 ## Experimental HAMT maps and sets

@@ -326,11 +326,11 @@ bazel test --//mbo/config:require_throws=true \
 ```
 
 CI additionally runs the supported compiler/Bazel matrix, sanitizer builds, and coverage gates.
-Historical [ordered lookup results](measurements/README.md) are retained separately.
-The [SegmentedVector](measurements/SEGMENTED_VECTOR.md) and
-[SegmentedDeque](measurements/SEGMENTED_DEQUE.md) measurement reports describe runnable harnesses,
-reproduction commands, and retained evidence;
-new comparisons must record their source SHA, compiler, element type, allocator, and workload.
+Performance evidence is collected separately for [ordered lookup](measurements/README.md),
+[SegmentedVector](measurements/SEGMENTED_VECTOR.md), and
+[SegmentedDeque](measurements/SEGMENTED_DEQUE.md). The segmented reports describe runnable harnesses,
+reproduction commands, and retained evidence. Results apply to the recorded source SHA, compiler,
+element type, allocator, and workload.
 
 ## Experimental HAMT maps and sets
 

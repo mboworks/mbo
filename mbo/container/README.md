@@ -326,8 +326,9 @@ bazel test --//mbo/config:require_throws=true \
 ```
 
 CI additionally runs the supported compiler/Bazel matrix, sanitizer builds, and coverage gates.
-Performance evidence is collected separately for [ordered lookup](measurements/README.md),
-[SegmentedVector](measurements/SEGMENTED_VECTOR.md), and [SegmentedDeque](measurements/SEGMENTED_DEQUE.md).
-Results apply to the recorded source SHA, compiler, element type, allocator, and workload. Historical
-`SegmentedSequence` measurements retain that name; the current API is `SegmentedVector` with no
-compatibility alias. The former vector-specific options have become the shared `SegmentedOptions`.
+Historical [ordered lookup results](measurements/README.md) are retained separately.
+The [SegmentedVector](SEGMENTED_VECTOR_BENCHMARKS.md) and
+[SegmentedDeque](SEGMENTED_DEQUE_BENCHMARKS.md) guides describe runnable harnesses and
+reproduction commands. Their earlier [vector](measurements/SEGMENTED_VECTOR.md) and
+[deque](measurements/SEGMENTED_DEQUE.md) measurement reports and evidence remain available;
+new comparisons must record their source SHA, compiler, element type, allocator, and workload.

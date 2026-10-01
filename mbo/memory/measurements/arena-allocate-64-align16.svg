@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="348" role="img">
+<title>Arena retained allocation: 64 bytes, alignment 16</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="16" y="28" font-family="sans-serif" font-size="18">Arena retained allocation: 64 bytes, alignment 16</text>
+<text x="16" y="50" font-family="sans-serif" font-size="12">CPU ns/operation: median bars; observed min–max whiskers (not confidence intervals)</text>
+<g><title>Arena/Allocate/64/16</title>
+<text x="16" y="92" font-family="monospace" font-size="11">Arena/Allocate/64/16</text>
+<rect x="580" y="76" width="64.913" height="24" fill="#2563eb"/>
+<path d="M 644.710 88 H 645.098 M 644.710 82 V 94 M 645.098 82 V 94" stroke="#111827" fill="none"/>
+<text x="1080" y="92" font-family="sans-serif" font-size="12">2.49 ns; n=9</text>
+</g>
+<g><title>PmrArena/Allocate/64/16</title>
+<text x="16" y="140" font-family="monospace" font-size="11">PmrArena/Allocate/64/16</text>
+<rect x="580" y="124" width="65.022" height="24" fill="#2563eb"/>
+<path d="M 644.847 136 H 645.235 M 644.847 130 V 142 M 645.235 130 V 142" stroke="#111827" fill="none"/>
+<text x="1080" y="140" font-family="sans-serif" font-size="12">2.5 ns; n=9</text>
+</g>
+<g><title>PmrMonotonic/Allocate/64/16</title>
+<text x="16" y="188" font-family="monospace" font-size="11">PmrMonotonic/Allocate/64/16</text>
+<rect x="580" y="172" width="88.362" height="24" fill="#2563eb"/>
+<path d="M 667.909 184 H 668.727 M 667.909 178 V 190 M 668.727 178 V 190" stroke="#111827" fill="none"/>
+<text x="1080" y="188" font-family="sans-serif" font-size="12">3.4 ns; n=9</text>
+</g>
+<g><title>NewDelete/Allocate/64/16</title>
+<text x="16" y="236" font-family="monospace" font-size="11">NewDelete/Allocate/64/16</text>
+<rect x="580" y="220" width="451.213" height="24" fill="#2563eb"/>
+<path d="M 1015.066 232 H 1060.000 M 1015.066 226 V 238 M 1060.000 226 V 238" stroke="#111827" fill="none"/>
+<text x="1080" y="236" font-family="sans-serif" font-size="12">17.3 ns; n=9</text>
+</g>
+<text x="16" y="296" font-family="sans-serif" font-size="11">Apple M5 Pro / clang-21 / c++20 / opt</text>
+<text x="16" y="314" font-family="monospace" font-size="11">Measured commit: 704c3bcb1936e565fedfc5253b31741aac9c568a</text>
+<text x="16" y="332" font-family="monospace" font-size="11">Source artifact SHA-256: 1d54cd308946148e82000eee3718659b784da907034d3b5ce2c8027d7ebef3d6</text>
+</svg>

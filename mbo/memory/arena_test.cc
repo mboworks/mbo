@@ -62,6 +62,91 @@ inline constexpr ArenaOptions kInvalidArenaOptions{
 
 struct ArenaTest : ::testing::Test {};
 
+using DefaultArena = Arena<NewDeleteBlockSource, kSmallArenaOptions>;
+
+static_assert(
+    noexcept(std::declval<DefaultArena&>().rewind(std::declval<const DefaultArena::Checkpoint&>()))
+    == !::mbo::config::kRequireThrows);
+
+TEST_F(ArenaTest, EmptyCheckpointRewindsNewBlocksWithoutReleasingTheirCapacity) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  const auto checkpoint = arena.checkpoint();
+  auto* const first = arena.TryAllocate(64, 1);
+  ASSERT_THAT(first, NotNull());
+  auto* const large = arena.TryAllocate(2'048, 1);
+  ASSERT_THAT(large, NotNull());
+  const auto reserved = arena.bytes_reserved();
+  const auto blocks = arena.block_count();
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(0));
+  EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
+  EXPECT_THAT(arena.block_count(), Eq(blocks));
+  EXPECT_THAT(arena.TryAllocate(64, 1), Eq(first));
+  EXPECT_THAT(arena.TryAllocate(2'048, 1), Eq(large));
+}
+
+TEST_F(ArenaTest, NestedCheckpointsRewindAcrossBlocksAndKeepEarlierAllocationsValid) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  auto* const first = arena.TryAllocate(64, 1);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto outer = arena.checkpoint();
+  const auto outer_used = arena.bytes_used();
+  auto* const middle = arena.TryAllocate(2'048, 1);
+  ASSERT_THAT(middle, NotNull());
+  const auto inner = arena.checkpoint();
+  const auto inner_used = arena.bytes_used();
+  ASSERT_THAT(arena.TryAllocate(128, 1), NotNull());
+  arena.rewind(inner);
+  EXPECT_THAT(arena.bytes_used(), Eq(inner_used));
+  arena.rewind(outer);
+  EXPECT_THAT(arena.bytes_used(), Eq(outer_used));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(2'048, 1), Eq(middle));
+}
+
+TEST_F(ArenaTest, CheckpointRewindsOnlyLaterBytesAndReusesTheirStorage) {
+  DefaultArena arena;
+  auto* const first = arena.TryAllocate(8, 1);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto checkpoint = arena.checkpoint();
+  const auto used = arena.bytes_used();
+  auto* const later = arena.TryAllocate(16, 1);
+  ASSERT_THAT(later, NotNull());
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(used));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(16, 1), Eq(later));
+}
+
+TEST_F(ArenaTest, CheckpointRestoresAlignmentPaddingAndReplaysOversizedAllocations) {
+  Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
+  auto* const first = arena.TryAllocate(1, 64);
+  ASSERT_THAT(first, NotNull());
+  *first = std::byte{42};
+  const auto checkpoint = arena.checkpoint();
+  const auto before = arena.bytes_used();
+  auto* const aligned = arena.TryAllocate(1, 64);
+  ASSERT_THAT(aligned, NotNull());
+  EXPECT_THAT(arena.bytes_used(), Eq(before + 64));
+  auto* const oversized = arena.TryAllocate(2'048, 64);
+  ASSERT_THAT(oversized, NotNull());
+  const auto after = arena.bytes_used();
+  const auto reserved = arena.bytes_reserved();
+  const auto blocks = arena.block_count();
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.bytes_used(), Eq(before));
+  EXPECT_THAT(arena.bytes_reserved(), Eq(reserved));
+  EXPECT_THAT(arena.block_count(), Eq(blocks));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+  EXPECT_THAT(arena.TryAllocate(1, 64), Eq(aligned));
+  EXPECT_THAT(arena.bytes_used(), Eq(before + 64));
+  EXPECT_THAT(arena.TryAllocate(2'048, 64), Eq(oversized));
+  EXPECT_THAT(arena.bytes_used(), Eq(after));
+  EXPECT_THAT(*first, Eq(std::byte{42}));
+}
+
 // NOLINTBEGIN(readability-identifier-naming): test doubles model BlockSource spelling.
 struct RecordingSource final {
   static constexpr bool supports_recoverable_failure = true;
@@ -103,7 +188,7 @@ struct InvalidResponseSource final {
 
   static constexpr std::size_t max_alignment() noexcept { return 64; }
 
-  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) noexcept {
+  std::optional<MemoryBlock> TryAcquire(std::size_t size, std::size_t alignment) const noexcept {
     if (response == Response::kUnavailable) {
       return std::nullopt;
     }
@@ -118,7 +203,7 @@ struct InvalidResponseSource final {
 
   void Release(MemoryBlock /*block*/) noexcept { ++release_count; }
 
-  alignas(64) std::array<std::byte, 2'048> storage{};
+  std::span<std::byte> storage;
   std::size_t release_count = 0;
   Response response = Response::kUnavailable;
 };
@@ -469,6 +554,7 @@ TEST_F(ArenaTest, InvalidSourceResponseIsReleasedWithoutMutation) {
 }
 
 TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
+  alignas(64) std::array<std::byte, 2'048> storage{};
   constexpr std::array kResponses{
       InvalidResponseSource::Response::kUnavailable,
       InvalidResponseSource::Response::kNullData,
@@ -476,8 +562,7 @@ TEST_F(ArenaTest, InvalidSourceResponsesFailWithoutMutation) {
       InvalidResponseSource::Response::kMisalignedData,
   };
   for (const auto response : kResponses) {
-    InvalidResponseSource source;
-    source.response = response;
+    const InvalidResponseSource source{.storage = storage, .response = response};
     Arena<InvalidResponseSource, kSmallArenaOptions> arena(source);
 
     EXPECT_THAT(arena.TryAllocate(80, 16), IsNull());

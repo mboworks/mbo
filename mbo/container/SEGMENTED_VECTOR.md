@@ -231,7 +231,7 @@ reserve once; single-pass ranges grow as consumed.
 
 ## Measurement and deferred work
 
-The companion [measurement plan](measurements/SEGMENTED_VECTOR.md) covers indexed access,
+The companion [benchmark guide](SEGMENTED_VECTOR_BENCHMARKS.md) covers indexed access,
 iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element
 size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while
 generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment
@@ -246,3 +246,15 @@ remains historical provenance and a comparison baseline. The current API intenti
 single flat pointer directory and fixed power-of-two segments. Embedded jump tables, alternative
 directories, retained segment budgets, and relocating `shrink_to_fit()` remain future experiments
 rather than parallel public modes.
+
+## Additional comparison workloads
+
+The main benchmark also compares fresh construction/append/destruction against `std::list`,
+retained append/clear against `std::vector`, forward iteration against vector/deque/list, and
+sequential and permuted indexing against vector/deque. Push/pop cycles check reverse element
+order before timing and perform 32,768 operations per iteration; the other added comparisons
+process 16,384 elements. Setup stays outside lookup and traversal timing. Memory barriers within
+the timed traversal loop prevent repeated reads from being hoisted out. These additions change
+the main harness context to `segmented-vector-v4`. The earlier
+[measurement report](measurements/SEGMENTED_VECTOR.md) and its evidence are retained, but new
+comparisons require fresh artifacts.

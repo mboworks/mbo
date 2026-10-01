@@ -231,7 +231,7 @@ reserve once; single-pass ranges grow as consumed.
 
 ## Measurement and deferred work
 
-The companion [measurement plan](measurements/SEGMENTED_VECTOR.md) covers indexed access,
+The companion [measurement report](measurements/SEGMENTED_VECTOR.md) covers indexed access,
 iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element
 size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while
 generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment

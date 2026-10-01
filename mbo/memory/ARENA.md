@@ -1,20 +1,5 @@
 # Arena design
 
-## Implemented tail checkpoints
-
-`checkpoint()` returns a borrowed, rule-zero `Checkpoint` capturing the current byte
-tail. `rewind(checkpoint)` invalidates later allocations while preserving earlier
-addresses and contents. It resets later block cursors and restores `bytes_used()`;
-blocks remain reserved for reuse, so `bytes_reserved()` and `block_count()` do not
-decrease. Growth progression is retained, not rolled back. This supports reclaiming
-uncommitted string bytes after another insertion component fails.
-
-Checkpoints do not own the arena or rewind automatically. The arena must outlive
-them. Reset, release, move, swap, destruction, or rewinding before a checkpoint
-invalidates it. Invalidated checkpoints must not be reused. A checkpoint from another
-arena is a contract violation. External synchronization is required. Rewind does not
-destroy objects placed in raw byte storage.
-
 This document specifies the general arena component in `mbo::memory`, where aligned storage
 acquisition and region lifetime belong because they are memory-management facilities rather than
 container or string semantics.
@@ -142,14 +127,6 @@ acquisition and therefore always support `TryAllocate`. `AllocatorBlockSource` a
 be caught. In the repository's normal exception-disabled mode they support hard `Allocate` only.
 This is a compile-time API distinction: mbo does not label an operation “try” when the selected
 upstream API can terminate before returning failure.
-
-`ArenaBlockSource<ArenaType, Options>` adapts a caller-owned recoverable arena for consumers that
-hold multiple blocks at once, including HAMT nodes and segmented storage. It rounds requests into
-power-of-two size classes and keeps released blocks in exact-size free lists. Reuse does not advance
-the arena cursor; a new block returns failure if the arena is exhausted. The arena must outlive the
-adapter and all blocks it supplies. Configure the arena's source, block sizes, and growth ratio
-explicitly; `ArenaOptions{}` is invalid. A single-live-block `FixedBlockSource` is insufficient for
-multi-node HAMT storage without this adapter or another multi-block source.
 
 `ArenaOptions` defines the initial and maximum normal block sizes and a rational growth factor.
 It deliberately supplies no performance default: `ArenaOptions{}` is invalid, and every `Arena`

@@ -33,9 +33,7 @@
     "docs/release-website.md": "docs/release-website.html",
     "docs/infrastructure.md": "docs/infrastructure.html",
     "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.md": "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.html",
-    "mbo/container/README.md": "mbo/container/README.html",
-    "mbo/memory/ARENA.md": "mbo/memory/ARENA.html",
-    "mbo/memory/measurements/README.md": "mbo/memory/measurements/README.html"
+    "mbo/container/README.md": "mbo/container/README.html"
   },
   "links": [
     {

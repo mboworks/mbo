@@ -718,7 +718,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":hamt_flat_map_cc",
-        "//mbo/strings/experimental:string_id_cc",
+        "//mbo/strings:string_id_cc",
     ],
 )
 
@@ -730,7 +730,7 @@ cc_test(
         ":hamt_options_cc",
         ":hamt_string_index_cc",
         "//mbo/memory:block_source_cc",
-        "//mbo/strings/experimental:string_id_cc",
+        "//mbo/strings:string_id_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

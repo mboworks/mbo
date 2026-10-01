@@ -12,14 +12,14 @@
 #include <variant>
 
 #include "mbo/container/experimental/hamt/hamt_flat_map.h"
-#include "mbo/strings/experimental/string_id.h"
+#include "mbo/strings/string_id.h"
 
 namespace mbo::container::experimental::hamt {
 
 // Owns index nodes, not character bytes. Keys must outlive the index.
 // NOLINTBEGIN(readability-identifier-naming): index adapter follows STL container vocabulary.
 template<
-    typename Id = mbo::strings::experimental::StringId<>,
+    typename Id = mbo::strings::StringId<>,
     typename Hash = std::hash<std::string_view>,
     typename Equal = std::equal_to<>,
     mbo::container::experimental::hamt::HamtOptions Options = {},

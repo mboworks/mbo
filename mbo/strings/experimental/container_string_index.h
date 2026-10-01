@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "mbo/strings/experimental/string_id.h"
+#include "mbo/strings/string_id.h"
 
 namespace mbo::strings::experimental {
 

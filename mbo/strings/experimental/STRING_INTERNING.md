@@ -1,7 +1,8 @@
 # Experimental interner contract
 
-All interner types are in `mbo::strings::experimental`. See the [package guide](README.md) for
-headers, targets, and the experimental compatibility policy.
+The interner types are in `mbo::strings::experimental` and use the existing
+`mbo::strings::StringId`. See the [package guide](README.md) for headers, targets, and the
+experimental compatibility policy.
 
 ## Identity and ownership
 

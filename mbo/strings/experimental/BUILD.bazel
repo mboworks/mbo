@@ -29,7 +29,7 @@ cc_library(
     name = "container_string_index_cc",
     hdrs = ["container_string_index.h"],
     visibility = ["//visibility:public"],
-    deps = [":string_id_cc"],
+    deps = ["//mbo/strings:string_id_cc"],
 )
 
 cc_test(
@@ -38,7 +38,7 @@ cc_test(
     srcs = ["container_string_index_test.cc"],
     deps = [
         ":container_string_index_cc",
-        ":string_id_cc",
+        "//mbo/strings:string_id_cc",
         ":string_interner_cc",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/container:node_hash_map",
@@ -53,7 +53,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":arena_string_storage_cc",
-        ":string_id_cc",
+        "//mbo/strings:string_id_cc",
         "//mbo/config:require_cc",
         "//mbo/container:segmented_vector_cc",
         "//mbo/container/experimental/hamt:hamt_string_index_cc",
@@ -65,7 +65,7 @@ cc_test(
     size = "small",
     srcs = ["string_interner_test.cc"],
     deps = [
-        ":string_id_cc",
+        "//mbo/strings:string_id_cc",
         ":string_interner_cc",
         "//mbo/container:limited_vector_cc",
         "//mbo/hash:hash_cc",
@@ -130,24 +130,6 @@ cc_test(
         ":arena_string_storage_cc",
         "//mbo/memory:arena_cc",
         "//mbo/memory:block_source_cc",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "string_id_cc",
-    hdrs = ["string_id.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//mbo/types:strong_id_cc"],
-)
-
-cc_test(
-    name = "string_id_test",
-    size = "small",
-    srcs = ["string_id_test.cc"],
-    deps = [
-        ":string_id_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

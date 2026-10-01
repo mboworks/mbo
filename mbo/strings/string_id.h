@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MBO_STRINGS_EXPERIMENTAL_STRING_ID_H_
-#define MBO_STRINGS_EXPERIMENTAL_STRING_ID_H_
+#ifndef MBO_STRINGS_STRING_ID_H_
+#define MBO_STRINGS_STRING_ID_H_
 
 #include <concepts>
 #include <cstdint>
 
 #include "mbo/types/strong_id.h"
 
-namespace mbo::strings::experimental {
+namespace mbo::strings {
 
 template<typename T>
 concept StringIdRepresentation = std::same_as<T, std::uint8_t> || std::same_as<T, std::uint16_t>
@@ -24,6 +24,6 @@ struct StringIdTag;
 template<StringIdRepresentation Representation = std::uint32_t>
 using StringId = mbo::types::ConstStrongId<strings_internal::StringIdTag, Representation>;
 
-}  // namespace mbo::strings::experimental
+}  // namespace mbo::strings
 
-#endif  // MBO_STRINGS_EXPERIMENTAL_STRING_ID_H_
+#endif  // MBO_STRINGS_STRING_ID_H_

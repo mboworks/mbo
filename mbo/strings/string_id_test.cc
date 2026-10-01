@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
-#include "mbo/strings/experimental/string_id.h"
+#include "mbo/strings/string_id.h"
 
 #include <concepts>
 #include <cstdint>
@@ -11,7 +11,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace mbo::strings::experimental {
+namespace mbo::strings {
 namespace {
 using ::testing::Eq;
 
@@ -52,4 +52,4 @@ TEST_F(StringIdTest, DefaultIsInvalidAndDenseOrdinalsStartAtZero) {
       StringId<std::uint64_t>::try_from_ordinal(std::numeric_limits<std::uint64_t>::max()).has_value(), Eq(false));
 }
 }  // namespace
-}  // namespace mbo::strings::experimental
+}  // namespace mbo::strings

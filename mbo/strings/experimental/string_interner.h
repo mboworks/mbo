@@ -20,7 +20,7 @@
 #include "mbo/container/experimental/hamt/hamt_string_index.h"
 #include "mbo/container/segmented_vector.h"
 #include "mbo/strings/experimental/arena_string_storage.h"
-#include "mbo/strings/experimental/string_id.h"
+#include "mbo/strings/string_id.h"
 
 namespace mbo::strings::experimental {
 

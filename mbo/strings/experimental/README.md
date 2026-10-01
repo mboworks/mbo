@@ -1,19 +1,20 @@
 # Experimental string interning
 
 This package owns strings, assigns dense identifiers, and supports parent/child snapshots.
-All its types are in `mbo::strings::experimental`; its headers and Bazel targets are under
-`mbo/strings/experimental`. APIs may change between releases without compatibility aliases or
-deprecation. The independent generic-interner workstream is separate from this implementation.
+Its interner and adapter types are in `mbo::strings::experimental`; their headers and Bazel targets
+are under `mbo/strings/experimental`. They use the existing `mbo::strings::StringId` from
+`mbo/strings/string_id.h`. Experimental APIs may change between releases without compatibility
+aliases or deprecation. The independent generic-interner workstream is separate from this implementation.
 
 | Header                     | Main types             | Purpose                                         |
 | -------------------------- | ---------------------- | ----------------------------------------------- |
-| `string_id.h`              | `StringId`             | Strong 8-, 16-, 32-, or 64-bit identifiers      |
 | `arena_string_storage.h`   | `ArenaStringStorage`   | Stable character ownership and rollback         |
 | `container_string_index.h` | `ContainerStringIndex` | Standard/Abseil map adapter for string lookup   |
 | `string_interner.h`        | `StringInterner`       | Dense IDs, stable views, and captured ancestors |
 | `string_interner_map.h`    | `StringInternerMap`    | Stable mapped objects alongside interned keys   |
 
-Use `//mbo/strings/experimental:<header_basename>_cc` as the corresponding Bazel dependency.
+Use `//mbo/strings/experimental:<header_basename>_cc` as the corresponding Bazel dependency for
+these headers, and `//mbo/strings:string_id_cc` for `StringId`.
 HAMT-specific adapters live in the [HAMT experimental package](../../container/experimental/hamt/README.md),
 under `mbo::container::experimental::hamt`.
 

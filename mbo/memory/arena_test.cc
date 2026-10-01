@@ -120,6 +120,15 @@ TEST_F(ArenaTest, CheckpointRewindsOnlyLaterBytesAndReusesTheirStorage) {
   EXPECT_THAT(arena.TryAllocate(16, 1), Eq(later));
 }
 
+TEST_F(ArenaTest, CheckpointRewindsAllocationsThroughAllocate) {
+  DefaultArena arena;
+  ASSERT_THAT(arena.Allocate(3, alignof(std::max_align_t)), NotNull());
+  const auto checkpoint = arena.checkpoint();
+  auto* const later = arena.Allocate(11);
+  arena.rewind(checkpoint);
+  EXPECT_THAT(arena.Allocate(11), Eq(later));
+}
+
 TEST_F(ArenaTest, CheckpointRestoresAlignmentPaddingAndReplaysOversizedAllocations) {
   Arena<NewDeleteBlockSource, kSmallArenaOptions> arena;
   auto* const first = arena.TryAllocate(1, 64);

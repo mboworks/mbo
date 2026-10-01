@@ -97,7 +97,7 @@ struct QueryCountingIndex final {
   }
 
   std::size_t& queries;
-  mbo::container::hamt::experimental::HamtStringIndex<> index;
+  mbo::container::experimental::hamt::HamtStringIndex<> index;
 };
 
 template<bool ParentFirst>
@@ -159,8 +159,8 @@ TEST_F(StringInternerTest, CallerOwnedBuffersAndInlineDescriptorsSupportBoundedC
           .initial_block_size = 128, .maximum_block_size = 128, .growth_numerator = 1, .growth_denominator = 1}>;
   using Storage = ArenaStringStorage<Arena>;
   using Entries = mbo::container::LimitedVector<std::string_view, 1>;
-  using Index = mbo::container::hamt::experimental::HamtStringIndex<
-      StringId<>, std::hash<std::string_view>, std::equal_to<>, mbo::container::hamt::experimental::HamtOptions{},
+  using Index = mbo::container::experimental::hamt::HamtStringIndex<
+      StringId<>, std::hash<std::string_view>, std::equal_to<>, mbo::container::experimental::hamt::HamtOptions{},
       mbo::memory::InlineBlockSource<4'096>>;
   using Interner = StringInterner<std::uint32_t, Storage, Entries, Index>;
   // Control storage contains the node source itself as well as domain metadata.
@@ -192,9 +192,9 @@ TEST_F(StringInternerTest, CallerOwnedBuffersAndInlineDescriptorsSupportBoundedC
 }
 
 TEST_F(StringInternerTest, BoundedIndexExhaustionRollsBackBytesAndPreservesParentDuplicates) {
-  using Index = mbo::container::hamt::experimental::HamtStringIndex<
+  using Index = mbo::container::experimental::hamt::HamtStringIndex<
       StringId<>, std::hash<std::string_view>, std::equal_to<>,
-      mbo::container::hamt::experimental::HamtOptions{.maximum_size = 1}>;
+      mbo::container::experimental::hamt::HamtOptions{.maximum_size = 1}>;
   using Interner =
       StringInterner<std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedVector<std::string_view>, Index>;
   Interner root;
@@ -223,9 +223,9 @@ struct ConstantStringHash final {
 };
 
 TEST_F(StringInternerTest, CollisionBoundExhaustionRollsBackUnpublishedStrings) {
-  using Index = mbo::container::hamt::experimental::HamtStringIndex<
+  using Index = mbo::container::experimental::hamt::HamtStringIndex<
       StringId<>, ConstantStringHash, std::equal_to<>,
-      mbo::container::hamt::experimental::HamtOptions{.maximum_collision_size = 1}>;
+      mbo::container::experimental::hamt::HamtOptions{.maximum_collision_size = 1}>;
   using Interner =
       StringInterner<std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedVector<std::string_view>, Index>;
   Interner interner;
@@ -402,7 +402,7 @@ TEST_F(StringInternerTest, TracedSearchesReportDirectionDependentQueriesAndRespe
 
 TEST_F(StringInternerTest, MboHashKeepsHashWidthIndependentOfDenseIdWidth) {
   using Id = StringId<std::uint8_t>;
-  using Index = mbo::container::hamt::experimental::HamtStringIndex<Id, mbo::hash::DefaultHasher>;
+  using Index = mbo::container::experimental::hamt::HamtStringIndex<Id, mbo::hash::DefaultHasher>;
   using Interner =
       StringInterner<std::uint8_t, ArenaStringStorage<>, mbo::container::SegmentedVector<std::string_view>, Index>;
   static_assert(sizeof(Id) == 1);
@@ -457,7 +457,7 @@ TEST_F(StringInternerTest, DeepChainsFilterEveryAncestorsLaterInsertionsInBothDi
 TEST_F(StringInternerTest, FiniteParentDepthRejectsAnUnboundedCascade) {
   using Bounded = StringInterner<
       std::uint32_t, ArenaStringStorage<>, mbo::container::SegmentedVector<std::string_view>,
-      mbo::container::hamt::experimental::HamtStringIndex<StringId<>>,
+      mbo::container::experimental::hamt::HamtStringIndex<StringId<>>,
       StringInternerOptions{.maximum_parent_depth = 1}>;
   static_assert(Bounded::max_parent_depth() == 1);
   EXPECT_THAT(Bounded::max_parent_depth(), Eq(1));
@@ -626,7 +626,7 @@ TEST_F(StringInternerTest, FactoriesConstructAllBackendsOnceWithoutMovingCharact
       },
       [&index_calls]() noexcept {
         ++index_calls;
-        return mbo::container::hamt::experimental::HamtStringIndex<>();
+        return mbo::container::experimental::hamt::HamtStringIndex<>();
       });
   EXPECT_THAT(storage_calls, Eq(1));
   EXPECT_THAT(entry_calls, Eq(1));

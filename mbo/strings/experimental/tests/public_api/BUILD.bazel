@@ -20,8 +20,8 @@ cc_test(
     size = "small",
     srcs = ["string_indexes_test.cc"],
     deps = [
-        "//mbo/container/hamt/experimental:hamt_node_string_index_cc",
-        "//mbo/container/hamt/experimental:hamt_string_index_cc",
+        "//mbo/container/experimental/hamt:hamt_node_string_index_cc",
+        "//mbo/container/experimental/hamt:hamt_string_index_cc",
         "//mbo/strings/experimental:container_string_index_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",

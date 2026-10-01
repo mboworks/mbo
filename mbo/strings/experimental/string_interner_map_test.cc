@@ -154,9 +154,9 @@ TEST_F(StringInternerMapTest, EveryStorageLayerCanUseCallerOwnedBoundedMemory) {
   using Entries = mbo::container::LimitedVector<std::string_view, 8>;
   using NodeArena = mbo::memory::Arena<mbo::memory::InlineBlockSource<8'192>, kArenaOptions>;
   using NodeSource = mbo::memory::ArenaBlockSource<NodeArena>;
-  using Index = mbo::container::hamt::experimental::HamtStringIndex<
+  using Index = mbo::container::experimental::hamt::HamtStringIndex<
       StringId<>, std::hash<std::string_view>, std::equal_to<>,
-      mbo::container::hamt::experimental::HamtOptions{.maximum_size = 4, .maximum_collision_size = 2}, NodeSource>;
+      mbo::container::experimental::hamt::HamtOptions{.maximum_size = 4, .maximum_collision_size = 2}, NodeSource>;
   using Core = StringInterner<std::uint32_t, Storage, Entries, Index, StringInternerOptions{.maximum_parent_depth = 1}>;
   using Values = mbo::container::LimitedVector<int, 8>;
   using Map = StringInternerMap<int, Core, Values>;

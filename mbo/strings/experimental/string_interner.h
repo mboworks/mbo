@@ -17,7 +17,7 @@
 #include <variant>
 
 #include "mbo/config/require.h"
-#include "mbo/container/hamt/experimental/hamt_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_string_index.h"
 #include "mbo/container/segmented_vector.h"
 #include "mbo/strings/experimental/arena_string_storage.h"
 #include "mbo/strings/experimental/string_id.h"
@@ -77,7 +77,7 @@ template<
     StringIdRepresentation Representation = std::uint32_t,
     typename Storage = ArenaStringStorage<>,
     typename Entries = mbo::container::SegmentedVector<std::string_view>,
-    typename Index = mbo::container::hamt::experimental::HamtStringIndex<StringId<Representation>>,
+    typename Index = mbo::container::experimental::hamt::HamtStringIndex<StringId<Representation>>,
     StringInternerOptions Options = {}>
 requires(
     StringInternerIndex<Index, StringId<Representation>> && StringInternerStorage<Storage>

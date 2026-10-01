@@ -43,7 +43,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - class [`SegmentedVector`](mbo/container/SEGMENTED_VECTOR.md): Append-oriented storage with stable element addresses, constant-time indexing, and configurable block sources.
   - mbo/container:segmented_deque_cc, mbo/container/segmented_deque.h
     - class [`SegmentedDeque`](mbo/container/SEGMENTED_DEQUE.md): Double-ended segmented storage with stable element iterators and arena-compatible segment reuse at either end.
-  - [Experimental HAMT containers](mbo/container/hamt/README.md) in `mbo::container::hamt::experimental`: persistent flat/node maps and sets, transient editing, bounded block sources, and string-index adapters.
+  - [Experimental HAMT containers](mbo/container/experimental/hamt/README.md) in `mbo::container::experimental::hamt`: persistent flat/node maps and sets, transient editing, bounded block sources, and string-index adapters.
   - mbo/container/experimental:circular_buffer_cc, mbo/container/experimental/circular_buffer.h
     - class [`experimental::CircularBuffer`](mbo/container/experimental/CIRCULAR_BUFFER.md): A public experimental growable ring with allocator support, random-access iterators, and insertion/removal at both ends. Its API may change between releases.
   - Eligible sequences provide [value-returning endpoint pops](mbo/container/README.md#value-returning-pops), including move-only and potentially throwing element moves.

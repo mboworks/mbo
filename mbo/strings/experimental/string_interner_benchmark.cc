@@ -22,8 +22,8 @@
 #include "absl/container/node_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "benchmark/benchmark.h"
-#include "mbo/container/hamt/experimental/hamt_node_string_index.h"
-#include "mbo/container/hamt/experimental/hamt_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_node_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_string_index.h"
 #include "mbo/hash/hash.h"
 #include "mbo/memory/block_source.h"
 #include "mbo/strings/experimental/container_string_index.h"
@@ -44,15 +44,15 @@ static_assert(std::same_as<std::invoke_result_t<FoldedHash32, std::string_view>,
 static_assert(!mbo::hash::HasGetHash32<Hash::Algorithm>);
 
 template<std::size_t Bits>
-using FlatIndex = mbo::container::hamt::experimental::
-    HamtStringIndex<Id, Hash, std::equal_to<>, mbo::container::hamt::experimental::HamtOptions{.fragment_bits = Bits}>;
+using FlatIndex = mbo::container::experimental::hamt::
+    HamtStringIndex<Id, Hash, std::equal_to<>, mbo::container::experimental::hamt::HamtOptions{.fragment_bits = Bits}>;
 
 template<std::size_t Bits>
-using NodeIndex = mbo::container::hamt::experimental::HamtNodeStringIndex<
+using NodeIndex = mbo::container::experimental::hamt::HamtNodeStringIndex<
     Id,
     Hash,
     std::equal_to<>,
-    mbo::container::hamt::experimental::HamtOptions{.fragment_bits = Bits}>;
+    mbo::container::experimental::hamt::HamtOptions{.fragment_bits = Bits}>;
 using StandardIndex = ContainerStringIndex<Id, std::unordered_map<std::string_view, Id, Hash>>;
 using AbseilFlatIndex = ContainerStringIndex<Id, absl::flat_hash_map<std::string_view, Id, Hash>>;
 using AbseilNodeIndex = ContainerStringIndex<Id, absl::node_hash_map<std::string_view, Id, Hash>>;
@@ -99,14 +99,14 @@ template<typename Index>
 using InternerMap = StringInternerMap<std::uint64_t, Interner<Index>>;
 
 template<typename Representation>
-using WidthIndex = mbo::container::hamt::experimental::HamtStringIndex<StringId<Representation>, Hash>;
+using WidthIndex = mbo::container::experimental::hamt::HamtStringIndex<StringId<Representation>, Hash>;
 
 template<std::size_t Bits>
-using FoldedFlatIndex = mbo::container::hamt::experimental::HamtStringIndex<
+using FoldedFlatIndex = mbo::container::experimental::hamt::HamtStringIndex<
     Id,
     FoldedHash32,
     std::equal_to<>,
-    mbo::container::hamt::experimental::HamtOptions{.fragment_bits = Bits}>;
+    mbo::container::experimental::hamt::HamtOptions{.fragment_bits = Bits}>;
 
 template<typename Index, int HashBits>
 void RecordWidths(benchmark::State& state) {
@@ -884,9 +884,9 @@ void RegisterMapIndex(std::string_view name) {
       "StringInterner/HamtFlat5Arena4096Bounded/CharacterExhaustion", BmCharacterCapacity<false>);
   auto* characters_duplicate = benchmark::RegisterBenchmark(
       "StringInterner/HamtFlat5Arena4096Bounded/DuplicateAtCharacterCapacity", BmCharacterCapacity<true>);
-  using BoundedIndex = mbo::container::hamt::experimental::HamtStringIndex<
+  using BoundedIndex = mbo::container::experimental::hamt::HamtStringIndex<
       Id, Hash, std::equal_to<>,
-      mbo::container::hamt::experimental::HamtOptions{.fragment_bits = 5, .maximum_size = 64}>;
+      mbo::container::experimental::hamt::HamtOptions{.fragment_bits = 5, .maximum_size = 64}>;
   auto* index_exhausted = benchmark::RegisterBenchmark(
       "StringInterner/HamtFlat5Index64Bounded/IndexExhaustion",
       BmCapacity<BoundedIndex, 64, false, StringInternError::kIndexExhausted>);
@@ -951,8 +951,8 @@ void RegisterMapIndex(std::string_view name) {
   RegisterIndex<FoldedFlatIndex<5>, 32>("HamtFlat5Fold32");
   RegisterIndex<FoldedFlatIndex<6>, 32>("HamtFlat6Fold32");
   RegisterIndex<FoldedFlatIndex<7>, 32>("HamtFlat7Fold32");
-  RegisterIndex<mbo::container::hamt::experimental::HamtNodeStringIndex<Id, FoldedHash32>, 32>("HamtNode5Fold32");
-  RegisterIndex<mbo::container::hamt::experimental::HamtStringIndex<StringId<std::uint64_t>, FoldedHash32>, 32>(
+  RegisterIndex<mbo::container::experimental::hamt::HamtNodeStringIndex<Id, FoldedHash32>, 32>("HamtNode5Fold32");
+  RegisterIndex<mbo::container::experimental::hamt::HamtStringIndex<StringId<std::uint64_t>, FoldedHash32>, 32>(
       "HamtFlat5Fold32Id64");
   return true;
 }();

@@ -14,8 +14,8 @@ deprecation. The independent generic-interner workstream is separate from this i
 | `string_interner_map.h`    | `StringInternerMap`    | Stable mapped objects alongside interned keys   |
 
 Use `//mbo/strings/experimental:<header_basename>_cc` as the corresponding Bazel dependency.
-HAMT-specific adapters live in the [HAMT experimental package](../../container/hamt/README.md),
-under `mbo::container::hamt::experimental`.
+HAMT-specific adapters live in the [HAMT experimental package](../../container/experimental/hamt/README.md),
+under `mbo::container::experimental::hamt`.
 
 ```cpp
 #include "mbo/strings/experimental/string_interner.h"
@@ -35,8 +35,9 @@ front operations would not help dense ID lookup. `SegmentedDeque` is therefore u
 
 The [API and lifetime contract](STRING_INTERNING.md) explains failure results, captured ancestor
 visibility, backend requirements, and diagnostics. The [benchmark guide](STRING_INTERNER_BENCHMARKS.md)
-describes index comparisons, storage profiles, and workload coverage. Retained measurements are
-historical; they do not establish performance of this implementation after integration.
+describes index comparisons, storage profiles, workload coverage, and the review needed before
+publishing new performance results. Previous charts and measurements were removed because they
+predate this integrated implementation; their commits remain available in Git history.
 
 For bounded storage, configure each allocation domain: characters, descriptors, index nodes and
 control, and mapped values. `LimitedVector` can keep descriptors and mapped values inline.

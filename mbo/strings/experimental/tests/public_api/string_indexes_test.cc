@@ -3,8 +3,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "mbo/container/hamt/experimental/hamt_node_string_index.h"
-#include "mbo/container/hamt/experimental/hamt_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_node_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_string_index.h"
 #include "mbo/strings/experimental/container_string_index.h"
 
 namespace mbo::strings::experimental {
@@ -29,11 +29,11 @@ TEST_F(StringIndexesPublicApiTest, StandardContainerAdapterIsUsableOutsideItsDef
 }
 
 TEST_F(StringIndexesPublicApiTest, FlatHamtAdapterIsUsableOutsideItsDefiningPackage) {
-  CheckPublicIndexApi<mbo::container::hamt::experimental::HamtStringIndex<>>();
+  CheckPublicIndexApi<mbo::container::experimental::hamt::HamtStringIndex<>>();
 }
 
 TEST_F(StringIndexesPublicApiTest, NodeHamtAdapterIsUsableOutsideItsDefiningPackage) {
-  CheckPublicIndexApi<mbo::container::hamt::experimental::HamtNodeStringIndex<>>();
+  CheckPublicIndexApi<mbo::container::experimental::hamt::HamtNodeStringIndex<>>();
 }
 
 }  // namespace

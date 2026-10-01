@@ -3,7 +3,8 @@
 This directory retains the ordered-lookup study. Segmented-container results have been removed;
 current harnesses and reproduction commands are described in the
 [vector](../SEGMENTED_VECTOR_BENCHMARKS.md) and [deque](../SEGMENTED_DEQUE_BENCHMARKS.md) guides.
-Historical HAMT results live with [the experimental HAMT package](../hamt/measurements/HAMT.md).
+The experimental HAMT package retains its [benchmark method](../experimental/hamt/HAMT_MAP_BENCHMARKS.md)
+without publishing measurements from the earlier implementation.
 
 ## Historical ordered lookup study
 

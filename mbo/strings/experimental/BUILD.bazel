@@ -15,8 +15,8 @@ cc_binary(
         ":container_string_index_cc",
         ":string_interner_cc",
         ":string_interner_map_cc",
-        "//mbo/container/hamt/experimental:hamt_node_string_index_cc",
-        "//mbo/container/hamt/experimental:hamt_string_index_cc",
+        "//mbo/container/experimental/hamt:hamt_node_string_index_cc",
+        "//mbo/container/experimental/hamt:hamt_string_index_cc",
         "//mbo/hash:hash_cc",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/container:node_hash_map",
@@ -56,7 +56,7 @@ cc_library(
         ":string_id_cc",
         "//mbo/config:require_cc",
         "//mbo/container:segmented_vector_cc",
-        "//mbo/container/hamt/experimental:hamt_string_index_cc",
+        "//mbo/container/experimental/hamt:hamt_string_index_cc",
     ],
 )
 

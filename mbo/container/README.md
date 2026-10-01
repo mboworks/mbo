@@ -335,6 +335,6 @@ new comparisons must record their source SHA, compiler, element type, allocator,
 ## Experimental HAMT maps and sets
 
 [The HAMT package](hamt/README.md) provides persistent flat/node maps and sets in
-`mbo::container::hamt::experimental`, with shared snapshots, transient mutation, and configurable
-block sources. Its headers and targets are under `mbo/container/hamt/experimental`; the API may
+`mbo::container::experimental::hamt`, with shared snapshots, transient mutation, and configurable
+block sources. Its headers and targets are under `mbo/container/experimental/hamt`; the API may
 change between releases. HAMT-specific string-index adapters live in the same package.

@@ -1,9 +1,9 @@
 # StringInterner benchmark harness
 
 `//mbo/strings/experimental:string_interner_benchmark` is a manual, test-only Google Benchmark binary.
-The retained initial-host report, raw artifacts, charts, and provisional configuration matrix are
-in [`measurements/STRING_INTERNER.md`](measurements/STRING_INTERNER.md). Additional comparisons
-remain necessary before cross-machine or universal conclusions. Follow
+Earlier raw artifacts, charts, and provisional configuration results have been removed from this
+draft; their commits remain available in Git history. Fresh comparisons are needed before
+cross-machine or general configuration conclusions. Follow
 [the experimental package guide](README.md); compilation alone does not select a
 winning configuration.
 
@@ -169,25 +169,41 @@ A one-iteration sanitizer smoke run may validate fixture setup, hit/miss preflig
 before final measurements. Such debug, instrumented results are validation data only: retain them
 separately and mark them nonpublishable, rather than folding their timings into a performance report.
 
-The retained initial-host report extends the matrix with character and dense-storage
-configurations, capacity exhaustion, distribution and access-order variations, and detailed memory
-diagnostics. These synthetic workloads still must not be presented as all representative mbo, xff,
-or proto workloads. Additional application traces remain useful follow-up. Published measurements
-require nine interleaved repetitions, warmup, raw JSON, charts regenerated from that JSON, and a
-provisional configuration decision matrix. AMD Zen 5 measurements follow later and may change the
-recommendations.
+The earlier measurement matrix also covered character and dense-storage configurations, capacity
+exhaustion, distribution and access-order variations, and detailed memory diagnostics. Review
+those case definitions against the final implementation and representative application traces
+before collection. Synthetic workloads must not be presented as measured mbo, xff, or proto usage.
 
-## Retained-result reporting
+## Measurement pipeline review
+
+- **Collection:** use a clean final commit, warmup, and at least nine interleaved raw repetitions
+  per case on the Apple M5 Pro and AMD Zen 5. Record compiler, flags, host, source commit, index
+  configuration, ID width, string length, cascade depth, hit mix, and actual operations per timed
+  iteration. Check equivalent outcomes before timing; keep memory and allocation observations
+  separate from CPU time. Sanitizer smoke runs are validation only.
+- **Generation:** validate each immutable artifact and normalize cases by their explicit batch
+  size. Pair only cases with the same task, scale, string shape, depth, and host. Preserve absolute
+  time, relative factor, sample statistics, and provenance; leave missing cells empty. The current
+  report helper accepts one `operations_per_iteration` value per invocation, so it cannot safely
+  generate a mixed-batch landscape without an additional per-case normalization layer.
+- **Presentation:** adapt XFF's Three.js task-by-log-scale landscape to one comparable workload
+  family at a time, with height showing a labeled percentage or relative factor. Use selectors for
+  index, string length, depth, hit distribution, ID width, and host rather than forcing all
+  dimensions onto one surface. Categorical task connections are visual guides, not interpolated
+  measurements. Retain exact accessible tables and raw-data provenance beside the view. Publish
+  no chart or configuration recommendation until fresh data and presentation are reviewed together.
+
+## Local summary generation
 
 Run from the repository root, using new output paths:
 
 ```sh
-python3 -m tools.benchmark_report retained.json --summary summary.json \
-  --svg comparison.svg --name 'EXACT_CASE_NAME' --operations-per-iteration 64
+python3 -m tools.benchmark_report fresh.json --summary summary.json \
+  --name 'EXACT_CASE_NAME' --operations-per-iteration 64
 ```
 
 Repeat `--name` to select comparable cases. Output files must not already exist;
-the retained input is never overwritten. Use the actual batch size, not 64 by
+the input is never overwritten. Use the actual batch size, not 64 by
 default: empty-string cases perform one operation per iteration.
 
 `tools.benchmark_report.summarize` validates the immutable artifact checksum and
@@ -200,11 +216,9 @@ Summaries retain median, minimum, maximum, and the mean of the best three sample
 The default unit is CPU nanoseconds per iteration. Pass the explicit
 `operations_per_iteration` batch size to report CPU nanoseconds per operation;
 never compare differently sized batches without normalization. Generate separate
-reports when batch sizes differ. `render_svg` takes an explicit list of up to
-twenty case names, draws median bars and observed min/max whiskers, and embeds
-the source artifact checksum. Whiskers are not confidence intervals. Summaries
-preserve complete measurement provenance (host, toolchain, flags, source,
-timing, and controls); charts also identify CPU, compiler, standard, and commit.
-Keep the raw artifact alongside the generated report and chart. This helper does not
-establish that selected workloads are comparable; that remains part of the
-documented experiment design.
+reports when batch sizes differ. Summaries preserve complete measurement
+provenance (host, toolchain, flags, source, timing, and controls). Keep the raw
+artifact alongside a generated report for any future publication. The current
+optional SVG renderer remains a local diagnostic, not the intended presentation.
+This helper does not establish that selected workloads are comparable; that
+remains part of the documented experiment design.

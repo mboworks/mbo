@@ -43,6 +43,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - class [`SegmentedVector`](mbo/container/SEGMENTED_VECTOR.md): Append-oriented storage with stable element addresses, constant-time indexing, and configurable block sources.
   - mbo/container:segmented_deque_cc, mbo/container/segmented_deque.h
     - class [`SegmentedDeque`](mbo/container/SEGMENTED_DEQUE.md): Double-ended segmented storage with stable element iterators and arena-compatible segment reuse at either end.
+  - [Experimental HAMT containers](mbo/container/experimental/hamt/README.md) in `mbo::container::experimental::hamt`: persistent flat/node maps and sets, transient editing, bounded block sources, and string-index adapters.
   - mbo/container/experimental:circular_buffer_cc, mbo/container/experimental/circular_buffer.h
     - class [`experimental::CircularBuffer`](mbo/container/experimental/CIRCULAR_BUFFER.md): A public experimental growable ring with allocator support, random-access iterators, and insertion/removal at both ends. Its API may change between releases.
   - Eligible sequences provide [value-returning endpoint pops](mbo/container/README.md#value-returning-pops), including move-only and potentially throwing element moves.
@@ -177,6 +178,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - macro `MBO_MOVE_TO_OR_RETURN`: Macro that simplifies handling functions returning `absl::StatusOr<T>` where the result requires commas, in particular structured bindings.
     - macro `MBO_RETURN_IF_ERROR`: Macro that simplifies handling functions returning `absl::Status` or `absl::StausOr<T>`.
 - Strings
+  - [Experimental string interning](mbo/strings/experimental/README.md) in `mbo::strings::experimental`: dense IDs, stable character storage, captured parent chains, replaceable indexes, and mapped values.
   - `namespace mbo::strings`
   - mbo/strings:contains_cc, mbo/strings/contains.h
     - function `Contains`: A constexpr wrapper around C++23 string-view containment for string and character needles.
@@ -191,8 +193,8 @@ The C++ library is organized in functional groups each residing in their own dir
     - function `ParseStringList`: Parses and splits strings respecting C++ and custom escapes as well as quotes (all configurable).
   - mbo/strings:split_cc, mbo/strings/split.h
     - struct `AtLast`: Allows `absl::StrSplit' to split on the last occurrence of a separator.
-  - mbo/strings:string_id_cc, mbo/strings/string_id.h
-    - alias template `StringId`: A compact dense string identifier with selectable 8-, 16-, 32-,
+  - mbo/strings/experimental:string_id_cc, mbo/strings/experimental/string_id.h
+    - alias template `experimental::StringId`: A compact dense string identifier with selectable 8-, 16-, 32-,
       or 64-bit unsigned representation, an invalid default state, and no arithmetic operations.
   - mbo/strings:strip_cc, mbo/strings/strip.h
     - function `ConsumePrefix`: Removes a prefix from a `std::string` (like `absl::ConsumePrefix`).

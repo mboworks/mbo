@@ -330,6 +330,11 @@ Performance evidence is collected separately for [ordered lookup](measurements/R
 [SegmentedVector](measurements/SEGMENTED_VECTOR.md), and
 [SegmentedDeque](measurements/SEGMENTED_DEQUE.md). The segmented reports describe runnable harnesses,
 reproduction commands, and retained evidence. Results apply to the recorded source SHA, compiler,
-element type, allocator, and workload. Historical `SegmentedSequence` measurements retain that name;
-the current API is `SegmentedVector` with no compatibility alias. The former vector-specific options
-have become the shared `SegmentedOptions`.
+element type, allocator, and workload.
+
+## Experimental HAMT maps and sets
+
+[The HAMT package](experimental/hamt/README.md) provides persistent flat/node maps and sets in
+`mbo::container::experimental::hamt`, with shared snapshots, transient mutation, and configurable
+block sources. Its headers and targets are under `mbo/container/experimental/hamt`; the API may
+change between releases. HAMT-specific string-index adapters live in the same package.

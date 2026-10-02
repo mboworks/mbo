@@ -30,8 +30,25 @@
     "mbo/types/REFLECTION.md": "mbo/types/REFLECTION.html",
     "docs/release-website.md": "docs/release-website.html",
     "docs/infrastructure.md": "docs/infrastructure.html",
-    "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.md": "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.html",
-    "mbo/container/README.md": "mbo/container/README.html"
+    "mbo/container/README.md": "mbo/container/README.html",
+    "mbo/memory/ARENA.md": "mbo/memory/ARENA.html",
+    "mbo/memory/measurements/README.md": "mbo/memory/measurements/README.html",
+    "mbo/strings/experimental/STRING_INTERNER_BENCHMARKS.md": "mbo/strings/experimental/STRING_INTERNER_BENCHMARKS.html",
+    "mbo/strings/experimental/STRING_INTERNING.md": "mbo/strings/experimental/STRING_INTERNING.html",
+    "mbo/container/experimental/hamt/README.md": "mbo/container/experimental/hamt/README.html",
+    "mbo/strings/experimental/README.md": "mbo/strings/experimental/README.html",
+    "mbo/container/experimental/hamt/HAMT_STORAGE.md": "mbo/container/experimental/hamt/HAMT_STORAGE.html",
+    "mbo/container/experimental/hamt/HAMT_MAP_BENCHMARKS.md": "mbo/container/experimental/hamt/HAMT_MAP_BENCHMARKS.html",
+    "mbo/container/experimental/hamt/HAMT_NODE_SET.md": "mbo/container/experimental/hamt/HAMT_NODE_SET.html",
+    "mbo/container/experimental/hamt/HAMT_FLAT_MAP.md": "mbo/container/experimental/hamt/HAMT_FLAT_MAP.html",
+    "mbo/container/experimental/hamt/HAMT_COLLISIONS.md": "mbo/container/experimental/hamt/HAMT_COLLISIONS.html",
+    "mbo/container/experimental/hamt/HAMT_FLAT_SET.md": "mbo/container/experimental/hamt/HAMT_FLAT_SET.html",
+    "mbo/container/experimental/hamt/HAMT_NODE_MAP.md": "mbo/container/experimental/hamt/HAMT_NODE_MAP.html",
+    "mbo/container/experimental/hamt/internal/HAMT_NODE_ITERATOR.md": "mbo/container/experimental/hamt/internal/HAMT_NODE_ITERATOR.html",
+    "mbo/container/experimental/hamt/internal/HAMT_NODE_KEY_OF.md": "mbo/container/experimental/hamt/internal/HAMT_NODE_KEY_OF.html",
+    "mbo/container/experimental/hamt/internal/HAMT_SOURCE_DOMAIN.md": "mbo/container/experimental/hamt/internal/HAMT_SOURCE_DOMAIN.html",
+    "mbo/container/experimental/hamt/internal/HAMT_NODE_VALUE.md": "mbo/container/experimental/hamt/internal/HAMT_NODE_VALUE.html",
+    "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.md": "mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_478dd4036dce507eab7f0530cebb06416fd34ae0_segmented-deque-summary.html"
   },
   "links": [
     {

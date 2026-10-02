@@ -64,6 +64,21 @@ class Arena final {
   }
 
  public:
+  // A borrowed snapshot, not an owner or automatic rollback guard. Implicit
+  // special members follow rule zero. The arena must outlive the checkpoint.
+  class Checkpoint final {
+   private:
+    friend class Arena;
+
+    constexpr Checkpoint(const Arena* owner, Block* current, std::size_t cursor, std::size_t used) noexcept
+        : owner_(owner), current_(current), cursor_(cursor), used_(used) {}
+
+    const Arena* owner_;
+    Block* current_;
+    std::size_t cursor_;
+    std::size_t used_;
+  };
+
   // NOLINTBEGIN(readability-identifier-naming): Arena models STL/PMR naming.
   constexpr Arena() noexcept(std::is_nothrow_default_constructible_v<Source>) = default;
 
@@ -166,6 +181,25 @@ class Arena final {
     }
     current_ = first_;
     bytes_used_ = 0;
+  }
+
+  constexpr Checkpoint checkpoint() const noexcept {
+    return Checkpoint(this, current_, current_ == nullptr ? 0 : current_->cursor, bytes_used_);
+  }
+
+  // Invalidates allocations made after the checkpoint, not earlier allocations.
+  // Reset, Release, move, swap, or rewinding before a checkpoint invalidates it.
+  constexpr void rewind(const Checkpoint& checkpoint) noexcept(!::mbo::config::kRequireThrows) {
+    MBO_CONFIG_REQUIRE(checkpoint.owner_ == this, "Arena checkpoint belongs to another arena");
+    auto* block = checkpoint.current_ == nullptr ? first_ : checkpoint.current_->next;
+    for (; block != nullptr; block = block->next) {
+      block->cursor = block->begin;
+    }
+    if (checkpoint.current_ != nullptr) {
+      checkpoint.current_->cursor = checkpoint.cursor_;
+    }
+    current_ = checkpoint.current_ == nullptr ? first_ : checkpoint.current_;
+    bytes_used_ = checkpoint.used_;
   }
 
   constexpr void Release() noexcept {

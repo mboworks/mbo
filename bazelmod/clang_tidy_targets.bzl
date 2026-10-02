@@ -48,4 +48,6 @@ CLANG_TIDY_MANUAL_TARGETS = [
     "//mbo/memory:arena_benchmark",
     "//mbo/memory:arena_layout_benchmark",
     "//tools:show_compiler",
+    "//mbo/container/experimental/hamt:hamt_map_benchmark",
+    "//mbo/strings/experimental:string_interner_benchmark",
 ]

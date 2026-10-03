@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Page not found</title>
+<h1>Page not found</h1><p>The requested page is unavailable.</p>
+<script>
+const match=location.pathname.match(/^(.*\/coverage\/)((?:main|pr\/\d+|tag\/[^/]+|runs\/\d+\/\d+))\/lcov\/(.*)$/);
+if(match)location.replace(match[1]+"view.html?"+new URLSearchParams({report:match[2],file:decodeURIComponent(match[3])||"index.html"})+location.hash);
+</script>

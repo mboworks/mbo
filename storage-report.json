@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "total_bytes": 69378426,
+  "sections": {
+    "root": {
+      "files": 30,
+      "bytes": 201146
+    },
+    "mbo": {
+      "files": 388,
+      "bytes": 2376736
+    },
+    "tools": {
+      "files": 23,
+      "bytes": 93700
+    },
+    "bazelmod": {
+      "files": 4,
+      "bytes": 9755
+    },
+    ".github": {
+      "files": 10,
+      "bytes": 47188
+    },
+    ".trunk": {
+      "files": 4,
+      "bytes": 3865
+    },
+    ".pre-commit": {
+      "files": 4,
+      "bytes": 7707
+    },
+    ".bcr": {
+      "files": 4,
+      "bytes": 933
+    },
+    "third_party": {
+      "files": 3,
+      "bytes": 676
+    },
+    "coverage": {
+      "files": 3429,
+      "bytes": 65532413
+    },
+    "site": {
+      "files": 39,
+      "bytes": 1104307
+    }
+  },
+  "coverage_detail_days": 7,
+  "review_bytes": 200000000
+}

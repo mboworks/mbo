@@ -3,6 +3,8 @@
 """Add shared favicons to the staged Pages tree, leaving retained releases unchanged."""
 
 import argparse
+import gzip
+import itertools
 import os
 from pathlib import Path
 import re
@@ -16,8 +18,10 @@ MARKER = '<!-- mboworks favicons -->'
 def decorate(assets: Path, output: Path) -> None:
     for name in ICONS:
         shutil.copyfile(assets / name, output / name)
-    for path in output.rglob("*.html"):
-        text = path.read_text(encoding="utf-8")
+    for path in itertools.chain(output.rglob("*.html"), output.rglob("*.html.gz")):
+        compressed = path.suffix == '.gz'
+        text = (gzip.decompress(path.read_bytes()).decode('utf-8') if compressed
+                else path.read_text(encoding="utf-8"))
         if MARKER in text:
             continue
         opening = re.search(r"<head\b[^>]*>", text, re.IGNORECASE)
@@ -32,7 +36,11 @@ def decorate(assets: Path, output: Path) -> None:
                  f'href="{prefix}/favicon.png">\n'
                  f'<link rel="apple-touch-icon" sizes="180x180" '
                  f'href="{prefix}/apple-touch-icon.png">\n')
-        path.write_text(text[:opening.end()] + links + text[opening.end():], encoding="utf-8")
+        decorated = text[:opening.end()] + links + text[opening.end():]
+        if compressed:
+            path.write_bytes(gzip.compress(decorated.encode('utf-8'), mtime=0))
+        else:
+            path.write_text(decorated, encoding="utf-8")
 
 
 def main() -> None:

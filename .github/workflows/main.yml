@@ -35,6 +35,15 @@ jobs:
       - run: python3 -m unittest discover -s tools -p release_notes_test.py
       - name: Test infrastructure policies
         run: python3 -m unittest discover -s tools -p "*_test.py"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Test retained coverage in Chromium
+        working-directory: tools/coverage_web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm test
       - name: Verify configured documentation and generated links
         env:
           GH_TOKEN: ${{ github.token }}

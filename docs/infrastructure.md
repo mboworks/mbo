@@ -65,13 +65,21 @@ xff's timing improvements are evidence for measuring these phases, not predicted
 ## Coverage and publishing
 
 The trusted coverage publisher archives every identified report and attempt before replacing a
-target URL, including late reports that cannot replace a newer latest report. The immutable
-run-history index retains detailed LCOV pages and original run metadata. Main stays first; merged
+target URL, including late reports that cannot replace a newer latest report. Aggregate history,
+policy and patch data, and original run metadata remain indefinitely; detailed LCOV source pages
+expire seven days after original completion. Shared compressed page bases and manifests retain
+recent source views without duplicating each full HTML tree. Main stays first; merged
 PRs and releases follow by actual merge/tag timestamps, while open and unknown reports follow by
 workflow creation time. Closed-unmerged PRs are omitted from the overview while direct reports
 remain. Aggregation ancestry is provenance and is verified for squashed parents without changing
 measured identities. Replacement freshness is independent: an older slow run cannot overwrite a
 newer report.
+
+Both publishers compact the retained tree before committing, then measure the complete deployment
+after artwork installation. `storage-report.json` records section totals; 200 MB warns and a 9 GB
+payload guard stops packaging. The supported Pages site limit remains 1 GB. Publication snapshots
+are fetched shallowly, source ancestry uses `blob:none`, and historical Git objects are not rewritten.
+See [published site storage](site-storage.md) for retention, browser requirements, and validation.
 
 Both full-site publishers add shared MBO Works favicons to the staged deployment copy only.
 Retained release snapshots remain unchanged. The README uses the shared logo at 64 by 64 pixels.

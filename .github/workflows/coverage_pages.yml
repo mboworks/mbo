@@ -43,6 +43,7 @@ jobs:
           path: source
           ref: main
           fetch-depth: 0
+          filter: blob:none
       - uses: actions/checkout@v7
         with:
           path: site
@@ -61,7 +62,7 @@ jobs:
             coverage-run.json >/dev/null
           gh api --paginate --slurp \
             "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?filter=latest&per_page=100" > coverage-jobs.json
-          eligible="$(jq 'any(.[].jobs[]; .name == "coverage" and .conclusion == "success")' coverage-jobs.json)"
+          eligible="$(jq 'any(.[].jobs[]; (.name == "coverage" or .name == "coverage / test") and .conclusion == "success")' coverage-jobs.json)"
           echo "eligible=${eligible}" >>"${GITHUB_OUTPUT}"
           jq -r '{created_at, updated_at, head_sha, run_attempt, id, run_started_at} | to_entries[] | "\(.key)=\(.value)"' \
             coverage-run.json >>"${GITHUB_OUTPUT}"
@@ -151,12 +152,10 @@ jobs:
           python3 source/tools/coverage_index.py history site/coverage source coverage-pulls.json --fetch-aggregation-heads
           python3 source/tools/coverage_index.py archive site/coverage
           python3 source/tools/coverage_index.py site site/coverage site/coverage/index.html
+          python3 source/tools/compact_site.py site
           git -C site config user.name 'github-actions[bot]'
           git -C site config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C site add coverage
-          if [[ -d site/releases ]]; then
-            git -C site add releases
-          fi
+          git -C site add --all
           if git -C site diff --cached --quiet; then
             echo "Coverage report is unchanged"
           else
@@ -166,6 +165,7 @@ jobs:
           mkdir -p public
           rsync --archive --exclude='.git' site/ public/
           python3 source/tools/site_artwork.py source/docs/assets public
+          python3 source/tools/compact_site.py public
       - uses: actions/upload-pages-artifact@v5
         with:
           path: public

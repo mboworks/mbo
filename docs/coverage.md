@@ -45,11 +45,24 @@ lines and branches. Functions are not attributed to changed lines and are theref
 
 ## Published data
 
-Each retained report links its detailed LCOV source view, full `coverage-summary.json`, and workflow
-`coverage-meta.json`. The coverage index also links the summary JSON directly. The summary records
+Each retained report links its detailed LCOV source view, full `coverage-summary.json.gz`, and workflow
+`coverage-meta.json`. The coverage index also links the compressed summary JSON directly. The summary records
 measurements and the fully resolved minimum, target, and enforcement values for every overview row,
 so consumers do not need to reimplement inheritance.
 Coverage publication also refreshes PR lifecycle metadata on close and reopen, selects one
 pre-merge or exact-merge-commit post-merge result per PR, and accepts a valid coverage job when
 other CI jobs fail. A manual source-run input can replay a retained artifact through the same
 serialized publisher without rerunning tests.
+
+Coverage summaries, policy and patch data, original run provenance, and pre/post-merge attribution
+are retained indefinitely. Detailed source, function, and branch pages are retained for seven days
+from the original completion timestamp. Republishing an old artifact does not extend that window.
+Historical report landing URLs remain available; old LCOV deep links open the shared source viewer
+or explain that details have expired and link to the aggregate summary.
+Legacy LCOV-only reports without structured summaries or metadata are preserved intact until
+their aggregates and identity can be recovered.
+
+The viewer and packed report pages require JavaScript and browser `DecompressionStream` support.
+Compressed JSON remains directly downloadable without JavaScript. See
+[published site storage](site-storage.md) for the representation, complete-site budgets, validation,
+and the distinction between deployed history and historical Git objects.

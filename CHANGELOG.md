@@ -1,5 +1,9 @@
 # 0.16.0
 
+- Compact retained coverage into shared compressed source pages and report data, keeping aggregate
+  history indefinitely and browsable source details for seven days. Add complete-site size reporting
+  and publication guards, bounded history fetches, and browser validation. Restore report ingestion
+  for successful reusable coverage jobs named `coverage / test`.
 - Added `SegmentedVector` and `SegmentedDeque`: fixed-size segments, stable element addresses,
   constant-time indexing, shared `SegmentedOptions`, configurable block sources, and independent
   directory allocators. The deque supports growth/removal at both ends and reuses empty segments.

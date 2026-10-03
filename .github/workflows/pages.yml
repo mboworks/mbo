@@ -78,8 +78,10 @@ jobs:
         working-directory: source
         run: |
           set -euo pipefail
-          git fetch origin
-          if git show-ref --verify --quiet refs/remotes/origin/coverage-pages; then
+          retained_ref="$(git ls-remote --heads origin refs/heads/coverage-pages)"
+          if [[ -n "${retained_ref}" ]]; then
+            git fetch --no-tags --depth=1 origin \
+              +refs/heads/coverage-pages:refs/remotes/origin/coverage-pages
             git worktree add ../site -B coverage-pages origin/coverage-pages
           else
             git worktree add --detach ../site
@@ -118,6 +120,7 @@ jobs:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
+          python3 source/tools/compact_site.py site
           git -C site config user.name 'github-actions[bot]'
           git -C site config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C site add --all
@@ -128,6 +131,7 @@ jobs:
           mkdir -p public
           rsync --archive --exclude='.git' site/ public/
           python3 source/tools/site_artwork.py source/docs/assets public
+          python3 source/tools/compact_site.py public
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

@@ -3,6 +3,8 @@
 """Verify favicons across nested release, reference, and coverage pages."""
 
 from pathlib import Path
+import gzip
+import shutil
 import tempfile
 import sys
 import unittest
@@ -54,6 +56,27 @@ class SiteArtworkTest(unittest.TestCase):
             before = {name: (root / name).read_bytes() for name in documents}
             site_artwork.decorate(assets, root)
             self.assertEqual(before, {name: (root / name).read_bytes() for name in documents})
+
+    def test_packed_report_artwork_changes_only_the_deployment_copy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            retained = root / 'retained'
+            report = retained / 'coverage/pr/42/page.html.gz'
+            report.parent.mkdir(parents=True)
+            original = gzip.compress(b'<html><head><title>Summary</title></head><body>42</body></html>', mtime=0)
+            report.write_bytes(original)
+            public = root / 'public'
+            shutil.copytree(retained, public)
+            assets = Path(__file__).resolve().parent.parent / 'docs/assets'
+            site_artwork.decorate(assets, public)
+            deployed = public / report.relative_to(retained)
+            markup = gzip.decompress(deployed.read_bytes()).decode()
+            self.assertIn('href="../../../favicon.ico"', markup)
+            self.assertEqual(markup.count(site_artwork.MARKER), 1)
+            self.assertEqual(report.read_bytes(), original)
+            before = deployed.read_bytes()
+            site_artwork.decorate(assets, public)
+            self.assertEqual(deployed.read_bytes(), before)
 
 
 if __name__ == "__main__":

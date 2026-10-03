@@ -41,7 +41,7 @@ class CoverageIndexTest(unittest.TestCase):
         for field in ("created_at", "updated_at", "head_sha", "run_attempt", "run_started_at"):
             self.assertIn("${{ steps.coverage-result.outputs." + field + " }}", workflow)
         self.assertNotIn("github.event.workflow_run.conclusion == 'success'", workflow)
-        self.assertIn('.name == "coverage" and .conclusion == "success"', workflow)
+        self.assertIn('(.name == "coverage" or .name == "coverage / test") and .conclusion == "success"', workflow)
         self.assertIn('jobs?filter=latest&per_page=100', workflow)
         self.assertIn("path: source\n          ref: main", workflow)
         for step in ("uses: actions/download-artifact@v8", "name: Select and stage the report"):
@@ -53,6 +53,20 @@ class CoverageIndexTest(unittest.TestCase):
         self.assertLess(refresh.index("coverage_index.py history"), refresh.index("coverage_index.py site"))
         self.assertLess(refresh.index("coverage_index.py site"), refresh.index("git -C site push"))
 
+    def test_publisher_accepts_successful_direct_and_reusable_coverage_jobs(self):
+        workflow = Path('.github/workflows/coverage_pages.yml').read_text()
+        selector = next(line for line in workflow.splitlines() if line.strip().startswith('eligible='))
+        expression = selector.split("'")[1]
+        for name, conclusion, expected in (
+                ('coverage', 'success', True), ('coverage / test', 'success', True),
+                ('coverage / test', 'failure', False), ('coverage / test', 'skipped', False),
+                ('coverage-integrity', 'success', False), ('test-clang / test', 'success', False)):
+            with self.subTest(name=name, conclusion=conclusion):
+                pages = [{'jobs': []}, {'jobs': [{'name': name, 'conclusion': conclusion}]}]
+                result = subprocess.run(['jq', expression], input=json.dumps(pages), text=True,
+                                        check=True, capture_output=True)
+                self.assertEqual(json.loads(result.stdout), expected)
+
     def test_merge_refresh_reorders_existing_report_without_replacing_measurements(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -60,7 +74,8 @@ class CoverageIndexTest(unittest.TestCase):
             repository.mkdir()
             subprocess.run(["git", "init", "-q", str(repository)], check=True)
             subprocess.run(["git", "-C", str(repository), "-c", "user.name=Test",
-                            "-c", "user.email=test@example.com", "commit", "--allow-empty", "-qm", "merge"], check=True)
+                            "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false",
+                            "commit", "--allow-empty", "-qm", "merge"], check=True)
             sha = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
             reports = root / "reports"
             original = {}

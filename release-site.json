@@ -7,6 +7,7 @@
     "docs/site-storage.md": "docs/site-storage.html",
     "mbo/container/SEGMENTED_DEQUE.md": "mbo/container/SEGMENTED_DEQUE.html",
     "mbo/container/experimental/CIRCULAR_BUFFER.md": "mbo/container/experimental/CIRCULAR_BUFFER.html",
+    "mbo/container/experimental/FROZEN.md": "mbo/container/experimental/FROZEN.html",
     "mbo/container/measurements/SEGMENTED_DEQUE.md": "mbo/container/measurements/SEGMENTED_DEQUE.html",
     "mbo/container/SEGMENTED_VECTOR.md": "mbo/container/SEGMENTED_VECTOR.html",
     "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",

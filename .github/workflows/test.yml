@@ -324,6 +324,7 @@ jobs:
             //mbo/container:segmented_vector_require_exceptions_test \
             //mbo/container:segmented_deque_require_exceptions_test \
             //mbo/container/experimental:circular_buffer_require_exceptions_test \
+            //mbo/container/experimental:frozen_require_exceptions_test \
             //mbo/json:json_require_exceptions_test \
             //mbo/memory:arena_exceptions_test \
             --combined_report=lcov \

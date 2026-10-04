@@ -234,6 +234,9 @@ jobs:
         # commands parseable by the matching hermetic clang-tidy.
         run: ./compile_commands-update.sh
 
+      - name: Verify frozen construction diagnostics and C++26 interface
+        run: python3 mbo/container/experimental/frozen_compile_test.py
+
       - uses: actions/upload-artifact@v7
         # Only from `main`, which is the run that lints the whole tree: that DB
         # is the one worth keeping, to reproduce a finding locally against the

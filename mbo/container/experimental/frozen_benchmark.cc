@@ -14,6 +14,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <version>
+
+#if defined(__APPLE__)
+# include <Availability.h>
+#endif
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -26,9 +31,56 @@
 #include "mbo/container/experimental/internal/frozen_benchmark_data.h"
 #include "mbo/container/limited_map.h"
 #include "mbo/container/limited_set.h"
+#include "mbo/hash/hash.h"
 
 namespace mbo::container::experimental {
 namespace {
+
+void AddFrozenBenchmarkContext(std::string_view experiment) {
+#if defined(__clang__)
+# if defined(__apple_build_version__)
+  benchmark::AddCustomContext("compiler_name", "Apple Clang");
+# else
+  benchmark::AddCustomContext("compiler_name", "Clang");
+# endif
+  benchmark::AddCustomContext("compiler", std::string("clang-") + std::to_string(__clang_major__));
+  benchmark::AddCustomContext(
+      "compiler_version", std::to_string(__clang_major__) + "." + std::to_string(__clang_minor__) + "."
+                              + std::to_string(__clang_patchlevel__));
+  benchmark::AddCustomContext("compiler_version_extra", __clang_version__);
+# if defined(__apple_build_version__)
+  benchmark::AddCustomContext("compiler_build_version", std::to_string(__apple_build_version__));
+# endif
+#elif defined(__GNUC__)
+  benchmark::AddCustomContext("compiler_name", "GCC");
+  benchmark::AddCustomContext("compiler", std::string("gcc-") + std::to_string(__GNUC__));
+  benchmark::AddCustomContext(
+      "compiler_version",
+      std::to_string(__GNUC__) + "." + std::to_string(__GNUC_MINOR__) + "." + std::to_string(__GNUC_PATCHLEVEL__));
+  benchmark::AddCustomContext("compiler_version_extra", __VERSION__);
+#endif
+
+  benchmark::AddCustomContext("cxx_standard_requested", "c++23");
+  benchmark::AddCustomContext("cplusplus", std::to_string(__cplusplus));
+#if defined(_LIBCPP_VERSION)
+  benchmark::AddCustomContext("standard_library", "libc++");
+  benchmark::AddCustomContext("standard_library_version", std::to_string(_LIBCPP_VERSION));
+#elif defined(__GLIBCXX__)
+  benchmark::AddCustomContext("standard_library", "libstdc++");
+  benchmark::AddCustomContext("standard_library_version", std::to_string(__GLIBCXX__));
+# if defined(_GLIBCXX_RELEASE)
+  benchmark::AddCustomContext("standard_library_release", std::to_string(_GLIBCXX_RELEASE));
+# endif
+#endif
+
+#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+  benchmark::AddCustomContext("macos_deployment_target", std::to_string(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__));
+#endif
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
+  benchmark::AddCustomContext("macos_sdk_maximum", std::to_string(__MAC_OS_X_VERSION_MAX_ALLOWED));
+#endif
+  benchmark::AddCustomContext("experiment", std::string(experiment));
+}
 
 enum class Layout {
   kLinear,
@@ -38,14 +90,14 @@ enum class Layout {
   kStdUnordered,
   kAbslFlat,
   kAbslNode,
-  kStdFrozenHash,
-  kAbslFlatFrozenHash,
-  kAbslNodeFrozenHash
+  kStdCustomHash,
+  kAbslFlatCustomHash,
+  kAbslNodeCustomHash
 };
 enum class Workload { kHit, kMiss, kMixed };
 enum class Operation { kFind, kContains, kCount, kEqualRange, kAt };
 
-template<typename Key, bool Map, Layout Kind>
+template<typename Key, bool Map, Layout Kind, typename Hash>
 auto EmptyDynamicTable() {
   if constexpr (Kind == Layout::kStdUnordered) {
     return std::conditional_t<Map, std::unordered_map<Key, int>, std::unordered_set<Key>>{};
@@ -53,20 +105,17 @@ auto EmptyDynamicTable() {
     return std::conditional_t<Map, absl::flat_hash_map<Key, int>, absl::flat_hash_set<Key>>{};
   } else if constexpr (Kind == Layout::kAbslNode) {
     return std::conditional_t<Map, absl::node_hash_map<Key, int>, absl::node_hash_set<Key>>{};
-  } else if constexpr (Kind == Layout::kStdFrozenHash) {
-    return std::conditional_t<
-        Map, std::unordered_map<Key, int, FrozenHash<Key>>, std::unordered_set<Key, FrozenHash<Key>>>{};
-  } else if constexpr (Kind == Layout::kAbslFlatFrozenHash) {
-    return std::conditional_t<
-        Map, absl::flat_hash_map<Key, int, FrozenHash<Key>>, absl::flat_hash_set<Key, FrozenHash<Key>>>{};
+  } else if constexpr (Kind == Layout::kStdCustomHash) {
+    return std::conditional_t<Map, std::unordered_map<Key, int, Hash>, std::unordered_set<Key, Hash>>{};
+  } else if constexpr (Kind == Layout::kAbslFlatCustomHash) {
+    return std::conditional_t<Map, absl::flat_hash_map<Key, int, Hash>, absl::flat_hash_set<Key, Hash>>{};
   } else {
-    static_assert(Kind == Layout::kAbslNodeFrozenHash);
-    return std::conditional_t<
-        Map, absl::node_hash_map<Key, int, FrozenHash<Key>>, absl::node_hash_set<Key, FrozenHash<Key>>>{};
+    static_assert(Kind == Layout::kAbslNodeCustomHash);
+    return std::conditional_t<Map, absl::node_hash_map<Key, int, Hash>, absl::node_hash_set<Key, Hash>>{};
   }
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, typename Hash = FrozenHash<Key>>
 constexpr auto MakeTable() {
   using Fixture = frozen_internal::BenchmarkData<Size>;
   if constexpr (Kind == Layout::kLinear) {
@@ -86,12 +135,12 @@ constexpr auto MakeTable() {
   } else if constexpr (Kind == Layout::kMinimal || Kind == Layout::kSparse) {
     constexpr FrozenOptions kOptions{.capacity = Size, .slots = Kind == Layout::kMinimal ? Size : Size * 2};
     if constexpr (Map) {
-      return FrozenMap<Key, int, kOptions>(Fixture::template Pairs<Key>());
+      return FrozenMap<Key, int, kOptions, Hash>(Fixture::template Pairs<Key>());
     } else {
-      return FrozenSet<Key, kOptions>(Fixture::template Keys<Key>());
+      return FrozenSet<Key, kOptions, Hash>(Fixture::template Keys<Key>());
     }
   } else {
-    auto table = EmptyDynamicTable<Key, Map, Kind>();
+    auto table = EmptyDynamicTable<Key, Map, Kind, Hash>();
     table.reserve(Size);
     if constexpr (Map) {
       const auto entries = Fixture::template Pairs<Key>();
@@ -104,15 +153,15 @@ constexpr auto MakeTable() {
   }
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, typename Hash = FrozenHash<Key>>
 const auto& GetTable() {
   if constexpr (
       Kind != Layout::kLinear && Kind != Layout::kLimited && Kind != Layout::kMinimal && Kind != Layout::kSparse) {
     // Static runtime setup is shared by all read operations and happens before the timed loop.
-    static const auto kTable = MakeTable<Key, Size, Map, Kind>();
+    static const auto kTable = MakeTable<Key, Size, Map, Kind, Hash>();
     return kTable;
   } else {
-    static constexpr auto kTable = MakeTable<Key, Size, Map, Kind>();
+    static constexpr auto kTable = MakeTable<Key, Size, Map, Kind, Hash>();
     return kTable;
   }
 }
@@ -237,9 +286,9 @@ void Counters(benchmark::State& state, const Table& table) {
   }
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op, typename Hash = FrozenHash<Key>>
 void Read(benchmark::State& state, Workload workload) {
-  const auto* table = &GetTable<Key, Size, Map, Kind>();
+  const auto* table = &GetTable<Key, Size, Map, Kind, Hash>();
   if (!ValidateTable<Key, Size, Map>(*table)) {
     state.SkipWithError("Invalid read benchmark fixture");
     return;
@@ -277,9 +326,9 @@ void Read(benchmark::State& state, Workload workload) {
   Counters(state, *table);
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, typename Hash = FrozenHash<Key>>
 void Iterate(benchmark::State& state) {
-  const auto* table = &GetTable<Key, Size, Map, Kind>();
+  const auto* table = &GetTable<Key, Size, Map, Kind, Hash>();
   if (!ValidateTable<Key, Size, Map>(*table)) {
     state.SkipWithError("Invalid iteration benchmark fixture");
     return;
@@ -304,28 +353,28 @@ void Iterate(benchmark::State& state) {
   Counters(state, *table);
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op, typename Hash = FrozenHash<Key>>
 void RegisterRead(const std::string& prefix, std::string_view operation) {
   const auto name = prefix + "/" + std::string(operation);
-  benchmark::RegisterBenchmark(name + "/hit", Read<Key, Size, Map, Kind, Op>, Workload::kHit);
+  benchmark::RegisterBenchmark(name + "/hit", Read<Key, Size, Map, Kind, Op, Hash>, Workload::kHit);
   if constexpr (Op != Operation::kAt) {
-    benchmark::RegisterBenchmark(name + "/miss", Read<Key, Size, Map, Kind, Op>, Workload::kMiss);
-    benchmark::RegisterBenchmark(name + "/mixed", Read<Key, Size, Map, Kind, Op>, Workload::kMixed);
+    benchmark::RegisterBenchmark(name + "/miss", Read<Key, Size, Map, Kind, Op, Hash>, Workload::kMiss);
+    benchmark::RegisterBenchmark(name + "/mixed", Read<Key, Size, Map, Kind, Op, Hash>, Workload::kMixed);
   }
 }
 
-template<typename Key, std::size_t Size, bool Map, Layout Kind>
+template<typename Key, std::size_t Size, bool Map, Layout Kind, typename Hash = FrozenHash<Key>>
 void RegisterLayout(std::string_view key_name, std::string_view layout_name) {
   const std::string prefix = std::string(Map ? "Map/" : "Set/") + std::string(key_name) + "/" + std::to_string(Size)
                              + "/" + std::string(layout_name);
-  RegisterRead<Key, Size, Map, Kind, Operation::kFind>(prefix, "find");
-  RegisterRead<Key, Size, Map, Kind, Operation::kContains>(prefix, "contains");
-  RegisterRead<Key, Size, Map, Kind, Operation::kCount>(prefix, "count");
-  RegisterRead<Key, Size, Map, Kind, Operation::kEqualRange>(prefix, "equal_range");
+  RegisterRead<Key, Size, Map, Kind, Operation::kFind, Hash>(prefix, "find");
+  RegisterRead<Key, Size, Map, Kind, Operation::kContains, Hash>(prefix, "contains");
+  RegisterRead<Key, Size, Map, Kind, Operation::kCount, Hash>(prefix, "count");
+  RegisterRead<Key, Size, Map, Kind, Operation::kEqualRange, Hash>(prefix, "equal_range");
   if constexpr (Map) {
-    RegisterRead<Key, Size, Map, Kind, Operation::kAt>(prefix, "at");
+    RegisterRead<Key, Size, Map, Kind, Operation::kAt, Hash>(prefix, "at");
   }
-  benchmark::RegisterBenchmark(prefix + "/iterate", Iterate<Key, Size, Map, Kind>);
+  benchmark::RegisterBenchmark(prefix + "/iterate", Iterate<Key, Size, Map, Kind, Hash>);
 }
 
 template<typename Key, std::size_t Size, bool Map>
@@ -362,18 +411,18 @@ void HashOnly(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations());
 }
 
-template<typename Key, bool Map>
-void RegisterSameHash(std::string_view key_name) {
+template<typename Key, bool Map, typename Hash = FrozenHash<Key>>
+void RegisterSameHash(std::string_view key_name, std::string_view hash_name = "frozen_hash") {
   const auto prefix = std::string("Diagnostic/") + (Map ? "Map/" : "Set/") + std::string(key_name) + "/64/";
   benchmark::RegisterBenchmark(
-      prefix + "std_frozen_hash/find/mixed", Read<Key, 64, Map, Layout::kStdFrozenHash, Operation::kFind>,
-      Workload::kMixed);
+      prefix + "std_" + std::string(hash_name) + "/find/mixed",
+      Read<Key, 64, Map, Layout::kStdCustomHash, Operation::kFind, Hash>, Workload::kMixed);
   benchmark::RegisterBenchmark(
-      prefix + "absl_flat_frozen_hash/find/mixed", Read<Key, 64, Map, Layout::kAbslFlatFrozenHash, Operation::kFind>,
-      Workload::kMixed);
+      prefix + "absl_flat_" + std::string(hash_name) + "/find/mixed",
+      Read<Key, 64, Map, Layout::kAbslFlatCustomHash, Operation::kFind, Hash>, Workload::kMixed);
   benchmark::RegisterBenchmark(
-      prefix + "absl_node_frozen_hash/find/mixed", Read<Key, 64, Map, Layout::kAbslNodeFrozenHash, Operation::kFind>,
-      Workload::kMixed);
+      prefix + "absl_node_" + std::string(hash_name) + "/find/mixed",
+      Read<Key, 64, Map, Layout::kAbslNodeCustomHash, Operation::kFind, Hash>, Workload::kMixed);
 }
 
 template<typename Key>
@@ -386,6 +435,29 @@ void RegisterHashDiagnostics(std::string_view key_name) {
   RegisterSameHash<Key, true>(key_name);
 }
 
+template<typename Hash, std::size_t Size, bool Map>
+void RegisterMboHashShape(std::string_view name) {
+  RegisterLayout<std::string_view, Size, Map, Layout::kMinimal, Hash>("string", "minimal_" + std::string(name));
+  RegisterLayout<std::string_view, Size, Map, Layout::kSparse, Hash>("string", "sparse_" + std::string(name));
+}
+
+template<typename Hash, std::size_t Size>
+void RegisterMboHashSize(std::string_view name) {
+  RegisterMboHashShape<Hash, Size, false>(name);
+  RegisterMboHashShape<Hash, Size, true>(name);
+}
+
+template<typename Algorithm>
+void RegisterMboHash(std::string_view name) {
+  using Hash = mbo::hash::Hasher<Algorithm>;
+  RegisterMboHashSize<Hash, 8>(name);
+  RegisterMboHashSize<Hash, 64>(name);
+  RegisterMboHashSize<Hash, 256>(name);
+  benchmark::RegisterBenchmark("Hash/string/" + std::string(name), HashOnly<std::string_view, Hash>);
+  RegisterSameHash<std::string_view, false, Hash>("string", name);
+  RegisterSameHash<std::string_view, true, Hash>("string", name);
+}
+
 }  // namespace
 }  // namespace mbo::container::experimental
 
@@ -394,15 +466,21 @@ int main(int argc, char** argv) {
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }
+  mbo::container::experimental::AddFrozenBenchmarkContext("frozen-mbo-hashes-v1");
   mbo::container::experimental::RegisterSize<8>();
   mbo::container::experimental::RegisterSize<64>();
   mbo::container::experimental::RegisterSize<256>();
   mbo::container::experimental::RegisterHashDiagnostics<int>("int");
   mbo::container::experimental::RegisterHashDiagnostics<std::string_view>("string");
+  mbo::container::experimental::RegisterMboHash<mbo::hash::mumbo::Algorithm>("mumbo");
+  mbo::container::experimental::RegisterMboHash<mbo::hash::fambo::Algorithm>("fambo");
+  mbo::container::experimental::RegisterMboHash<mbo::hash::dumbo::Algorithm>("dumbo");
   benchmark::AddCustomContext(
       "setup", "constexpr inline tables; reserve(size) and insert for STL/Abseil, outside timing");
-  benchmark::AddCustomContext("hashes", "each container's default hasher and load-factor policy");
-  benchmark::AddCustomContext("diagnostics", "Hash isolates hash calls; Diagnostic gives STL/Abseil FrozenHash");
+  benchmark::AddCustomContext(
+      "hashes", "native defaults unless named: FrozenHash, mumbo, fambo, dumbo; native load-factor policy");
+  benchmark::AddCustomContext(
+      "diagnostics", "Hash isolates hash calls; Diagnostic supplies the named hash to STL/Abseil");
   benchmark::AddCustomContext("queries", "cyclic warm corpus; alternating hit/miss for mixed; 10-byte string views");
   benchmark::AddCustomContext("object_bytes", "sizeof(container), excludes dynamic allocations and borrowed key bytes");
   benchmark::RunSpecifiedBenchmarks();

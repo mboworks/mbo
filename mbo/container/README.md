@@ -65,10 +65,11 @@ index builder. See their guide for the read-only C++26 interface, construction l
 minimal/sparse layouts, and benchmark commands.
 
 **Read performance:** the [measured comparison and hash diagnosis](experimental/FROZEN.md#measured-read-performance)
-cover STL unordered and Abseil flat/node maps and sets. In the initial Apple M5 Pro
-64-string-key fixture, sparse FrozenMap mixed lookup took 10.73 ns versus 5.11 ns for
-Abseil flat; inline iteration was faster. The guide retains the complete results and
-explains the default string hash's cost.
+cover STL unordered and Abseil flat/node maps and sets, including constexpr `mumbo`,
+`fambo`, and `dumbo` alternatives. In the nine-repetition Apple M5 Pro 64-string-key
+fixture, sparse FrozenMap mixed lookup took 5.97 ns with fambo versus 11.16 ns with its
+current default hash; native STL/Abseil maps took 5.81 to 6.44 ns. The guide retains the
+complete results, matching-hasher controls, and comparisons at 8/64/256 entries.
 
 ## Limited containers
 

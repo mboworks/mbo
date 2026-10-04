@@ -22,6 +22,32 @@ def raw_repetitions(name="Map/string/64/sparse/iterate"):
 
 
 class FrozenReadReportTest(unittest.TestCase):
+    def test_mbo_published_results_match_raw_measurements(self):
+        summaries = report.read_mbo_data(report.MBO_DATA)
+        self.assertEqual((report.MBO_DATA / "summary.csv").read_text(), report.csv_text(summaries))
+        guide = report.GUIDE.read_text()
+        blocks = (("MBO READ RESULTS", report.read_table(summaries, report.MBO_LAYOUTS)),
+                  ("MBO HASH RESULTS", report.mbo_hash_tables(summaries)),
+                  ("MBO SIZE RESULTS", report.mbo_size_table(summaries)))
+        for label, table in blocks:
+            with self.subTest(label=label):
+                self.assertEqual(guide, report.replace_block(guide, label, table))
+
+    def test_mbo_artifact_checks_provenance_and_integrity(self):
+        metadata = json.loads((report.MBO_DATA / "provenance.json").read_text())
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / metadata["artifact"]).write_bytes((report.MBO_DATA / metadata["artifact"]).read_bytes())
+            for field, value, message in (
+                    ("source_commit", "0" * 40, "source commit mismatch"),
+                    ("compressed_sha256", "0" * 64, "compressed_sha256 mismatch"),
+                    ("artifact_sha256", "0" * 64, "artifact_sha256 mismatch"),
+                    ("cases", 1, "unexpected case count")):
+                with self.subTest(field=field):
+                    (directory / "provenance.json").write_text(json.dumps(dict(metadata, **{field: value})))
+                    with self.assertRaisesRegex(ValueError, message):
+                        report.read_mbo_data(directory)
+
     def test_csv_is_stable_across_last_bit_rounding(self):
         summaries = report.summarize(raw_repetitions(), 3)
         expected = report.csv_text(summaries)

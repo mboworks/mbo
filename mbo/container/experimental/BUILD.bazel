@@ -51,6 +51,7 @@ cc_library(
     name = "frozen_options_cc",
     hdrs = ["frozen_options.h"],
     visibility = ["//visibility:public"],
+    deps = ["//mbo/hash:hash_cc"],
 )
 
 cc_library(

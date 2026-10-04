@@ -68,8 +68,9 @@ minimal/sparse layouts, and benchmark commands.
 cover STL unordered and Abseil flat/node maps and sets, including constexpr `mumbo`,
 `fambo`, and `dumbo` alternatives. In the nine-repetition Apple M5 Pro 64-string-key
 fixture, sparse FrozenMap mixed lookup took 5.97 ns with fambo versus 11.16 ns with its
-current default hash; native STL/Abseil maps took 5.81 to 6.44 ns. The guide retains the
-complete results, matching-hasher controls, and comparisons at 8/64/256 entries.
+former FNV-based default; native STL/Abseil maps took 5.81 to 6.44 ns. The guide retains the
+complete results, matching-hasher controls, and comparisons at 8/64/256 entries. String-view
+keys now use fambo by default; no custom hasher argument is needed.
 
 ## Limited containers
 

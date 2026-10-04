@@ -466,7 +466,7 @@ int main(int argc, char** argv) {
   if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
     return 1;
   }
-  mbo::container::experimental::AddFrozenBenchmarkContext("frozen-mbo-hashes-v1");
+  mbo::container::experimental::AddFrozenBenchmarkContext("frozen-fambo-default-v1");
   mbo::container::experimental::RegisterSize<8>();
   mbo::container::experimental::RegisterSize<64>();
   mbo::container::experimental::RegisterSize<256>();
@@ -479,6 +479,7 @@ int main(int argc, char** argv) {
       "setup", "constexpr inline tables; reserve(size) and insert for STL/Abseil, outside timing");
   benchmark::AddCustomContext(
       "hashes", "native defaults unless named: FrozenHash, mumbo, fambo, dumbo; native load-factor policy");
+  benchmark::AddCustomContext("frozen_default", "fambo with seed 5381 for string views; integer hashing unchanged");
   benchmark::AddCustomContext(
       "diagnostics", "Hash isolates hash calls; Diagnostic supplies the named hash to STL/Abseil");
   benchmark::AddCustomContext("queries", "cyclic warm corpus; alternating hit/miss for mixed; 10-byte string views");

@@ -36,7 +36,7 @@ using ::testing::UnorderedElementsAre;
 using namespace std::string_view_literals;
 
 struct FrozenTest : ::testing::Test {
-  template<typename Hash>
+  template<typename Hash, typename ReferenceHash = Hash>
   static void CheckMboHash() {
     static constexpr auto kBytes = [] {
       std::array<char, 256> bytes{};
@@ -65,7 +65,7 @@ struct FrozenTest : ::testing::Test {
     static constexpr auto kHashes = [] {
       std::array<std::uint64_t, kLengths.size()> hashes{};
       for (std::size_t index = 0; index < hashes.size(); ++index) {
-        hashes.at(index) = Hash{}(kStringKeys.at(index));
+        hashes.at(index) = ReferenceHash{}(kStringKeys.at(index));
       }
       return hashes;
     }();
@@ -119,6 +119,13 @@ static_assert(!std::is_assignable_v<decltype((kMap.begin()->second)), int>);
 static_assert(!std::is_assignable_v<decltype(*kSet.begin()), std::string_view>);
 static_assert(!std::is_copy_assignable_v<decltype(kSet)>);
 static_assert(std::same_as<decltype(kMap)::value_type, std::pair<const std::string_view, int>>);
+
+TEST_F(FrozenTest, DefaultStringHashUsesFambo) {
+  using MapHash = decltype(kMap)::hasher;
+  using SetHash = decltype(kSet)::hasher;
+  static_assert(std::same_as<MapHash, SetHash>);
+  CheckMboHash<MapHash, mbo::hash::Hasher<mbo::hash::fambo::Algorithm>>();
+}
 
 TEST_F(FrozenTest, EmptyTablesAndZeroCapacity) {
   static constexpr FrozenMap<int, int, 0> kEmptyMap;

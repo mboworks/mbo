@@ -22,6 +22,14 @@ def raw_repetitions(name="Map/string/64/sparse/iterate"):
 
 
 class FrozenReadReportTest(unittest.TestCase):
+    def test_default_verification_matches_raw_measurements(self):
+        summaries = report.read_mbo_data(report.DEFAULT_DATA, "frozen-fambo-default-v1")
+        self.assertEqual((report.DEFAULT_DATA / "summary.csv").read_text(), report.csv_text(summaries))
+        guide = report.GUIDE.read_text()
+        self.assertEqual(guide, report.replace_block(guide, "DEFAULT HASH RESULTS", report.default_hash_table(summaries)))
+        with self.assertRaisesRegex(ValueError, "unexpected experiment"):
+            report.read_mbo_data(report.DEFAULT_DATA)
+
     def test_mbo_published_results_match_raw_measurements(self):
         summaries = report.read_mbo_data(report.MBO_DATA)
         self.assertEqual((report.MBO_DATA / "summary.csv").read_text(), report.csv_text(summaries))

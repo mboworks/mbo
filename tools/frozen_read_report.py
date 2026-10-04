@@ -89,7 +89,11 @@ def csv_text(summaries):
     writer = csv.DictWriter(output, fieldnames=fields, lineterminator="\n")
     writer.writeheader()
     for name, values in summaries.items():
-        writer.writerow({"name": name, **values})
+        # Different Python/libm versions can differ in the last bit of stdev. Keep
+        # reproducible summaries at nine significant digits; raw JSON retains full precision.
+        formatted = {key: format(value, ".9g") if isinstance(value, float) else value
+                     for key, value in values.items()}
+        writer.writerow({"name": name, **formatted})
     return output.getvalue()
 
 

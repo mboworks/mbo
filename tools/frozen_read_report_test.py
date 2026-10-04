@@ -5,6 +5,7 @@
 import gzip
 import hashlib
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -21,6 +22,13 @@ def raw_repetitions(name="Map/string/64/sparse/iterate"):
 
 
 class FrozenReadReportTest(unittest.TestCase):
+    def test_csv_is_stable_across_last_bit_rounding(self):
+        summaries = report.summarize(raw_repetitions(), 3)
+        expected = report.csv_text(summaries)
+        summary = next(iter(summaries.values()))
+        summary["cpu_cv"] = math.nextafter(summary["cpu_cv"], math.inf)
+        self.assertEqual(report.csv_text(summaries), expected)
+
     def test_units_and_iteration_normalization(self):
         raw = raw_repetitions()
         raw["benchmarks"].append({"run_type": "aggregate", "cpu_time": 999})

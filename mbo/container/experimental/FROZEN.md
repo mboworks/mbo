@@ -89,7 +89,8 @@ provenance: [read study](measurements/2026-10-04-apple-m5-pro/read-source.patch)
 [hash investigation](measurements/2026-10-04-apple-m5-pro/hash-source.patch). Apply either
 patch independently to reconstruct its measured, then-uncommitted source. Regenerate both
 tables and CSV summaries from the checked raw data with
-`python3 tools/frozen_read_report.py`.
+`python3 tools/frozen_read_report.py`. CSV statistics use nine significant digits for
+reproducibility across Python versions; the raw JSON retains the original precision.
 
 ## Quick start
 

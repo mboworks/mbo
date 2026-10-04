@@ -137,6 +137,10 @@ cc_binary(
         ":frozen_set_cc",
         "//mbo/container:limited_map_cc",
         "//mbo/container:limited_set_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/container:node_hash_set",
         "@com_github_google_benchmark//:benchmark",
     ],
 )

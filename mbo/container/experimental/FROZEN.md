@@ -9,6 +9,127 @@ baseline, and compile in C++26 mode. Their experimental API may change between r
 
 ## Measured read performance
 
+The follow-up comparison uses MBO's existing constexpr **mumbo, fambo, and dumbo** hash
+functors directly in FrozenMap/FrozenSet. All three use `mbo::hash::Hasher<Algorithm>`
+with seed 5,381. The production default remains `FrozenHash`; the rows below explicitly
+select each alternative.
+
+**Fambo largely closes the lookup gap in this fixture.** At 64 keys, sparse FrozenMap
+mixed lookup takes 5.97 ns with fambo versus 11.16 ns with FrozenHash: 47% less time,
+or 1.87 times the throughput. Native STL/Abseil maps take 5.81 to 6.44 ns in the same run.
+Mumbo is fastest among the tested sparse Frozen hashes at 8 entries; fambo leads at 64
+and 256. These results favor fambo for this corpus, not a universal default choice.
+
+Apple M5 Pro, macOS arm64, Clang 22.1.8/libc++, `-c opt --config=clang --config=opt_apple_m5`,
+2026-10-04. All values below are median CPU times from **nine repetitions in the same
+process**; lower is better. The first table uses 64 borrowed 10-byte string keys, with
+mixed queries alternating hits and misses. Map `at` measures successful queries only;
+compare it with `find/hit` in the CSV when assessing its additional cost.
+
+<!-- BEGIN FROZEN MBO READ RESULTS -->
+
+| Container                  | Map `find` mixed (ns/query) | Set `find` mixed (ns/query) | Map `at` hit (ns/query) | Map iteration (ns/element) |
+| -------------------------- | --------------------------: | --------------------------: | ----------------------: | -------------------------: |
+| Frozen sparse / FrozenHash |                       11.16 |                       11.70 |                   19.88 |                       0.56 |
+| Frozen sparse / mumbo      |                        6.56 |                        6.61 |                   10.60 |                       0.46 |
+| Frozen sparse / fambo      |                        5.97 |                        6.18 |                   10.18 |                       0.46 |
+| Frozen sparse / dumbo      |                        6.91 |                        7.13 |                   11.08 |                       0.46 |
+| STL unordered / default    |                        6.14 |                        6.04 |                    7.41 |                       1.01 |
+| Abseil flat / default      |                        6.44 |                        6.07 |                    6.65 |                       0.69 |
+| Abseil node / default      |                        5.81 |                        6.66 |                    6.85 |                       0.73 |
+
+<!-- END FROZEN MBO READ RESULTS -->
+
+Checked `at` still has a cost worth investigating: with fambo it takes 10.18 ns versus
+7.67 ns for FrozenMap `find/hit`; native STL/Abseil `at` takes 6.65 to 7.41 ns. Hashing
+improvements do not explain every difference. Iteration does not hash keys; differences
+between its Frozen rows reflect other factors such as generated code and measurement variation.
+
+### Hash cost and matching-hasher controls
+
+<!-- BEGIN FROZEN MBO HASH RESULTS -->
+
+| Hash alone, 10-byte string | ns/key |
+| -------------------------- | -----: |
+| FrozenHash (FNV-1a + mix)  |   4.61 |
+| mumbo                      |   2.10 |
+| fambo                      |   1.75 |
+| dumbo                      |   2.37 |
+| libc++ default             |   1.57 |
+| Abseil default             |   1.40 |
+
+All containers below receive the **same named hasher**: mixed map lookup, 64 string keys, ns/query.
+
+| Supplied hash | Frozen minimal | Frozen sparse | STL unordered | Abseil flat | Abseil node |
+| ------------- | -------------: | ------------: | ------------: | ----------: | ----------: |
+| FrozenHash    |          13.68 |         11.16 |         12.16 |       11.56 |       11.65 |
+| mumbo         |           7.84 |          6.56 |          6.50 |        7.80 |        7.62 |
+| fambo         |           6.40 |          5.97 |          5.91 |        6.35 |        6.19 |
+| dumbo         |           7.19 |          6.91 |          7.04 |        8.21 |        7.52 |
+
+<!-- END FROZEN MBO HASH RESULTS -->
+
+### Lookup across table sizes
+
+Mixed string lookup in ns/query; the column number is the number of stored elements.
+
+<!-- BEGIN FROZEN MBO SIZE RESULTS -->
+
+| Container                  | Map 8 | Map 64 | Map 256 | Set 8 | Set 64 | Set 256 |
+| -------------------------- | ----: | -----: | ------: | ----: | -----: | ------: |
+| Frozen sparse / FrozenHash | 10.29 |  11.16 |   18.31 | 10.62 |  11.70 |   14.86 |
+| Frozen sparse / mumbo      |  5.64 |   6.56 |    6.60 |  5.63 |   6.61 |    7.17 |
+| Frozen sparse / fambo      |  5.98 |   5.97 |    6.12 |  6.09 |   6.18 |    6.32 |
+| Frozen sparse / dumbo      |  6.78 |   6.91 |    6.92 |  6.72 |   7.13 |    7.06 |
+| STL unordered / default    |  5.96 |   6.14 |    6.58 |  5.87 |   6.04 |    6.44 |
+| Abseil flat / default      |  7.09 |   6.44 |    6.40 |  6.31 |   6.07 |    6.46 |
+| Abseil node / default      |  6.64 |   5.81 |    6.43 |  5.91 |   6.66 |    5.88 |
+
+<!-- END FROZEN MBO SIZE RESULTS -->
+
+The run includes **1,083 cases and 9,747 samples**: all string read operations for linear,
+Limited, native STL/Abseil, and eight Frozen layout/hash combinations at 8/64/256 entries,
+plus hash-only and matching-hasher controls. The complete results also include the minimal
+layouts, `contains`, `count`, `equal_range`, hit-only and miss-only queries, set iteration,
+bucket counts, and construction work.
+
+Twelve of the 1,083 cases have a CPU-time coefficient of variation above 10%; every cell
+in the first table is below 5.3%. Closely spaced timings should not be treated as a
+stable ranking across runs.
+
+Download the [complete CSV](measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv),
+[raw benchmark artifact](measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz), and
+[checksums and build command](measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json).
+The artifact identifies the clean, committed source, compiler/library, host, controls, and
+all raw repetitions. `python3 tools/frozen_read_report.py` regenerates the guide tables
+and CSV summaries and checks the retained artifact's integrity.
+
+This is one warm, cyclic, fixed-length corpus on one host, with one Abseil process seed.
+The run uses 0.03s minimum time, 0.01s warmup, and randomized benchmark-case order; query
+order is unchanged. Thread affinity and CPU-frequency metadata are unavailable on this
+host. These measurements exclude construction timing and dynamic-allocation totals.
+Changing a hash changes placement and may trigger a container's additional mixing; the
+controls compare complete containers, not isolated index instructions. They do not establish
+which hash wins for long strings, cold tables, other machines, or application workloads.
+
+Reproduce the string study from its recorded source commit:
+
+```sh
+bazel build -c opt --config=clang --config=opt_apple_m5 \
+  //mbo/container/experimental:frozen_benchmark
+python3 tools/benchmark_artifact.py run \
+  --component frozen-mbo-hashes \
+  --target //mbo/container/experimental:frozen_benchmark \
+  --output /tmp/frozen-mbo-hashes.json \
+  --config clang --config opt_apple_m5 \
+  --repetitions 9 --minimum-time 0.03s --warmup-time 0.01 -- \
+  bazel-bin/mbo/container/experimental/frozen_benchmark \
+  '--benchmark_filter=^(Hash/string/|(Map|Set)/string/|Diagnostic/(Map|Set)/string/)' \
+  --benchmark_context=build_config=opt_clang_opt_apple_m5
+```
+
+## Original FrozenHash study
+
 **The current default string hash makes Frozen lookup slower than STL and Abseil in this
 fixture.** Frozen's inline iteration is faster here. Constexpr construction and perfect
 placement alone do not guarantee fast reads.
@@ -87,7 +208,7 @@ between the broad study and this diagnostic run; compare values within each run.
 The retained source snapshots are patches against the base commit recorded in the
 provenance: [read study](measurements/2026-10-04-apple-m5-pro/read-source.patch) and
 [hash investigation](measurements/2026-10-04-apple-m5-pro/hash-source.patch). Apply either
-patch independently to reconstruct its measured, then-uncommitted source. Regenerate both
+patch independently to reconstruct its measured, then-uncommitted source. Regenerate the guide
 tables and CSV summaries from the checked raw data with
 `python3 tools/frozen_read_report.py`. CSV statistics use nine significant digits for
 reproducibility across Python versions; the raw JSON retains the original precision.

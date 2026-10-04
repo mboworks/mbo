@@ -10,14 +10,17 @@ import gzip
 import hashlib
 import io
 import json
+import lzma
 import math
 from pathlib import Path
 import statistics
 
 import align_markdown_tables
+import benchmark_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro"
+MBO_DATA = ROOT / "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes"
 GUIDE = ROOT / "mbo/container/experimental/FROZEN.md"
 LAYOUTS = (
     ("linear", "Linear scan"), ("limited", "Limited"),
@@ -97,12 +100,12 @@ def csv_text(summaries):
     return output.getvalue()
 
 
-def read_table(summaries):
+def read_table(summaries, layouts=LAYOUTS):
     lines = [
         "| Container | Map `find` mixed (ns/query) | Set `find` mixed (ns/query) | Map `at` hit (ns/query) | Map iteration (ns/element) |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
-    for layout, label in LAYOUTS:
+    for layout, label in layouts:
         names = (f"Map/string/64/{layout}/find/mixed", f"Set/string/64/{layout}/find/mixed",
                  f"Map/string/64/{layout}/at/hit", f"Map/string/64/{layout}/iterate")
         values = [summaries[name]["median_cpu_ns"] for name in names[:3]]
@@ -132,6 +135,67 @@ def hash_tables(summaries):
     return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
 
 
+def read_mbo_data(directory):
+    metadata = json.loads((directory / "provenance.json").read_text())
+    compressed = (directory / metadata["artifact"]).read_bytes()
+    raw_bytes = lzma.decompress(compressed)
+    for data, field in ((compressed, "compressed_sha256"), (raw_bytes, "artifact_sha256")):
+        if hashlib.sha256(data).hexdigest() != metadata[field]:
+            raise ValueError(f"MBO hashes: {field} mismatch")
+    artifact = json.loads(raw_bytes)
+    benchmark_artifact.validate(artifact)
+    if artifact["google_benchmark"]["context"].get("experiment") != "frozen-mbo-hashes-v1":
+        raise ValueError("MBO hashes: unexpected experiment")
+    if artifact["git"]["commit"] != metadata["source_commit"]:
+        raise ValueError("MBO hashes: source commit mismatch")
+    summaries = summarize(artifact["google_benchmark"], artifact["controls"]["repetitions"])
+    if len(summaries) != metadata["cases"]:
+        raise ValueError("MBO hashes: unexpected case count")
+    return summaries
+
+
+MBO_LAYOUTS = (
+    ("sparse", "Frozen sparse / FrozenHash"),
+    ("sparse_mumbo", "Frozen sparse / mumbo"),
+    ("sparse_fambo", "Frozen sparse / fambo"),
+    ("sparse_dumbo", "Frozen sparse / dumbo"),
+    ("std_unordered", "STL unordered / default"),
+    ("absl_flat", "Abseil flat / default"),
+    ("absl_node", "Abseil node / default"),
+)
+
+
+def mbo_hash_tables(summaries):
+    lines = ["| Hash alone, 10-byte string | ns/key |", "| --- | ---: |"]
+    for name, label in (("frozen", "FrozenHash (FNV-1a + mix)"), ("mumbo", "mumbo"),
+                        ("fambo", "fambo"), ("dumbo", "dumbo"),
+                        ("std", "libc++ default"), ("absl", "Abseil default")):
+        value = summaries[f"Hash/string/{name}"]["median_cpu_ns"]
+        lines.append(f"| {label} | {value:.2f} |")
+    lines += ["", "All containers below receive the **same named hasher**: mixed map lookup, 64 string keys, ns/query.", "",
+              "| Supplied hash | Frozen minimal | Frozen sparse | STL unordered | Abseil flat | Abseil node |",
+              "| --- | ---: | ---: | ---: | ---: | ---: |"]
+    for suffix, label in (("", "FrozenHash"), ("_mumbo", "mumbo"), ("_fambo", "fambo"), ("_dumbo", "dumbo")):
+        algorithm = suffix.removeprefix("_") if suffix else "frozen_hash"
+        names = [f"Map/string/64/{layout}{suffix}/find/mixed" for layout in ("minimal", "sparse")]
+        names += [f"Diagnostic/Map/string/64/{layout}_{algorithm}/find/mixed"
+                  for layout in ("std", "absl_flat", "absl_node")]
+        values = [summaries[name]["median_cpu_ns"] for name in names]
+        lines.append(f"| {label} | " + " | ".join(f"{value:.2f}" for value in values) + " |")
+    return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
+
+
+def mbo_size_table(summaries):
+    lines = ["| Container | Map 8 | Map 64 | Map 256 | Set 8 | Set 64 | Set 256 |",
+             "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for layout, label in MBO_LAYOUTS:
+        names = [f"{kind}/string/{size}/{layout}/find/mixed"
+                 for kind in ("Map", "Set") for size in (8, 64, 256)]
+        values = [summaries[name]["median_cpu_ns"] for name in names]
+        lines.append(f"| {label} | " + " | ".join(f"{value:.2f}" for value in values) + " |")
+    return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
+
+
 def replace_block(text, label, content):
     begin = f"<!-- BEGIN FROZEN {label} -->"
     end = f"<!-- END FROZEN {label} -->"
@@ -145,14 +209,20 @@ def replace_block(text, label, content):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=DATA)
+    parser.add_argument("--mbo-data", type=Path, default=MBO_DATA)
     parser.add_argument("--guide", type=Path, default=GUIDE)
     args = parser.parse_args()
     reads = read_data(args.data, "reads")
     hashes = read_data(args.data, "hashes")
+    mbo_hashes = read_mbo_data(args.mbo_data)
+    (args.mbo_data / "summary.csv").write_text(csv_text(mbo_hashes))
     (args.data / "read-summary.csv").write_text(csv_text(reads))
     (args.data / "hash-summary.csv").write_text(csv_text(hashes))
     guide = replace_block(args.guide.read_text(), "READ RESULTS", read_table(reads))
-    args.guide.write_text(replace_block(guide, "HASH RESULTS", hash_tables(hashes)))
+    guide = replace_block(guide, "HASH RESULTS", hash_tables(hashes))
+    guide = replace_block(guide, "MBO READ RESULTS", read_table(mbo_hashes, MBO_LAYOUTS))
+    guide = replace_block(guide, "MBO HASH RESULTS", mbo_hash_tables(mbo_hashes))
+    args.guide.write_text(replace_block(guide, "MBO SIZE RESULTS", mbo_size_table(mbo_hashes)))
 
 
 if __name__ == "__main__":

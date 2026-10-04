@@ -1,0 +1,50 @@
+{
+  "description": "Initial local Frozen read study and separate hash-cost investigation; raw Google Benchmark output is authoritative.",
+  "cpu": "Apple M5 Pro",
+  "compiler": "Clang 22.1.8, macOS SDK libc++",
+  "base_commit": "bf65c21c495fc789feab79f4516d1ae7215cb292",
+  "source_dirty_at_measurement": true,
+  "source_reconstruction": "Apply the corresponding source patch to base_commit; each patch is an independent snapshot, not a stack.",
+  "build_command": "bazel build -c opt --config=clang --config=opt_apple_m5 //mbo/container/experimental:frozen_benchmark",
+  "aggregation": "Median CPU time of raw repetitions; iteration divided by element count only in per-element columns.",
+  "limitations": [
+    "Small warm tables; cyclic queries and 10-byte string views",
+    "Native container hashers and load-factor policies",
+    "Random benchmark order, not shuffled query order",
+    "Three read-study or five hash-study repetitions in one process; no independent Abseil hash-seed samples",
+    "Thread affinity unavailable on this host; CPU frequency metadata unavailable",
+    "object_bytes excludes heap allocations and borrowed key storage"
+  ],
+  "runs": {
+    "reads": {
+      "measured_at": "2026-10-04T18:08:25+01:00",
+      "raw": "read-raw.json.gz",
+      "raw_sha256": "f1679aacd2bcdecfe6c1d72612813f731acb8f0a30f7340f34cf0326eb8d2097",
+      "compressed_sha256": "d900b687e83c60af86ce4562141679d85ce15278ab80b2ee8a63f5fa75c01b9c",
+      "source_patch": "read-source.patch",
+      "source_patch_sha256": "b30879dec2037646ed49d60021f600db0ae7aa2c75f4f74dcc65880854d28111",
+      "repetitions": 3,
+      "minimum_time": "0.03s",
+      "random_interleaving": true,
+      "cases": 1134,
+      "samples": 3402,
+      "errors": 0,
+      "run_command": "bazel-bin/mbo/container/experimental/frozen_benchmark --benchmark_min_time=0.03s --benchmark_repetitions=3 --benchmark_enable_random_interleaving=true --benchmark_context=build_config=opt_clang_opt_apple_m5 --benchmark_out=/tmp/mbo-frozen-read-results.json --benchmark_out_format=json"
+    },
+    "hashes": {
+      "measured_at": "2026-10-04T18:20:50+01:00",
+      "raw": "hash-raw.json.gz",
+      "raw_sha256": "5f4025cd48381e66c400f7e1fb0908bcb29628be435ede5a3977279fd048bd62",
+      "compressed_sha256": "7dc0f9406f3eb0dc34562fb2c4d733890ed2b453c2b039dc236832425fce6d0e",
+      "source_patch": "hash-source.patch",
+      "source_patch_sha256": "4038df4990c57fa9f7bc7229519aae08aed83119f971a9e3b481ad7e7c8df7fc",
+      "repetitions": 5,
+      "minimum_time": "0.1s",
+      "random_interleaving": true,
+      "cases": 38,
+      "samples": 190,
+      "errors": 0,
+      "run_command": "bazel-bin/mbo/container/experimental/frozen_benchmark --benchmark_filter='^(Hash/|Diagnostic/|(Map|Set)/(int|string)/64/(minimal|sparse|std_unordered|absl_flat|absl_node)/find/mixed$)' --benchmark_min_time=0.1s --benchmark_repetitions=5 --benchmark_enable_random_interleaving=true --benchmark_context=build_config=opt_clang_opt_apple_m5 --benchmark_out=/tmp/mbo-frozen-hash-results.json --benchmark_out_format=json"
+    }
+  }
+}

@@ -7,6 +7,93 @@
 hash containers. They support both constexpr and runtime construction on MBO's C++23
 baseline, and compile in C++26 mode. Their experimental API may change between releases.
 
+## Measured read performance
+
+**The current default string hash makes Frozen lookup slower than STL and Abseil in this
+fixture.** Frozen's inline iteration is faster here. Constexpr construction and perfect
+placement alone do not guarantee fast reads.
+
+The table below uses 64 borrowed 10-byte string keys on an Apple M5 Pro, macOS arm64,
+Clang 22.1.8 with libc++, optimized with `--config=opt_apple_m5`. Values are median CPU
+times from three repetitions on 2026-10-04; lower is better. Mixed lookup alternates hits
+and misses. Each container uses its default hash and load-factor policy. These are small,
+warm tables with cyclic queries; the results do not predict arbitrary application workloads.
+
+<!-- BEGIN FROZEN READ RESULTS -->
+
+| Container      | Map `find` mixed (ns/query) | Set `find` mixed (ns/query) | Map `at` hit (ns/query) | Map iteration (ns/element) |
+| -------------- | --------------------------: | --------------------------: | ----------------------: | -------------------------: |
+| Linear scan    |                      146.68 |                      144.98 |                   99.45 |                       0.46 |
+| Limited        |                       27.92 |                       27.57 |                   27.48 |                       0.46 |
+| Frozen minimal |                       13.80 |                       14.40 |                   20.66 |                       0.47 |
+| Frozen sparse  |                       10.73 |                       11.30 |                   20.97 |                       0.56 |
+| STL unordered  |                        5.94 |                        6.21 |                    6.91 |                       1.01 |
+| Abseil flat    |                        5.11 |                        5.42 |                    5.92 |                       0.76 |
+| Abseil node    |                        5.78 |                        6.74 |                    6.84 |                       0.71 |
+
+<!-- END FROZEN READ RESULTS -->
+
+The full study includes **1,134 cases and 3,402 successful samples**: maps and sets,
+integer and string-view keys, 8/64/256 elements, and all read operations described below.
+Download the [complete CSV summary](measurements/2026-10-04-apple-m5-pro/read-summary.csv),
+[raw repetitions](measurements/2026-10-04-apple-m5-pro/read-raw.json.gz), and
+[commands and provenance](measurements/2026-10-04-apple-m5-pro/provenance.json).
+Seven cases had a CPU-time coefficient of variation above 10%; every cell shown above
+was below 6%. Three repetitions are an initial local comparison, not a cross-machine
+performance guarantee. Runtime construction and total allocated memory were not measured.
+
+### Why string lookup is slow
+
+`FrozenHash<std::string_view>` currently performs byte-by-byte FNV-1a followed by a final
+mix. Each byte depends on the previous multiply, making the string hash an expensive part
+of these short lookups. This is an implementation choice, not a requirement of constexpr
+construction or immutability. The perfect index still needs query hashing, dependent index
+loads, and candidate equality, even though stored keys occupy distinct slots.
+
+A separate diagnostic run measured hash calls alone and then supplied `FrozenHash` to
+STL and Abseil. The following medians come from five repetitions in that same process,
+with the same host, compiler, fixture, and build configuration:
+
+<!-- BEGIN FROZEN HASH RESULTS -->
+
+| Hash alone (ns/key) | `FrozenHash` | libc++ `std::hash` | Abseil default |
+| ------------------- | -----------: | -----------------: | -------------: |
+| 10-byte string view |         4.61 |               1.58 |           1.44 |
+| Integer             |         0.71 |               0.60 |           0.54 |
+
+| Map, 64 string keys | Default hasher (ns/query) | Supplied `FrozenHash` (ns/query) |
+| ------------------- | ------------------------: | -------------------------------: |
+| STL unordered       |                      5.98 |                            12.14 |
+| Abseil flat         |                      6.44 |                            11.42 |
+| Abseil node         |                      6.57 |                            11.46 |
+
+Sparse FrozenMap took **11.12 ns/query** with its default `FrozenHash` in this same run.
+
+<!-- END FROZEN HASH RESULTS -->
+
+Giving the other containers the same hash largely removes their lookup advantage in this
+fixture. This supports improving the default string hash as the first optimization target.
+It does not isolate every indexing cost: changing a hasher also changes table placement,
+and a container may apply additional mixing. Separate hash timings cannot simply be
+subtracted from whole lookups. The `at` and minimal-layout costs also merit investigation;
+these measurements do not attribute all read overhead to hashing.
+
+The diagnostic [CSV summary](measurements/2026-10-04-apple-m5-pro/hash-summary.csv) and
+[raw repetitions](measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz) include integers,
+sets, and both Frozen layouts too. There are 38 cases and 190 successful samples in this
+run. Abseil's process-dependent hash seed and ordinary timing variation can change values
+between the broad study and this diagnostic run; compare values within each run.
+
+The retained source snapshots are patches against the base commit recorded in the
+provenance: [read study](measurements/2026-10-04-apple-m5-pro/read-source.patch) and
+[hash investigation](measurements/2026-10-04-apple-m5-pro/hash-source.patch). Apply either
+patch independently to reconstruct its measured, then-uncommitted source. Regenerate both
+tables and CSV summaries from the checked raw data with
+`python3 tools/frozen_read_report.py`. CSV statistics use nine significant digits for
+reproducibility across Python versions; the raw JSON retains the original precision.
+
+## Quick start
+
 ```cpp
 #include <array>
 #include <string_view>
@@ -168,7 +255,8 @@ bazel build --config=clang-tidy //...
 python3 mbo/container/experimental/frozen_compile_test.py
 bazel run -c opt --config=clang //mbo/container/experimental:frozen_benchmark -- \
   --benchmark_min_time=0.1s --benchmark_repetitions=3 \
-  --benchmark_out=/tmp/frozen-lookup.json --benchmark_out_format=json
+  --benchmark_enable_random_interleaving=true \
+  --benchmark_out=/tmp/frozen-read.json --benchmark_out_format=json
 python3 mbo/container/experimental/frozen_measure.py --output /tmp/frozen-measure
 ```
 
@@ -180,10 +268,48 @@ Ordinary tests cover byte strings, non-default-constructible types, all lookup o
 transparent overload participation, minimal/sparse tables, aliases, independent vocabularies,
 slot uniqueness, runtime/constexpr equivalence, and copies.
 
-The lookup benchmark compares maps and sets, integer and string-view keys, 8/64/256 elements,
-hits/misses/mixed queries, linear scans, Limited containers, and minimal/sparse perfect
-layouts. All layouts use the same alternating hit/miss corpus and consume mapped values for
-map lookups. It reports object bytes and frozen construction work alongside latency.
+The read benchmark compares maps and sets, integer and string-view keys, and 8/64/256
+elements across seven layouts: linear scans, Limited containers, minimal/sparse Frozen
+containers, `std::unordered_map` / `std::unordered_set`, `absl::flat_hash_map` /
+`absl::flat_hash_set`, and `absl::node_hash_map` / `absl::node_hash_set`.
+
+There are 1,134 main comparison cases plus 18 hash diagnostics. Main-case names use
+`Map|Set/int|string/size/layout/operation/workload`, with
+layouts `linear`, `limited`, `minimal`, `sparse`, `std_unordered`, `absl_flat`, and
+`absl_node`. Operations are `find`, `contains`, `count`, and `equal_range` on hits, misses,
+and a 50/50 mixture; maps additionally have `at/hit`. `iterate` has no workload suffix:
+one timed iteration traverses the entire table and consumes every key and mapped value.
+Its latency is per traversal, while `items_per_second` counts visited elements. Point-read
+latency is per query. Linear arrays emulate the associative operations; `at` includes a
+missing-key check. Ordered `equal_range` can return an empty range at an insertion position,
+while hash containers return end iterators; both are treated as misses.
+
+Inline tables retain constexpr construction. STL and Abseil tables use their native default
+hash/equality and load-factor policies, with `reserve(size)` followed by insertion before
+timing. All operations access const tables, with setup shared across operations and
+repetitions. A preflight check validates every hit, miss, mapped value, range boundary, and
+iteration count before timing and warms the same corpus for every layout. Native hashers
+mean these are whole-container comparisons, not measurements that isolate indexing from
+hash cost. Query keys are visited cyclically; mixed queries alternate hits and misses.
+String keys are borrowed 10-byte views. These are small, warm-table workloads, not random
+large-working-set or variable-length-string measurements. Random interleaving changes
+benchmark-case order, not query order or Abseil's process-dependent hash seed.
+
+Counters include element counts, bucket counts and load factors where supported, and frozen
+construction work. `object_bytes` is strictly `sizeof(container)`: it excludes borrowed key
+bytes and all dynamic allocations, so it must not be used to compare total memory between
+inline, STL, and Abseil containers. Allocation totals and runtime construction costs are not
+measured here. For machine-specific measurements, add the matching tuning configuration
+(`--config=opt_apple_m5` or `--config=opt_zen5`) and retain it with the command and results.
+Use, for example, `--benchmark_filter='Map/string/64/.*/find/mixed$'` for a focused comparison.
+
+`Hash/int|string/frozen|std|absl` measures hash calls alone. The 12
+`Diagnostic/Map|Set/int|string/64/layout/find/mixed` cases supply `FrozenHash` to STL and
+Abseil using layouts `std_frozen_hash`, `absl_flat_frozen_hash`, and `absl_node_frozen_hash`.
+To reproduce the 38-case investigation, use
+`--benchmark_filter='^(Hash/|Diagnostic/|(Map|Set)/(int|string)/64/(minimal|sparse|std_unordered|absl_flat|absl_node)/find/mixed$)'`
+with `--benchmark_min_time=0.1s --benchmark_repetitions=5` and random interleaving.
+Use `--benchmark_filter='^(Map|Set)/'` to run only the main matrix.
 
 A local Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work
 units for the minimal index and 170 for the sparse index. Container sizes were 2,576 and
@@ -192,9 +318,10 @@ default; it does not establish a universal winner. Compare with Limited containe
 their inline storage can be considerably smaller. Startup measurements on this host were
 noisy at millisecond scale and do not establish a startup improvement.
 
-The measurement script uses the compilation database's actual Clang command and retains
+The separate measurement script uses the compilation database's actual Clang command and retains
 raw time traces, section sizes, symbol listings, commands, and a JSON report. It compares
-four standalone commands with identical query behavior. Compilation runs without an object
+the original four inline layouts as standalone commands with identical query behavior; its
+compile/startup probes do not include STL or Abseil containers. Compilation runs without an object
 cache and includes trace instrumentation; `Total Evaluate*` events report constexpr work
 and may overlap, so do not sum them. Object bytes include metadata; read-only section bytes
 include relocated const data where reported by the object format. A symbol check records

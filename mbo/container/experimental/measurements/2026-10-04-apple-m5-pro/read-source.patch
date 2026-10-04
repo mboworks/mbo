@@ -1,0 +1,432 @@
+diff --git a/mbo/container/experimental/BUILD.bazel b/mbo/container/experimental/BUILD.bazel
+index b14ab7c3d6..1d1d0da280 100644
+--- a/mbo/container/experimental/BUILD.bazel
++++ b/mbo/container/experimental/BUILD.bazel
+@@ -137,6 +137,10 @@ cc_binary(
+         ":frozen_set_cc",
+         "//mbo/container:limited_map_cc",
+         "//mbo/container:limited_set_cc",
++        "@abseil-cpp//absl/container:flat_hash_map",
++        "@abseil-cpp//absl/container:flat_hash_set",
++        "@abseil-cpp//absl/container:node_hash_map",
++        "@abseil-cpp//absl/container:node_hash_set",
+         "@com_github_google_benchmark//:benchmark",
+     ],
+ )
+diff --git a/mbo/container/experimental/FROZEN.md b/mbo/container/experimental/FROZEN.md
+index 85ffa47c1b..0d00cae222 100644
+--- a/mbo/container/experimental/FROZEN.md
++++ b/mbo/container/experimental/FROZEN.md
+@@ -168,7 +168,8 @@ bazel build --config=clang-tidy //...
+ python3 mbo/container/experimental/frozen_compile_test.py
+ bazel run -c opt --config=clang //mbo/container/experimental:frozen_benchmark -- \
+   --benchmark_min_time=0.1s --benchmark_repetitions=3 \
+-  --benchmark_out=/tmp/frozen-lookup.json --benchmark_out_format=json
++  --benchmark_enable_random_interleaving=true \
++  --benchmark_out=/tmp/frozen-read.json --benchmark_out_format=json
+ python3 mbo/container/experimental/frozen_measure.py --output /tmp/frozen-measure
+ ```
+ 
+@@ -180,10 +181,39 @@ Ordinary tests cover byte strings, non-default-constructible types, all lookup o
+ transparent overload participation, minimal/sparse tables, aliases, independent vocabularies,
+ slot uniqueness, runtime/constexpr equivalence, and copies.
+ 
+-The lookup benchmark compares maps and sets, integer and string-view keys, 8/64/256 elements,
+-hits/misses/mixed queries, linear scans, Limited containers, and minimal/sparse perfect
+-layouts. All layouts use the same alternating hit/miss corpus and consume mapped values for
+-map lookups. It reports object bytes and frozen construction work alongside latency.
++The read benchmark compares maps and sets, integer and string-view keys, and 8/64/256
++elements across seven layouts: linear scans, Limited containers, minimal/sparse Frozen
++containers, `std::unordered_map` / `std::unordered_set`, `absl::flat_hash_map` /
++`absl::flat_hash_set`, and `absl::node_hash_map` / `absl::node_hash_set`.
++
++There are 1,134 cases. Names use `Map|Set/int|string/size/layout/operation/workload`, with
++layouts `linear`, `limited`, `minimal`, `sparse`, `std_unordered`, `absl_flat`, and
++`absl_node`. Operations are `find`, `contains`, `count`, and `equal_range` on hits, misses,
++and a 50/50 mixture; maps additionally have `at/hit`. `iterate` has no workload suffix:
++one timed iteration traverses the entire table and consumes every key and mapped value.
++Its latency is per traversal, while `items_per_second` counts visited elements. Point-read
++latency is per query. Linear arrays emulate the associative operations; `at` includes a
++missing-key check. Ordered `equal_range` can return an empty range at an insertion position,
++while hash containers return end iterators; both are treated as misses.
++
++Inline tables retain constexpr construction. STL and Abseil tables use their native default
++hash/equality and load-factor policies, with `reserve(size)` followed by insertion before
++timing. All operations access const tables, with setup shared across operations and
++repetitions. A preflight check validates every hit, miss, mapped value, range boundary, and
++iteration count before timing and warms the same corpus for every layout. Native hashers
++mean these are whole-container comparisons, not measurements that isolate indexing from
++hash cost. Query keys are visited cyclically; mixed queries alternate hits and misses.
++String keys are borrowed 10-byte views. These are small, warm-table workloads, not random
++large-working-set or variable-length-string measurements. Random interleaving changes
++benchmark-case order, not query order or Abseil's process-dependent hash seed.
++
++Counters include element counts, bucket counts and load factors where supported, and frozen
++construction work. `object_bytes` is strictly `sizeof(container)`: it excludes borrowed key
++bytes and all dynamic allocations, so it must not be used to compare total memory between
++inline, STL, and Abseil containers. Allocation totals and runtime construction costs are not
++measured here. For machine-specific measurements, add the matching tuning configuration
++(`--config=opt_apple_m5` or `--config=opt_zen5`) and retain it with the command and results.
++Use, for example, `--benchmark_filter='Map/string/64/.*/find/mixed$'` for a focused comparison.
+ 
+ A local Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work
+ units for the minimal index and 170 for the sparse index. Container sizes were 2,576 and
+@@ -192,9 +222,10 @@ default; it does not establish a universal winner. Compare with Limited containe
+ their inline storage can be considerably smaller. Startup measurements on this host were
+ noisy at millisecond scale and do not establish a startup improvement.
+ 
+-The measurement script uses the compilation database's actual Clang command and retains
++The separate measurement script uses the compilation database's actual Clang command and retains
+ raw time traces, section sizes, symbol listings, commands, and a JSON report. It compares
+-four standalone commands with identical query behavior. Compilation runs without an object
++the original four inline layouts as standalone commands with identical query behavior; its
++compile/startup probes do not include STL or Abseil containers. Compilation runs without an object
+ cache and includes trace instrumentation; `Total Evaluate*` events report constexpr work
+ and may overlap, so do not sum them. Object bytes include metadata; read-only section bytes
+ include relocated const data where reported by the object format. A symbol check records
+diff --git a/mbo/container/experimental/frozen_benchmark.cc b/mbo/container/experimental/frozen_benchmark.cc
+index 610919233f..4ebdffe683 100644
+--- a/mbo/container/experimental/frozen_benchmark.cc
++++ b/mbo/container/experimental/frozen_benchmark.cc
+@@ -4,11 +4,20 @@
+ #include <algorithm>
+ #include <array>
+ #include <cstddef>
++#include <cstdint>
++#include <cstdlib>
++#include <iterator>
+ #include <string>
+ #include <string_view>
+ #include <type_traits>
++#include <unordered_map>
++#include <unordered_set>
+ #include <utility>
+ 
++#include "absl/container/flat_hash_map.h"
++#include "absl/container/flat_hash_set.h"
++#include "absl/container/node_hash_map.h"
++#include "absl/container/node_hash_set.h"
+ #include "benchmark/benchmark.h"
+ #include "mbo/container/experimental/frozen_map.h"
+ #include "mbo/container/experimental/frozen_options.h"
+@@ -20,8 +29,21 @@
+ namespace mbo::container::experimental {
+ namespace {
+ 
+-enum class Layout { kLinear, kLimited, kMinimal, kSparse };
++enum class Layout { kLinear, kLimited, kMinimal, kSparse, kStdUnordered, kAbslFlat, kAbslNode };
+ enum class Workload { kHit, kMiss, kMixed };
++enum class Operation { kFind, kContains, kCount, kEqualRange, kAt };
++
++template<typename Key, bool Map, Layout Kind>
++auto EmptyDynamicTable() {
++  if constexpr (Kind == Layout::kStdUnordered) {
++    return std::conditional_t<Map, std::unordered_map<Key, int>, std::unordered_set<Key>>{};
++  } else if constexpr (Kind == Layout::kAbslFlat) {
++    return std::conditional_t<Map, absl::flat_hash_map<Key, int>, absl::flat_hash_set<Key>>{};
++  } else {
++    static_assert(Kind == Layout::kAbslNode);
++    return std::conditional_t<Map, absl::node_hash_map<Key, int>, absl::node_hash_set<Key>>{};
++  }
++}
+ 
+ template<typename Key, std::size_t Size, bool Map, Layout Kind>
+ constexpr auto MakeTable() {
+@@ -40,22 +62,168 @@ constexpr auto MakeTable() {
+       constexpr auto kEntries = Fixture::template Keys<Key>();
+       return LimitedSet<Key, Size>(kEntries.begin(), kEntries.end());
+     }
+-  } else {
++  } else if constexpr (Kind == Layout::kMinimal || Kind == Layout::kSparse) {
+     constexpr FrozenOptions kOptions{.capacity = Size, .slots = Kind == Layout::kMinimal ? Size : Size * 2};
+     if constexpr (Map) {
+       return FrozenMap<Key, int, kOptions>(Fixture::template Pairs<Key>());
+     } else {
+       return FrozenSet<Key, kOptions>(Fixture::template Keys<Key>());
+     }
++  } else {
++    auto table = EmptyDynamicTable<Key, Map, Kind>();
++    table.reserve(Size);
++    if constexpr (Map) {
++      const auto entries = Fixture::template Pairs<Key>();
++      table.insert(entries.begin(), entries.end());
++    } else {
++      const auto entries = Fixture::template Keys<Key>();
++      table.insert(entries.begin(), entries.end());
++    }
++    return table;
+   }
+ }
+ 
+ template<typename Key, std::size_t Size, bool Map, Layout Kind>
+-void Lookup(benchmark::State& state, Workload workload) {
+-  static constexpr auto kTable = MakeTable<Key, Size, Map, Kind>();
++const auto& GetTable() {
++  if constexpr (Kind == Layout::kStdUnordered || Kind == Layout::kAbslFlat || Kind == Layout::kAbslNode) {
++    // Static runtime setup is shared by all read operations and happens before the timed loop.
++    static const auto kTable = MakeTable<Key, Size, Map, Kind>();
++    return kTable;
++  } else {
++    static constexpr auto kTable = MakeTable<Key, Size, Map, Kind>();
++    return kTable;
++  }
++}
++
++template<bool Map, typename Table, typename Key>
++auto Find(const Table& table, const Key& key) {
++  if constexpr (requires { table.find(key); }) {
++    return table.find(key);
++  } else {
++    return std::ranges::find_if(table, [&key](const auto& value) {
++      if constexpr (Map) {
++        return value.first == key;
++      } else {
++        return value == key;
++      }
++    });
++  }
++}
++
++template<bool Map, typename Table, typename Key>
++bool Contains(const Table& table, const Key& key) {
++  if constexpr (requires { table.contains(key); }) {
++    return table.contains(key);
++  } else {
++    return Find<Map>(table, key) != table.end();
++  }
++}
++
++template<bool Map, typename Table, typename Key>
++std::size_t Count(const Table& table, const Key& key) {
++  if constexpr (requires { table.count(key); }) {
++    return table.count(key);
++  } else {
++    return Contains<Map>(table, key) ? 1 : 0;
++  }
++}
++
++template<bool Map, typename Table, typename Key>
++auto EqualRange(const Table& table, const Key& key) {
++  if constexpr (requires { table.equal_range(key); }) {
++    return table.equal_range(key);
++  } else {
++    const auto found = Find<Map>(table, key);
++    return std::pair{found, found == table.end() ? found : std::next(found)};
++  }
++}
++
++template<typename Table, typename Key>
++int At(const Table& table, const Key& key) {
++  if constexpr (requires { table.find(key); }) {
++    return table.at(key);
++  } else {
++    // Linear baseline for successful checked map access; callers supply registered keys only.
++    const auto found = Find<true>(table, key);
++    if (found == table.end()) {
++      std::abort();
++    }
++    return found->second;
++  }
++}
++
++template<bool Map, typename Table, typename Iterator>
++void ConsumeFound(const Table& table, Iterator found) {
++  auto present = found != table.end();
++  benchmark::DoNotOptimize(present);
++  if (present) {
++    if constexpr (Map) {
++      auto value = found->second;
++      benchmark::DoNotOptimize(value);
++    } else {
++      auto key = *found;
++      benchmark::DoNotOptimize(key);
++    }
++  }
++}
++
++// Reject invalid fixtures before timing and warm the same complete query corpus for every layout.
++template<typename Key, std::size_t Size, bool Map, typename Table>
++bool ValidateTable(const Table& table) {
++  if (table.size() != Size || static_cast<std::size_t>(std::distance(table.begin(), table.end())) != Size) {
++    return false;
++  }
++  const auto queries = frozen_internal::BenchmarkData<Size>::template Queries<Key>();
++  for (std::size_t index = 0; index < queries.size(); ++index) {
++    const auto& key = queries.at(index);
++    const bool expected = index % 2 == 0;
++    const auto found = Find<Map>(table, key);
++    const auto range = EqualRange<Map>(table, key);
++    if ((found != table.end()) != expected || Contains<Map>(table, key) != expected
++        || Count<Map>(table, key) != static_cast<std::size_t>(expected)
++        || (expected ? range.first != found || range.second != std::next(found) : range.first != range.second)) {
++      return false;
++    }
++    if (expected) {
++      if constexpr (Map) {
++        if (found->first != key || found->second != static_cast<int>(index / 2)
++            || At(table, key) != static_cast<int>(index / 2)) {
++          return false;
++        }
++      } else if (*found != key) {
++        return false;
++      }
++    }
++  }
++  return true;
++}
++
++template<typename Table>
++void Counters(benchmark::State& state, const Table& table) {
++  // Dynamic containers' allocations are excluded: this is sizeof, not total storage consumption.
++  state.counters["object_bytes"] = sizeof(table);
++  state.counters["elements"] = static_cast<double>(table.size());
++  if constexpr (requires {
++                  table.bucket_count();
++                  table.load_factor();
++                }) {
++    state.counters["buckets"] = static_cast<double>(table.bucket_count());
++    state.counters["load_factor"] = table.load_factor();
++  }
++  if constexpr (requires { table.construction_work(); }) {
++    state.counters["construction_work"] = static_cast<double>(table.construction_work());
++  }
++}
++
++template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op>
++void Read(benchmark::State& state, Workload workload) {
++  const auto* table = &GetTable<Key, Size, Map, Kind>();
++  if (!ValidateTable<Key, Size, Map>(*table)) {
++    state.SkipWithError("Invalid read benchmark fixture");
++    return;
++  }
+   const auto queries = frozen_internal::BenchmarkData<Size>::template Queries<Key>();
+   std::size_t cursor = 0;
+-  const auto* table = &kTable;
+   benchmark::DoNotOptimize(table);
+   for (auto step : state) {
+     benchmark::DoNotOptimize(step);
+@@ -63,31 +231,64 @@ void Lookup(benchmark::State& state, Workload workload) {
+                                                        : (2 * (cursor % Size)) + (workload == Workload::kMiss ? 1 : 0);
+     auto key = queries.at(position);
+     benchmark::DoNotOptimize(key);
+-    if constexpr (Kind == Layout::kLinear) {
+-      const auto found = std::ranges::find_if(*table, [&key](const auto& value) {
+-        if constexpr (Map) {
+-          return value.first == key;
+-        } else {
+-          return value == key;
+-        }
+-      });
+-      if constexpr (Map) {
+-        benchmark::DoNotOptimize(found == table->end() ? -1 : found->second);
+-      } else {
+-        benchmark::DoNotOptimize(found != table->end());
+-      }
+-    } else if constexpr (Map) {
+-      const auto found = table->find(key);
+-      benchmark::DoNotOptimize(found == table->end() ? -1 : found->second);
++    if constexpr (Op == Operation::kFind) {
++      ConsumeFound<Map>(*table, Find<Map>(*table, key));
++    } else if constexpr (Op == Operation::kContains) {
++      auto result = Contains<Map>(*table, key);
++      benchmark::DoNotOptimize(result);
++    } else if constexpr (Op == Operation::kCount) {
++      auto result = Count<Map>(*table, key);
++      benchmark::DoNotOptimize(result);
++    } else if constexpr (Op == Operation::kEqualRange) {
++      const auto range = EqualRange<Map>(*table, key);
++      ConsumeFound<Map>(*table, range.first == range.second ? table->end() : range.first);
++      auto reaches_end = range.second == table->end();
++      benchmark::DoNotOptimize(reaches_end);
+     } else {
+-      benchmark::DoNotOptimize(table->contains(key));
++      static_assert(Map && Op == Operation::kAt);
++      auto value = At(*table, key);
++      benchmark::DoNotOptimize(value);
+     }
+     ++cursor;
+   }
+   state.SetItemsProcessed(state.iterations());
+-  state.counters["object_bytes"] = sizeof(kTable);
+-  if constexpr (Kind == Layout::kMinimal || Kind == Layout::kSparse) {
+-    state.counters["construction_work"] = kTable.construction_work();
++  Counters(state, *table);
++}
++
++template<typename Key, std::size_t Size, bool Map, Layout Kind>
++void Iterate(benchmark::State& state) {
++  const auto* table = &GetTable<Key, Size, Map, Kind>();
++  if (!ValidateTable<Key, Size, Map>(*table)) {
++    state.SkipWithError("Invalid iteration benchmark fixture");
++    return;
++  }
++  for (auto step : state) {
++    benchmark::DoNotOptimize(step);
++    // Hide the pointer each traversal so a constexpr table cannot become a precomputed result.
++    benchmark::DoNotOptimize(table);
++    for (const auto& entry : *table) {
++      if constexpr (Map) {
++        auto key = entry.first;
++        auto value = entry.second;
++        benchmark::DoNotOptimize(key);
++        benchmark::DoNotOptimize(value);
++      } else {
++        auto key = entry;
++        benchmark::DoNotOptimize(key);
++      }
++    }
++  }
++  state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(Size));
++  Counters(state, *table);
++}
++
++template<typename Key, std::size_t Size, bool Map, Layout Kind, Operation Op>
++void RegisterRead(const std::string& prefix, std::string_view operation) {
++  const auto name = prefix + "/" + std::string(operation);
++  benchmark::RegisterBenchmark(name + "/hit", Read<Key, Size, Map, Kind, Op>, Workload::kHit);
++  if constexpr (Op != Operation::kAt) {
++    benchmark::RegisterBenchmark(name + "/miss", Read<Key, Size, Map, Kind, Op>, Workload::kMiss);
++    benchmark::RegisterBenchmark(name + "/mixed", Read<Key, Size, Map, Kind, Op>, Workload::kMixed);
+   }
+ }
+ 
+@@ -95,9 +296,14 @@ template<typename Key, std::size_t Size, bool Map, Layout Kind>
+ void RegisterLayout(std::string_view key_name, std::string_view layout_name) {
+   const std::string prefix = std::string(Map ? "Map/" : "Set/") + std::string(key_name) + "/" + std::to_string(Size)
+                              + "/" + std::string(layout_name);
+-  benchmark::RegisterBenchmark(prefix + "/hit", Lookup<Key, Size, Map, Kind>, Workload::kHit);
+-  benchmark::RegisterBenchmark(prefix + "/miss", Lookup<Key, Size, Map, Kind>, Workload::kMiss);
+-  benchmark::RegisterBenchmark(prefix + "/mixed", Lookup<Key, Size, Map, Kind>, Workload::kMixed);
++  RegisterRead<Key, Size, Map, Kind, Operation::kFind>(prefix, "find");
++  RegisterRead<Key, Size, Map, Kind, Operation::kContains>(prefix, "contains");
++  RegisterRead<Key, Size, Map, Kind, Operation::kCount>(prefix, "count");
++  RegisterRead<Key, Size, Map, Kind, Operation::kEqualRange>(prefix, "equal_range");
++  if constexpr (Map) {
++    RegisterRead<Key, Size, Map, Kind, Operation::kAt>(prefix, "at");
++  }
++  benchmark::RegisterBenchmark(prefix + "/iterate", Iterate<Key, Size, Map, Kind>);
+ }
+ 
+ template<typename Key, std::size_t Size, bool Map>
+@@ -106,6 +312,9 @@ void RegisterShape(std::string_view key_name) {
+   RegisterLayout<Key, Size, Map, Layout::kLimited>(key_name, "limited");
+   RegisterLayout<Key, Size, Map, Layout::kMinimal>(key_name, "minimal");
+   RegisterLayout<Key, Size, Map, Layout::kSparse>(key_name, "sparse");
++  RegisterLayout<Key, Size, Map, Layout::kStdUnordered>(key_name, "std_unordered");
++  RegisterLayout<Key, Size, Map, Layout::kAbslFlat>(key_name, "absl_flat");
++  RegisterLayout<Key, Size, Map, Layout::kAbslNode>(key_name, "absl_node");
+ }
+ 
+ template<std::size_t Size>
+@@ -127,6 +336,11 @@ int main(int argc, char** argv) {
+   mbo::container::experimental::RegisterSize<8>();
+   mbo::container::experimental::RegisterSize<64>();
+   mbo::container::experimental::RegisterSize<256>();
++  benchmark::AddCustomContext(
++      "setup", "constexpr inline tables; reserve(size) and insert for STL/Abseil, outside timing");
++  benchmark::AddCustomContext("hashes", "each container's default hasher and load-factor policy");
++  benchmark::AddCustomContext("queries", "cyclic warm corpus; alternating hit/miss for mixed; 10-byte string views");
++  benchmark::AddCustomContext("object_bytes", "sizeof(container), excludes dynamic allocations and borrowed key bytes");
+   benchmark::RunSpecifiedBenchmarks();
+   benchmark::Shutdown();
+ }

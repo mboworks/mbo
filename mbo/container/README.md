@@ -64,6 +64,12 @@ transparent lookup, and const forward iteration. They use fixed inline storage a
 index builder. See their guide for the read-only C++26 interface, construction limits,
 minimal/sparse layouts, and benchmark commands.
 
+**Read performance:** the [measured comparison and hash diagnosis](experimental/FROZEN.md#measured-read-performance)
+cover STL unordered and Abseil flat/node maps and sets. In the initial Apple M5 Pro
+64-string-key fixture, sparse FrozenMap mixed lookup took 10.73 ns versus 5.11 ns for
+Abseil flat; inline iteration was faster. The guide retains the complete results and
+explains the default string hash's cost.
+
 ## Limited containers
 
 `LimitedVector`, `LimitedSet`, and `LimitedMap` reserve their entire compile-time bound inside each

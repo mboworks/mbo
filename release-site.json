@@ -40,5 +40,14 @@
       "label": "Coverage",
       "href": "/{repo}/coverage/tag/{version}/"
     }
-  ]
+  ],
+  "files": {
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-source.patch": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-source.patch",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/provenance.json",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-raw.json.gz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-raw.json.gz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-source.patch": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-source.patch",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv"
+  }
 }

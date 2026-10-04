@@ -116,13 +116,13 @@ def read_table(summaries, layouts=LAYOUTS):
 
 def hash_tables(summaries):
     lines = [
-        "| Hash alone (ns/key) | `FrozenHash` | libc++ `std::hash` | Abseil default |",
+        "| Hash alone (ns/key) | Original `FrozenHash` | libc++ `std::hash` | Abseil default |",
         "| --- | ---: | ---: | ---: |",
     ]
     for key, label in (("string", "10-byte string view"), ("int", "Integer")):
         values = [summaries[f"Hash/{key}/{hasher}"]["median_cpu_ns"] for hasher in ("frozen", "std", "absl")]
         lines.append(f"| {label} | " + " | ".join(f"{value:.2f}" for value in values) + " |")
-    lines += ["", "| Map, 64 string keys | Default hasher (ns/query) | Supplied `FrozenHash` (ns/query) |",
+    lines += ["", "| Map, 64 string keys | Default hasher (ns/query) | Supplied original `FrozenHash` (ns/query) |",
               "| --- | ---: | ---: |"]
     for native, custom, label in (("std_unordered", "std_frozen_hash", "STL unordered"),
                                    ("absl_flat", "absl_flat_frozen_hash", "Abseil flat"),
@@ -131,7 +131,7 @@ def hash_tables(summaries):
         shared = summaries[f"Diagnostic/Map/string/64/{custom}/find/mixed"]["median_cpu_ns"]
         lines.append(f"| {label} | {default:.2f} | {shared:.2f} |")
     sparse = summaries["Map/string/64/sparse/find/mixed"]["median_cpu_ns"]
-    lines += ["", f"Sparse FrozenMap took **{sparse:.2f} ns/query** with its default `FrozenHash` in this same run."]
+    lines += ["", f"Sparse FrozenMap took **{sparse:.2f} ns/query** with its original default `FrozenHash` in this same run."]
     return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
 
 
@@ -155,7 +155,7 @@ def read_mbo_data(directory):
 
 
 MBO_LAYOUTS = (
-    ("sparse", "Frozen sparse / FrozenHash"),
+    ("sparse", "Frozen sparse / former FNV"),
     ("sparse_mumbo", "Frozen sparse / mumbo"),
     ("sparse_fambo", "Frozen sparse / fambo"),
     ("sparse_dumbo", "Frozen sparse / dumbo"),
@@ -167,7 +167,7 @@ MBO_LAYOUTS = (
 
 def mbo_hash_tables(summaries):
     lines = ["| Hash alone, 10-byte string | ns/key |", "| --- | ---: |"]
-    for name, label in (("frozen", "FrozenHash (FNV-1a + mix)"), ("mumbo", "mumbo"),
+    for name, label in (("frozen", "Former FrozenHash (FNV-1a + mix)"), ("mumbo", "mumbo"),
                         ("fambo", "fambo"), ("dumbo", "dumbo"),
                         ("std", "libc++ default"), ("absl", "Abseil default")):
         value = summaries[f"Hash/string/{name}"]["median_cpu_ns"]
@@ -175,7 +175,7 @@ def mbo_hash_tables(summaries):
     lines += ["", "All containers below receive the **same named hasher**: mixed map lookup, 64 string keys, ns/query.", "",
               "| Supplied hash | Frozen minimal | Frozen sparse | STL unordered | Abseil flat | Abseil node |",
               "| --- | ---: | ---: | ---: | ---: | ---: |"]
-    for suffix, label in (("", "FrozenHash"), ("_mumbo", "mumbo"), ("_fambo", "fambo"), ("_dumbo", "dumbo")):
+    for suffix, label in (("", "Former FrozenHash"), ("_mumbo", "mumbo"), ("_fambo", "fambo"), ("_dumbo", "dumbo")):
         algorithm = suffix.removeprefix("_") if suffix else "frozen_hash"
         names = [f"Map/string/64/{layout}{suffix}/find/mixed" for layout in ("minimal", "sparse")]
         names += [f"Diagnostic/Map/string/64/{layout}_{algorithm}/find/mixed"

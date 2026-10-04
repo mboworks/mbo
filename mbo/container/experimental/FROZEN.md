@@ -11,14 +11,18 @@ baseline, and compile in C++26 mode. Their experimental API may change between r
 
 The follow-up comparison uses MBO's existing constexpr **mumbo, fambo, and dumbo** hash
 functors directly in FrozenMap/FrozenSet. All three use `mbo::hash::Hasher<Algorithm>`
-with seed 5,381. The production default remains `FrozenHash`; the rows below explicitly
-select each alternative.
+with seed 5,381. **String-view keys now use fambo by default**, through
+`FrozenHash<std::string_view>`. The former FNV-1a loop and final mix have been removed.
+Integral and enum defaults are unchanged. The retained comparison below predates that
+replacement: its former-FNV rows are historical baselines, and its fambo rows measured an
+explicitly supplied fambo hasher.
 
 **Fambo largely closes the lookup gap in this fixture.** At 64 keys, sparse FrozenMap
-mixed lookup takes 5.97 ns with fambo versus 11.16 ns with FrozenHash: 47% less time,
+mixed lookup takes 5.97 ns with fambo versus 11.16 ns with the former FrozenHash: 47% less time,
 or 1.87 times the throughput. Native STL/Abseil maps take 5.81 to 6.44 ns in the same run.
 Mumbo is fastest among the tested sparse Frozen hashes at 8 entries; fambo leads at 64
-and 256. These results favor fambo for this corpus, not a universal default choice.
+and 256. These results motivate choosing fambo as the string default; they do not claim
+that it wins every workload.
 
 Apple M5 Pro, macOS arm64, Clang 22.1.8/libc++, `-c opt --config=clang --config=opt_apple_m5`,
 2026-10-04. All values below are median CPU times from **nine repetitions in the same
@@ -30,7 +34,7 @@ compare it with `find/hit` in the CSV when assessing its additional cost.
 
 | Container                  | Map `find` mixed (ns/query) | Set `find` mixed (ns/query) | Map `at` hit (ns/query) | Map iteration (ns/element) |
 | -------------------------- | --------------------------: | --------------------------: | ----------------------: | -------------------------: |
-| Frozen sparse / FrozenHash |                       11.16 |                       11.70 |                   19.88 |                       0.56 |
+| Frozen sparse / former FNV |                       11.16 |                       11.70 |                   19.88 |                       0.56 |
 | Frozen sparse / mumbo      |                        6.56 |                        6.61 |                   10.60 |                       0.46 |
 | Frozen sparse / fambo      |                        5.97 |                        6.18 |                   10.18 |                       0.46 |
 | Frozen sparse / dumbo      |                        6.91 |                        7.13 |                   11.08 |                       0.46 |
@@ -49,23 +53,23 @@ between its Frozen rows reflect other factors such as generated code and measure
 
 <!-- BEGIN FROZEN MBO HASH RESULTS -->
 
-| Hash alone, 10-byte string | ns/key |
-| -------------------------- | -----: |
-| FrozenHash (FNV-1a + mix)  |   4.61 |
-| mumbo                      |   2.10 |
-| fambo                      |   1.75 |
-| dumbo                      |   2.37 |
-| libc++ default             |   1.57 |
-| Abseil default             |   1.40 |
+| Hash alone, 10-byte string       | ns/key |
+| -------------------------------- | -----: |
+| Former FrozenHash (FNV-1a + mix) |   4.61 |
+| mumbo                            |   2.10 |
+| fambo                            |   1.75 |
+| dumbo                            |   2.37 |
+| libc++ default                   |   1.57 |
+| Abseil default                   |   1.40 |
 
 All containers below receive the **same named hasher**: mixed map lookup, 64 string keys, ns/query.
 
-| Supplied hash | Frozen minimal | Frozen sparse | STL unordered | Abseil flat | Abseil node |
-| ------------- | -------------: | ------------: | ------------: | ----------: | ----------: |
-| FrozenHash    |          13.68 |         11.16 |         12.16 |       11.56 |       11.65 |
-| mumbo         |           7.84 |          6.56 |          6.50 |        7.80 |        7.62 |
-| fambo         |           6.40 |          5.97 |          5.91 |        6.35 |        6.19 |
-| dumbo         |           7.19 |          6.91 |          7.04 |        8.21 |        7.52 |
+| Supplied hash     | Frozen minimal | Frozen sparse | STL unordered | Abseil flat | Abseil node |
+| ----------------- | -------------: | ------------: | ------------: | ----------: | ----------: |
+| Former FrozenHash |          13.68 |         11.16 |         12.16 |       11.56 |       11.65 |
+| mumbo             |           7.84 |          6.56 |          6.50 |        7.80 |        7.62 |
+| fambo             |           6.40 |          5.97 |          5.91 |        6.35 |        6.19 |
+| dumbo             |           7.19 |          6.91 |          7.04 |        8.21 |        7.52 |
 
 <!-- END FROZEN MBO HASH RESULTS -->
 
@@ -77,7 +81,7 @@ Mixed string lookup in ns/query; the column number is the number of stored eleme
 
 | Container                  | Map 8 | Map 64 | Map 256 | Set 8 | Set 64 | Set 256 |
 | -------------------------- | ----: | -----: | ------: | ----: | -----: | ------: |
-| Frozen sparse / FrozenHash | 10.29 |  11.16 |   18.31 | 10.62 |  11.70 |   14.86 |
+| Frozen sparse / former FNV | 10.29 |  11.16 |   18.31 | 10.62 |  11.70 |   14.86 |
 | Frozen sparse / mumbo      |  5.64 |   6.56 |    6.60 |  5.63 |   6.61 |    7.17 |
 | Frozen sparse / fambo      |  5.98 |   5.97 |    6.12 |  6.09 |   6.18 |    6.32 |
 | Frozen sparse / dumbo      |  6.78 |   6.91 |    6.92 |  6.72 |   7.13 |    7.06 |
@@ -130,7 +134,7 @@ python3 tools/benchmark_artifact.py run \
 
 ## Original FrozenHash study
 
-**The current default string hash makes Frozen lookup slower than STL and Abseil in this
+**The former default string hash made Frozen lookup slower than STL and Abseil in this
 fixture.** Frozen's inline iteration is faster here. Constexpr construction and perfect
 placement alone do not guarantee fast reads.
 
@@ -165,35 +169,35 @@ performance guarantee. Runtime construction and total allocated memory were not 
 
 ### Why string lookup is slow
 
-`FrozenHash<std::string_view>` currently performs byte-by-byte FNV-1a followed by a final
-mix. Each byte depends on the previous multiply, making the string hash an expensive part
+The original `FrozenHash<std::string_view>` performed byte-by-byte FNV-1a followed by a
+final mix. Each byte depends on the previous multiply, making the string hash an expensive part
 of these short lookups. This is an implementation choice, not a requirement of constexpr
 construction or immutability. The perfect index still needs query hashing, dependent index
 loads, and candidate equality, even though stored keys occupy distinct slots.
 
-A separate diagnostic run measured hash calls alone and then supplied `FrozenHash` to
+A separate diagnostic run measured hash calls alone and then supplied that original `FrozenHash` to
 STL and Abseil. The following medians come from five repetitions in that same process,
 with the same host, compiler, fixture, and build configuration:
 
 <!-- BEGIN FROZEN HASH RESULTS -->
 
-| Hash alone (ns/key) | `FrozenHash` | libc++ `std::hash` | Abseil default |
-| ------------------- | -----------: | -----------------: | -------------: |
-| 10-byte string view |         4.61 |               1.58 |           1.44 |
-| Integer             |         0.71 |               0.60 |           0.54 |
+| Hash alone (ns/key) | Original `FrozenHash` | libc++ `std::hash` | Abseil default |
+| ------------------- | --------------------: | -----------------: | -------------: |
+| 10-byte string view |                  4.61 |               1.58 |           1.44 |
+| Integer             |                  0.71 |               0.60 |           0.54 |
 
-| Map, 64 string keys | Default hasher (ns/query) | Supplied `FrozenHash` (ns/query) |
-| ------------------- | ------------------------: | -------------------------------: |
-| STL unordered       |                      5.98 |                            12.14 |
-| Abseil flat         |                      6.44 |                            11.42 |
-| Abseil node         |                      6.57 |                            11.46 |
+| Map, 64 string keys | Default hasher (ns/query) | Supplied original `FrozenHash` (ns/query) |
+| ------------------- | ------------------------: | ----------------------------------------: |
+| STL unordered       |                      5.98 |                                     12.14 |
+| Abseil flat         |                      6.44 |                                     11.42 |
+| Abseil node         |                      6.57 |                                     11.46 |
 
-Sparse FrozenMap took **11.12 ns/query** with its default `FrozenHash` in this same run.
+Sparse FrozenMap took **11.12 ns/query** with its original default `FrozenHash` in this same run.
 
 <!-- END FROZEN HASH RESULTS -->
 
 Giving the other containers the same hash largely removes their lookup advantage in this
-fixture. This supports improving the default string hash as the first optimization target.
+fixture. This motivated replacing the default string hash with fambo.
 It does not isolate every indexing cost: changing a hasher also changes table placement,
 and a container may apply additional mixing. Separate hash timings cannot simply be
 subtracted from whole lookups. The `at` and minimal-layout costs also merit investigation;
@@ -282,7 +286,10 @@ As with standard hash containers, key equality must be an equivalence relation a
 keys must hash equally, including heterogeneous lookup keys.
 
 `FrozenHash` supports integral and enum keys and `std::string_view`. Other key types use a
-custom hash object or a specialization. Hash results are converted to `std::uint64_t`.
+custom hash object or a specialization. Its string-view specialization delegates to
+`mbo::hash::Hasher<mbo::hash::fambo::Algorithm>` with seed 5,381, including transparent
+lookup; integral/enum keys retain their deterministic integer mix. Hash values and perfect
+slot placement can change between library versions. Hash results are converted to `std::uint64_t`.
 Custom operations must produce identical results at runtime and during constant evaluation;
 portable reproducibility also requires compiler-independent custom operations.
 
@@ -424,7 +431,10 @@ while hash containers return end iterators; both are treated as misses.
 The six additional string layouts are `minimal_mumbo`, `sparse_mumbo`, `minimal_fambo`,
 `sparse_fambo`, `minimal_dumbo`, and `sparse_dumbo`. Each has the complete read-operation
 matrix at 8/64/256 entries and retains constexpr construction with the ordinary construction
-budgets. The MBO algorithms hash byte strings, so integer cases retain their existing hashes.
+budgets. The unsuffixed `minimal` and `sparse` string layouts now also use fambo through
+the default selector. `Hash/string/frozen` and controls ending in `_frozen_hash` likewise
+refer to the current fambo-backed default; the `frozen_default` and `experiment` context
+fields distinguish new runs from the retained FNV studies. The MBO algorithms hash byte strings, so integer cases retain their existing hashes.
 
 Inline tables retain constexpr construction. STL and Abseil tables use their native default
 hash/equality and load-factor policies, with `reserve(size)` followed by insertion before
@@ -460,7 +470,7 @@ named hasher to STL/Abseil. Select all 1,083 string cases with
 `--benchmark_filter='^(Hash/string/|(Map|Set)/string/|Diagnostic/(Map|Set)/string/)'`.
 The executable records compiler/library provenance for `tools/benchmark_artifact.py`.
 
-A local Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work
+The original FNV-based Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work
 units for the minimal index and 170 for the sparse index. Container sizes were 2,576 and
 2,832 bytes respectively. This measured construction/storage tradeoff supports the sparse
 default; it does not establish a universal winner. Compare with Limited containers too:

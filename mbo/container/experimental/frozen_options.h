@@ -11,6 +11,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "mbo/hash/hash.h"
+
 namespace mbo::container::experimental {
 
 // Construction work is bounded independently of the compiler's constexpr limit.
@@ -67,18 +69,7 @@ struct FrozenHash<Key> {
 };
 
 template<>
-struct FrozenHash<std::string_view> {
-  using is_transparent = void;  // NOLINT(readability-identifier-naming)
-
-  constexpr std::uint64_t operator()(std::string_view key) const noexcept {
-    std::uint64_t hash = 0xcbf29ce484222325ULL;
-    for (const char byte : key) {
-      hash ^= static_cast<unsigned char>(byte);
-      hash *= 0x100000001b3ULL;
-    }
-    return frozen_internal::Mix(hash);
-  }
-};
+struct FrozenHash<std::string_view> : mbo::hash::Hasher<mbo::hash::fambo::Algorithm> {};
 
 }  // namespace mbo::container::experimental
 

@@ -16,6 +16,9 @@ Supply public documentation, tests, and benchmarks.
 - Support generic literal keys and typed mapped values, including non-default-constructible
   types. Supply deterministic constexpr hashing for integral, enum, and string-view keys;
   accept user-supplied constexpr hash/equality objects for other keys.
+- Use MBO's existing fambo hasher with its default seed for string-view keys. Keep
+  `FrozenHash<Key>` as the type-based default selector; do not maintain a separate string
+  hashing algorithm. Retain the measured former FNV baseline as historical evidence.
 - String views are length-aware borrowed keys. Their backing storage must outlive the
   container; static constexpr tables require constant-expression backing storage. Never
   retain an initializer-list or input-array view instead of copying its elements.

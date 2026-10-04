@@ -21,6 +21,7 @@ import benchmark_artifact
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro"
 MBO_DATA = ROOT / "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes"
+DEFAULT_DATA = ROOT / "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default"
 GUIDE = ROOT / "mbo/container/experimental/FROZEN.md"
 LAYOUTS = (
     ("linear", "Linear scan"), ("limited", "Limited"),
@@ -135,7 +136,7 @@ def hash_tables(summaries):
     return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
 
 
-def read_mbo_data(directory):
+def read_mbo_data(directory, experiment="frozen-mbo-hashes-v1"):
     metadata = json.loads((directory / "provenance.json").read_text())
     compressed = (directory / metadata["artifact"]).read_bytes()
     raw_bytes = lzma.decompress(compressed)
@@ -144,7 +145,7 @@ def read_mbo_data(directory):
             raise ValueError(f"MBO hashes: {field} mismatch")
     artifact = json.loads(raw_bytes)
     benchmark_artifact.validate(artifact)
-    if artifact["google_benchmark"]["context"].get("experiment") != "frozen-mbo-hashes-v1":
+    if artifact["google_benchmark"]["context"].get("experiment") != experiment:
         raise ValueError("MBO hashes: unexpected experiment")
     if artifact["git"]["commit"] != metadata["source_commit"]:
         raise ValueError("MBO hashes: source commit mismatch")
@@ -196,6 +197,21 @@ def mbo_size_table(summaries):
     return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
 
 
+def default_hash_table(summaries):
+    lines = ["| Entries | Layout | Map default | Map explicit fambo | Set default | Set explicit fambo |",
+             "| ---: | --- | ---: | ---: | ---: | ---: |"]
+    for size in (8, 64, 256):
+        for layout in ("minimal", "sparse"):
+            names = [f"{kind}/string/{size}/{layout}{suffix}/find/mixed"
+                     for kind in ("Map", "Set") for suffix in ("", "_fambo")]
+            values = [summaries[name]["median_cpu_ns"] for name in names]
+            lines.append(f"| {size} | {layout} | " + " | ".join(f"{value:.2f}" for value in values) + " |")
+    default = summaries["Hash/string/frozen"]["median_cpu_ns"]
+    explicit = summaries["Hash/string/fambo"]["median_cpu_ns"]
+    lines += ["", f"Hash alone: default **{default:.2f} ns/key**, explicit fambo **{explicit:.2f} ns/key**."]
+    return align_markdown_tables.align_text("\n".join(lines) + "\n").rstrip()
+
+
 def replace_block(text, label, content):
     begin = f"<!-- BEGIN FROZEN {label} -->"
     end = f"<!-- END FROZEN {label} -->"
@@ -210,11 +226,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=DATA)
     parser.add_argument("--mbo-data", type=Path, default=MBO_DATA)
+    parser.add_argument("--default-data", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--guide", type=Path, default=GUIDE)
     args = parser.parse_args()
     reads = read_data(args.data, "reads")
     hashes = read_data(args.data, "hashes")
     mbo_hashes = read_mbo_data(args.mbo_data)
+    defaults = read_mbo_data(args.default_data, "frozen-fambo-default-v1")
+    (args.default_data / "summary.csv").write_text(csv_text(defaults))
     (args.mbo_data / "summary.csv").write_text(csv_text(mbo_hashes))
     (args.data / "read-summary.csv").write_text(csv_text(reads))
     (args.data / "hash-summary.csv").write_text(csv_text(hashes))
@@ -222,7 +241,8 @@ def main():
     guide = replace_block(guide, "HASH RESULTS", hash_tables(hashes))
     guide = replace_block(guide, "MBO READ RESULTS", read_table(mbo_hashes, MBO_LAYOUTS))
     guide = replace_block(guide, "MBO HASH RESULTS", mbo_hash_tables(mbo_hashes))
-    args.guide.write_text(replace_block(guide, "MBO SIZE RESULTS", mbo_size_table(mbo_hashes)))
+    guide = replace_block(guide, "MBO SIZE RESULTS", mbo_size_table(mbo_hashes))
+    args.guide.write_text(replace_block(guide, "DEFAULT HASH RESULTS", default_hash_table(defaults)))
 
 
 if __name__ == "__main__":

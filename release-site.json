@@ -51,6 +51,9 @@
     "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv",
     "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz",
     "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json",
-    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv"
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json"
   }
 }

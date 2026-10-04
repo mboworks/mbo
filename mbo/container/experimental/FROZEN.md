@@ -17,6 +17,44 @@ Integral and enum defaults are unchanged. The retained comparison below predates
 replacement: its former-FNV rows are historical baselines, and its fambo rows measured an
 explicitly supplied fambo hasher.
 
+### Verification of the new default
+
+A separate run after the replacement compares the default with explicitly supplied fambo
+in the same process. Mixed lookup in ns/query, median of nine repetitions on the same
+Apple M5 Pro / Clang 22.1.8 configuration and 10-byte string fixture:
+
+<!-- BEGIN FROZEN DEFAULT HASH RESULTS -->
+
+| Entries | Layout  | Map default | Map explicit fambo | Set default | Set explicit fambo |
+| ------: | ------- | ----------: | -----------------: | ----------: | -----------------: |
+|       8 | minimal |        6.33 |               6.31 |        6.57 |               6.25 |
+|       8 | sparse  |        5.92 |               6.04 |        5.95 |               5.91 |
+|      64 | minimal |        6.15 |               6.16 |        6.31 |               6.23 |
+|      64 | sparse  |        5.98 |               6.14 |        6.02 |               6.01 |
+|     256 | minimal |        6.31 |               6.12 |        6.30 |               6.26 |
+|     256 | sparse  |        5.95 |               5.80 |        6.04 |               6.17 |
+
+Hash alone: default **1.75 ns/key**, explicit fambo **1.75 ns/key**.
+
+<!-- END FROZEN DEFAULT HASH RESULTS -->
+
+The default now delivers fambo's roughly 6 ns mixed lookups in these fixtures; no custom
+hasher argument is needed. The policy test checks exact hash equality across empty strings,
+byte edge cases, and length boundaries; timings provide the separate performance check.
+This run contains 86 cases and 774 samples, including hit/miss queries and map `at`, with
+0.05s minimum time, 0.01s warmup, and random interleaving. No case exceeded 10% CPU-time CV.
+
+Retained [CSV](measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv),
+[raw artifact](measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz), and
+[provenance](measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json) record its
+clean source commit and command. Use the benchmark-artifact runner below with component
+`frozen-fambo-default`, minimum time `0.05s`, and filter
+`^((Map|Set)/string/(8|64|256)/(minimal|sparse|minimal_fambo|sparse_fambo)/(find/(hit|miss|mixed)|at/hit)|Hash/string/(frozen|fambo))$`
+to repeat this verification. The run retains the same single-host, warm-corpus limitations
+as the broader comparison below.
+
+### Comparison that selected fambo
+
 **Fambo largely closes the lookup gap in this fixture.** At 64 keys, sparse FrozenMap
 mixed lookup takes 5.97 ns with fambo versus 11.16 ns with the former FrozenHash: 47% less time,
 or 1.87 times the throughput. Native STL/Abseil maps take 5.81 to 6.44 ns in the same run.
@@ -26,7 +64,7 @@ that it wins every workload.
 
 Apple M5 Pro, macOS arm64, Clang 22.1.8/libc++, `-c opt --config=clang --config=opt_apple_m5`,
 2026-10-04. All values below are median CPU times from **nine repetitions in the same
-process**; lower is better. The first table uses 64 borrowed 10-byte string keys, with
+process**; lower is better. The hash-choice table uses 64 borrowed 10-byte string keys, with
 mixed queries alternating hits and misses. Map `at` measures successful queries only;
 compare it with `find/hit` in the CSV when assessing its additional cost.
 
@@ -98,7 +136,7 @@ layouts, `contains`, `count`, `equal_range`, hit-only and miss-only queries, set
 bucket counts, and construction work.
 
 Twelve of the 1,083 cases have a CPU-time coefficient of variation above 10%; every cell
-in the first table is below 5.3%. Closely spaced timings should not be treated as a
+in the 64-key hash-choice table is below 5.3%. Closely spaced timings should not be treated as a
 stable ranking across runs.
 
 Download the [complete CSV](measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv),

@@ -98,6 +98,7 @@ cc_test(
         ":frozen_options_cc",
         ":frozen_set_cc",
         ":frozen_table_cc",
+        "//mbo/hash:hash_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -137,6 +138,7 @@ cc_binary(
         ":frozen_set_cc",
         "//mbo/container:limited_map_cc",
         "//mbo/container:limited_set_cc",
+        "//mbo/hash:hash_cc",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/container:node_hash_map",

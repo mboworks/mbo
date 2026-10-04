@@ -18,6 +18,7 @@
 #include "mbo/container/experimental/frozen_map.h"
 #include "mbo/container/experimental/frozen_options.h"
 #include "mbo/container/experimental/frozen_set.h"
+#include "mbo/hash/hash.h"
 
 namespace mbo::container::experimental {
 namespace {
@@ -34,7 +35,72 @@ using ::testing::SizeIs;
 using ::testing::UnorderedElementsAre;
 using namespace std::string_view_literals;
 
-struct FrozenTest : ::testing::Test {};
+struct FrozenTest : ::testing::Test {
+  template<typename Hash>
+  static void CheckMboHash() {
+    static constexpr auto kBytes = [] {
+      std::array<char, 256> bytes{};
+      for (std::size_t index = 0; index < bytes.size(); ++index) {
+        bytes.at(index) = static_cast<char>(index);
+      }
+      return bytes;
+    }();
+    static constexpr auto kLengths = std::to_array<std::size_t>({
+        0, 1, 3, 4, 7, 8, 9, 10, 15, 16, 17, 32, 48, 63, 64, 127, 128, 129, 255,
+    });
+    static constexpr auto kEntries = [] {
+      std::array<std::pair<std::string_view, std::size_t>, kLengths.size()> entries{};
+      for (std::size_t index = 0; index < entries.size(); ++index) {
+        entries.at(index) = {std::string_view(kBytes.data(), kLengths.at(index)), index};
+      }
+      return entries;
+    }();
+    static constexpr auto kStringKeys = [] {
+      std::array<std::string_view, kLengths.size()> keys{};
+      for (std::size_t index = 0; index < keys.size(); ++index) {
+        keys.at(index) = kEntries.at(index).first;
+      }
+      return keys;
+    }();
+    static constexpr auto kHashes = [] {
+      std::array<std::uint64_t, kLengths.size()> hashes{};
+      for (std::size_t index = 0; index < hashes.size(); ++index) {
+        hashes.at(index) = Hash{}(kStringKeys.at(index));
+      }
+      return hashes;
+    }();
+    static constexpr FrozenMap<std::string_view, std::size_t, kLengths.size(), Hash> kHashMap(kEntries);
+    static constexpr FrozenSet<std::string_view, kLengths.size(), Hash> kHashSet(kStringKeys);
+    static_assert(kHashMap.at(kStringKeys.back()) == kLengths.size() - 1);
+    static_assert(kHashSet.contains(kStringKeys.back()));
+    for (std::size_t index = 0; index < kStringKeys.size(); ++index) {
+      std::string key(kStringKeys.at(index));
+      EXPECT_THAT(Hash{}(key), kHashes.at(index));
+      EXPECT_THAT(kHashMap.at(key), index);
+      EXPECT_THAT(kHashSet.contains(key), IsTrue());
+      EXPECT_THAT(kHashMap.equal_range(key).first->second, index);
+      if (key.empty()) {
+        key.push_back(static_cast<char>(0xff));
+      } else {
+        key.front() = static_cast<char>(0xff);
+      }
+      EXPECT_THAT(kHashMap.contains(key), IsFalse());
+      EXPECT_THAT(kHashSet.contains(key), IsFalse());
+    }
+  }
+};
+
+TEST_F(FrozenTest, MumboHashMatchesConstantEvaluation) {
+  CheckMboHash<mbo::hash::Hasher<mbo::hash::mumbo::Algorithm>>();
+}
+
+TEST_F(FrozenTest, FamboHashMatchesConstantEvaluation) {
+  CheckMboHash<mbo::hash::Hasher<mbo::hash::fambo::Algorithm>>();
+}
+
+TEST_F(FrozenTest, DumboHashMatchesConstantEvaluation) {
+  CheckMboHash<mbo::hash::Hasher<mbo::hash::dumbo::Algorithm>>();
+}
 
 constexpr auto kKeys = std::to_array<std::string_view>({"", "-name", "-n", "a\0b"sv, "\x80\xff"sv, "-type", "!"});
 constexpr FrozenSet kSet(kKeys);

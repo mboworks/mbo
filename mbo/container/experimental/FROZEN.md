@@ -165,6 +165,22 @@ custom hash object or a specialization. Hash results are converted to `std::uint
 Custom operations must produce identical results at runtime and during constant evaluation;
 portable reproducibility also requires compiler-independent custom operations.
 
+MBO's `mumbo`, `fambo`, and `dumbo` can be used directly through their constexpr,
+transparent `mbo::hash::Hasher` functors (include `mbo/hash/hash.h`, Bazel dependency
+`//mbo/hash:hash_cc`). For example, using the entries from the quick start:
+
+```cpp
+using Fambo = mbo::hash::Hasher<mbo::hash::fambo::Algorithm>;
+constexpr auto kFamboOptions = mbo::container::experimental::MakeFrozenMap(kEntries, Fambo{});
+static_assert(kFamboOptions.at("-n") == 1);
+```
+
+These functors use MBO's default seed, 5,381, for all three algorithms, including dumbo.
+They read words efficiently at runtime and produce the same hash during constant evaluation.
+The integration tests exercise Frozen lookup with runtime-owned strings, embedded NUL/high
+bytes, empty strings, and lengths across the short/bulk hash boundaries. Selecting a custom
+hasher does not change the default `FrozenHash` used by other tables.
+
 ## Read-only C++26 interface
 
 These containers provide the read-only unordered associative operations in the
@@ -273,7 +289,7 @@ elements across seven layouts: linear scans, Limited containers, minimal/sparse 
 containers, `std::unordered_map` / `std::unordered_set`, `absl::flat_hash_map` /
 `absl::flat_hash_set`, and `absl::node_hash_map` / `absl::node_hash_set`.
 
-There are 1,134 main comparison cases plus 18 hash diagnostics. Main-case names use
+There are 1,620 main comparison cases plus 39 hash diagnostics. Main-case names use
 `Map|Set/int|string/size/layout/operation/workload`, with
 layouts `linear`, `limited`, `minimal`, `sparse`, `std_unordered`, `absl_flat`, and
 `absl_node`. Operations are `find`, `contains`, `count`, and `equal_range` on hits, misses,
@@ -283,6 +299,11 @@ Its latency is per traversal, while `items_per_second` counts visited elements. 
 latency is per query. Linear arrays emulate the associative operations; `at` includes a
 missing-key check. Ordered `equal_range` can return an empty range at an insertion position,
 while hash containers return end iterators; both are treated as misses.
+
+The six additional string layouts are `minimal_mumbo`, `sparse_mumbo`, `minimal_fambo`,
+`sparse_fambo`, `minimal_dumbo`, and `sparse_dumbo`. Each has the complete read-operation
+matrix at 8/64/256 entries and retains constexpr construction with the ordinary construction
+budgets. The MBO algorithms hash byte strings, so integer cases retain their existing hashes.
 
 Inline tables retain constexpr construction. STL and Abseil tables use their native default
 hash/equality and load-factor policies, with `reserve(size)` followed by insertion before
@@ -310,6 +331,13 @@ To reproduce the 38-case investigation, use
 `--benchmark_filter='^(Hash/|Diagnostic/|(Map|Set)/(int|string)/64/(minimal|sparse|std_unordered|absl_flat|absl_node)/find/mixed$)'`
 with `--benchmark_min_time=0.1s --benchmark_repetitions=5` and random interleaving.
 Use `--benchmark_filter='^(Map|Set)/'` to run only the main matrix.
+
+The MBO alternatives add `Hash/string/mumbo|fambo|dumbo` and 18 controls using layout
+prefixes `std_`, `absl_flat_`, and `absl_node_` followed by the algorithm name
+(for example, `Diagnostic/Map/string/64/absl_flat_fambo/find/mixed`). They supply the same
+named hasher to STL/Abseil. Select all 1,083 string cases with
+`--benchmark_filter='^(Hash/string/|(Map|Set)/string/|Diagnostic/(Map|Set)/string/)'`.
+The executable records compiler/library provenance for `tools/benchmark_artifact.py`.
 
 A local Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work
 units for the minimal index and 170 for the sparse index. Container sizes were 2,576 and

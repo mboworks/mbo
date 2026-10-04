@@ -9,7 +9,9 @@ and xff PRs 835–848, excluding 841. Run `bazel test //...`,
 Build with `bazel build --config=clang-tidy //...`, then run
 `./compile_commands-update.sh` before `pre-commit run clang-tidy --all-files`.
 The enforcing hook is report-only. Missing prerequisites, stale compilation databases,
-parse errors, and findings fail the check.
+parse errors, and findings fail the check. The clang-tidy job also uses that compiler database
+to run `mbo/container/experimental/frozen_compile_test.py`: a successful baseline compile,
+negative construction diagnostics, and C++26 interface compilation.
 
 `require_serial: true` gives one coordinator ownership of all workers; pre-commit filename
 batching cannot multiply worker pools. The default is `max(1, min(2, CPUs - 1))`, further
@@ -48,7 +50,8 @@ The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays 
 ## Preparation profiles
 
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
-targets include the experimental circular buffer's checked operations and its deque integration,
+targets include the experimental frozen containers' construction and lookup failures,
+the experimental circular buffer's checked operations and its deque integration,
 the shared value-pop suite across all sequence endpoints, and Json array pop requirements. The
 value-pop exception tests disable optional return-value elision to exercise the single-move
 contract. Its primary and exception-policy

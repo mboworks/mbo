@@ -56,6 +56,14 @@ deps = [
 
 The examples below are exercised by `//mbo/container:container_readme_test`.
 
+## Frozen containers
+
+The experimental [`FrozenMap` and `FrozenSet`](experimental/FROZEN.md) provide immutable
+perfect-hash tables with constexpr and runtime construction, generic keys and values,
+transparent lookup, and const forward iteration. They use fixed inline storage and a shared
+index builder. See their guide for the read-only C++26 interface, construction limits,
+minimal/sparse layouts, and benchmark commands.
+
 ## Limited containers
 
 `LimitedVector`, `LimitedSet`, and `LimitedMap` reserve their entire compile-time bound inside each

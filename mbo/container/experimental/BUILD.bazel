@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 # SPDX-License-Identifier: Apache-2.0
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 cc_library(
     name = "circular_buffer_cc",
@@ -44,5 +44,117 @@ cc_test(
         "//mbo/container:segmented_options_cc",
         "//mbo/memory:block_source_cc",
         "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "frozen_options_cc",
+    hdrs = ["frozen_options.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "frozen_table_cc",
+    hdrs = [
+        "internal/frozen_index.h",
+        "internal/frozen_table.h",
+    ],
+    deps = [
+        ":frozen_options_cc",
+        "//mbo/config:require_cc",
+        "//mbo/types:optional_ref_cc",
+    ],
+)
+
+cc_library(
+    name = "frozen_map_cc",
+    hdrs = ["frozen_map.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":frozen_options_cc",
+        ":frozen_table_cc",
+        "//mbo/config:require_cc",
+        "//mbo/types:optional_ref_cc",
+    ],
+)
+
+cc_library(
+    name = "frozen_set_cc",
+    hdrs = ["frozen_set.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":frozen_options_cc",
+        ":frozen_table_cc",
+        "//mbo/types:optional_ref_cc",
+    ],
+)
+
+cc_test(
+    name = "frozen_test",
+    size = "small",
+    srcs = ["frozen_test.cc"],
+    deps = [
+        ":frozen_map_cc",
+        ":frozen_options_cc",
+        ":frozen_set_cc",
+        ":frozen_table_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "frozen_require_exceptions_test",
+    size = "small",
+    srcs = ["frozen_require_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    tags = ["no-coverage"],
+    deps = [
+        ":frozen_map_cc",
+        ":frozen_options_cc",
+        ":frozen_set_cc",
+        "//mbo/config:config_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "frozen_benchmark",
+    testonly = True,
+    srcs = [
+        "frozen_benchmark.cc",
+        "internal/frozen_benchmark_data.h",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":frozen_map_cc",
+        ":frozen_options_cc",
+        ":frozen_set_cc",
+        "//mbo/container:limited_map_cc",
+        "//mbo/container:limited_set_cc",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "frozen_probe",
+    testonly = True,
+    srcs = [
+        "frozen_probe.cc",
+        "internal/frozen_benchmark_data.h",
+    ],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":frozen_map_cc",
+        ":frozen_options_cc",
+        "//mbo/container:limited_map_cc",
     ],
 )

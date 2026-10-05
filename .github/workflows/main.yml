@@ -35,7 +35,7 @@ jobs:
       - run: python3 -m unittest discover -s tools -p release_notes_test.py
       - name: Test infrastructure policies
         run: python3 -m unittest discover -s tools -p "*_test.py"
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Test retained coverage in Chromium

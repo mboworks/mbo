@@ -106,7 +106,7 @@ jobs:
           # this job deliberately does not build. Skip it here to avoid running
           # the same enforcing gate without its required compilation database.
           SKIP: trunk-fmt,clang-tidy
-      - uses: pre-commit-ci/lite-action@v1.1.0
+      - uses: pre-commit-ci/lite-action@v1.2.0
         if: always()
 
   clang-tidy:

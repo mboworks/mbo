@@ -129,7 +129,7 @@ The C++ library is organized in functional groups each residing in their own dir
 - [Json](mbo/json/README.md)
   - `namespace mbo::json`
   - mbo/json:json_cc, mbo/json/json.h
-    - class `Json`: Owning JSON values with scalar construction, array/object mutation, and object-root serialization.
+    - class `Json`: A write-only JSON generator with owning values, array/object mutation, and object-root serialization; no JSON input parser.
     - enum `Json::SerializeMode`: Selects `kCompact`, `kLine`, or `kPretty` JSON output.
     - function `Json::Serialize`: Serializes an object or null root to a `std::string`.
     - function `Json::Stream`: Serializes an object or null root to a `std::ostream`.

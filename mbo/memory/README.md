@@ -1,7 +1,11 @@
 # `mbo/memory`
 
+`mbo::memory` provides aligned raw memory blocks and an arena for allocating byte ranges from them.
+It supports heap, allocator, memory resource, caller-owned, and inline storage, with configurable
+arena growth, reuse, and allocation accounting. Typed object construction and destruction remain
+the caller's responsibility.
+
 - Namespace: `mbo::memory`.
-- Scope: aligned backing blocks and arena byte allocation.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

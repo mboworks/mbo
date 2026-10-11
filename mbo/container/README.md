@@ -4,8 +4,10 @@
 # Containers
 
 `mbo::container` provides bounded inline containers, stable segmented sequences, and adapters for
-container-independent iteration and conversion. The public experimental circular buffer lives in
-`mbo::container::experimental`. All require the repository's C++23 compiler and library baseline:
+container-independent iteration and conversion. Its experimental namespace also provides immutable
+hash maps and sets and a growable circular buffer.
+
+All require the repository's C++23 compiler and library baseline:
 GCC 15/libstdc++ 15, Clang 22/libc++ 22, or Xcode 16.3 with its matching Apple Clang/libc++.
 
 ## Choosing a container

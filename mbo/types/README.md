@@ -1,16 +1,10 @@
 # `mbo/types`
 
-`mbo/types` combines small value and metaprogramming utilities with `Extend`: a simple, generic, and
-powerful way to enrich C++ aggregates. A single CRTP base can derive construction, tuple access,
-comparison, hashing, and highly configurable text output from a type's fields. Libraries with many
-record types can replace large amounts of repetitive operators, helpers, and formatting code with
-one consistent mechanism. Across a library, that can eliminate hundreds or thousands of lines of
-boilerplate while reducing both maintenance cost and the opportunity for bugs.
+`mbo::types` provides type traits, compile-time type selection, value and reference wrappers, strong
+identifiers, and aggregate reflection utilities. Its `Extend` framework derives configurable
+construction, tuple access, comparison, hashing, and text output from an aggregate's fields.
 
-`Extend` is not a fixed bundle. Its reusable extender mechanism makes project-specific functionality
-easy to define once and apply uniformly to aggregates throughout a codebase. Users can take the
-complete defaults, select only individual behaviors, omit printing, or compose the defaults with
-their own extenders. The framework targets C++23, GCC 15+, and Clang 22+.
+The framework targets C++23, GCC 15+, and Clang 22+.
 
 This guide describes the public model and common usage. The separate
 [reflection implementation note](REFLECTION.md) explains how automatic field-name discovery works,

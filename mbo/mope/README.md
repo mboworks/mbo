@@ -1,7 +1,10 @@
 # `mbo/mope`
 
+`mbo::mope` expands text templates using named values, repeated sections, ranges, and lists.
+It provides a C++ template API, hierarchical data loading from INI files, a command-line generator,
+and Bazel rules for generating files and checking their output against golden files.
+
 - Namespace: `mbo::mope`.
-- Scope: template expansion, hierarchical section data, INI loading, CLI, and Bazel generation rules.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers, rules, and targets

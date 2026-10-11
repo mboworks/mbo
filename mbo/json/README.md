@@ -1,10 +1,12 @@
 # `mbo/json`
 
+`mbo::json` is a write-only JSON generator. It provides owning scalar, array, and object values for
+building documents in C++ and serializing object or null roots to strings or streams. It does not
+read or parse JSON input.
+
 - Namespace: `mbo::json`.
 - Header: [json.h](json.h).
 - Bazel target: `//mbo/json:json_cc`.
-- Scope: owning JSON values, object/array mutation, comparisons, and serialization.
-- Text parsing API: none.
 
 ## Value kinds
 

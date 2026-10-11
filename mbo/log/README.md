@@ -1,7 +1,10 @@
 # `mbo/log`
 
+`mbo::log` provides type-name demangling, elapsed-time logging through Abseil, and scoped output
+streams. Its timing and stream objects emit output on destruction, with duration filtering and
+output suppression options.
+
 - Namespace: `mbo::log`.
-- Scope: type-name demangling, scoped output, elapsed-time logging.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

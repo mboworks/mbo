@@ -1,7 +1,10 @@
 # `mbo/testing`
 
+`mbo::testing` provides GoogleTest and GoogleMock helpers for testing text, containers, and Abseil
+statuses. It includes text comparisons with unified diffs, membership and transformation matchers,
+status assertion macros, and Bazel test runfile lookup.
+
 - Namespace: `mbo::testing`.
-- Scope: GoogleTest/GoogleMock matchers, Abseil status assertions, Bazel test runfiles.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

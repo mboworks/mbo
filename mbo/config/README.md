@@ -1,7 +1,10 @@
 # `mbo/config`
 
+`mbo::config` provides C++ feature checks, generated build settings, and requirement macros shared
+by MBO libraries. It connects Bazel configuration to C++ constants and controls failure behavior
+for requirement checks.
+
 - Namespace: `mbo::config`.
-- Scope: C++ feature checks, generated build settings, requirement macros.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

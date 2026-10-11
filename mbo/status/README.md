@@ -1,7 +1,10 @@
 # `mbo/status`
 
+`mbo::status` provides helpers for error handling with `absl::Status` and `absl::StatusOr`.
+It includes status extraction, a builder for messages and payloads, and macros that propagate
+errors while assigning or moving successful results.
+
 - Namespace: `mbo::status`.
-- Scope: Abseil status extraction, message and payload construction, error propagation.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

@@ -1,7 +1,8 @@
 # File utilities
 
-The `mbo::file` libraries provide file metadata, whole-file and path operations, recursive globbing,
-and INI parsing. Each target can be used independently.
+`mbo::file` provides file reading and writing, metadata and path operations, recursive globbing,
+and INI parsing. These components expose separate C++ targets, and the `glob` command-line tool
+provides filesystem pattern matching.
 
 | Component | Bazel target                 | Header                    | Purpose                                      |
 | --------- | ---------------------------- | ------------------------- | -------------------------------------------- |

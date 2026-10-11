@@ -1,8 +1,10 @@
 # `mbo/strings`
 
+`mbo::strings` provides string containment, indentation removal, integer formatting, configurable
+quoted-string parsing, splitting, and prefix, suffix, and comment removal. It also defines compact
+string identifiers for representing string entries without storing the text in each identifier.
+
 - Namespace: `mbo::strings`.
-- Scope: containment, indentation, numeric formatting, quoted-string parsing, splitting, comment
-  removal, and dense string identifiers.
 - Build definitions: [BUILD.bazel](BUILD.bazel).
 
 ## Headers and targets

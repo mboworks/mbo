@@ -304,10 +304,17 @@ jobs:
     needs: [trunk, pre-commit]
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: read
     env:
       CC: gcc-15
       CXX: g++-15
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_DIR: ${{ runner.temp }}/mbo-ccache
+      CCACHE_MAXSIZE: 500MB
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -317,7 +324,7 @@ jobs:
         run: |
           echo "CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
           echo "CTEST_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
-      - name: Install GCC 15 and CMake
+      - name: Install GCC 15, CMake and ccache
         run: |
           for attempt in 1 2 3; do
             if sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; then
@@ -329,7 +336,18 @@ jobs:
             sleep 5
           done
           sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install --yes gcc-15 g++-15 cmake ninja-build
+          sudo apt-get install --yes gcc-15 g++-15 cmake ninja-build ccache
+      - name: Identify the compiler cache
+        id: compiler
+        run: echo "version=$(g++-15 -dumpfullversion -dumpversion)" >>"${GITHUB_OUTPUT}"
+      - uses: actions/cache/restore@v6
+        id: ccache_restore
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: cmake-ccache-v1-${{ runner.os }}-${{ runner.arch }}-gcc-${{ steps.compiler.outputs.version }}-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'cmake/*.cmake', 'cmake/generate.py') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            cmake-ccache-v1-${{ runner.os }}-${{ runner.arch }}-gcc-${{ steps.compiler.outputs.version }}-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'cmake/*.cmake', 'cmake/generate.py') }}-
+            cmake-ccache-v1-${{ runner.os }}-${{ runner.arch }}-gcc-${{ steps.compiler.outputs.version }}-
       - name: Configure libraries, binaries, benchmarks and tests
         run: cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BENCHMARKS=ON
       - name: Build
@@ -338,6 +356,17 @@ jobs:
         run: |
           ctest --test-dir build-cmake --output-on-failure
           ctest --test-dir build-cmake --output-on-failure --repeat until-fail:2 -R '^mbo_file_glob_test$'
+      - name: Verify compiler cache reuse
+        run: |
+          ccache --show-stats >"${RUNNER_TEMP}/ccache-initial-stats.txt"
+          cmake --build build-cmake --target clean
+          ccache --zero-stats
+          cmake --build build-cmake --target mbo_config_config_test
+          ctest --test-dir build-cmake --output-on-failure -R '^mbo_config_config_test$'
+          ccache --print-stats | awk '
+            $1 == "direct_cache_hit" || $1 == "preprocessed_cache_hit" { hits += $2 }
+            END { print "Compiler cache hits:", hits; exit (hits == 0) }
+          '
       - name: Verify requirement exceptions and disabled hash mangling
         run: |
           cmake -S . -B build-cmake-exceptions -G Ninja \
@@ -362,6 +391,31 @@ jobs:
           cmake -S cmake/tests -B build-cmake-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build-cmake-consumer
           ctest --test-dir build-cmake-consumer --output-on-failure
+
+      - name: Report compiler cache statistics
+        if: always()
+        run: |
+          if command -v ccache >/dev/null 2>&1; then
+            {
+              echo '### CMake compiler cache'
+              echo
+              if [[ -f "${RUNNER_TEMP}/ccache-initial-stats.txt" ]]; then
+                echo 'Initial build:'
+                echo '```text'
+                cat "${RUNNER_TEMP}/ccache-initial-stats.txt"
+                echo '```'
+              fi
+              echo 'Final counters (including cache verification and alternate builds):'
+              echo '```text'
+              ccache --show-stats
+              echo '```'
+            } >>"${GITHUB_STEP_SUMMARY}"
+          fi
+      - uses: ./.github/actions/cmake-ccache-save
+        if: success() && github.ref == 'refs/heads/main'
+        timeout-minutes: 20
+        with:
+          key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
 
   test-gcc:
     needs: [trunk, pre-commit]

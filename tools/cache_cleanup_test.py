@@ -91,6 +91,29 @@ class CacheCleanupTest(unittest.TestCase):
     self.assertEqual(cache_cleanup.MAX_CACHE_BYTES, 700_000_000)
     self.assertLess(bazel_cache.MAX_BYTES, cache_cleanup.MAX_CACHE_BYTES)
 
+  def test_cmake_generations_are_scoped_by_cache_family_and_configuration(self):
+    def entry(number, family="cmake-ccache-v1", namespace="Linux-X64-gcc-15.2.0", size=10):
+      return {"id": number, "ref": "refs/heads/main", "sizeInBytes": size,
+              "createdAt": f"2026-09-{number:02d}T00:00:00Z",
+              "key": f"{family}-{namespace}-{'a' * 64}-{number}-1"}
+    caches = [entry(1), entry(2), entry(3, size=cache_cleanup.MAX_CACHE_BYTES),
+              entry(4, family="bazel-actions-v2"), entry(5, namespace="Linux-ARM64-gcc-15.2.0")]
+    self.assertEqual(cache_cleanup.obsolete_cache_ids(caches, set()), [1, 3])
+    self.assertEqual(cache_cleanup.replaced_cache_ids(caches, caches[1]["key"]), [1])
+
+  def test_cmake_retirement_requires_a_usable_main_replacement(self):
+    old = {"id": 1, "ref": "refs/heads/main", "sizeInBytes": 100,
+           "createdAt": "2026-09-01T00:00:00Z",
+           "key": f"cmake-ccache-v1-Linux-X64-gcc-15.2.0-{'a' * 64}-1-1"}
+    new = dict(old, id=2, createdAt="2026-09-02T00:00:00Z",
+               key=f"cmake-ccache-v1-Linux-X64-gcc-15.2.0-{'b' * 64}-2-1")
+    self.assertEqual(cache_cleanup.replaced_cache_ids([old], new["key"]), [])
+    for change in ({"sizeInBytes": 0}, {"sizeInBytes": cache_cleanup.MAX_CACHE_BYTES},
+                   {"ref": "refs/pull/559/merge"}, {"createdAt": old["createdAt"]}):
+      with self.subTest(change=change):
+        replacement = dict(new, **change)
+        self.assertEqual(cache_cleanup.replaced_cache_ids([old, replacement], new["key"]), [])
+
 
 class WorkflowCachePolicyTest(unittest.TestCase):
     def setUp(self):

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Verify the experimental adapter against its Bazel source of truth."""
+"""Verify the CMake adapter against its Bazel source of truth."""
 
 import ast
 from pathlib import Path

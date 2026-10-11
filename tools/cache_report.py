@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 # SPDX-License-Identifier: Apache-2.0
-"""Report per-run Bazel uploads and repository-wide compressed cache storage."""
+"""Report per-run compiler-cache uploads and repository-wide compressed cache storage."""
 
 import argparse
 import json
@@ -35,7 +35,7 @@ def render(metrics, inventory):
         lines.extend(["| Configuration | Before trimming | Uncompressed retained | Compressed upload | Evicted files |",
                       "| :--- | ---: | ---: | ---: | ---: |"])
         for item in sorted(metrics, key=lambda value: value["key"]):
-            match = re.fullmatch(r"bazel-actions-v2-(.+)-[0-9a-f]{64}-\d+-\d+", item["key"])
+            match = re.fullmatch(r"(?:bazel-actions-v2|cmake-ccache-v1)-(.+)-[0-9a-f]{64}-\d+-\d+", item["key"])
             name = match[1] if match else "Unknown configuration"
             size = item.get("compressed")
             if size is None:

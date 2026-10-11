@@ -31,10 +31,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "MBO requires Xcode 16.3 or newer and matching Apple Clang/libc++")
   endif()
 else()
-  message(FATAL_ERROR "Experimental MBO CMake supports GCC and Clang on Unix platforms")
+  message(FATAL_ERROR "MBO CMake supports GCC and Clang on Unix platforms")
 endif()
 if(NOT UNIX)
-  message(FATAL_ERROR "Experimental MBO CMake currently requires a Unix platform")
+  message(FATAL_ERROR "MBO CMake currently requires a Unix platform")
 endif()
 
 # The standard is scoped to this directory and its dependencies, not the parent.

@@ -32,7 +32,7 @@ the toolchain's bundled LLD default. Both target and host configurations use Baz
 `--macos_minimum_os=11.0` settings so Apple platform metadata and compile/link actions
 agree on the deployment target.
 
-Cache only Bazel compiled outputs. Keys separate OS, architecture, compiler/version, Bazel
+Cache only compiled outputs: Bazel disk caches and the CMake job's ccache directory. Bazel keys separate OS, architecture, compiler/version, Bazel
 version, build configuration, dependency hash, run, and attempt. Only main saves generations;
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.
 Do not upload extracted LLVM distributions or downloaded module repositories.
@@ -63,7 +63,19 @@ enables compiler exceptions and checks requirement exceptions and disabled hash 
 including the optional wrappers and Stringify option validation. A separate consumer project verifies
 `add_subdirectory` and the transitive C++23, include, and link requirements of `mbo::mbo`.
 This job participates in `done`; it does not replace any Bazel, sanitizer, lint, or coverage gate.
-CMake build trees and fetched dependencies remain local and are not uploaded as Bazel caches.
+The default, exception/configuration, and consumer builds use CMake's C/C++ compiler launchers
+with ccache. PRs restore main generations; only successful main jobs save them. CMake keys use a
+separate `cmake-ccache-v1` family partitioned by OS, architecture, GCC version, dependency/build-adapter
+hash, run, and attempt. Compiler-content checks protect reuse when an installed compiler changes.
+The ccache limit is 500 MB; saving synchronously cleans the cache and rejects a payload at or above
+600,000,000 bytes. The shared compressed entry ceiling remains 700,000,000 bytes. Retirement requires
+an exact usable main replacement and preserves other cache families, configurations, and newer runs.
+One-day cache measurements feed the existing final storage report.
+
+A clean rebuild of the configuration test must produce actual direct or preprocessed cache hits.
+The job summary separates the initial library/binary/test build counters from the cache-verification
+and alternate-build counters. CMake build trees and fetched dependencies remain local and are
+excluded from uploads.
 
 ## Preparation profiles
 

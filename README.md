@@ -403,7 +403,7 @@ exception support it always uses fatal logging, even if the throwing policy is s
 See the [config guide](mbo/config/README.md) and [hash guide](mbo/hash/README.md) for the
 requirement contract and hash compatibility rules.
 
-### CMake (EXPERIMENTAL)
+### CMake
 
 CMake 3.28+ and Python 3.10+ build one library target per `mbo/*` library, the overall
 `mbo::mbo` target, and individual command-line and benchmark targets. Build definitions live

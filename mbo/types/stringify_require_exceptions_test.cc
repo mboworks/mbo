@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
 // SPDX-License-Identifier: Apache-2.0
 
+#include <array>
 #include <stdexcept>
 
 #include "gmock/gmock.h"
@@ -54,14 +55,11 @@ TEST_F(StringifyRequireExceptionsTest, BuiltInOptionsAreCompleteAndNoexcept) {
   static_assert(Stringify::OptionsJson().AllDataSet());
   static_assert(Stringify::OptionsJsonLine().AllDataSet());
   static_assert(Stringify::OptionsJsonPretty().AllDataSet());
-  for (const auto mode : {
-           Stringify::OutputMode::kDefault,
-           Stringify::OutputMode::kCpp,
-           Stringify::OutputMode::kCppPretty,
-           Stringify::OutputMode::kJson,
-           Stringify::OutputMode::kJsonLine,
-           Stringify::OutputMode::kJsonPretty,
-       }) {
+  constexpr std::array kModes{
+      Stringify::OutputMode::kDefault, Stringify::OutputMode::kCpp,      Stringify::OutputMode::kCppPretty,
+      Stringify::OutputMode::kJson,    Stringify::OutputMode::kJsonLine, Stringify::OutputMode::kJsonPretty,
+  };
+  for (const auto mode : kModes) {
     EXPECT_THAT(Stringify::OptionsAs(mode).AllDataSet(), IsTrue());
   }
 }

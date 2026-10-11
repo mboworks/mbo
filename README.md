@@ -11,7 +11,7 @@ The library is tested with Clang (22+) and GCC (15+) on Ubuntu and MacOS (arm) u
 
 The C++ library is organized in functional groups each residing in their own directory:
 
-- Config
+- [Config](mbo/config/README.md)
   - `namespace mbo::config`
   - mbo/config:config_cc, mbo/config/config.h
     - Custom Bazel flag `--//mbo/config:limited_ordered_max_unroll_capacity` which controls the maximum unroll size for `LimitedOrdered` and thus `LimitedMap` and `LimitedSet`.
@@ -126,16 +126,16 @@ The C++ library is organized in functional groups each residing in their own dir
     - Custom Bazel flag `--//mbo/hash:mangle_seed_buckets`: bucket count bounding the variation (default `8`); `0` disables the mangle (`GetHash == GetHash64`), `1` pins one stable constant across releases and seeds.
   - mbo/hash:hash_extra_cc, mbo/hash/hash_extra.h
     - The NOTICE-bearing transcriptions (`rapidhash` MIT; `xxh64`/`xxh3` BSD-2-Clause) as an opt-in target: linking it requires shipping the repository-root [NOTICE](NOTICE); the default hash_cc target is notice-free (see "Third-party components").
-- Json
+- [Json](mbo/json/README.md)
   - `namespace mbo::json`
   - mbo/json:json_cc, mbo/json/json.h
-    - class `Json`: A JSON value/document that can be built from almost any structured type (see `ConvertibleToJson`) and serialized to JSON text.
+    - class `Json`: A write-only JSON generator with owning values, array/object mutation, and object-root serialization; no JSON input parser.
     - enum `Json::SerializeMode`: Selects `kCompact`, `kLine`, or `kPretty` JSON output.
-    - function `Json::Serialize`: Returns the JSON value as a `std::string`.
-    - function `Json::Stream`: Writes the JSON value to a `std::ostream`.
+    - function `Json::Serialize`: Serializes an object or null root to a `std::string`.
+    - function `Json::Stream`: Serializes an object or null root to a `std::ostream`.
     - function `Json::pop_back_value`: Removes and returns the last value of a nonempty array, with checked kind and empty preconditions.
     - concept `ConvertibleToJson`: Determines whether a value can be stored in a `Json`.
-- Log
+- [Log](mbo/log/README.md)
   - `namespace mbo::log`
   - mbo/log:demangle_cc, mbo/log/demangle.h
     - functions `Demangle` to log de-mangled typeid names.
@@ -145,7 +145,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - struct `VoidStream`: A suppressing output stream.
     - template struct `ScopedStream`: A scoped output stream for function location logging.
     - enum `ScopedStreamMode`: Controls how `scopedStream` handles output.
-- Memory
+- [Memory](mbo/memory/README.md)
   - `namespace mbo::memory`
   - mbo/memory:block_source_cc, mbo/memory/block_source.h
     - `MemoryBlock`, `BlockSource`, and `CopyableBlockSource`: Aligned raw-block ownership and acquisition/release contracts shared by arenas and segmented containers.
@@ -153,7 +153,7 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/memory:arena_cc, mbo/memory/arena.h
     - class `Arena<Source, Options>`: Raw byte allocation with explicit growth policy, alignment, reset/reuse, release, and allocation accounting. It does not manage typed object destruction.
     - `ArenaOptions` and `ValidArenaOptions`: Compile-time initial/maximum block sizes and growth ratio validation.
-- Mope
+- [Mope](mbo/mope/README.md)
   - `namespace mbo::mope`
   - The `MOPE` templating engine. Run `bazel run //mbo/mope -- --help` for detailed documentation.
   - mbo/mope
@@ -166,7 +166,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - bzl-rule `mope`: A rule that expands a mope template file.
     - bzl-macro `mope_test`: A test rule that compares mope template expansion against golden files. This
       supports `clang-format` and thus can be used for source-code generation and verification.
-- Status
+- [Status](mbo/status/README.md)
   - `namespace mbo::status`
   - mbo/status:status_builder_cc, mbo/status/status_builder.h
     - class `StatusBuilder` which allows to extend the message of an `absl::Status`.
@@ -176,7 +176,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - macro `MBO_ASSIGN_OR_RETURN`: Macro that simplifies handling functions returning `absl::StatusOr<T>`.
     - macro `MBO_MOVE_TO_OR_RETURN`: Macro that simplifies handling functions returning `absl::StatusOr<T>` where the result requires commas, in particular structured bindings.
     - macro `MBO_RETURN_IF_ERROR`: Macro that simplifies handling functions returning `absl::Status` or `absl::StausOr<T>`.
-- Strings
+- [Strings](mbo/strings/README.md)
   - `namespace mbo::strings`
   - mbo/strings:contains_cc, mbo/strings/contains.h
     - function `Contains`: A constexpr wrapper around C++23 string-view containment for string and character needles.
@@ -205,7 +205,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - struct `StripParsedCommentsArgs`: Arguments for `StripParsedComments` and `StripParsedLineComments`.
     - function `StripParsedComments`: Strips comments from parsed lines.
     - function `StripLineParsedComments`: Strips comments from a single parsed line.
-- Testing
+- [Testing](mbo/testing/README.md)
   - mbo/testing:matchers_cc, mbo/testing/matchers.h
     - gmock-matcher `CapacityIs` which checks the capacity of a container.
     - gmock-matcher `EqualsText` which compares text using line by line unified text diff.

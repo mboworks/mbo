@@ -1,7 +1,12 @@
 # mbo/hash - fast, constexpr-safe, non-cryptographic hashing
 
-Fast, `constexpr`-safe, non-cryptographic hashing, built around the in-house
-**mumbo/jumbo and dumbo** family: notice-free, pure Apache-2.0, and MUM-based
+`mbo::hash` provides constexpr-compatible, non-cryptographic hashing for strings and byte sequences.
+It includes interchangeable algorithms, functors for hash containers, incremental hashing for supported
+algorithms, and build-dependent hash mangling.
+
+## Algorithms
+
+The in-house **mumbo/jumbo and dumbo** family is notice-free, pure Apache-2.0, and MUM-based
 (widening multiply). All three algorithms cleanly pass the quality assessment of
 [SMHasher3](https://gitlab.com/fwojcik/smhasher3) with a rating of 188/188.
 

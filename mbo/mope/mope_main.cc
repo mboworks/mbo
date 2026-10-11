@@ -107,7 +107,7 @@ absl::Status Process(const Options& opts) {
   // Read `--ini` file if present.
   const std::string ini_filename = absl::GetFlag(FLAGS_ini);
   if (!ini_filename.empty()) {
-    MBO_RETURN_IF_ERROR(mope::ReadIniToTemlate(ini_filename, mope_template));
+    MBO_RETURN_IF_ERROR(mope::ReadIniToTemplate(ini_filename, mope_template));
   }
   // Expand the template.
   MBO_RETURN_IF_ERROR(mope_template.Expand(input->data, mbo::container::MakeConvertingScan(context_data)));

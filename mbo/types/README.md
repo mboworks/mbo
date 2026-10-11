@@ -2,8 +2,11 @@
 
 `mbo::types` is a type and concept support library. It provides type traits and concepts,
 compile-time type selection and search, tuple and aggregate utilities, value and reference wrappers,
-and strong identifiers. Its `Extend` framework builds on this support to equip aggregates with
-comparison, hashing, construction helpers, and configurable text output.
+and strong identifiers.
+
+The library also provides the very powerful and customizable `Extend` framework that builds on the
+support. It uses a CRTP approach to equip any C++ aggregates with comparison, hashing, construction
+helpers, and configurable text output.
 
 The library targets C++23, GCC 15+, and Clang 22+.
 

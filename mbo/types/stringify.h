@@ -667,25 +667,25 @@ class Stringify {
 
   // Arbitrary default value.
   static constexpr const StringifyOptions& OptionsDefault() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsDefaults.AllDataSet(), "Not all data set: ") << kOptionsDefaults.DebugStr();
+    static_assert(kOptionsDefaults.AllDataSet());
     return kOptionsDefaults;
   }
 
   // Formatting control that disables all fields.
   static constexpr const StringifyOptions& OptionsDisabled() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsDisabled.AllDataSet(), "Not all data set: ") << kOptionsDisabled.DebugStr();
+    static_assert(kOptionsDisabled.AllDataSet());
     return kOptionsDisabled;
   }
 
   // Formatting control that mostly produces (very dense) C++ code.
   static constexpr const StringifyOptions& OptionsCpp() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsCpp.AllDataSet(), "Not all data set: ") << kOptionsCpp.DebugStr();
+    static_assert(kOptionsCpp.AllDataSet());
     return kOptionsCpp;
   }
 
   // Formatting control that mostly produces multi-line formatted C++ code.
   static constexpr const StringifyOptions& OptionsCppPretty() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsCppPretty.AllDataSet(), "Not all data set: ") << kOptionsCppPretty.DebugStr();
+    static_assert(kOptionsCppPretty.AllDataSet());
     return kOptionsCppPretty;
   }
 
@@ -697,19 +697,19 @@ class Stringify {
   // latter possibly with the `StringifyWithFieldNames` adapter. Alternatively,
   // numeric field names will be generated as a last resort.
   static constexpr const StringifyOptions& OptionsJson() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsJson.AllDataSet(), "Not all data set: ") << kOptionsJson.DebugStr();
+    static_assert(kOptionsJson.AllDataSet());
     return kOptionsJson;
   }
 
   // Formatting control that mostly produces single-line formatted JSON data (new-line terminated).
   static constexpr const StringifyOptions& OptionsJsonLine() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsJsonLine.AllDataSet(), "Not all data set: ") << kOptionsJsonLine.DebugStr();
+    static_assert(kOptionsJsonLine.AllDataSet());
     return kOptionsJsonLine;
   }
 
   // Formatting control that mostly produces multi-line formatted JSON data (new-line terminated).
   static constexpr const StringifyOptions& OptionsJsonPretty() noexcept {
-    MBO_CONFIG_REQUIRE(kOptionsJsonPretty.AllDataSet(), "Not all data set: ") << kOptionsJsonPretty.DebugStr();
+    static_assert(kOptionsJsonPretty.AllDataSet());
     return kOptionsJsonPretty;
   }
 

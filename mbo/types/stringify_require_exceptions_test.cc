@@ -11,6 +11,7 @@
 namespace mbo::types {
 namespace {
 using ::testing::HasSubstr;
+using ::testing::IsTrue;
 using ::testing::ThrowsMessage;
 
 struct StringifyRequireExceptionsTest : ::testing::Test {
@@ -36,6 +37,33 @@ TEST_F(StringifyRequireExceptionsTest, CompleteOptionsRemainUsable) {
   };
 
   EXPECT_THAT(stringify.ToString(Value{.value = 1}), HasSubstr("1"));
+}
+
+TEST_F(StringifyRequireExceptionsTest, BuiltInOptionsAreCompleteAndNoexcept) {
+  static_assert(noexcept(Stringify::OptionsDefault()));
+  static_assert(noexcept(Stringify::OptionsDisabled()));
+  static_assert(noexcept(Stringify::OptionsCpp()));
+  static_assert(noexcept(Stringify::OptionsCppPretty()));
+  static_assert(noexcept(Stringify::OptionsJson()));
+  static_assert(noexcept(Stringify::OptionsJsonLine()));
+  static_assert(noexcept(Stringify::OptionsJsonPretty()));
+  static_assert(Stringify::OptionsDefault().AllDataSet());
+  static_assert(Stringify::OptionsDisabled().AllDataSet());
+  static_assert(Stringify::OptionsCpp().AllDataSet());
+  static_assert(Stringify::OptionsCppPretty().AllDataSet());
+  static_assert(Stringify::OptionsJson().AllDataSet());
+  static_assert(Stringify::OptionsJsonLine().AllDataSet());
+  static_assert(Stringify::OptionsJsonPretty().AllDataSet());
+  for (const auto mode : {
+           Stringify::OutputMode::kDefault,
+           Stringify::OutputMode::kCpp,
+           Stringify::OutputMode::kCppPretty,
+           Stringify::OutputMode::kJson,
+           Stringify::OutputMode::kJsonLine,
+           Stringify::OutputMode::kJsonPretty,
+       }) {
+    EXPECT_THAT(Stringify::OptionsAs(mode).AllDataSet(), IsTrue());
+  }
 }
 }  // namespace
 }  // namespace mbo::types

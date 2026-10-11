@@ -724,7 +724,8 @@ implementations lives in [REFLECTION.md](REFLECTION.md).
 
 The `Stringify` constructor requires complete default options and checks them through
 `MBO_CONFIG_REQUIRE`. Its `noexcept` contract follows `mbo::config::kRequireThrows`; incomplete
-defaults throw under the enabled exception policy. The named factories supply complete options.
+defaults throw under the enabled exception policy. The named factories validate their built-in
+options at compile time and remain `noexcept`.
 
 `Stringify` recursively handles supported aggregates, strings, characters, pointers, optionals,
 variants, tuples, and containers. Ready-made modes provide default, compact or pretty C++, and

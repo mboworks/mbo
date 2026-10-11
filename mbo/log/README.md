@@ -67,7 +67,8 @@ void TimedProcess() {
 | `Voidifier`                                             | Empty placeholder for omitted stream/message state           |
 
 - Output time: destruction of the scoped stream.
-- Prefix: `[file:line] @function`; optional message and collected text separated by ` : `.
+- Prefix: `[file:line] @function`; optional message and collected text separated by a colon with one
+  space on each side.
 - Terminator: newline.
 - Location argument: `std::source_location`, captured at the factory call by default.
 - Copying and moving: disabled for `ScopedStream`.

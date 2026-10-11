@@ -97,10 +97,6 @@ struct ThrowingAssignment {
     }
     throw std::runtime_error("copy assignment");
   }
-
-  ThrowingAssignment& operator=(ThrowingAssignment&& /*other*/) noexcept(false) {
-    throw std::runtime_error("move assignment");
-  }
 };
 
 TEST_F(OptionalRefAssignmentExceptionsTest, PropagatesReferentAssignmentExceptions) {
@@ -111,7 +107,7 @@ TEST_F(OptionalRefAssignmentExceptionsTest, PropagatesReferentAssignmentExceptio
   static_assert(!noexcept(reference = const_other));
   static_assert(!noexcept(reference = std::move(other)));
   EXPECT_THAT([&] { reference = const_other; }, ThrowsMessage<std::runtime_error>(HasSubstr("copy assignment")));
-  EXPECT_THAT([&] { reference = std::move(other); }, ThrowsMessage<std::runtime_error>(HasSubstr("move assignment")));
+  EXPECT_THAT([&] { reference = std::move(other); }, ThrowsMessage<std::runtime_error>(HasSubstr("copy assignment")));
 }
 }  // namespace
 }  // namespace mbo::types

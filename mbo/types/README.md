@@ -1,8 +1,19 @@
 # `mbo/types`
 
-`mbo::types` provides type traits, compile-time type selection, value and reference wrappers, strong
-identifiers, and aggregate reflection utilities. Its `Extend` framework derives configurable
-construction, tuple access, comparison, hashing, and text output from an aggregate's fields.
+The centerpiece of `mbo::types` is **`Extend`**: a framework that equips C++ aggregates with
+comparison, Abseil and standard hashing, tuple access, construction helpers, and configurable text
+output through a single CRTP base. Declare the fields once; `Extend` derives these operations from
+the aggregate itself and follows changes to its fields. It preserves aggregate initialization,
+and its default extenders add no data members or virtual dispatch.
+
+**Reusable, composable extenders** let applications define a behavior once and apply it across
+their record types. Use the defaults, select individual behaviors, or combine them with custom
+extenders whose dependencies are checked at compile time. The shared `Stringify` layer provides
+recursive formatting, automatic field names where supported, and per-field naming, filtering,
+conversion, and redaction.
+
+The package also provides independent type traits, compile-time type selection, value and reference
+wrappers, and strong identifiers.
 
 The framework targets C++23, GCC 15+, and Clang 22+.
 

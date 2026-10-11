@@ -140,6 +140,27 @@ Supply `FETCHCONTENT_SOURCE_DIR_RULES_CC` in every configuration and `FETCHCONTE
 when tests are enabled. Tests using an externally provided GoogleTest package also require
 `MBO_GOOGLETEST_SOURCE_DIR` for the runfiles fixture.
 
+## Compiler caching
+
+CMake's [compiler launchers](https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_LAUNCHER.html)
+support [ccache](https://ccache.dev/manual/latest.html) without an MBO-specific build option.
+Install ccache and set the launchers when configuring a fresh build tree:
+
+```sh
+cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+cmake --build build-cmake --parallel
+ccache --show-stats
+```
+
+The GCC CI job enables both launchers for its default, exception/configuration, and consumer
+builds. It checks actual cache hits after a clean rebuild and reports the initial-build statistics
+separately from the verification and alternate-build counters. Only ccache's compiled outputs are
+cached; build trees and downloaded dependencies are excluded. PRs restore compatible main caches;
+only successful main jobs save a new generation. The cache is bounded to 500 MB and identifies the
+compiler by content. See [infrastructure cache policy](../docs/infrastructure.md#build-caches-and-ci)
+for upload bounds, retirement, and measurements.
+
 ## Updating the build automatically
 
 `generate.py` runs automatically during CMake configuration. It writes `targets.cmake`,

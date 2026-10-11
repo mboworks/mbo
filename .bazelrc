@@ -9,15 +9,10 @@ common --apple_platform_type=macos
 common:macos --features=-macos_default_link_flags
 common:macos --features=-supports_dynamic_linker
 common:macos --linkopt=-framework --linkopt=CoreFoundation --host_linkopt=-framework --host_linkopt=CoreFoundation
-common:macos --linkopt=-Wl,-undefined,dynamic_lookup --host_linkopt=-Wl,-undefined,dynamic_lookup
 # Earliest arm64 macOS. Bazel propagates these settings to apple_support's
 # native target triple and the hermetic LLVM compile and link actions.
 common:macos --macos_minimum_os=11.0 --host_macos_minimum_os=11.0
-# TODO: Drop these Apple linker overrides as soon as the pinned LLVM linker accepts
-# SDK 27's arm64e.x1 target (LLVM PR 222721, after LLVM 23.1.1). Keep this
-# Darwin-only: Linux should continue to use the hermetic LLD toolchain.
-common:macos --features=-supports_start_end_lib --host_features=-supports_start_end_lib
-common:macos --linkopt=--ld-path=/usr/bin/ld --host_linkopt=--ld-path=/usr/bin/ld
+# The LLVM module selects Apple's native linker and its supported features on macOS.
 
 try-import %workspace%/.bazelrc.user
 
@@ -68,8 +63,6 @@ common:clang --extra_toolchains=@llvm_toolchain_llvm//:all
 common:clang --//mbo/mope:clang_format=
 common:clang --cxxopt=-gmlt
 common:clang --host_cxxopt=-gmlt
-common:clang --linkopt=-fuse-ld=lld
-common:clang --host_linkopt=-fuse-ld=lld
 common:clang --define is_clang=true
 
 # Named config the compile DB is generated in (compile_commands-update.sh). Adds no

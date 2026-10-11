@@ -1,10 +1,52 @@
 # `mbo/types`
 
-The centerpiece of `mbo::types` is **`Extend`**: a framework that equips C++ aggregates with
-comparison, Abseil and standard hashing, tuple access, construction helpers, and configurable text
-output through a single CRTP base. Declare the fields once; `Extend` derives these operations from
-the aggregate itself and follows changes to its fields. It preserves aggregate initialization,
-and its default extenders add no data members or virtual dispatch.
+`mbo::types` is a type and concept support library. It provides type traits and concepts,
+compile-time type selection and search, tuple and aggregate utilities, value and reference wrappers,
+and strong identifiers. Its `Extend` framework builds on this support to equip aggregates with
+comparison, hashing, construction helpers, and configurable text output.
+
+The library targets C++23, GCC 15+, and Clang 22+.
+
+## Type traits, concepts, and compile-time support
+
+| Header              | Facilities                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `traits.h`          | Type classification, constructibility, aggregate decomposition, container capabilities, and comparison concepts.   |
+| `cases.h`           | Conditional type selection with `Cases`, `IfThen`, and `IfElse`; first-matching-condition lookup with `CaseIndex`. |
+| `template_search.h` | Compile-time predicate searches with `BinarySearch`, `LinearSearch`, `MaxSearch`, and `ReverseSearch`.             |
+
+`ConstructibleFrom` and `ConstructibleInto` constrain construction, while concepts such as
+`IsAggregate`, `IsDecomposable`, and `ContainerHasForwardIterator` describe type and container
+capabilities. `Cases` selects the first matching type; `CaseIndex` returns the one-based index of
+the first true condition, or zero when none matches.
+
+## Value utilities
+
+These utilities provide value, reference, ownership, and identity support independently of `Extend`:
+
+| Utility                                | Purpose                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `StringOrView`                         | Read-only text that either owns a string or borrows a string view.                     |
+| `OptionalRef`                          | Optional non-owning reference.                                                         |
+| `OptionalDataOrRef`                    | Optional value that can own data or borrow a reference.                                |
+| `Required`                             | Always-engaged value wrapper with configurable requirement failure behavior.           |
+| `NoDestruct`                           | Static-lifetime storage that deliberately does not invoke the contained destructor.    |
+| `OpaquePtr` / `OpaqueValue`            | Ownership wrappers suitable for forward-declared implementation types.                 |
+| `ContainerProxy`                       | Container access forwarding, including supported value-returning endpoint pops.        |
+| `RefWrap`                              | Reference wrapper with `*` and `->`.                                                   |
+| `TypedView`                            | View wrapper that supplies container-style type aliases.                               |
+| `CompareArithmetic` and family         | Strong/weak comparison helpers for mixed arithmetic and scalar types.                  |
+| `ConstStrongOrdinal` / `StrongOrdinal` | Zero-defaulted nominal integral ordinals with checked representation-bound arithmetic. |
+| `ConstStrongId`                        | Invalid-defaulted unsigned strong ID with no arithmetic API.                           |
+| `tstring`                              | Compile-time string-literal type used by the extender machinery and other templates.   |
+
+## Enriching aggregates with `Extend`
+
+The **`Extend` framework** equips C++ aggregates with comparison, Abseil and standard hashing,
+tuple access, construction helpers, and configurable text output through a single CRTP base.
+Declare the fields once; `Extend` derives these operations from the aggregate itself and follows
+changes to its fields. It preserves aggregate initialization, and its default extenders add no
+data members or virtual dispatch.
 
 **Reusable, composable extenders** let applications define a behavior once and apply it across
 their record types. Use the defaults, select individual behaviors, or combine them with custom
@@ -12,16 +54,9 @@ extenders whose dependencies are checked at compile time. The shared `Stringify`
 recursive formatting, automatic field names where supported, and per-field naming, filtering,
 conversion, and redaction.
 
-The package also provides independent type traits, compile-time type selection, value and reference
-wrappers, and strong identifiers.
-
-The framework targets C++23, GCC 15+, and Clang 22+.
-
-This guide describes the public model and common usage. The separate
-[reflection implementation note](REFLECTION.md) explains how automatic field-name discovery works,
-its compiler-specific limitations, and how mbo compares with other reflection libraries.
-
-## Enriching aggregates with `Extend`
+The separate [reflection implementation note](REFLECTION.md) explains how automatic field-name
+discovery works, its compiler-specific limitations, and how mbo compares with other reflection
+libraries.
 
 Derive an aggregate from `mbo::types::Extend<T>` to install the common CRTP extenders with one
 declaration:
@@ -177,25 +212,5 @@ therefore depend on the type, field, surrounding context, or runtime object stat
 Automatic source identifiers are convenient diagnostics, but explicit names are preferable for a
 stable external schema. Formatting JSON-like text does not make `Stringify` a validating serializer;
 use a serialization library when schema evolution, parsing, or protocol guarantees are required.
-
-## Other value utilities
-
-The package also provides utilities that do not depend on `Extend`:
-
-| Utility                                | Purpose                                                                                |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| `StringOrView`                         | Read-only text that either owns a string or borrows a string view.                     |
-| `OptionalRef`                          | Optional non-owning reference.                                                         |
-| `OptionalDataOrRef`                    | Optional value that can own data or borrow a reference.                                |
-| `Required`                             | Always-engaged value wrapper with configurable requirement failure behavior.           |
-| `NoDestruct`                           | Static-lifetime storage that deliberately does not invoke the contained destructor.    |
-| `OpaquePtr` / `OpaqueValue`            | Ownership wrappers suitable for forward-declared implementation types.                 |
-| `ContainerProxy`                       | Container access forwarding, including supported value-returning endpoint pops.        |
-| `RefWrap`                              | Reference wrapper with `*` and `->`.                                                   |
-| `TypedView`                            | View wrapper that supplies container-style type aliases.                               |
-| `CompareArithmetic` and family         | Strong/weak comparison helpers for mixed arithmetic and scalar types.                  |
-| `ConstStrongOrdinal` / `StrongOrdinal` | Zero-defaulted nominal integral ordinals with checked representation-bound arithmetic. |
-| `ConstStrongId`                        | Invalid-defaulted unsigned strong ID with no arithmetic API.                           |
-| `tstring`                              | Compile-time string-literal type used by the extender machinery and other templates.   |
 
 The repository's root [README](../../README.md) lists the complete header and Bazel target inventory.

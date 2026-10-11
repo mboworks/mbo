@@ -56,7 +56,8 @@ Coverage starts alongside lint. Every existing matrix job remains in the final r
 The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays intact.
 
 The experimental `cmake-gcc` job builds all CMake library, command-line, and benchmark targets
-with GCC 15 on Ubuntu and runs the existing C++ tests through CTest. A second configuration
+with GCC 15 on Ubuntu and runs the existing C++ tests through CTest. It also repeats the glob
+test to verify fresh temporary directories on repeated invocations. A second configuration
 checks requirement exceptions and disabled hash mangling. A separate consumer project verifies
 `add_subdirectory` and the transitive C++23, include, and link requirements of `mbo::mbo`.
 This job participates in `done`; it does not replace any Bazel, sanitizer, lint, or coverage gate.

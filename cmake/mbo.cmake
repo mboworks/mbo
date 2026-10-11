@@ -123,11 +123,11 @@ function(mbo_add_executable target)
   set_target_properties(${target} PROPERTIES
     OUTPUT_NAME "${ARG_OUTPUT}" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin/${target}")
   if(ARG_KIND STREQUAL "test")
-    set(tmp "${CMAKE_CURRENT_BINARY_DIR}/test-tmp/${target}")
-    file(MAKE_DIRECTORY "${tmp}")
-    add_test(NAME ${target} COMMAND ${target})
+    add_test(NAME ${target}
+      COMMAND "${Python3_EXECUTABLE}" "${MBO_SOURCE_DIR}/cmake/run_test.py"
+        "${CMAKE_CURRENT_BINARY_DIR}/test-tmp/${target}" "$<TARGET_FILE:${target}>")
     set_tests_properties(${target} PROPERTIES
-      ENVIRONMENT "TEST_TMPDIR=${tmp};TEST_WORKSPACE=_main;TEST_SRCDIR=${MBO_RUNFILES_DIR}")
+      ENVIRONMENT "TEST_WORKSPACE=_main;TEST_SRCDIR=${MBO_RUNFILES_DIR}")
   else()
     add_executable(mbo::bin::${ARG_OUTPUT} ALIAS ${target})
   endif()

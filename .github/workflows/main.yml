@@ -331,7 +331,9 @@ jobs:
       - name: Build
         run: cmake --build build-cmake --parallel 2
       - name: Test
-        run: ctest --test-dir build-cmake --output-on-failure --parallel 2
+        run: |
+          ctest --test-dir build-cmake --output-on-failure --parallel 2
+          ctest --test-dir build-cmake --output-on-failure --repeat until-fail:2 -R '^mbo_file_glob_test$'
       - name: Verify requirement exceptions and disabled hash mangling
         run: |
           cmake -S . -B build-cmake-exceptions -G Ninja \

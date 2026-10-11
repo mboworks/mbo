@@ -156,7 +156,8 @@ dependency, compiler option, or link option that the adapter rejects.
 The GCC CI job builds all components and binaries, runs CTest, checks requirement exceptions
 with disabled hash mangling, and builds the separate [`tests/`](tests/CMakeLists.txt) consumer.
 Unit tests retain their Bazel source lists, dependencies, compiler options, and compatibility selects.
-CTest supplies isolated temporary directories and a runfiles tree for the existing data tests.
+CTest supplies a fresh temporary directory for each test invocation and a runfiles tree for the
+existing data tests. Repeated runs reuse the build tree without retaining temporary test data.
 
 `generate.py` parses the existing `cc_library`, `cc_binary`, and `cc_test` declarations. It fails
 on unsupported expressions or dependencies. Edits to those definitions trigger CMake regeneration.

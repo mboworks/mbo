@@ -91,9 +91,16 @@ struct ThrowingAssignment {
   ThrowingAssignment(const ThrowingAssignment&) = default;
   ThrowingAssignment(ThrowingAssignment&&) = default;
 
-  ThrowingAssignment& operator=(const ThrowingAssignment& /*other*/) { throw std::runtime_error("copy assignment"); }
+  ThrowingAssignment& operator=(const ThrowingAssignment& other) {
+    if (this == &other) {
+      return *this;
+    }
+    throw std::runtime_error("copy assignment");
+  }
 
-  ThrowingAssignment& operator=(ThrowingAssignment&& /*other*/) { throw std::runtime_error("move assignment"); }
+  ThrowingAssignment& operator=(ThrowingAssignment&& /*other*/) noexcept(false) {
+    throw std::runtime_error("move assignment");
+  }
 };
 
 TEST_F(OptionalRefAssignmentExceptionsTest, PropagatesReferentAssignmentExceptions) {

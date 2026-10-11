@@ -116,6 +116,7 @@ cc_test(
         ":ini_cc",
         ":mope_cc",
         "//mbo/testing:matchers_cc",
+        "//mbo/testing:status_cc",
         "@abseil-cpp//absl/status",
         "@googletest//:gtest",
         "@googletest//:gtest_main",

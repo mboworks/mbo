@@ -131,6 +131,26 @@ Supply `FETCHCONTENT_SOURCE_DIR_RULES_CC` in every configuration and `FETCHCONTE
 when tests are enabled. Tests using an externally provided GoogleTest package also require
 `MBO_GOOGLETEST_SOURCE_DIR` for the runfiles fixture.
 
+## Updating the build automatically
+
+`generate.py` runs automatically during CMake configuration. It writes `targets.cmake`,
+`versions.cmake`, and the generated configuration/hash headers into `mbo-generated/` in the
+build tree. These generated files are not committed. No separate CMake source list or dependency
+version list needs updating when a supported Bazel C++ declaration changes.
+
+```sh
+# Configure or regenerate after editing a BUILD.bazel file or MODULE.bazel.
+cmake -S . -B build-cmake
+# A build also reconfigures when tracked generator inputs change.
+cmake --build build-cmake --parallel 2
+# Verify the adapter independently of CMake or Bazel.
+python3 cmake/generate_test.py
+```
+
+`cmake/generate.py --help` lists the standalone generator's options. CMake passes its compiler
+and configuration options automatically. Add adapter support when introducing an expression,
+dependency, compiler option, or link option that the adapter rejects.
+
 ## Validation and scope
 
 The GCC CI job builds all components and binaries, runs CTest, checks requirement exceptions

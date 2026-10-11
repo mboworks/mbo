@@ -315,8 +315,16 @@ jobs:
           python-version: "3.13"
       - name: Install GCC 15 and CMake
         run: |
-          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
+          for attempt in 1 2 3; do
+            if sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; then
+              break
+            fi
+            if [[ "${attempt}" -eq 3 ]]; then
+              exit 1
+            fi
+            sleep 5
+          done
+          sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install --yes gcc-15 g++-15 cmake ninja-build
       - name: Configure libraries, binaries, benchmarks and tests
         run: cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BENCHMARKS=ON

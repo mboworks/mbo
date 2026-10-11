@@ -18,8 +18,8 @@ The C++ library is organized in functional groups each residing in their own dir
     - Custom Bazel flag `--//mbo/config:require_throws` which controls whether `MBO_CONFIG_REQUIRE` throws exceptions or uses crash logging (the default `False` or `0`). The repository itself compiles with `-fno-exceptions`, where requirements always use crash logging; throwing behavior is available to consumers that enable exceptions. This mostly affects containers.
   - mbo/config:require_cc, mbo/config/require.h
     - Macro `MBO_CONFIG_REQUIRE(condition, message)` which checks a `condition` and either throws an exception or crashes with Abseil FATAL logging. Throwing requires both `--//mbo/config:require_throws=true` and an exception-enabled consumer build.
-- Container
-  - `namespace mbo::container` - [container guide](mbo/container/README.md)
+- [Container](mbo/container/README.md)
+  - `namespace mbo::container`
   - mbo/container:any_scan_cc, mbo/container/any_scan.h
     - class `AnyScan`: A container type independent iteration view - or scan over the container.
     - class `ConstScan`: A container type independent iteration view for const value_types.
@@ -46,16 +46,16 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/container/experimental:circular_buffer_cc, mbo/container/experimental/circular_buffer.h
     - class [`experimental::CircularBuffer`](mbo/container/experimental/CIRCULAR_BUFFER.md): A public experimental growable ring with allocator support, random-access iterators, and insertion/removal at both ends. Its API may change between releases.
   - Eligible sequences provide [value-returning endpoint pops](mbo/container/README.md#value-returning-pops), including move-only and potentially throwing element moves.
-- Diff
-  - `namespace mbo::diff` - library docs: [mbo/diff/README.md](mbo/diff/README.md)
+- [Diff](mbo/diff/README.md)
+  - `namespace mbo::diff`
   - mbo/diff:diff_cc, mbo/diff/diff.h
     - class `Diff`: A class that implements line based diffing in unified, context, normal or side-by-side output format (`DiffOptions::output_format`), using the Myers minimal diff algorithm by default (`DiffOptions::algorithm` also offers `naive` and `direct`).
   - mbo/diff
     - binary `diff`: A binary that diffs two files; defaults to unified format, `--format` selects `unified`, `context`, `normal` or `side-by-side` (`--width`), `--algorithm` selects `myers` (default), `naive` or `direct`; `--minimal` guarantees minimal `myers` diffs.
   - mbo/diff:diff_bzl, mbo/diff/diff.bzl
     - bzl-macro `diff_test`: A test rule that compares an output versus a golden file.
-- Digest
-  - `namespace mbo::digest` - principles and library docs: [mbo/digest/README.md](mbo/digest/README.md)
+- [Digest](mbo/digest/README.md)
+  - `namespace mbo::digest`
   - mbo/digest:digest_cc, mbo/digest/digest.h
     - function `<algo>::Digest(std::string_view)`: constexpr-safe, spec-transcribed, vector-pinned message digests; one namespace per algorithm: `sha224`/`sha256`/`sha384`/`sha512`/`sha512_224`/`sha512_256` (FIPS 180-4), `sha3_224`/`sha3_256`/`sha3_384`/`sha3_512` (FIPS 202), `blake2b`/`blake2b_256` (RFC 7693), `blake3`, and `sha1`/`md5` (legacy interop only; **collision-broken**).
     - function `shake128::Digest<N>` / `shake256::Digest<N>`: the FIPS 202 XOFs - any output length (`Algorithm<N>` for a fixed size; different lengths share their prefix).
@@ -67,8 +67,7 @@ The C++ library is organized in functional groups each residing in their own dir
     - function `ToHexString(digest)`: lowercase hex, matching `hexdigest()`/`sha256sum` presentation.
   - mbo/digest
     - binary `digest`: checksum-style CLI, byte-compatible with `sha256sum`/`shasum` output; `-a`/`--algorithm` selects any library algorithm, `-c`/`--check` verifies checksum files (coreutils-interchangeable; `--quiet`, `--status`, `--ignore_missing`, `--strict`), `--reverse` swaps the columns, `--cwd` changes directory before processing, `-d`/`--ignore_directories` skips directories, and `-` reads stdin.
-- Files
-  - Library docs: [mbo/file/README.md](mbo/file/README.md)
+- [Files](mbo/file/README.md)
   - `namespace mbo::file`
   - mbo/file:artefact_cc, mbo/file/artefact.h
     - struct `Artefact`: Holds information about a file (its data content, name, and modified time).
@@ -97,8 +96,8 @@ The C++ library is organized in functional groups each residing in their own dir
     - program `glob`: A recursive glob, see `glob --help`.
   - mbo/file/ini:ini_file_cc, mbo/file/ini/ini_file.h
     - class `IniFile`: A simple INI file reader.
-- Hash
-  - `namespace mbo::hash` - principles and library docs: [mbo/hash/README.md](mbo/hash/README.md)
+- [Hash](mbo/hash/README.md)
+  - `namespace mbo::hash`
   - mbo/hash:hash_cc, mbo/hash/hash.h
     - function `GetHash64<Algo>(std::string_view, seed)` / `GetHash128<Algo>(std::string_view, seed)`: A constexpr-safe, non-cryptographic hash; the algorithms default to the in-house mumbo/jumbo family (`mumbo` for 64-bit, `jumbo` for the native 128-bit - both SMHasher3-clean, see [mbo/hash/README.md](mbo/hash/README.md)) and can be replaced by any `IsHashAlgorithm` struct. Values are not stable across versions and not for persistence. Big-endian targets are supported by construction (byte-assembled loads) but not exercised by CI.
     - function `GetHash32<Algo>(std::string_view, seed)`: 32-bit companion; uses an algorithm's native 32-bit variant where provided, else the XOR-fold of the 64-bit hash.
@@ -223,9 +222,9 @@ The C++ library is organized in functional groups each residing in their own dir
     - gmock-matcher `StatusPayloads` Tests whether an `absl::Status` or `absl::StatusOr` payload map matches.
     - macro `MBO_ASSERT_OK_AND_ASSIGN`: Simplifies testing with functions that return `absl::StatusOr<T>`.
     - macro `MBO_ASSERT_OK_AND_MOVE_TO`: Simplifies testing with functions that return `absl::StatusOr<T>` where the result requires commas, in particular structured bindings.
-- Types
-  - `namespace mbo::types` - [usage guide](mbo/types/README.md) and
-    [reflection implementation notes](mbo/types/REFLECTION.md)
+- [Types](mbo/types/README.md)
+  - `namespace mbo::types`
+  - [Reflection implementation notes](mbo/types/REFLECTION.md)
   - mbo/types:cases_cc, mbo/types/cases.h
     - meta-type `Cases`: Allows to switch types based on conditions.
     - meta-type `CaseIndex`: Evaluates the first non zero case (1-based, 0 if all zero).
@@ -358,7 +357,8 @@ The C++ library is organized in functional groups each residing in their own dir
 This repository requires C++23 with GCC 15 and matching libstdc++ 15, Clang/LLVM 22 and matching
 libc++ 22, or Xcode 16.3 and its matching Apple Clang/libc++. Bazel 8 and newer remain supported.
 
-The project only comes with a Bazel BUILD.bazel file and can be added to other Bazel projects.
+Bazel is the primary build system. The project can be added to other Bazel projects through
+`MODULE.bazel`. [CMake support](cmake/README.md).
 
 The project is formatted with clang-format 22.1.8. Development builds fetch the matching hermetic
 tool with the Clang toolchain; [`tools/clang_format.sh`](tools/clang_format.sh) prefers that binary
@@ -370,6 +370,69 @@ Lint and format are driven by [Trunk](https://docs.trunk.io/cli) plus [pre-commi
 and compilation database with `bazel build --config=clang-tidy //...` and
 `./compile_commands-update.sh`. See [STYLE_CPP.md](STYLE_CPP.md) and the
 [infrastructure guide](docs/infrastructure.md) for scope and concurrency requirements.
+
+### Build configuration
+
+Exceptions are disabled by default for repository targets (`-fno-exceptions`). Individual
+exception tests enable them explicitly. Enabling compiler exceptions and choosing throwing
+requirement checks are separate settings: `MBO_CONFIG_REQUIRE` uses Abseil fatal logging by
+default, and throws `std::runtime_error` only when both settings are enabled. Without compiler
+exception support it always uses fatal logging, even if the throwing policy is selected.
+
+| Setting                         | Default      | Bazel option                                           | CMake option                                |
+| :------------------------------ | :----------- | :----------------------------------------------------- | :------------------------------------------ |
+| Compiler exceptions             | Disabled     | `--copt=-fexceptions` to enable                        | `MBO_ENABLE_EXCEPTIONS=ON`                  |
+| Hash mangle buckets             | `8`          | `--//mbo/hash:mangle_seed_buckets=N`                   | `MBO_HASH_MANGLE_SEED_BUCKETS=N`            |
+| Hash mangle seed                | Empty string | `--//mbo/hash:mangle_seed=TEXT`                        | `MBO_HASH_MANGLE_SEED=TEXT`                 |
+| Limited ordered unroll capacity | `16`         | `--//mbo/config:limited_ordered_max_unroll_capacity=N` | `MBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY=N` |
+| Throwing requirement checks     | Disabled     | `--//mbo/config:require_throws=true`                   | `MBO_REQUIRE_THROWS=ON`                     |
+
+- Hash mangle buckets: nonnegative; `0` disables mangling, `1` fixes one nonzero constant,
+  and larger values bound the seed/version-dependent variation. The seed accepts printable ASCII.
+- Limited ordered unroll capacity: integer from `4` through `32`, controlling the default
+  unrolled lookup threshold for `LimitedOrdered`, `LimitedMap`, and `LimitedSet`.
+- Keep compiler exception policy, requirement policy, and generated-header settings consistent
+  throughout an application. These options configure MBO targets; an embedding application must
+  configure its own compiler exception flags as well.
+- In a consuming Bazel module, project flags use the repository prefix, for example
+  `--@mboworks_mbo//mbo/config:require_throws=true`.
+- Bazel's `--//mbo/mope:clang_format` selects the formatter used by MOPE's generated-source rules:
+  empty uses the rule's configured tool, `clang-format-auto` searches installed tools, and an
+  absolute path selects that executable. CMake compiles the committed generated sources.
+
+See the [config guide](mbo/config/README.md) and [hash guide](mbo/hash/README.md) for the
+requirement contract and hash compatibility rules.
+
+### CMake (EXPERIMENTAL)
+
+CMake 3.28+ and Python 3.10+ build one library target per `mbo/*` library, the overall
+`mbo::mbo` target, and individual command-line and benchmark targets. Build definitions live
+under [`cmake/`](cmake/README.md); source lists, dependencies, configuration headers, and
+version pins derive from the existing Bazel definitions.
+
+```sh
+CC=gcc-15 CXX=g++-15 cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cmake --parallel
+ctest --test-dir build-cmake --output-on-failure --parallel
+```
+
+Dependencies are fetched at configure time unless supplied by the parent project or through
+the documented dependency options. Use `add_subdirectory(path/to/mbo)` and link `mbo::mbo`
+or a component such as `mbo::container`. Tests and binaries default to off when embedded.
+GCC 15 verifies the CMake build in CI. See the [CMake guide](cmake/README.md) for targets,
+options, dependency reuse, and current limitations.
+
+| CMake build option       | Default                        | Effect                                                   |
+| :----------------------- | :----------------------------- | :------------------------------------------------------- |
+| `MBO_BUILD_BENCHMARKS`   | `OFF`                          | Build benchmark programs.                                |
+| `MBO_BUILD_BINARIES`     | Top-level `ON`; embedded `OFF` | Build command-line programs and developer tools.         |
+| `MBO_BUILD_TESTING`      | Top-level `ON`; embedded `OFF` | Build C++ tests and register CTest cases.                |
+| `MBO_FETCH_DEPENDENCIES` | `ON`                           | Fetch pinned dependencies when their targets are absent. |
+
+Set cache options with `-DNAME=VALUE`. For example, use
+`-DMBO_ENABLE_EXCEPTIONS=ON -DMBO_REQUIRE_THROWS=ON` to compile MBO with throwing requirements.
+Dependency source overrides and externally supplied targets are documented in the
+[CMake guide](cmake/README.md#dependency-reuse).
 
 ### MODULE.bazel
 
@@ -399,6 +462,16 @@ Slides are available at:
 
 ## Third-party components
 
+Client libraries use the following dependencies. Version pins are declared in
+[`MODULE.bazel`](MODULE.bazel); component targets carry their required link dependencies.
+
+| Dependency                                                                        | Used by client code                                                                                                             |
+| :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| [Abseil](https://abseil.io/)                                                      | Containers, flags, formatting, hashing, logging, status handling, strings, and time utilities across MBO libraries.             |
+| [GoogleTest / GoogleMock](https://github.com/google/googletest)                   | The public `mbo/testing` library provides matchers and test utilities for client test code; `mbo::mbo` includes this component. |
+| [RE2](https://github.com/google/re2)                                              | Regular expressions in `mbo/file` globbing and the `mbo/mope` template engine.                                                  |
+| [rules_cc runfiles](https://github.com/bazelbuild/rules_cc/tree/main/cc/runfiles) | The `mbo/testing` runfiles helper resolves Bazel data dependencies; CMake compiles the same implementation.                     |
+
 The hash and digest libraries contain constexpr transcriptions of third-party
 algorithms. The transcriptions are original code, but some closely follow
 their reference implementations; the repository-root [NOTICE](NOTICE) file
@@ -421,21 +494,22 @@ license-scanner findings of structural similarity):
 
 | Header                     | Bazel rule             | Upstream    | License                             |
 | -------------------------- | ---------------------- | ----------- | ----------------------------------- |
+| mbo/digest/digest_blake3.h | //mbo/digest:digest_cc | BLAKE3      | CC0-1.0 OR Apache-2.0 (CC0 elected) |
+| mbo/hash/hash_fnv1a.h      | //mbo/hash:hash_cc     | FNV-1a      | public domain                       |
 | mbo/hash/hash_murmur3.h    | //mbo/hash:hash_cc     | MurmurHash3 | public domain                       |
 | mbo/hash/hash_siphash.h    | //mbo/hash:hash_cc     | SipHash     | CC0 / public domain                 |
-| mbo/hash/hash_fnv1a.h      | //mbo/hash:hash_cc     | FNV-1a      | public domain                       |
-| mbo/digest/digest_blake3.h | //mbo/digest:digest_cc | BLAKE3      | CC0-1.0 OR Apache-2.0 (CC0 elected) |
 
-Everything else is original MBO Works code. In particular, all algorithms
+The remaining MBO hash and digest implementations are original MBO Works code. All algorithms
 implemented from public standards carry no upstream code and need no notices:
 SHA-1/SHA-2/SHA-3/SHAKE (FIPS 180-4 / FIPS 202), MD5 (RFC 1321), BLAKE2b
 (RFC 7693), and HMAC (RFC 2104), and the default hash algorithms (the
 in-house mumbo/jumbo family) are original code.
 
 mbo is licensed under Apache-2.0. The default `//mbo/hash:hash_cc` and
-`//mbo/digest:digest_cc` libraries introduce no additional third-party
-licensing or attribution requirements: users need only comply with mbo's own
+`//mbo/digest:digest_cc` libraries introduce no additional algorithm-transcription
+licensing or attribution requirements. Users must comply with mbo's own
 [Apache-2.0 license terms](LICENSE), including the applicable notice and
-redistribution requirements. A distribution that includes code from the
+redistribution requirements, and the licenses of linked dependencies. A distribution that includes
+code from the
 optional `//mbo/hash:hash_extra_cc` library - directly or transitively - must
 additionally retain the MIT and BSD-2-Clause notices listed in [NOTICE](NOTICE).

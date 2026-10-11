@@ -8,6 +8,7 @@
 #include <iterator>
 #include <memory>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -36,6 +37,32 @@ using ::testing::UnorderedElementsAre;
 using namespace std::string_view_literals;
 
 struct FrozenTest : ::testing::Test {
+  template<std::size_t Capacity>
+  static void CheckRuntimeConstruction() {
+    SCOPED_TRACE(Capacity);
+    static constexpr auto kEntries = [] {
+      std::array<int, Capacity> keys{};
+      for (std::size_t index = 0; index < keys.size(); ++index) {
+        keys.at(index) = static_cast<int>(index * 17);
+      }
+      return keys;
+    }();
+    static constexpr FrozenSet<int, Capacity> kConstant(kEntries);
+    const std::array<int, Capacity> entries = kEntries;
+    const FrozenSet<int, Capacity> runtime(entries);
+    const FrozenSet<int, Capacity> partial(std::from_range, std::span(entries).first(Capacity / 2));
+    EXPECT_THAT(runtime, kConstant);
+    EXPECT_THAT(partial, SizeIs(Capacity / 2));
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+      const int key = entries.at(index);
+      EXPECT_THAT(runtime.contains(key), IsTrue());
+      EXPECT_THAT(runtime.bucket(key), kConstant.bucket(key));
+      EXPECT_THAT(partial.contains(key), index < Capacity / 2);
+      EXPECT_THAT(runtime.contains(key + 1), IsFalse());
+      EXPECT_THAT(partial.contains(key + 1), IsFalse());
+    }
+  }
+
   template<typename Hash, typename ReferenceHash = Hash>
   static void CheckMboHash() {
     static constexpr auto kBytes = [] {
@@ -89,6 +116,15 @@ struct FrozenTest : ::testing::Test {
     }
   }
 };
+
+TEST_F(FrozenTest, RuntimeConstructionMatchesConstantEvaluationAcrossCapacities) {
+  CheckRuntimeConstruction<1>();
+  CheckRuntimeConstruction<3>();
+  CheckRuntimeConstruction<7>();
+  CheckRuntimeConstruction<16>();
+  CheckRuntimeConstruction<17>();
+  CheckRuntimeConstruction<32>();
+}
 
 TEST_F(FrozenTest, MumboHashMatchesConstantEvaluation) {
   CheckMboHash<mbo::hash::Hasher<mbo::hash::mumbo::Algorithm>>();

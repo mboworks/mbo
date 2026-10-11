@@ -3,6 +3,7 @@
     "README.md": "index.html",
     "CHANGELOG.md": "CHANGELOG.html",
     "CONTRIBUTING.md": "CONTRIBUTING.html",
+    "cmake/README.md": "cmake/README.html",
     "docs/coverage.md": "docs/coverage.html",
     "docs/site-storage.md": "docs/site-storage.html",
     "mbo/container/SEGMENTED_DEQUE.md": "mbo/container/SEGMENTED_DEQUE.html",

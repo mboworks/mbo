@@ -55,12 +55,23 @@ oversized entries. A cache API failure defers immediate retirement.
 Coverage starts alongside lint. Every existing matrix job remains in the final required gate.
 The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays intact.
 
+The `cmake-gcc` job builds all CMake library, command-line, and benchmark targets
+with GCC 15 on Ubuntu and runs the existing C++ tests through CTest. Builds and tests use all
+runner CPUs through `CMAKE_BUILD_PARALLEL_LEVEL` and `CTEST_PARALLEL_LEVEL`. It also repeats the glob
+test to verify fresh temporary directories on repeated invocations. A second configuration
+enables compiler exceptions and checks requirement exceptions and disabled hash mangling,
+including the optional wrappers and Stringify option validation. A separate consumer project verifies
+`add_subdirectory` and the transitive C++23, include, and link requirements of `mbo::mbo`.
+This job participates in `done`; it does not replace any Bazel, sanitizer, lint, or coverage gate.
+CMake build trees and fetched dependencies remain local and are not uploaded as Bazel caches.
+
 ## Preparation profiles
 
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
 targets include the experimental frozen containers' construction and lookup failures,
 the experimental circular buffer's checked operations and its deque integration,
-the shared value-pop suite across all sequence endpoints, and Json array pop requirements. The
+the shared value-pop suite across all sequence endpoints, Json array pop requirements, and
+the optional wrappers' checked access and assignment, and Stringify option validation. The
 value-pop exception tests disable optional return-value elision to exercise the single-move
 contract. Its primary and exception-policy
 coverage invocations write separate `coverage-preparation.json.gz` and

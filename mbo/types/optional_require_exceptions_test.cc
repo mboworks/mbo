@@ -98,6 +98,8 @@ struct ThrowingAssignment {
     return *this;
   }
 
+  // Deliberately fails under the configured policy to test exception propagation.
+  // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
   ThrowingAssignment& operator=(ThrowingAssignment&& /*other*/) noexcept(!config::kRequireThrows) {
     MBO_CONFIG_REQUIRE(false, "move assignment");
     return *this;

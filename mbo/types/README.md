@@ -20,9 +20,9 @@ The library targets C++23, GCC 15+, and Clang 22+.
 
 | Header                                 | Facilities                                                                                                       |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [traits.h](traits.h)                   | Type classification, constructibility, aggregate decomposition, container capabilities, and comparison concepts. |
 | [cases.h](cases.h)                     | Conditional type selection with `Cases`, `IfThen`, and `IfElse`; condition lookup with `CaseIndex`.              |
 | [template_search.h](template_search.h) | Compile-time predicate searches over integer ranges.                                                             |
+| [traits.h](traits.h)                   | Type classification, constructibility, aggregate decomposition, container capabilities, and comparison concepts. |
 | [tuple.h](tuple.h)                     | Tuple recognition and type-list composition with `TupleCat` and `TupleAdd`.                                      |
 | [tuple_extras.h](tuple_extras.h)       | Aggregate-to-tuple views, decomposition concepts, and field construction checks.                                 |
 | [variant.h](variant.h)                 | Variant recognition, alternative membership, and overloaded visitors.                                            |
@@ -33,16 +33,16 @@ The library targets C++23, GCC 15+, and Clang 22+.
 | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `ConstructibleFrom<T, Args...>`                                            | Construction check with an additional in-place construction check when `std::constructible_from` fails.                     |
 | `ConstructibleInto<From, Into>`                                            | Reversed parameter order for constraining arguments with `ConstructibleInto<T> auto&&`.                                     |
-| `IsBracesConstructibleV<T, Args...>`                                       | Check construction with braces.                                                                                             |
-| `IsAggregate`, `IsEmptyType`, `IsDecomposable`                             | Aggregate, empty-type, and nonempty structured-binding classification.                                                      |
 | `DecomposeCountV<T>`, `NotDecomposableV`                                   | Structured-binding field count and the sentinel for unsupported decomposition.                                              |
+| `IsAggregate`, `IsDecomposable`, `IsEmptyType`                             | Aggregate, nonempty structured-binding, and empty-type classification.                                                      |
+| `IsArithmetic`, `IsFloatingPoint`, `IsIntegral`, `IsScalar`                | Standard numeric/scalar classifications; reference types do not satisfy them.                                               |
+| `IsBracesConstructibleV<T, Args...>`                                       | Check construction with braces.                                                                                             |
+| `IsCharArray`, `IsInitializerList`, `NotInitializerList`, `NotIsCharArray` | Initializer-list and character-array/pointer classification.                                                                |
 | `IsConstructibleWithEmptyBaseAndArgs`                                      | Check aggregate initialization with an empty base followed by field arguments.                                              |
+| `IsOptional`, `IsPair`, `IsPairFirstStr`, `IsReferenceWrapper`, `IsVector` | Recognize the corresponding standard types; `IsPairFirstStr` additionally requires a string-view-convertible first element. |
 | `IsSameAsAnyOf`, `NotSameAsAnyOf`                                          | Test inclusion in or exclusion from a list of exact types.                                                                  |
-| `IsSameAsAnyOfRaw`, `NotSameAsAnyOfRaw`, `IsSameAsRaw`                     | Compare types after removing cv-qualification and references.                                                               |
-| `IsArithmetic`, `IsIntegral`, `IsScalar`, `IsFloatingPoint`                | Standard numeric/scalar classifications; reference types do not satisfy them.                                               |
-| `IsPair`, `IsPairFirstStr`, `IsVector`, `IsOptional`, `IsReferenceWrapper` | Recognize the corresponding standard types; `IsPairFirstStr` additionally requires a string-view-convertible first element. |
+| `IsSameAsAnyOfRaw`, `IsSameAsRaw`, `NotSameAsAnyOfRaw`                     | Compare types after removing cv-qualification and references.                                                               |
 | `IsSmartPtr`, `IsSmartPtrImpl`                                             | Recognize `shared_ptr`, default-deleter `unique_ptr`, and `weak_ptr`; extend through `IsSmartPtrImpl` specializations.      |
-| `IsInitializerList`, `NotInitializerList`, `IsCharArray`, `NotIsCharArray` | Initializer-list and character-array/pointer classification.                                                                |
 | `ThreeWayComparableTo<L, R, Cat>`                                          | Check `L <=> R` against a comparison category without requiring a common reference or the reverse expression.               |
 
 - `Raw` type comparisons normalize cv/ref qualifiers; exact-type concepts such as `IsPair` and
@@ -54,16 +54,16 @@ The library targets C++23, GCC 15+, and Clang 22+.
   `friend consteval std::size_t MboTypesDecomposeCount(const T*)`; the returned count must match the
   actual structured binding.
 
-| Container/iterator API in `traits.h`                                                           | Contract                                                                                           |
-| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `IsForwardIteratable`                                                                          | Forward iterators, matching reference aliases, and mutable/const `begin()` and `end()`.            |
-| `ContainerIsForwardIteratable`                                                                 | The above plus consistent signed `difference_type`, `cbegin()`, `cend()`, `empty()`, and `size()`. |
-| `ContainerHasInputIterator`, `ContainerHasForwardIterator`                                     | Iterator-category checks with matching mutable/const endpoints.                                    |
-| `ContainerHasEmplace`, `ContainerHasEmplaceBack`, `ContainerHasInsert`, `ContainerHasPushBack` | Detect supported insertion forms for a value type.                                                 |
-| `ContainerCopyConvertible<In, Out, Func>`                                                      | Check supported traversal and insertion, optionally after transforming input elements with `Func`. |
-| `HasValueType`, `HasDifferenceType`, `GetDifferenceType`                                       | Detect aliases; `GetDifferenceType` falls back to `std::ptrdiff_t`.                                |
-| `ForwardIteratorValueType`, `ContainerConstIteratorValueType`                                  | Obtain element types from iterators.                                                               |
-| `IsStringKeyedContainer`                                                                       | Forward-iterable container of pairs with string-view-convertible keys.                             |
+| Container/iterator API in `traits.h`                                                           | Contract                                                                                                       |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `ContainerConstIteratorValueType`, `ForwardIteratorValueType`                                  | Obtain element types from iterators.                                                                           |
+| `ContainerCopyConvertible<In, Out, Func>`                                                      | Check supported traversal and insertion, optionally after transforming input elements with `Func`.             |
+| `ContainerHasEmplace`, `ContainerHasEmplaceBack`, `ContainerHasInsert`, `ContainerHasPushBack` | Detect supported insertion forms for a value type.                                                             |
+| `ContainerHasForwardIterator`, `ContainerHasInputIterator`                                     | Iterator-category checks with matching mutable/const endpoints.                                                |
+| `ContainerIsForwardIteratable`                                                                 | `IsForwardIteratable` plus consistent signed `difference_type`, `cbegin()`, `cend()`, `empty()`, and `size()`. |
+| `GetDifferenceType`, `HasDifferenceType`, `HasValueType`                                       | Detect aliases; `GetDifferenceType` falls back to `std::ptrdiff_t`.                                            |
+| `IsForwardIteratable`                                                                          | Forward iterators, matching reference aliases, and mutable/const `begin()` and `end()`.                        |
+| `IsStringKeyedContainer`                                                                       | Forward-iterable container of pairs with string-view-convertible keys.                                         |
 
 ### Conditional types and predicate searches
 
@@ -101,8 +101,8 @@ All searches take `<Predicate, Start, End, NotFound = End>`, search the half-ope
 | --------------- | ---------------------------------------------------------------------------------------- |
 | `BinarySearch`  | Highest true index for a predicate that is true before its boundary and false afterward. |
 | `LinearSearch`  | First true index; no monotonicity requirement.                                           |
-| `ReverseSearch` | Last true index; no monotonicity requirement.                                            |
 | `MaxSearch`     | Last index in the initial consecutive true run; returns `NotFound` if `Start` is false.  |
+| `ReverseSearch` | Last true index; no monotonicity requirement.                                            |
 
 ### Tuple types and variant visitors
 
@@ -144,19 +144,19 @@ std::string Describe(const Value& value) {
 
 | Header                                           | Main API                                      | Purpose                                                                              |
 | ------------------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [tstring.h](tstring.h)                           | `tstring`, `operator""_ts`                    | String contents encoded in the type; one-byte objects with static character storage. |
-| [string_or_view.h](string_or_view.h)             | `mbo::StringOrView`                           | Read-only text with owning and borrowed alternatives.                                |
-| [ref_wrap.h](ref_wrap.h)                         | `RefWrap`                                     | Required non-owning reference with explicit pointer-style access.                    |
-| [optional_ref.h](optional_ref.h)                 | `OptionalRef`                                 | Optional non-owning reference with write-through assignment and explicit rebinding.  |
-| [optional_data_or_ref.h](optional_data_or_ref.h) | `OptionalDataOrRef`, `OptionalDataOrConstRef` | Empty, owned-value, or borrowed-reference storage.                                   |
-| [required.h](required.h)                         | `Required`                                    | Always-engaged storage that can reconstruct non-assignable values.                   |
-| [no_destruct.h](no_destruct.h)                   | `NoDestruct`                                  | In-place construction without running the contained destructor.                      |
-| [opaque.h](opaque.h)                             | `OpaquePtr`, `OpaqueValue`, `OpaqueContainer` | Heap ownership with ADL construction/destruction hooks.                              |
-| [container_proxy.h](container_proxy.h)           | `ContainerProxy`                              | Container access through an owning wrapper or holder.                                |
-| [typed_view.h](typed_view.h)                     | `TypedView`                                   | Range-view adapter with container-style element aliases.                             |
 | [compare.h](compare.h)                           | `CompareLess`, numeric comparison helpers     | Boolean and three-way comparisons, including mixed numeric types.                    |
-| [strong_ordinal.h](strong_ordinal.h)             | `ConstStrongOrdinal`, `StrongOrdinal`         | Nominal integral ordinals with checked arithmetic.                                   |
+| [container_proxy.h](container_proxy.h)           | `ContainerProxy`                              | Container access through an owning wrapper or holder.                                |
+| [no_destruct.h](no_destruct.h)                   | `NoDestruct`                                  | In-place construction without running the contained destructor.                      |
+| [opaque.h](opaque.h)                             | `OpaqueContainer`, `OpaquePtr`, `OpaqueValue` | Heap ownership with ADL construction/destruction hooks.                              |
+| [optional_data_or_ref.h](optional_data_or_ref.h) | `OptionalDataOrConstRef`, `OptionalDataOrRef` | Empty, owned-value, or borrowed-reference storage.                                   |
+| [optional_ref.h](optional_ref.h)                 | `OptionalRef`                                 | Optional non-owning reference with write-through assignment and explicit rebinding.  |
+| [ref_wrap.h](ref_wrap.h)                         | `RefWrap`                                     | Required non-owning reference with explicit pointer-style access.                    |
+| [required.h](required.h)                         | `Required`                                    | Always-engaged storage that can reconstruct non-assignable values.                   |
+| [string_or_view.h](string_or_view.h)             | `mbo::StringOrView`                           | Read-only text with owning and borrowed alternatives.                                |
 | [strong_id.h](strong_id.h)                       | `ConstStrongId`                               | Nominal unsigned identifiers with an invalid sentinel.                               |
+| [strong_ordinal.h](strong_ordinal.h)             | `ConstStrongOrdinal`, `StrongOrdinal`         | Nominal integral ordinals with checked arithmetic.                                   |
+| [tstring.h](tstring.h)                           | `operator""_ts`, `tstring`                    | String contents encoded in the type; one-byte objects with static character storage. |
+| [typed_view.h](typed_view.h)                     | `TypedView`                                   | Range-view adapter with container-style element aliases.                             |
 
 ### `tstring.h`: one-byte typed strings
 
@@ -210,22 +210,24 @@ inline constexpr PortSetting kPort{8'080};
 `NamedInt` stores only its `int` member; its key is a template argument and a static member.
 The key can also select an overload, specialize a template, or name a custom extender.
 
-| Operation                                                | Result                                                                                        |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `str()`, explicit `std::string_view` conversion          | View of all characters, excluding the added terminator.                                       |
-| `c_str()`                                                | Pointer to the zero-terminated static character array.                                        |
-| `size()`, `length()`, `max_size()`, `empty()`            | Compile-time size queries; embedded zero characters count toward length.                      |
-| `begin()`/`end()`, `cbegin()`/`cend()`, reverse variants | Read-only iteration over the characters.                                                      |
-| `front()`, `back()`                                      | Character references; require a nonempty string.                                              |
-| `is(other)`                                              | Exact `tstring` type-identity test.                                                           |
-| `==`, `<=>`, `compare(view)`                             | Equality and lexicographic comparison; support string-view-compatible operands.               |
-| `left + right`                                           | Concatenate two `tstring` values into a new `tstring` type.                                   |
-| `substr<Pos, Count>()`                                   | New `tstring` type; count defaults to `npos` and is clamped to the remaining length.          |
-| `substr(pos, count)`                                     | `std::string_view` result; supports runtime positions.                                        |
-| `starts_with`, `ends_with`, `contains`, `find`, `rfind`  | Search with a `tstring` operand; `find` and `rfind` return `npos` when absent.                |
-| `find_first_of`, `find_last_of`                          | Search by a character or a `std::string_view` character set, with an optional start position. |
-| `operator<<`                                             | Stream the text.                                                                              |
-| `StringHash()`, `Hash()`                                 | MBO string hash and a distinct typed hash, both usable in constant evaluation.                |
+| Operation                                                | Result                                                                                            |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `back()`, `front()`                                      | Character references; require a nonempty string.                                                  |
+| `begin()`/`end()`, `cbegin()`/`cend()`, reverse variants | Read-only iteration over the characters.                                                          |
+| `c_str()`                                                | Pointer to the zero-terminated static character array.                                            |
+| `compare(view)`                                          | Lexicographic comparison against a `std::string_view`.                                            |
+| `contains`, `ends_with`, `find`, `rfind`, `starts_with`  | Search with a `tstring` operand; `find` and `rfind` return `npos` when absent.                    |
+| `empty()`, `length()`, `max_size()`, `size()`            | Compile-time size queries; embedded zero characters count toward length.                          |
+| `find_first_of`, `find_last_of`                          | Search by a character or a `std::string_view` character set, with an optional start position.     |
+| `Hash()`, `StringHash()`                                 | `Hash()`: distinct typed hash; `StringHash()`: MBO string hash. Both support constant evaluation. |
+| `is(other)`                                              | Exact `tstring` type-identity test.                                                               |
+| `operator std::string_view`                              | Explicit conversion to a view of the characters.                                                  |
+| `operator+`                                              | Concatenate two `tstring` values into a new `tstring` type.                                       |
+| `operator<<`                                             | Stream the text.                                                                                  |
+| `operator==`, `operator<=>`                              | Equality and lexicographic comparison; support string-view-compatible operands.                   |
+| `str()`                                                  | View of all characters, excluding the added terminator.                                           |
+| `substr(pos, count)`                                     | `std::string_view` result; supports runtime positions.                                            |
+| `substr<Pos, Count>()`                                   | New `tstring` type; count defaults to `npos` and is clamped to the remaining length.              |
 
 - Accessors are static `constexpr`; `Port::str()` and `Port{}.str()` access the same storage.
 - Both substring forms return an empty result when `pos >= size()`.
@@ -319,16 +321,18 @@ must not themselves be references. `OptionalDataOrConstRef<T>` selects `RefT = c
 
 | Operation                                           | Effect                                                                                                                   |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Default construction, `std::nullopt`, `reset()`     | Empty state; destroy any previously owned value.                                                                         |
 | Construction from a compatible lvalue               | Borrow the object.                                                                                                       |
-| Construction from `T&&`, `emplace(args...)`         | Own a constructed value.                                                                                                 |
-| `set_ref(value)`                                    | Replace the current state with a borrowed reference.                                                                     |
-| `HoldsData()`, `HoldsReference()`, `HoldsNullopt()` | Distinguish the three storage states.                                                                                    |
-| `has_value()`, explicit `bool`                      | True for either owned or borrowed storage.                                                                               |
-| `value()`, `*`, `->`                                | Access the current value; require engagement.                                                                            |
-| `get(defaults)`                                     | Current value or the supplied fallback, by const reference.                                                              |
-| `get()`                                             | Current value or a static default value for suitable `T`.                                                                |
+| Construction from `T&&`                             | Own a moved-in value.                                                                                                    |
+| Default construction, `std::nullopt`                | Empty state.                                                                                                             |
 | `as_data(args...)`                                  | Keep an owned value, copy a borrowed value into owned storage, or construct an empty wrapper's value from the arguments. |
+| `emplace(args...)`                                  | Own a value constructed from the arguments.                                                                              |
+| `get()`                                             | Current value or a static default value for suitable `T`.                                                                |
+| `get(defaults)`                                     | Current value or the supplied fallback, by const reference.                                                              |
+| `has_value()`, explicit `bool`                      | True for either owned or borrowed storage.                                                                               |
+| `HoldsData()`, `HoldsNullopt()`, `HoldsReference()` | Distinguish the three storage states.                                                                                    |
+| `reset()`                                           | Empty the wrapper; destroy any previously owned value.                                                                   |
+| `set_ref(value)`                                    | Replace the current state with a borrowed reference.                                                                     |
+| `value()`, `*`, `->`                                | Access the current value; require engagement.                                                                            |
 
 - Copying owned storage copies `T`; copying borrowed storage preserves the reference.
 - Moving owned storage moves `T` and empties the source; moving borrowed storage preserves the
@@ -412,12 +416,12 @@ const std::string& DefaultName() {
 
 | API                                  | Ownership and access                                                                                                          |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `OpaquePtr<T>`                       | `std::unique_ptr` with an ADL deleter; nullable, move-only, and usable with a forward-declared `T`.                           |
-| `MakeOpaquePtr<T>(args...)`          | Construct `T` through the ADL maker hook and return its owning pointer.                                                       |
-| `OpaqueValue<T>`                     | Heap-owned value; construction allocates `T`, copying deep-copies when `T` is copy-constructible, moving transfers ownership. |
-| `OpaqueContainer<C>`                 | `ContainerProxy` over `OpaqueValue<C>` for direct container operations.                                                       |
 | `IsOpaquePtr<T>`, `IsOpaqueValue<T>` | Recognize the pointer and value wrappers.                                                                                     |
+| `MakeOpaquePtr<T>(args...)`          | Construct `T` through the ADL maker hook and return its owning pointer.                                                       |
 | `MBO_TYPES_OPAQUE_HOOKS(T)`          | Define inline ADL maker/deleter hooks after the complete type definition.                                                     |
+| `OpaqueContainer<C>`                 | `ContainerProxy` over `OpaqueValue<C>` for direct container operations.                                                       |
+| `OpaquePtr<T>`                       | `std::unique_ptr` with an ADL deleter; nullable, move-only, and usable with a forward-declared `T`.                           |
+| `OpaqueValue<T>`                     | Heap-owned value; construction allocates `T`, copying deep-copies when `T` is copy-constructible, moving transfers ownership. |
 
 - Place hooks in the type's associated namespace and make them available where creation and
   destruction are instantiated. Forward declaration alone does not supply the hooks.
@@ -514,15 +518,15 @@ void UseTypedView() {
 
 ### `compare.h`: comparison policies
 
-| API                                | Behavior                                                                                                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CompareLess<T>`                   | Transparent comparator: `operator()` returns less-than and `Compare()` returns the three-way result. Heterogeneous operands must be three-way comparable with `T`. |
-| `IsCompareLess<T>`, `IsStdLess<T>` | Recognize the respective comparator types.                                                                                                                         |
-| `CompareIntegral(lhs, rhs)`        | Strong ordering for integral values, with signed/unsigned boundary handling.                                                                                       |
-| `CompareArithmetic(lhs, rhs)`      | Strong ordering for arithmetic values, including floating point.                                                                                                   |
-| `CompareScalar(lhs, rhs)`          | Scalar comparison, including same-type pointers when their comparison is supported.                                                                                |
-| `CompareFloat(lhs, rhs)`           | Strong ordering: NaNs compare equivalent to each other and greater than non-NaNs; signed zeros compare equivalent.                                                 |
-| `WeakToStrong(order)`              | Preserve the less/equivalent/greater result in `std::strong_ordering`.                                                                                             |
+| API                                | Behavior                                                                                                                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CompareArithmetic(lhs, rhs)`      | Strong ordering for arithmetic values, including floating point.                                                                                                                             |
+| `CompareFloat(lhs, rhs)`           | Strong ordering: NaNs compare equivalent to each other and greater than non-NaNs; signed zeros compare equivalent.                                                                           |
+| `CompareIntegral(lhs, rhs)`        | Strong ordering for integral values, with signed/unsigned boundary handling.                                                                                                                 |
+| `CompareLess<T>`                   | Transparent comparator (`is_transparent = void`): `operator()` returns less-than and `Compare()` returns the three-way result. Heterogeneous operands must be three-way comparable with `T`. |
+| `CompareScalar(lhs, rhs)`          | Scalar comparison, including same-type pointers when their comparison is supported.                                                                                                          |
+| `IsCompareLess<T>`, `IsStdLess<T>` | Recognize the respective comparator types.                                                                                                                                                   |
+| `WeakToStrong(order)`              | Preserve the less/equivalent/greater result in `std::strong_ordering`.                                                                                                                       |
 
 - Mixed floating/integral comparisons convert to `long double`; precision follows that type.
 - In the non-floating mixed-type path, a `bool` operand causes both operands to be compared as
@@ -538,9 +542,9 @@ and Abseil hashing.
 
 | Type                                                     | Default and mutation policy                                                                                                |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ConstStrongId<Tag, Rep = std::uint32_t, Invalid = max>` | Invalid default; unsigned non-boolean representation; no arithmetic or copy assignment; move assignment remains available. |
 | `ConstStrongOrdinal<Tag, Rep>`                           | Zero default; all representation values are valid. No setters or copy assignment; move assignment remains available.       |
 | `StrongOrdinal<Tag, Rep>`                                | Mutable ordinal with setters, assignment, compound arithmetic, and increment/decrement.                                    |
-| `ConstStrongId<Tag, Rep = std::uint32_t, Invalid = max>` | Invalid default; unsigned non-boolean representation; no arithmetic or copy assignment; move assignment remains available. |
 
 - Ordinal representations: integral types other than `bool`; specify `Rep` explicitly.
 - `try_from_ordinal(value)`: `std::optional` result; reject values outside the representation range.
@@ -582,7 +586,7 @@ void AdvanceRow() {
 
 | Header                                     | Entry point                                                                                    |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| [extend.h](extend.h)                       | `Extend`, `ExtendNoPrint`, `ExtendNoDefault`, and the extenders exported through `extender.h`. |
+| [extend.h](extend.h)                       | `Extend`, `ExtendNoDefault`, `ExtendNoPrint`, and the extenders exported through `extender.h`. |
 | [stringify.h](stringify.h)                 | Recursive stringification, output modes, and field policies.                                   |
 | [stringify_ostream.h](stringify_ostream.h) | Stream adapter for opted-in aggregates and global stream-format settings.                      |
 
@@ -647,15 +651,18 @@ auto converted = Name::ConstructFromConversions(std::string_view{"Margaret"}, st
 | Base                              | Installed behavior                                                                     |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
 | `Extend<T, Extra...>`             | Default behavior plus any custom extenders.                                            |
-| `ExtendNoPrint<T, Extra...>`      | Comparison, hashing, and Abseil stringification, without `ToString()` or `operator<<`. |
 | `ExtendNoDefault<T, Extender...>` | Only the explicitly selected extenders.                                                |
-| `extender::Default`               | `AbslStringify`, `AbslHashable`, `Comparable`, `Printable`, and `Streamable`.          |
-| `extender::NoPrint`               | `AbslStringify`, `AbslHashable`, and `Comparable`.                                     |
-| `extender::Comparable`            | `<=>`, `==`, and `<`, with the remaining relational operators supplied by C++.         |
-| `extender::AbslHashable`          | `AbslHashValue`; extended types also receive `std::hash`.                              |
-| `extender::AbslStringify`         | Abseil formatting backed by `Stringify`.                                               |
-| `extender::Printable`             | `ToString()` and `ToJsonString()`; requires `AbslStringify`.                           |
-| `extender::Streamable`            | `operator<<`; requires `AbslStringify`.                                                |
+| `ExtendNoPrint<T, Extra...>`      | Comparison, hashing, and Abseil stringification, without `ToString()` or `operator<<`. |
+
+| Extender                  | Installed behavior                                                             |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `extender::AbslHashable`  | `AbslHashValue`; extended types also receive `std::hash`.                      |
+| `extender::AbslStringify` | Abseil formatting backed by `Stringify`.                                       |
+| `extender::Comparable`    | `<=>`, `==`, and `<`, with the remaining relational operators supplied by C++. |
+| `extender::Default`       | `AbslHashable`, `AbslStringify`, `Comparable`, `Printable`, and `Streamable`.  |
+| `extender::NoPrint`       | `AbslHashable`, `AbslStringify`, and `Comparable`.                             |
+| `extender::Printable`     | `ToJsonString()` and `ToString()`; requires `AbslStringify`.                   |
+| `extender::Streamable`    | `operator<<`; requires `AbslStringify`.                                        |
 
 Use `ExtendNoDefault` when a type must expose only a narrow operation set. Use `ExtendNoPrint` when
 the comparison and hashing semantics are useful but text output has a hand-written implementation.
@@ -752,17 +759,17 @@ therefore depend on the type, field, surrounding context, or runtime object stat
 
 | Extension point                         | Purpose                                                                          |
 | --------------------------------------- | -------------------------------------------------------------------------------- |
-| `MboTypesStringifyFieldNames`           | Supply the complete stable name sequence or replace compiler names.              |
+| `MboTypesStringifyConvert`              | Convert a field using its owner, index, and value before rendering.              |
+| `MboTypesStringifyDisable`              | Prevent automatic recursive rendering for a type.                                |
 | `MboTypesStringifyDoNotPrintFieldNames` | Suppress compiler-provided names while retaining traversal.                      |
+| `MboTypesStringifyFieldNames`           | Supply the complete stable name sequence or replace compiler names.              |
 | `MboTypesStringifyOptions`              | Choose formatting and policy for each object and field.                          |
-| `StringifyWithFieldNames`               | Adapt a name sequence into field options, optionally verifying discovered names. |
+| `MboTypesStringifySupport`              | Opt a non-extended aggregate into `Stringify` traversal.                         |
+| `MboTypesStringifyValueAccess`          | Present a wrapper as a different underlying value.                               |
 | `StringifyOptions::FieldControl`        | Suppress fields, null pointers, empty optionals, or disabled values.             |
 | `StringifyOptions::KeyOverrides`        | Rename a field statically or through a callback.                                 |
 | `StringifyOptions::ValueOverrides`      | Replace or redact string and non-string values.                                  |
-| `MboTypesStringifyConvert`              | Convert a field using its owner, index, and value before rendering.              |
-| `MboTypesStringifyValueAccess`          | Present a wrapper as a different underlying value.                               |
-| `MboTypesStringifyDisable`              | Prevent automatic recursive rendering for a type.                                |
-| `MboTypesStringifySupport`              | Opt a non-extended aggregate into `Stringify` traversal.                         |
+| `StringifyWithFieldNames`               | Adapt a name sequence into field options, optionally verifying discovered names. |
 
 Automatic source identifiers are convenient diagnostics, but explicit names are preferable for a
 stable external schema. Formatting JSON-like text does not make `Stringify` a validating serializer;

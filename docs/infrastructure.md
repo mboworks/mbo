@@ -24,6 +24,14 @@ mbo's conservative full-sweep behavior and SMHasher exclusions.
 
 ## Build caches and CI
 
+With `--config=clang`, the hermetic LLVM module selects Apple's native linker (`auto`)
+for macOS ARM64 and x86_64, following [proto PR 118](https://github.com/mboworks/proto/pull/118).
+The toolchain supplies the matching linker capabilities; `.bazelrc` does not override the
+linker executable or allow unresolved symbols through `dynamic_lookup`. Linux retains
+the toolchain's bundled LLD default. Both target and host configurations use Bazel's
+`--macos_minimum_os=11.0` settings so Apple platform metadata and compile/link actions
+agree on the deployment target.
+
 Cache only Bazel compiled outputs. Keys separate OS, architecture, compiler/version, Bazel
 version, build configuration, dependency hash, run, and attempt. Only main saves generations;
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.

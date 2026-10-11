@@ -27,6 +27,13 @@ llvm.toolchain(
         "LLVM-22.1.8-macOS-ARM64.tar.xz": "f260f4f7c0d430828a81ae8a3826a1d63fc0963ec2459489308cc23b1f7eab4f",
         "clang+llvm-22.1.8-aarch64-pc-windows-msvc.tar.xz": "de718c58ebbc5f61d58c17b90457fcf42983bc2c4a4aba3e010d108713bfd7f1",
     },
+    # Select Apple's native linker and its capabilities together, rather than
+    # overriding LLD's executable while retaining LLD-specific feature flags.
+    # Unspecified platforms retain the toolchain's bundled LLD default.
+    linker = {
+        "darwin-aarch64": "auto",
+        "darwin-x86_64": "auto",
+    },
     llvm_version = "22.1.8",
 )
 use_repo(llvm, "llvm_toolchain_llvm")

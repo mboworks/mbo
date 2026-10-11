@@ -82,9 +82,23 @@ struct FrozenIndex {
       }
     }
     const auto active_buckets = std::span(order).first(bucket_count);
-    std::ranges::sort(active_buckets, [&scratch](auto lhs, auto rhs) {
+    const auto precedes = [&scratch](auto lhs, auto rhs) {
       return scratch.counts[lhs] == scratch.counts[rhs] ? lhs < rhs : scratch.counts[lhs] > scratch.counts[rhs];
-    });
+    };
+    if constexpr (kCapacity <= 16) {
+      // Bounded insertion sort avoids GCC -O3 diagnostics for libstdc++'s unreachable 16-element sort path.
+      for (std::size_t index = 1; index < active_buckets.size(); ++index) {
+        const auto bucket = active_buckets[index];
+        auto pos = index;
+        while (pos > 0 && precedes(bucket, active_buckets[pos - 1])) {
+          active_buckets[pos] = active_buckets[pos - 1];
+          --pos;
+        }
+        active_buckets[pos] = bucket;
+      }
+    } else {
+      std::ranges::sort(active_buckets, precedes);
+    }
     std::size_t free_slot = 0;
     for (const auto bucket : active_buckets) {
       Place(hashes, scratch, bucket, free_slot, work);

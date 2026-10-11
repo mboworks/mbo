@@ -299,6 +299,53 @@ jobs:
         with:
           key: ${{ steps.cache_restore.outputs.key }}
 
+  cmake-gcc:
+    name: CMake GCC 15 (EXPERIMENTAL)
+    needs: [trunk, pre-commit]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CC: gcc-15
+      CXX: g++-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install GCC 15 and CMake
+        run: |
+          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install --yes gcc-15 g++-15 cmake ninja-build
+      - name: Configure libraries, binaries, benchmarks and tests
+        run: cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BENCHMARKS=ON
+      - name: Build
+        run: cmake --build build-cmake --parallel 2
+      - name: Test
+        run: ctest --test-dir build-cmake --output-on-failure --parallel 2
+      - name: Verify requirement exceptions and disabled hash mangling
+        run: |
+          cmake -S . -B build-cmake-exceptions -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BINARIES=OFF \
+            -DMBO_REQUIRE_THROWS=ON -DMBO_HASH_MANGLE_SEED_BUCKETS=0
+          cmake --build build-cmake-exceptions --parallel 2 --target \
+            mbo_config_config_test mbo_hash_hash_mangle_test \
+            mbo_container_limited_map_require_exceptions_test \
+            mbo_container_segmented_vector_require_exceptions_test \
+            mbo_container_segmented_deque_require_exceptions_test \
+            mbo_container_value_pop_require_exceptions_test \
+            mbo_container_experimental_circular_buffer_require_exceptions_test \
+            mbo_container_experimental_frozen_require_exceptions_test \
+            mbo_json_json_require_exceptions_test
+          ctest --test-dir build-cmake-exceptions --output-on-failure --parallel 2 \
+            -R 'require_exceptions_test|mbo_config_config_test|mbo_hash_hash_mangle_test'
+      - name: Verify add_subdirectory consumer
+        run: |
+          cmake -S cmake/tests -B build-cmake-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-cmake-consumer --parallel 2
+          ctest --test-dir build-cmake-consumer --output-on-failure
+
   test-gcc:
     needs: [trunk, pre-commit]
     secrets: inherit
@@ -401,6 +448,7 @@ jobs:
         pre-commit,
         clang-tidy,
         coverage,
+        cmake-gcc,
         test-gcc,
         test-clang,
         test-bcr,

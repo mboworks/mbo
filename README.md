@@ -358,7 +358,8 @@ The C++ library is organized in functional groups each residing in their own dir
 This repository requires C++23 with GCC 15 and matching libstdc++ 15, Clang/LLVM 22 and matching
 libc++ 22, or Xcode 16.3 and its matching Apple Clang/libc++. Bazel 8 and newer remain supported.
 
-The project only comes with a Bazel BUILD.bazel file and can be added to other Bazel projects.
+Bazel is the primary build system. The project can be added to other Bazel projects through
+`MODULE.bazel`. [CMake support is EXPERIMENTAL](cmake/README.md).
 
 The project is formatted with clang-format 22.1.8. Development builds fetch the matching hermetic
 tool with the Clang toolchain; [`tools/clang_format.sh`](tools/clang_format.sh) prefers that binary
@@ -370,6 +371,25 @@ Lint and format are driven by [Trunk](https://docs.trunk.io/cli) plus [pre-commi
 and compilation database with `bazel build --config=clang-tidy //...` and
 `./compile_commands-update.sh`. See [STYLE_CPP.md](STYLE_CPP.md) and the
 [infrastructure guide](docs/infrastructure.md) for scope and concurrency requirements.
+
+### CMake (EXPERIMENTAL)
+
+CMake 3.28+ and Python 3.10+ build one library target per `mbo/*` library, the overall
+`mbo::mbo` target, and individual command-line and benchmark targets. Build definitions live
+under [`cmake/`](cmake/README.md); source lists, dependencies, configuration headers, and
+version pins derive from the existing Bazel definitions.
+
+```sh
+CC=gcc-15 CXX=g++-15 cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cmake --parallel 2
+ctest --test-dir build-cmake --output-on-failure --parallel 2
+```
+
+Dependencies are fetched at configure time unless supplied by the parent project or through
+the documented dependency options. Use `add_subdirectory(path/to/mbo)` and link `mbo::mbo`
+or a component such as `mbo::container`. Tests and binaries default to off when embedded.
+GCC 15 verifies the CMake build in CI. See the [CMake guide](cmake/README.md) for targets,
+options, dependency reuse, and current limitations.
 
 ### MODULE.bazel
 

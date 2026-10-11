@@ -147,7 +147,7 @@ cmake --build build-cmake --parallel 2
 python3 cmake/generate_test.py
 ```
 
-`cmake/generate.py --help` lists the standalone generator's options. CMake passes its compiler
+`python3 cmake/generate.py --help` lists the standalone generator's options. CMake passes its compiler
 and configuration options automatically. Add adapter support when introducing an expression,
 dependency, compiler option, or link option that the adapter rejects.
 

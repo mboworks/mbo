@@ -79,7 +79,7 @@ struct CountingBlockSource final {
 };
 
 template<typename T>
-struct CountingDirectoryAllocator final {
+struct CountingDirectoryAllocator {
   using value_type = T;
 
   template<typename U>

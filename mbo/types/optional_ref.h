@@ -20,9 +20,11 @@
 #include <concepts>  // IWYU pragma: keep
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 #include "absl/hash/hash.h"
 #include "absl/strings/str_format.h"
+#include "mbo/config/config.h"
 #include "mbo/config/require.h"
 #include "mbo/log/demangle.h"
 
@@ -85,32 +87,33 @@ class OptionalRef {
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
 
-  constexpr reference value() noexcept {  // NOLINT(*-identifier-naming)
+  constexpr reference value() noexcept(!config::kRequireThrows) {  // NOLINT(*-identifier-naming)
     MBO_CONFIG_REQUIRE(has_value(), "No value set for: ") << mbo::log::DemangleV(*this);
     return *v_;
   }
 
-  constexpr const_reference value() const noexcept {  // NOLINT(*-identifier-naming)
+  constexpr const_reference value() const noexcept(!config::kRequireThrows) {  // NOLINT(*-identifier-naming)
     MBO_CONFIG_REQUIRE(has_value(), "No value set for: ") << mbo::log::DemangleV(*this);
     return *v_;
   }
 
-  constexpr reference operator*() noexcept { return value(); }
+  constexpr reference operator*() noexcept(!config::kRequireThrows) { return value(); }
 
-  constexpr const_reference operator*() const noexcept { return value(); }
+  constexpr const_reference operator*() const noexcept(!config::kRequireThrows) { return value(); }
 
-  constexpr pointer operator->() noexcept { return &value(); }
+  constexpr pointer operator->() noexcept(!config::kRequireThrows) { return &value(); }
 
-  constexpr const_pointer operator->() const noexcept { return &value(); }
+  constexpr const_pointer operator->() const noexcept(!config::kRequireThrows) { return &value(); }
 
   template<AssignableTo<T&> U = T>
-  constexpr OptionalRef& operator=(U&& v) noexcept {
+  constexpr OptionalRef& operator=(U&& v) noexcept(!config::kRequireThrows && std::is_nothrow_assignable_v<T&, U&&>) {
     value() = std::forward<U>(v);
     return *this;
   }
 
   template<AssignableTo<T&> U = T>
-  constexpr OptionalRef& operator=(const U& v) noexcept {
+  constexpr OptionalRef& operator=(const U& v) noexcept(
+      !config::kRequireThrows && std::is_nothrow_assignable_v<T&, const U&>) {
     value() = v;
     return *this;
   }

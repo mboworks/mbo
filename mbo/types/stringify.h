@@ -38,6 +38,7 @@
 #include "absl/log/absl_log.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
+#include "mbo/config/config.h"
 #include "mbo/config/require.h"
 #include "mbo/types/internal/extender.h"      // IWYU pragma: keep
 #include "mbo/types/internal/struct_names.h"  // IWYU pragma: keep
@@ -747,7 +748,7 @@ class Stringify {
 
   explicit constexpr Stringify(
       const StringifyOptions& default_options = OptionsDefault(),
-      const StringifyRootOptions& root_options = kRootOptionDefaults) noexcept
+      const StringifyRootOptions& root_options = kRootOptionDefaults) noexcept(!config::kRequireThrows)
       : default_root_options_(root_options), default_field_options_(default_options) {
     MBO_CONFIG_REQUIRE(default_field_options_.AllDataSet(), "Not all data set: ") << default_field_options_.DebugStr();
   }

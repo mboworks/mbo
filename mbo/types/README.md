@@ -291,6 +291,8 @@ void TextOwnership() {
 - Value assignment: write through an engaged reference. `set_ref(value)`: explicitly rebind.
   `reset()`: disengage without changing or destroying the referent.
 - `has_value()`/explicit `bool`: engagement. `value()`, `*`, and `->`: access; require engagement.
+- Checked access honors `mbo::config::kRequireThrows`; it is `noexcept` only when requirements
+  use fatal logging. Write-through assignment also accounts for the referent's assignment exceptions.
 - `OptionalRef<const T>`: borrow a const object. Referents must outlive all uses of the wrapper.
 - Comparisons: value-based, with empty references ordered before engaged references.
 - Abseil hashing includes engagement and value; Abseil stringification emits `std::nullopt` for empty.
@@ -340,6 +342,8 @@ must not themselves be references. `OptionalDataOrConstRef<T>` selects `RefT = c
 - Rvalue value assignment creates owned storage. Supported lvalue value assignment writes through
   an engaged value or constructs owned storage if empty. Use `set_ref()` to request rebinding.
 - Failed replacement construction leaves the wrapper empty when exceptions are enabled.
+- Checked access through `value()`, `*`, and `->` honors `mbo::config::kRequireThrows`; it is
+  `noexcept` only when requirements use fatal logging.
 - Borrowed values and `get(defaults)` fallbacks must remain alive while their returned references
   are used. Do not retain a fallback reference obtained from a temporary argument.
 - Comparison and Abseil hashing use engagement and value, independently of ownership mode.
@@ -717,6 +721,10 @@ The detailed matrix for unions, bit-fields, reference members, constexpr evaluat
 implementations lives in [REFLECTION.md](REFLECTION.md).
 
 ## Stringification
+
+The `Stringify` constructor requires complete default options and checks them through
+`MBO_CONFIG_REQUIRE`. Its `noexcept` contract follows `mbo::config::kRequireThrows`; incomplete
+defaults throw under the enabled exception policy. The named factories supply complete options.
 
 `Stringify` recursively handles supported aggregates, strings, characters, pointers, optionals,
 variants, tuples, and containers. Ready-made modes provide default, compact or pretty C++, and

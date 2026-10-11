@@ -300,7 +300,7 @@ jobs:
           key: ${{ steps.cache_restore.outputs.key }}
 
   cmake-gcc:
-    name: CMake GCC 15 (EXPERIMENTAL)
+    name: CMake GCC 15
     needs: [trunk, pre-commit]
     runs-on: ubuntu-latest
     permissions:
@@ -313,6 +313,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - name: Select build and test parallelism
+        run: |
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
+          echo "CTEST_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
       - name: Install GCC 15 and CMake
         run: |
           for attempt in 1 2 3; do
@@ -329,17 +333,18 @@ jobs:
       - name: Configure libraries, binaries, benchmarks and tests
         run: cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BENCHMARKS=ON
       - name: Build
-        run: cmake --build build-cmake --parallel 2
+        run: cmake --build build-cmake
       - name: Test
         run: |
-          ctest --test-dir build-cmake --output-on-failure --parallel 2
+          ctest --test-dir build-cmake --output-on-failure
           ctest --test-dir build-cmake --output-on-failure --repeat until-fail:2 -R '^mbo_file_glob_test$'
       - name: Verify requirement exceptions and disabled hash mangling
         run: |
           cmake -S . -B build-cmake-exceptions -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DMBO_BUILD_BINARIES=OFF \
-            -DMBO_REQUIRE_THROWS=ON -DMBO_HASH_MANGLE_SEED_BUCKETS=0
-          cmake --build build-cmake-exceptions --parallel 2 --target \
+            -DMBO_ENABLE_EXCEPTIONS=ON -DMBO_REQUIRE_THROWS=ON \
+            -DMBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY=24 -DMBO_HASH_MANGLE_SEED_BUCKETS=0
+          cmake --build build-cmake-exceptions --target \
             mbo_config_config_test mbo_hash_hash_mangle_test \
             mbo_container_limited_map_require_exceptions_test \
             mbo_container_segmented_vector_require_exceptions_test \
@@ -347,13 +352,15 @@ jobs:
             mbo_container_value_pop_require_exceptions_test \
             mbo_container_experimental_circular_buffer_require_exceptions_test \
             mbo_container_experimental_frozen_require_exceptions_test \
-            mbo_json_json_require_exceptions_test
-          ctest --test-dir build-cmake-exceptions --output-on-failure --parallel 2 \
+            mbo_json_json_require_exceptions_test \
+            mbo_types_optional_require_exceptions_test \
+            mbo_types_stringify_require_exceptions_test
+          ctest --test-dir build-cmake-exceptions --output-on-failure \
             -R 'require_exceptions_test|mbo_config_config_test|mbo_hash_hash_mangle_test'
       - name: Verify add_subdirectory consumer
         run: |
           cmake -S cmake/tests -B build-cmake-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build-cmake-consumer --parallel 2
+          cmake --build build-cmake-consumer
           ctest --test-dir build-cmake-consumer --output-on-failure
 
   test-gcc:

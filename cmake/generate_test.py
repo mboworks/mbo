@@ -5,6 +5,9 @@
 
 import ast
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 import generate
@@ -88,6 +91,47 @@ class GenerateTest(unittest.TestCase):
         )
         with self.assertRaises(KeyError):
             generate.dependency("@unknown//:library")
+
+    def test_configuration_options_preserve_the_bazel_template(self):
+        template = (ROOT / "mbo/config/internal/config.h.in").read_text()
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            command = [
+                sys.executable,
+                str(ROOT / "cmake/generate.py"),
+                "--source",
+                str(ROOT),
+                "--output",
+                str(output),
+                "--compiler",
+                "gcc",
+            ]
+            subprocess.run(command, check=True, capture_output=True)
+            header = output / "mbo/config/config_gen.h"
+            self.assertEqual(header.read_text(), template)
+            subprocess.run(
+                command
+                + [
+                    "--require-throws",
+                    "--unroll=24",
+                    "--seed=config test",
+                    "--buckets=0",
+                ],
+                check=True,
+                capture_output=True,
+            )
+            expected = template.replace(
+                "kUnrollMaxCapacityDefault = 16;", "kUnrollMaxCapacityDefault = 24;"
+            )
+            expected = expected.replace(
+                "kRequireThrows = false;", "kRequireThrows = true;"
+            )
+            self.assertEqual(header.read_text(), expected)
+            for invalid in (3, 33):
+                result = subprocess.run(
+                    command + [f"--unroll={invalid}"], capture_output=True
+                )
+                self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == "__main__":

@@ -302,6 +302,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":traits_cc",
+        "//mbo/config:config_cc",
         "//mbo/config:require_cc",
         "//mbo/log:demangle_cc",
         "@abseil-cpp//absl/hash",
@@ -348,6 +349,7 @@ cc_library(
     hdrs = ["optional_ref.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "//mbo/config:config_cc",
         "//mbo/config:require_cc",
         "//mbo/log:demangle_cc",
         "@abseil-cpp//absl/hash",
@@ -365,6 +367,20 @@ cc_test(
         "@abseil-cpp//absl/hash",
         "@abseil-cpp//absl/strings",
         "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "optional_require_exceptions_test",
+    size = "small",
+    srcs = ["optional_require_exceptions_test.cc"],
+    copts = ["-fexceptions"],
+    tags = ["no-coverage"],
+    deps = [
+        ":optional_data_or_ref_cc",
+        ":optional_ref_cc",
+        "//mbo/config:config_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -437,6 +453,8 @@ cc_library(
         ":optional_ref_cc",
         ":traits_cc",
         ":tuple_extras_cc",
+        "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
         "//mbo/types/internal:extender_cc",
         "//mbo/types/internal:struct_names_cc",
         "@abseil-cpp//absl/cleanup",
@@ -470,6 +488,19 @@ cc_test(
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:str_format",
         "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "stringify_require_exceptions_test",
+    size = "small",
+    srcs = ["stringify_require_exceptions_test.cc"],
+    copts = ["-fexceptions"],
+    tags = ["no-coverage"],
+    deps = [
+        ":stringify_cc",
+        "//mbo/config:config_cc",
         "@googletest//:gtest_main",
     ],
 )

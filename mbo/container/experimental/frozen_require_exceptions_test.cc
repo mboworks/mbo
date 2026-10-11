@@ -94,6 +94,7 @@ TEST_F(FrozenRequireExceptionsTest, CheckedCapacities) {
 
 TEST_F(FrozenRequireExceptionsTest, CheckedObservers) {
   const FrozenMap<int, int, 1> table({{1, 2}});
+  EXPECT_THAT(table.at(1), 2);
   EXPECT_THAT(
       ([&table] { return table.at(0); }), ThrowsMessage<std::runtime_error>(HasSubstr("FrozenMap key not found")));
   EXPECT_THAT(

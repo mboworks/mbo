@@ -28,6 +28,7 @@
 
 #include "absl/hash/hash.h"
 #include "absl/strings/str_format.h"
+#include "mbo/config/config.h"
 #include "mbo/config/require.h"
 #include "mbo/log/demangle.h"
 #include "mbo/types/traits.h"  // IWYU pragma: keep
@@ -159,13 +160,13 @@ class OptionalDataOrRef {
 
   constexpr bool HoldsReference() const noexcept { return data_.index() == kRefIndex; }
 
-  constexpr reference value() noexcept {
+  constexpr reference value() noexcept(!config::kRequireThrows) {
     MBO_CONFIG_REQUIRE(has_value(), "No value set for: ") << mbo::log::DemangleV(*this);
     return HoldsData() ? Data() : Reference();
   }
 
   // LCOV_MERGE_FUNC_LINE: repeated for every stored/reference type pair.
-  constexpr const_reference value() const noexcept {
+  constexpr const_reference value() const noexcept(!config::kRequireThrows) {
     MBO_CONFIG_REQUIRE(has_value(), "No value set for: ") << mbo::log::DemangleV(*this);
     return HoldsData() ? Data() : Reference();
   }
@@ -203,13 +204,13 @@ class OptionalDataOrRef {
     return Data();
   }
 
-  constexpr reference operator*() noexcept { return value(); }
+  constexpr reference operator*() noexcept(!config::kRequireThrows) { return value(); }
 
-  constexpr const_reference operator*() const noexcept { return value(); }
+  constexpr const_reference operator*() const noexcept(!config::kRequireThrows) { return value(); }
 
-  constexpr pointer operator->() noexcept { return &value(); }
+  constexpr pointer operator->() noexcept(!config::kRequireThrows) { return &value(); }
 
-  constexpr const_pointer operator->() const noexcept { return &value(); }
+  constexpr const_pointer operator->() const noexcept(!config::kRequireThrows) { return &value(); }
 
   template<std::equality_comparable_with<T> U = T, typename RefU = U>
   constexpr bool operator==(const OptionalDataOrRef<U, RefU>& rhs) const

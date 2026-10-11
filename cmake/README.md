@@ -1,4 +1,4 @@
-# CMake support (EXPERIMENTAL)
+# CMake support
 
 The CMake build provides one component target per `mbo/*` library, an overall library target,
 individual binaries, and CTest registration for the existing C++ unit tests. Bazel remains the
@@ -96,17 +96,26 @@ build-cmake/bin/mbo_bin_glob/glob --help
 
 ## Configuration options
 
-| Cache variable                            | Default                          | Meaning                                                                       |
-| :---------------------------------------- | :------------------------------- | :---------------------------------------------------------------------------- |
-| `MBO_BUILD_BENCHMARKS`                    | `OFF`                            | Build all benchmark binaries; fetch Google Benchmark when needed.             |
-| `MBO_BUILD_BINARIES`                      | Top-level: `ON`; embedded: `OFF` | Build command-line programs and developer tools.                              |
-| `MBO_BUILD_TESTING`                       | Top-level: `ON`; embedded: `OFF` | Build C++ unit tests and register CTest cases.                                |
-| `MBO_FETCH_DEPENDENCIES`                  | `ON`                             | Fetch pinned dependency sources when their targets are absent.                |
-| `MBO_GOOGLETEST_SOURCE_DIR`               | Fetched GoogleTest directory     | GoogleTest sources providing the runfiles test's `LICENSE` fixture.           |
-| `MBO_HASH_MANGLE_SEED`                    | Empty string                     | Printable ASCII seed selecting the hash mangle bucket.                        |
-| `MBO_HASH_MANGLE_SEED_BUCKETS`            | `8`                              | Bucket count; `0` disables mangling, `1` selects a fixed nonzero constant.    |
-| `MBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY` | `16`                             | `LimitedOrdered` unroll capacity, from `4` through `32`.                      |
-| `MBO_REQUIRE_THROWS`                      | `OFF`                            | Throw on requirement violations when the translation unit enables exceptions. |
+| Cache variable                            | Default                          | Meaning                                                                                    |
+| :---------------------------------------- | :------------------------------- | :----------------------------------------------------------------------------------------- |
+| `MBO_BUILD_BENCHMARKS`                    | `OFF`                            | Build all benchmark binaries; fetch Google Benchmark when needed.                          |
+| `MBO_BUILD_BINARIES`                      | Top-level: `ON`; embedded: `OFF` | Build command-line programs and developer tools.                                           |
+| `MBO_BUILD_TESTING`                       | Top-level: `ON`; embedded: `OFF` | Build C++ unit tests and register CTest cases.                                             |
+| `MBO_ENABLE_EXCEPTIONS`                   | `OFF`                            | Enable compiler exceptions for MBO targets; explicit per-target Bazel options still apply. |
+| `MBO_FETCH_DEPENDENCIES`                  | `ON`                             | Fetch pinned dependency sources when their targets are absent.                             |
+| `MBO_GOOGLETEST_SOURCE_DIR`               | Fetched GoogleTest directory     | GoogleTest sources providing the runfiles test's `LICENSE` fixture.                        |
+| `MBO_HASH_MANGLE_SEED`                    | Empty string                     | Printable ASCII seed selecting the hash mangle bucket.                                     |
+| `MBO_HASH_MANGLE_SEED_BUCKETS`            | `8`                              | Bucket count; `0` disables mangling, `1` selects a fixed nonzero constant.                 |
+| `MBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY` | `16`                             | `LimitedOrdered` unroll capacity, from `4` through `32`.                                   |
+| `MBO_REQUIRE_THROWS`                      | `OFF`                            | Throw on requirement violations when the translation unit enables exceptions.              |
+
+Compiler exceptions are disabled by default for MBO targets, as in `.bazelrc`. Set
+`MBO_ENABLE_EXCEPTIONS=ON` to use `-fexceptions` instead of `-fno-exceptions` when compiling them.
+Exception-specific tests retain their explicit Bazel compiler options. Compiler flags remain
+private to MBO targets; embedding applications select their own compiler exception policy.
+`MBO_REQUIRE_THROWS` is independent: it enables throwing requirement checks only in translation
+units that enable compiler exceptions. See the root [build configuration table](../README.md#build-configuration)
+for each library setting's corresponding Bazel flag.
 
 Use consistent requirement and hash options throughout a program. The generated headers are
 written under `mbo-generated/` in the build tree. Their configuration template, hash arithmetic,
@@ -167,4 +176,4 @@ translation, and canonical hash header generation.
 CMake does not provide installation/package-export rules, Bazel/Starlark tests, shell integration
 tests, fuzz targets, generated-source freshness checks, coverage, or sanitizer configurations.
 The committed generated C++ sources remain the build inputs. Bazel continues to verify their
-freshness and the additional test families. CMake target naming and configuration are experimental.
+freshness and the additional test families.

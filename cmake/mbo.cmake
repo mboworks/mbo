@@ -11,6 +11,7 @@ option(MBO_BUILD_TESTING "Build MBO C++ tests and register them with CTest" ${PR
 option(MBO_BUILD_BINARIES "Build MBO command-line programs and developer tools" ${PROJECT_IS_TOP_LEVEL})
 option(MBO_BUILD_BENCHMARKS "Build MBO benchmark programs" OFF)
 option(MBO_FETCH_DEPENDENCIES "Fetch pinned dependencies when their targets are absent" ON)
+option(MBO_ENABLE_EXCEPTIONS "Enable exceptions when compiling MBO targets" OFF)
 option(MBO_REQUIRE_THROWS "Throw on requirement violations when exceptions are enabled" OFF)
 set(MBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY 16 CACHE STRING "LimitedOrdered unroll capacity [4, 32]")
 set(MBO_HASH_MANGLE_SEED "" CACHE STRING "Printable ASCII hash mangle seed")
@@ -66,7 +67,12 @@ include("${CMAKE_CURRENT_LIST_DIR}/dependencies.cmake")
 
 function(mbo_compile_options target)
   target_compile_options(${target} PRIVATE
-    -Wall -Wextra -Wpedantic -Werror -Wno-missing-field-initializers -fno-exceptions)
+    -Wall -Wextra -Wpedantic -Werror -Wno-missing-field-initializers)
+  if(MBO_ENABLE_EXCEPTIONS)
+    target_compile_options(${target} PRIVATE -fexceptions)
+  else()
+    target_compile_options(${target} PRIVATE -fno-exceptions)
+  endif()
   if(MBO_COMPILER STREQUAL "clang")
     target_compile_options(${target} PRIVATE
       -Wno-missing-designated-field-initializers -Wno-c2y-extensions

@@ -381,6 +381,7 @@ cc_test(
         ":optional_data_or_ref_cc",
         ":optional_ref_cc",
         "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
         "@googletest//:gtest_main",
     ],
 )

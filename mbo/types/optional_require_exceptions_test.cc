@@ -7,6 +7,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/config/config.h"
+#include "mbo/config/require.h"
 #include "mbo/types/optional_data_or_ref.h"
 #include "mbo/types/optional_ref.h"
 
@@ -83,31 +84,35 @@ TEST_F(OptionalRequireExceptionsTest, EngagedAccessAndAssignment) {
   EXPECT_THAT(*borrowed, 3);
 }
 
-struct OptionalRefAssignmentExceptionsTest : ::testing::Test {};
-
 struct ThrowingAssignment {
   ThrowingAssignment() = default;
   ~ThrowingAssignment() = default;
   ThrowingAssignment(const ThrowingAssignment&) = default;
   ThrowingAssignment(ThrowingAssignment&&) = default;
 
-  ThrowingAssignment& operator=(const ThrowingAssignment& other) {
+  ThrowingAssignment& operator=(const ThrowingAssignment& other) noexcept(!config::kRequireThrows) {
     if (this == &other) {
       return *this;
     }
-    throw std::runtime_error("copy assignment");
+    MBO_CONFIG_REQUIRE(false, "copy assignment");
+    return *this;
+  }
+
+  ThrowingAssignment& operator=(ThrowingAssignment&& /*other*/) noexcept(!config::kRequireThrows) {
+    MBO_CONFIG_REQUIRE(false, "move assignment");
+    return *this;
   }
 };
 
-TEST_F(OptionalRefAssignmentExceptionsTest, PropagatesReferentAssignmentExceptions) {
+TEST_F(OptionalRequireExceptionsTest, PropagatesReferentAssignmentExceptions) {
   ThrowingAssignment value;
   OptionalRef<ThrowingAssignment> reference(value);
   ThrowingAssignment other;
   const ThrowingAssignment const_other;
-  static_assert(!noexcept(reference = const_other));
-  static_assert(!noexcept(reference = std::move(other)));
+  static_assert(noexcept(reference = const_other) == !config::kRequireThrows);
+  static_assert(noexcept(reference = std::move(other)) == !config::kRequireThrows);
   EXPECT_THAT([&] { reference = const_other; }, ThrowsMessage<std::runtime_error>(HasSubstr("copy assignment")));
-  EXPECT_THAT([&] { reference = std::move(other); }, ThrowsMessage<std::runtime_error>(HasSubstr("copy assignment")));
+  EXPECT_THAT([&] { reference = std::move(other); }, ThrowsMessage<std::runtime_error>(HasSubstr("move assignment")));
 }
 }  // namespace
 }  // namespace mbo::types

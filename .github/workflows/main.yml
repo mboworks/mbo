@@ -311,7 +311,6 @@ jobs:
       CXX: g++-15
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content
-      CCACHE_DIR: ${{ runner.temp }}/mbo-ccache
       CCACHE_MAXSIZE: 500MB
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -324,6 +323,7 @@ jobs:
         run: |
           echo "CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
           echo "CTEST_PARALLEL_LEVEL=$(nproc)" >>"${GITHUB_ENV}"
+          echo "CCACHE_DIR=${RUNNER_TEMP}/mbo-ccache" >>"${GITHUB_ENV}"
       - name: Install GCC 15, CMake and ccache
         run: |
           for attempt in 1 2 3; do

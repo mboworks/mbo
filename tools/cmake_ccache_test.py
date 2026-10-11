@@ -96,6 +96,10 @@ class CMakeCcacheTest(unittest.TestCase):
             "CMAKE_CXX_COMPILER_LAUNCHER: ccache",
         ):
             self.assertIn(setting, job)
+        self.assertIn(
+            'echo "CCACHE_DIR=${RUNNER_TEMP}/mbo-ccache" >>"${GITHUB_ENV}"', job
+        )
+        self.assertNotIn("CCACHE_DIR: ${{ runner.temp }}", job)
         self.assertIn("path: ${{ env.CCACHE_DIR }}", job)
         self.assertIn("success() && github.ref == 'refs/heads/main'", job)
         self.assertIn("direct_cache_hit", job)

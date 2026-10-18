@@ -189,6 +189,7 @@ bzl_library(
     visibility = ["//visibility:public"],
     deps = [
         "@bazel_skylib//lib:shell",
+        "@mboworks_bzl//bzl/runfiles",
     ],
 )
 

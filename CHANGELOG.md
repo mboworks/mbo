@@ -1,5 +1,8 @@
 # 0.16.0
 
+- Use mboworks_bzl 0.8.0 runfiles keys in `diff_test` for source/generated inputs
+  and its executable, including external repositories and manifest-only execution.
+
 - Compact retained coverage into shared compressed source pages and report data, keeping aggregate
   history indefinitely and browsable source details for seven days. Add complete-site size reporting
   and publication guards, bounded history fetches, and browser validation. Restore report ingestion

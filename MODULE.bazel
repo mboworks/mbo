@@ -27,6 +27,7 @@ include("//bazelmod:dev.MODULE.bazel")
 include("//bazelmod:llvm.MODULE.bazel")
 
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
+bazel_dep(name = "mboworks_bzl", version = "0.8.0")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_cc", version = "0.2.26")
 bazel_dep(name = "rules_fuzzing", version = "0.8.0")
@@ -36,34 +37,34 @@ bazel_dep(name = "rules_shell", version = "0.8.0")
 # their module metadata until upstream releases select compatibility level 0.
 single_version_override(
     module_name = "rules_fuzzing",
-    version = "0.8.0",
-    patches = ["//bazelmod:rules_fuzzing-0.8.0-abseil.patch"],
     patch_strip = 1,
+    patches = ["//bazelmod:rules_fuzzing-0.8.0-abseil.patch"],
+    version = "0.8.0",
 )
 
 # RE2's BCR MODULE differs from the release archive, so a source patch cannot
 # apply through single_version_override. Preserve the BCR source and integrity.
 archive_override(
     module_name = "re2",
-    urls = ["https://github.com/google/re2/releases/download/2025-11-05/re2-2025-11-05.zip"],
     integrity = "sha256-x7Gnp8aNLXz400PcVmVcG1qMiq3twBfbRT1MHYkTuEQ=",
-    strip_prefix = "re2-2025-11-05",
-    patches = ["//bazelmod:re2-2025-11-05-abseil.patch"],
     patch_strip = 1,
+    patches = ["//bazelmod:re2-2025-11-05-abseil.patch"],
+    strip_prefix = "re2-2025-11-05",
+    urls = ["https://github.com/google/re2/releases/download/2025-11-05/re2-2025-11-05.zip"],
 )
 
 single_version_override(
     module_name = "protobuf",
-    version = "36.0.bcr.1",
-    patches = ["//bazelmod:protobuf-36.0-abseil.patch"],
     patch_strip = 1,
+    patches = ["//bazelmod:protobuf-36.0-abseil.patch"],
+    version = "36.0.bcr.1",
 )
 
 single_version_override(
     module_name = "rules_java",
-    version = "8.16.1",
-    patches = ["//bazelmod:rules_java-8.16.1-abseil.patch"],
     patch_strip = 1,
+    patches = ["//bazelmod:rules_java-8.16.1-abseil.patch"],
+    version = "8.16.1",
 )
 
 # Abseil 20260817.0 still selects gloop 20260708.rc1, whose dependency on
@@ -72,9 +73,9 @@ single_version_override(
 # patch only the stale dependency declaration until Abseil updates its metadata.
 single_version_override(
     module_name = "gloop",
-    version = "20260708.rc1",
-    patches = ["//bazelmod:gloop-20260708.rc1-abseil.patch"],
     patch_strip = 1,
+    patches = ["//bazelmod:gloop-20260708.rc1-abseil.patch"],
+    version = "20260708.rc1",
 )
 
 # The gloop release above selects an older tcmalloc whose Abseil dependency has

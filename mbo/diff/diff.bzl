@@ -16,6 +16,7 @@
 """Macro `diff_test` allows to compare two files."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("@mboworks_bzl//bzl/runfiles:runfiles.bzl", "runfiles")
 
 def bool_arg(arg):
     return "1" if arg else "0"
@@ -115,12 +116,6 @@ def diff_test(
         **kwargs
     )
 
-def _runfiles_path(f):
-    if f.root.path:
-        return f.path[len(f.root.path) + 1:]  # generated file
-    else:
-        return f.path  # source file
-
 def _diff_test_impl(ctx):
     if ctx.attr.is_windows:
         fail("Windows not yet supported")
@@ -135,22 +130,24 @@ set -xeuo pipefail
 
 OLD="{file_old}"
 NEW="{file_new}"
-[[ "${{OLD}}" =~ ^external/* ]] && OLD="${{OLD#external/}}" || OLD="${{TEST_WORKSPACE}}/${{OLD}}"
-[[ "${{NEW}}" =~ ^external/* ]] && NEW="${{NEW#external/}}" || NEW="${{TEST_WORKSPACE}}/${{NEW}}"
+TOOL="{diff_tool}"
 if [[ -d "${{RUNFILES_DIR:-/dev/null}}" && "${{RUNFILES_MANIFEST_ONLY:-}}" != 1 ]]; then
   OLD="${{RUNFILES_DIR}}/${{OLD}}"
   NEW="${{RUNFILES_DIR}}/${{NEW}}"
+  TOOL="${{RUNFILES_DIR}}/${{TOOL}}"
 elif [[ -f "${{RUNFILES_MANIFEST_FILE:-/dev/null}}" ]]; then
   OLD="$(grep -F -m1 "${{OLD}} " "${{RUNFILES_MANIFEST_FILE}}" | sed 's/^[^ ]* //')"
   NEW="$(grep -F -m1 "${{NEW}} " "${{RUNFILES_MANIFEST_FILE}}" | sed 's/^[^ ]* //')"
+  TOOL="$(grep -F -m1 "${{TOOL}} " "${{RUNFILES_MANIFEST_FILE}}" | sed 's/^[^ ]* //')"
 elif [[ -f "${{TEST_SRCDIR}}/${{OLD}}" && -f "${{TEST_SRCDIR}}/${{NEW}}" ]]; then
   OLD="${{TEST_SRCDIR}}/${{OLD}}"
   NEW="${{TEST_SRCDIR}}/${{NEW}}"
+  TOOL="${{TEST_SRCDIR}}/${{TOOL}}"
 else
   echo >&2 "ERROR: could not find \"{file_old}\" and \"{file_new}\""
   exit 1
 fi
-if ! {diff_tool} "${{OLD}}" "${{NEW}}" \
+if ! "${{TOOL}}" "${{OLD}}" "${{NEW}}" \
     --algorithm={algorithm} \
     {context} \
     --file_header_use={file_header_use} \
@@ -175,10 +172,10 @@ if ! {diff_tool} "${{OLD}}" "${{NEW}}" \
   exit 1
 fi
 """.format(
-                diff_tool = ctx.executable._diff_tool.short_path,
+                diff_tool = runfiles.key(ctx, ctx.executable._diff_tool),
                 failure_message = shell.quote(ctx.attr.failure_message),
-                file_old = _runfiles_path(ctx.file.file_old),
-                file_new = _runfiles_path(ctx.file.file_new),
+                file_old = runfiles.key(ctx, ctx.file.file_old),
+                file_new = runfiles.key(ctx, ctx.file.file_new),
                 algorithm = shell.quote(ctx.attr.algorithm),
                 context = "" if ctx.attr.context == -1 else "--context=%d" % ctx.attr.context,
                 file_header_use = shell.quote(ctx.attr.file_header_use),

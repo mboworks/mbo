@@ -266,3 +266,17 @@ diff_test_formats_test(
     file_new = "direct.rhs.txt",
     file_old = "direct.lhs.txt",
 )
+
+# Exercise a generated main-repository file against an external source file.
+genrule(
+    name = "external_license_copy",
+    srcs = ["@bazel_skylib//:LICENSE"],
+    outs = ["external_license.txt"],
+    cmd = "cp $(location @bazel_skylib//:LICENSE) $@",
+)
+
+diff_test(
+    name = "external_generated_runfiles_test",
+    file_new = ":external_license_copy",
+    file_old = "@bazel_skylib//:LICENSE",
+)

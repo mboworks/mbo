@@ -91,11 +91,3 @@ bazel_dep(name = "re2", version = "2025-11-05.bcr.1")
 bazel_dep(name = "googletest", version = "1.18.0.bcr.1")
 bazel_dep(name = "google_benchmark", version = "1.9.5", repo_name = "com_github_google_benchmark")
 bazel_dep(name = "mboworks_bashtest", version = "0.6.1")
-
-# Temporary until mboworks_bzl 0.8.0 is published; then remove this override.
-archive_override(
-    module_name = "mboworks_bzl",
-    integrity = "sha256-qDdtBpEZVlxbJCHfW2hXR3GFOS5diYVVIZuWM5p64TI=",
-    strip_prefix = "bzl-afcd7e0279f6791880750dfbccd97c047ad51e96",
-    urls = ["https://github.com/mboworks/bzl/archive/afcd7e0279f6791880750dfbccd97c047ad51e96.tar.gz"],
-)

@@ -120,7 +120,7 @@ jobs:
           # Full history so the branch can be diffed against `main` to pick the
           # changed sources below.
           fetch-depth: 0
-      - uses: bazel-contrib/setup-bazel@0.19.0
+      - uses: bazel-contrib/setup-bazel@0.19.1
         with:
           bazelisk-cache: false
           disk-cache: false

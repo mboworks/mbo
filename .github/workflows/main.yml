@@ -111,7 +111,8 @@ jobs:
 
   clang-tidy:
     needs: [trunk, pre-commit]
-    runs-on: ubuntu-latest
+    # The bundled LLVM linker requires libxml2.so.2, absent from Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     # There is deliberately no job-level `continue-on-error`: the compilation
     # database, toolchain, parsing, and clang-tidy findings all gate the change.
     steps:
@@ -120,7 +121,7 @@ jobs:
           # Full history so the branch can be diffed against `main` to pick the
           # changed sources below.
           fetch-depth: 0
-      - uses: bazel-contrib/setup-bazel@0.19.0
+      - uses: bazel-contrib/setup-bazel@0.19.1
         with:
           bazelisk-cache: false
           disk-cache: false
@@ -443,7 +444,7 @@ jobs:
     uses: ./.github/workflows/test.yml
     with:
       continue-on-error: false
-      os: ubuntu-latest
+      os: ubuntu-24.04
       compiler: clang
       llvm_version: 22.1.8
       bazel_config: coverage
@@ -453,7 +454,7 @@ jobs:
     secrets: inherit
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-26]
+        os: [ubuntu-24.04, macos-26]
         compiler: [gcc, native, clang]
         gcc_version: [15]
         # The pinned default toolchain (see bazelmod/llvm.MODULE.bazel).
@@ -463,13 +464,13 @@ jobs:
         # the latest stable release, crossed with the os/compiler combos below.
         bazel_version: [8.0.0, 9.2.0]
         exclude:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             compiler: native
           - os: macos-26
             compiler: gcc
           # test-gcc already covers GCC 15, opt, and the default Bazel 9.2.
           # Keep only the Bazel 8 GCC cell here as a compatibility check.
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             compiler: gcc
             bazel_version: 9.2.0
           # The 8.x rung is a build-system-compat check (MODULE.bazel
@@ -495,7 +496,7 @@ jobs:
     secrets: inherit
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-26]
+        os: [ubuntu-24.04, macos-26]
         compiler: [clang]
         # Hermetic toolchains_llvm clang (independent of the runner's Apple clang).
         # Optimized LLVM 22 builds run in test-bcr with explicit Bazel versions;

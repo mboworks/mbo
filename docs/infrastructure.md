@@ -32,6 +32,11 @@ the toolchain's bundled LLD default. Both target and host configurations use Baz
 `--macos_minimum_os=11.0` settings so Apple platform metadata and compile/link actions
 agree on the deployment target.
 
+Linux LLVM jobs and the Bazel compatibility matrix use `ubuntu-24.04`. The pinned LLVM
+distribution links its bundled LLD against `libxml2.so.2`; Ubuntu 26.04 provides the incompatible
+`libxml2.so.16` ABI. Regular GCC and CMake jobs continue to use `ubuntu-latest`. Compiler pins,
+warning policies, sanitizers, coverage requirements, and matrix combinations are unchanged.
+
 Cache only compiled outputs: Bazel disk caches and the CMake job's ccache directory. Bazel keys separate OS, architecture, compiler/version, Bazel
 version, build configuration, dependency hash, run, and attempt. Only main saves generations;
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.

@@ -141,7 +141,7 @@ class WorkflowCachePolicyTest(unittest.TestCase):
 
     def test_setup_bazel_does_not_own_build_caches(self):
         for workflow in (self.main, self.runner):
-            setup_count = workflow.count("uses: bazel-contrib/setup-bazel@0.19.0")
+            setup_count = workflow.count("uses: bazel-contrib/setup-bazel@")
             self.assertGreater(setup_count, 0)
             for setting in (
                 "bazelisk-cache: false",

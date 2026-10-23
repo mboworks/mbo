@@ -512,6 +512,26 @@ jobs:
       llvm_version: ${{ matrix.llvm_version }}
       bazel_config: ${{ matrix.bazel_config }}
 
+  test-ubuntu:
+    name: Ubuntu ${{ matrix.ubuntu_container || '26.04' }} distribution Clang
+    needs: [trunk, pre-commit]
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-26.04
+            ubuntu_container: ""
+          - os: ubuntu-26.04
+            ubuntu_container: "26.10"
+    uses: ./.github/workflows/test.yml
+    with:
+      os: ${{ matrix.os }}
+      ubuntu_container: ${{ matrix.ubuntu_container }}
+      compiler: clang-system
+      llvm_version: "22"
+      bazel_config: opt
+
   done:
     needs:
       [
@@ -524,6 +544,7 @@ jobs:
         test-gcc,
         test-clang,
         test-bcr,
+        test-ubuntu,
       ]
     if: always()
     runs-on: ubuntu-latest

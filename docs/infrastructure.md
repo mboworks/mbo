@@ -37,6 +37,15 @@ distribution links its bundled LLD against `libxml2.so.2`; Ubuntu 26.04 provides
 `libxml2.so.16` ABI. Regular GCC and CMake jobs continue to use `ubuntu-latest`. Compiler pins,
 warning policies, sanitizers, coverage requirements, and matrix combinations are unchanged.
 
+Two additional optimized Bazel jobs use distribution Clang 22 and the distribution's default
+standard library: one on the `ubuntu-26.04` host, and one in the official `ubuntu:26.10` container
+on that host. Both run the full existing test suite, differential hashing, and disabled-mangling
+checks through the reusable runner and participate in `done`. They do not add sanitizer, coverage,
+or tidy matrix entries. The container covers Ubuntu 26.10 userspace on the host's kernel.
+Container bootstrap installs its Git/LFS, Python, and package tooling before checkout. Compiler
+probes reject a different compiler family or Clang major version. Cache namespaces include the
+Ubuntu userspace release, compiler mode/version, and existing build/dependency axes.
+
 Cache only compiled outputs: Bazel disk caches and the CMake job's ccache directory. Bazel keys separate OS, architecture, compiler/version, Bazel
 version, build configuration, dependency hash, run, and attempt. Only main saves generations;
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.

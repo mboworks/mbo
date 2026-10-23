@@ -20,7 +20,8 @@ WORKFLOW = (
 
 def step_script(name):
     step = WORKFLOW.split(f"      - name: {name}\n", 1)[1].split("\n      - ", 1)[0]
-    return textwrap.dedent(step.split("        run: |\n", 1)[1])
+    script = step.split("        run: ", 1)[1]
+    return textwrap.dedent(script[2:]) if script.startswith("|\n") else script
 
 
 class UbuntuClangTest(unittest.TestCase):
@@ -110,6 +111,33 @@ class UbuntuClangTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Expected distribution Clang major version 22", result.stdout)
+
+    def test_container_checkout_trusts_only_its_workspace(self):
+        workspace = self.root / "workspace"
+        subprocess.run(["git", "init", str(workspace)], check=True, capture_output=True)
+        environment = dict(
+            self.environment,
+            GIT_CONFIG_GLOBAL=str(self.root / "gitconfig"),
+            GIT_TEST_ASSUME_DIFFERENT_OWNER="1",
+            GITHUB_WORKSPACE=str(workspace),
+        )
+
+        def repository_status():
+            return subprocess.run(
+                ["git", "status", "--short"],
+                cwd=workspace,
+                env=environment,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(repository_status().returncode, 0)
+        result = self.run_step("Trust the container checkout", **environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(repository_status().returncode, 0)
+        configuration = (self.root / "gitconfig").read_text()
+        self.assertIn(str(workspace), configuration)
+        self.assertNotIn("*", configuration)
 
     def test_existing_hermetic_mode_still_registers_its_toolchain(self):
         result = self.run_step("Setup", compiler="clang", version="")

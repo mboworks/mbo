@@ -79,8 +79,11 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update -o Acquire::Retries=3
-          apt-get install --yes ca-certificates curl git git-lfs python3 sudo unzip xz-utils zstd
+          apt-get install --yes ca-certificates curl gh git git-lfs python3 sudo unzip xz-utils zstd
       - uses: actions/checkout@v7
+      - name: Trust the container checkout
+        if: inputs.ubuntu_container != ''
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
       - name: Fetch measurement bundles (Git LFS)
         # The `//mbo/hash/measurements:quality_sh_test` bazel test reads the
         # committed data bundles for the SMHasher3 quality tables; actions/checkout

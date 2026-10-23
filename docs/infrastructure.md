@@ -42,7 +42,8 @@ standard library: one on the `ubuntu-26.04` host, and one in the official `ubunt
 on that host. Both run the full existing test suite, differential hashing, and disabled-mangling
 checks through the reusable runner and participate in `done`. They do not add sanitizer, coverage,
 or tidy matrix entries. The container covers Ubuntu 26.10 userspace on the host's kernel.
-Container bootstrap installs its Git/LFS, Python, and package tooling before checkout. Compiler
+Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;
+the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler
 probes reject a different compiler family or Clang major version. Cache namespaces include the
 Ubuntu userspace release, compiler mode/version, and existing build/dependency axes.
 

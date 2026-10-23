@@ -91,6 +91,7 @@ jobs:
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
       - uses: bazel-contrib/setup-bazel@0.19.1
         with:
+          bazelisk-version: ${{ inputs.ubuntu_container != '' && '1.30.0' || '' }}
           bazelisk-cache: false
           disk-cache: false
           external-cache: false

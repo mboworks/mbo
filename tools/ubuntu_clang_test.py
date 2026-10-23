@@ -115,9 +115,14 @@ class UbuntuClangTest(unittest.TestCase):
     def test_container_checkout_trusts_only_its_workspace(self):
         workspace = self.root / "workspace"
         subprocess.run(["git", "init", str(workspace)], check=True, capture_output=True)
+        system_configuration = self.root / "system-gitconfig"
+        system_configuration.write_text("[safe]\n\tdirectory = *\n")
         environment = dict(
             self.environment,
             GIT_CONFIG_GLOBAL=str(self.root / "gitconfig"),
+            GIT_CONFIG_NOSYSTEM="1",
+            GIT_CONFIG_SYSTEM=str(system_configuration),
+            GIT_CONFIG_COUNT="0",
             GIT_TEST_ASSUME_DIFFERENT_OWNER="1",
             GITHUB_WORKSPACE=str(workspace),
         )
@@ -131,6 +136,7 @@ class UbuntuClangTest(unittest.TestCase):
                 check=False,
             )
 
+        environment.pop("GIT_CONFIG_PARAMETERS", None)
         self.assertNotEqual(repository_status().returncode, 0)
         result = self.run_step("Trust the container checkout", **environment)
         self.assertEqual(result.returncode, 0, result.stderr)

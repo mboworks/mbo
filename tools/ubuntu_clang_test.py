@@ -92,6 +92,8 @@ class UbuntuClangTest(unittest.TestCase):
         self.assertIn("--repo_env=CC=/usr/bin/clang-22", arguments)
         self.assertIn("--repo_env=CXX=/usr/bin/clang++-22", arguments)
         self.assertIn("--//mbo/mope:clang_format=/usr/bin/clang-format-22", arguments)
+        self.assertIn("--linkopt=-fuse-ld=lld", arguments)
+        self.assertIn("--host_linkopt=-fuse-ld=lld", arguments)
         self.assertNotIn("--config=clang", arguments)
         self.assertIn("opt", arguments)
 

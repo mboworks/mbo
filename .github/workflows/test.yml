@@ -100,7 +100,7 @@ jobs:
         if: inputs.compiler == 'clang-system'
         run: |
           sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install --yes build-essential clang-${{inputs.llvm_version}} clang-format-${{inputs.llvm_version}}
+          sudo apt-get install --yes build-essential clang-${{inputs.llvm_version}} clang-format-${{inputs.llvm_version}} lld-${{inputs.llvm_version}}
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
@@ -200,6 +200,9 @@ jobs:
             echo "CXX=/usr/bin/clang++-${{inputs.llvm_version}}" >>"${GITHUB_ENV}"
             BAZEL_ARGS+=("--repo_env=CC=/usr/bin/clang-${{inputs.llvm_version}}")
             BAZEL_ARGS+=("--repo_env=CXX=/usr/bin/clang++-${{inputs.llvm_version}}")
+            # Use the distribution's matching LLD for target and build-tool links.
+            BAZEL_ARGS+=("--linkopt=-fuse-ld=lld" "--host_linkopt=-fuse-ld=lld")
+            BAZEL_ARGS+=("--verbose_failures")
             BAZEL_ARGS+=("--cxxopt=-Wno-missing-designated-field-initializers")
             BAZEL_ARGS+=("--host_cxxopt=-Wno-missing-designated-field-initializers")
             BAZEL_ARGS+=("--//mbo/mope:clang_format=/usr/bin/clang-format-${{inputs.llvm_version}}")

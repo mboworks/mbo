@@ -44,6 +44,8 @@ checks through the reusable runner and participate in `done`. They do not add sa
 or tidy matrix entries. The container covers Ubuntu 26.10 userspace on the host's kernel.
 Distribution LLD handles both target and build-tool links; the Ubuntu 26.10 binutils 2.47
 linker crashed while linking the MoPe build tool in the initial validation run.
+MoPe uses `clang-format` from the pinned `toolchains_llvm` distribution for every compiler,
+including GCC and distribution Clang. These jobs do not install or select another formatter.
 Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;
 the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler
 probes reject a different compiler family or Clang major version. Cache namespaces include the

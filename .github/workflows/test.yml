@@ -100,7 +100,7 @@ jobs:
         if: inputs.compiler == 'clang-system'
         run: |
           sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install --yes build-essential clang-${{inputs.llvm_version}} clang-format-${{inputs.llvm_version}} lld-${{inputs.llvm_version}}
+          sudo apt-get install --yes build-essential clang-${{inputs.llvm_version}} lld-${{inputs.llvm_version}}
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
@@ -205,7 +205,6 @@ jobs:
             BAZEL_ARGS+=("--verbose_failures")
             BAZEL_ARGS+=("--cxxopt=-Wno-missing-designated-field-initializers")
             BAZEL_ARGS+=("--host_cxxopt=-Wno-missing-designated-field-initializers")
-            BAZEL_ARGS+=("--//mbo/mope:clang_format=/usr/bin/clang-format-${{inputs.llvm_version}}")
             EXPECT="Compiler: Clang"
           elif [ "${{inputs.compiler}}" == "gcc" ]; then
             echo "CC=/usr/bin/gcc" >> "${GITHUB_ENV}"

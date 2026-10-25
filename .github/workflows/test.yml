@@ -32,12 +32,16 @@ on:
         description: "The operating system the tests will be run on."
         type: string
         default: ubuntu-latest
+      ubuntu_container:
+        description: "Optional Ubuntu container release (for example 26.10); empty runs directly on the host."
+        type: string
+        default: ""
       compiler:
-        description: "The compiler to use (clang, gcc)."
+        description: "The compiler to use (clang, clang-system, gcc, native)."
         type: string
         default: clang
       llvm_version:
-        description: "The LLVM version to use. This is only for compiler=clang and will be ignored otherwise."
+        description: "The LLVM release for clang, or distribution Clang major version for clang-system."
         type: string
         default: ""
       gcc_version:
@@ -58,14 +62,28 @@ on:
         default: ""
 
 env:
-  CACHE_KEY_PREFIX: ${{inputs.os}}-bzlmod_${{inputs.compiler}}_${{inputs.compiler == 'clang' && inputs.llvm_version || ''}}_${{inputs.compiler == 'gcc' && inputs.gcc_version || ''}}_${{inputs.bazel_config}}_bazel${{inputs.bazel_version}}
+  CACHE_KEY_PREFIX: ${{inputs.ubuntu_container != '' && format('ubuntu-{0}', inputs.ubuntu_container) || inputs.os}}-bzlmod_${{inputs.compiler}}_${{(inputs.compiler == 'clang' || inputs.compiler == 'clang-system') && inputs.llvm_version || ''}}_${{inputs.compiler == 'gcc' && inputs.gcc_version || ''}}_${{inputs.bazel_config}}_bazel${{inputs.bazel_version}}
 
 jobs:
   test:
     runs-on: ${{inputs.os}}
+    container: ${{ inputs.ubuntu_container != '' && format('ubuntu:{0}', inputs.ubuntu_container) || '' }}
+    defaults:
+      run:
+        shell: bash
     continue-on-error: ${{inputs.continue-on-error}}
     steps:
+      - name: Prepare Ubuntu container
+        if: inputs.ubuntu_container != ''
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -o Acquire::Retries=3
+          apt-get install --yes ca-certificates curl gh git git-lfs python3 sudo unzip xz-utils zstd
       - uses: actions/checkout@v7
+      - name: Trust the container checkout
+        if: inputs.ubuntu_container != ''
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
       - name: Fetch measurement bundles (Git LFS)
         # The `//mbo/hash/measurements:quality_sh_test` bazel test reads the
         # committed data bundles for the SMHasher3 quality tables; actions/checkout
@@ -73,10 +91,16 @@ jobs:
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
       - uses: bazel-contrib/setup-bazel@0.19.1
         with:
+          bazelisk-version: ${{ inputs.ubuntu_container != '' && '1.30.0' || '' }}
           bazelisk-cache: false
           disk-cache: false
           external-cache: false
           repository-cache: false
+      - name: Install distribution Clang
+        if: inputs.compiler == 'clang-system'
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install --yes build-essential clang-${{inputs.llvm_version}} lld-${{inputs.llvm_version}}
       - name: Install GCC
         if: ${{inputs.compiler == 'gcc' && inputs.gcc_version != ''}}
         run: |
@@ -171,6 +195,17 @@ jobs:
               sed -e 's,llvm_version = ".*",llvm_version = "${{inputs.llvm_version}}",g' "${CONTROL_FILE}" > "${CONTROL_FILE}.new"
               mv "${CONTROL_FILE}.new" "${CONTROL_FILE}"
             fi
+          elif [ "${{inputs.compiler}}" == "clang-system" ]; then
+            echo "CC=/usr/bin/clang-${{inputs.llvm_version}}" >>"${GITHUB_ENV}"
+            echo "CXX=/usr/bin/clang++-${{inputs.llvm_version}}" >>"${GITHUB_ENV}"
+            BAZEL_ARGS+=("--repo_env=CC=/usr/bin/clang-${{inputs.llvm_version}}")
+            BAZEL_ARGS+=("--repo_env=CXX=/usr/bin/clang++-${{inputs.llvm_version}}")
+            # Use the distribution's matching LLD for target and build-tool links.
+            BAZEL_ARGS+=("--linkopt=-fuse-ld=lld" "--host_linkopt=-fuse-ld=lld")
+            BAZEL_ARGS+=("--verbose_failures")
+            BAZEL_ARGS+=("--cxxopt=-Wno-missing-designated-field-initializers")
+            BAZEL_ARGS+=("--host_cxxopt=-Wno-missing-designated-field-initializers")
+            EXPECT="Compiler: Clang"
           elif [ "${{inputs.compiler}}" == "gcc" ]; then
             echo "CC=/usr/bin/gcc" >> "${GITHUB_ENV}"
             echo "CXX=/usr/bin/g++" >> "${GITHUB_ENV}"
@@ -184,7 +219,7 @@ jobs:
               echo "CXX=$(which g++)" >> "${GITHUB_ENV}"
             fi
           else
-            echo "::error::Matrix/Input var 'compiler' must be one of [clang, gcc, native]."
+            echo "::error::Matrix/Input var 'compiler' must be one of [clang, clang-system, gcc, native]."
             exit 1
           fi
           if [ "${{inputs.bazel_config}}" == "asan" ]; then
@@ -274,6 +309,12 @@ jobs:
               "${EXPECT}"*) echo "OK: compiler matches expected prefix '${EXPECT}'." ;;
               *) echo "::error::Expected compiler prefix '${EXPECT}' but selected '${COMPILER}'."; exit 1 ;;
             esac
+          fi
+          if [ "${{inputs.compiler}}" == "clang-system" ]; then
+            if ! grep -q '^Compiler version: ${{inputs.llvm_version}}\.' <<<"${COMPILER}"; then
+              echo "::error::Expected distribution Clang major version ${{inputs.llvm_version}}."
+              exit 1
+            fi
           fi
 
       - name: Build and Test

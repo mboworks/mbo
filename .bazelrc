@@ -113,4 +113,18 @@ common:asan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbol
 common:asan --test_env=ASAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
 common:asan --test_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
 
+# MemorySanitizer: Linux x86_64 with the matching LLVM 22 compiler and libc++.
+# toolchains_llvm supplies the sanitizer compile/link flags and switches stdlib.
+common:msan --config=clang
+common:msan --config=symbolizer
+common:msan --features=msan
+common:msan --copt=-g
+common:msan --copt=-fno-omit-frame-pointer
+common:msan --copt=-DMEMORY_SANITIZER
+common:msan --build_tag_filters=-no_san
+common:msan --test_tag_filters=-no_san
+common:msan --define san=true
+common:msan --action_env=MSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
+common:msan --test_env=MSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
+
 try-import %workspace%/.bazelrc.user.end

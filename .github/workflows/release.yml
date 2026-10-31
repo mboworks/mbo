@@ -22,7 +22,7 @@ jobs:
       continue-on-error: false
       os: ubuntu-latest
       compiler: clang
-      llvm_version: 22.1.8
+      llvm_version: 23.1.4
       bazel_config: coverage
       coverage_target: ${{ format('tag/{0}', github.ref_name) }}
 

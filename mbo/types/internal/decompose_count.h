@@ -332,6 +332,7 @@ auto DecomposeCountFunc(T&& v) {
     return std::integral_constant<std::size_t, kNotDecomposableValue>{};
   }
 }
+
 // LCOV_EXCL_STOP
 
 template<typename T>

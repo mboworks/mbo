@@ -1,0 +1,12 @@
+name: Prepare LLVM disk space
+description: Release unused SDK space on disposable Linux runners before extracting LLVM.
+runs:
+  using: composite
+  steps:
+    - name: Release unused Android and .NET SDK space
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        # These SDKs are not used by mbo's C++ or infrastructure builds.
+        sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet
+        df -h .

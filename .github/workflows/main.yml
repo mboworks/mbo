@@ -98,6 +98,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - uses: ./.github/actions/prepare-llvm
       - uses: pre-commit/action@v3.0.1
         env:
           # The `trunk` job runs the full `trunk check`; do not also run trunk
@@ -111,7 +112,6 @@ jobs:
 
   clang-tidy:
     needs: [trunk, pre-commit]
-    # The bundled LLVM linker requires libxml2.so.2, absent from Ubuntu 26.04.
     runs-on: ubuntu-24.04
     # There is deliberately no job-level `continue-on-error`: the compilation
     # database, toolchain, parsing, and clang-tidy findings all gate the change.
@@ -121,6 +121,7 @@ jobs:
           # Full history so the branch can be diffed against `main` to pick the
           # changed sources below.
           fetch-depth: 0
+      - uses: ./.github/actions/prepare-llvm
       - uses: bazel-contrib/setup-bazel@0.19.1
         with:
           bazelisk-cache: false
@@ -446,7 +447,7 @@ jobs:
       continue-on-error: false
       os: ubuntu-24.04
       compiler: clang
-      llvm_version: 22.1.8
+      llvm_version: 23.1.4
       bazel_config: coverage
 
   test-bcr:
@@ -458,7 +459,7 @@ jobs:
         compiler: [gcc, native, clang]
         gcc_version: [15]
         # The pinned default toolchain (see bazelmod/llvm.MODULE.bazel).
-        llvm_version: [22.1.8]
+        llvm_version: [23.1.4]
         bazel_config: [opt]
         # Bazel-version compatibility rungs: the minimum supported release and
         # the latest stable release, crossed with the os/compiler combos below.
@@ -499,10 +500,15 @@ jobs:
         os: [ubuntu-24.04, macos-26]
         compiler: [clang]
         # Hermetic toolchains_llvm clang (independent of the runner's Apple clang).
-        # Optimized LLVM 22 builds run in test-bcr with explicit Bazel versions;
+        # Optimized LLVM 23 builds run in test-bcr with explicit Bazel versions;
         # this job owns the sanitizer coverage without duplicating them.
-        llvm_version: [22.1.8]
+        llvm_version: [23.1.4]
         bazel_config: [asan]
+        include:
+          - os: ubuntu-24.04
+            compiler: clang
+            llvm_version: 23.1.4
+            bazel_config: msan
 
     uses: ./.github/workflows/test.yml
     with:

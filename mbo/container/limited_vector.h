@@ -178,7 +178,7 @@ class LimitedVector final {
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
     // Deliberately implicit: a mutable iterator must convert to const_iterator.
-    // NOLINTNEXTLINE(google-explicit-constructor)
+    // NOLINTNEXTLINE(*-explicit-constructor)
     constexpr Iterator(const Iterator<OtherConst>& other) noexcept : base_(other.base_), pos_(other.pos_) {}
 
     constexpr reference operator*() const noexcept { return base_[pos_].data; }
@@ -374,6 +374,8 @@ class LimitedVector final {
   constexpr explicit LimitedVector(LimitedVector<U, OtherN>&& other) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, U&&>) {
     ConstructionGuard guard(this);
+    // Elements must remain mutable for move-only instantiations.
+    // NOLINTNEXTLINE(misc-const-correctness)
     for (auto& value : other) {
       emplace_back(std::move(value));
     }
@@ -388,6 +390,8 @@ class LimitedVector final {
   constexpr LimitedVector& operator=(LimitedVector<U, OtherN>&& other) noexcept(
       !kRequireThrows && std::is_nothrow_constructible_v<RawValue, U&&>) {
     clear();
+    // Elements must remain mutable for move-only instantiations.
+    // NOLINTNEXTLINE(misc-const-correctness)
     for (auto& value : other) {
       emplace_back(std::move(value));
     }
@@ -546,7 +550,7 @@ class LimitedVector final {
   constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
     MBO_CONFIG_REQUIRE(size_ > 0, "No element to pop.");
-    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
+    return container_internal::PopValue(back(), [this] noexcept { pop_back(); });
   }
 
   constexpr void assign(std::size_t num, const T& value)
@@ -565,6 +569,8 @@ class LimitedVector final {
     // Staged before clear for alias safety, then moved into this container.
     LimitedVector<RawValue, Capacity> values(begin, end);  // NOLINT(misc-const-correctness)
     clear();
+    // Elements must remain mutable for move-only instantiations.
+    // NOLINTNEXTLINE(misc-const-correctness)
     for (auto& value : values) {
       emplace_back(std::move(value));
     }
@@ -618,6 +624,8 @@ class LimitedVector final {
       return begin() + static_cast<difference_type>(index);
     }
     iterator dst = begin() + static_cast<difference_type>(index);
+    // Elements must remain mutable for move-only instantiations.
+    // NOLINTNEXTLINE(misc-const-correctness)
     for (auto& value : incoming) {
       dst = emplace(dst, std::move(value));
       ++dst;

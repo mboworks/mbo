@@ -923,11 +923,11 @@ class Stringify {
            ...);
           os.DecStruct(format);
         },
-        [&value]() {
+        [&value] {
           if constexpr (types_internal::IsExtended<T>) {
             return [&value] { return value.ToTuple(); };
           } else if constexpr (IsPair<T> || IsTuple<T>) {
-            return [&value]() -> const T& {
+            return [&value] -> const T& {
               return value;  // works for pair and tuple.
             };
           } else {
@@ -1460,7 +1460,7 @@ class Stringify {
       }},
   });
 
-  static constexpr const StringifyOptions kOptionsCppPretty = []() constexpr {
+  static constexpr const StringifyOptions kOptionsCppPretty = [] constexpr {
     StringifyOptions opts = kOptionsCpp;
     StringifyOptions::Format& format = opts.format.as_data();
     format.message_suffix = "\n";
@@ -1505,7 +1505,7 @@ class Stringify {
       }},
   });
 
-  static constexpr StringifyOptions kOptionsJsonLine = []() constexpr {
+  static constexpr StringifyOptions kOptionsJsonLine = [] constexpr {
     StringifyOptions opts = kOptionsJson;
     StringifyOptions::Format& format = opts.format.as_data();
     format.message_suffix = "\n";
@@ -1515,7 +1515,7 @@ class Stringify {
     return opts;
   }();
 
-  static constexpr StringifyOptions kOptionsJsonPretty = []() constexpr {
+  static constexpr StringifyOptions kOptionsJsonPretty = [] constexpr {
     StringifyOptions opts = kOptionsJson;
     StringifyOptions::Format& format = opts.format.as_data();
     format.message_suffix = "\n";

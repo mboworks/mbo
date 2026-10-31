@@ -350,6 +350,11 @@ jobs:
             --//mbo/hash:mangle_seed_buckets=0 \
             //mbo/hash:hash_mangle_test
 
+      - name: Stop container Bazel server
+        # Exercise process reaping on PRs as well as main's cache-upload path.
+        if: inputs.ubuntu_container != ''
+        run: bazel ${BAZEL_INIT} shutdown
+
       - name: Collect coverage
         if: inputs.bazel_config == 'coverage'
         env:

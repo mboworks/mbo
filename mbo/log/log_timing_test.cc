@@ -159,7 +159,7 @@ TEST_F(LogTimingTest, LogFormat) {
   ExpectLogConst(absl::LogSeverity::kInfo, ContainsRegex(expected_log1)).Times(1).InSequence(sequence);
   ExpectLogConst(absl::LogSeverity::kInfo, ContainsRegex(expected_log2)).Times(1).InSequence(sequence);
   (void)LogTiming();  // Manually discarding the result means, this one logs immediately.
-  auto done2 = LogTiming() << "Foo";
+  const auto done2 = LogTiming() << "Foo";
 }
 
 TEST_F(LogTimingTest, LogSequence) {
@@ -169,36 +169,36 @@ TEST_F(LogTimingTest, LogSequence) {
   // Logging occurs in reverse order driven by the reverse order un-scoping.
   ExpectLog(absl::LogSeverity::kInfo, HasSubstr("Bar")).Times(1).InSequence(sequence);
   ExpectLog(absl::LogSeverity::kInfo, HasSubstr("Foo")).Times(1).InSequence(sequence);
-  auto done1 = LogTiming() << "Foo";
-  auto done2 = LogTiming() << "Bar";
+  const auto done1 = LogTiming() << "Foo";
+  const auto done2 = LogTiming() << "Bar";
 }
 
 TEST_F(LogTimingTest, TooShort) {
   absl::SetFlag(&FLAGS_mbo_log_timing_min_duration, absl::InfiniteDuration());
   absl::SetFlag(&FLAGS_mbo_log_timing_min_severity_always, absl::LogSeverity::kError);
   ExpectLog(absl::LogSeverity::kInfo, HasSubstr("Foo")).Times(0);
-  auto done = LogTiming() << "Foo";
+  const auto done = LogTiming() << "Foo";
 }
 
 TEST_F(LogTimingTest, Always) {
   absl::SetFlag(&FLAGS_mbo_log_timing_min_duration, absl::InfiniteDuration());
   absl::SetFlag(&FLAGS_mbo_log_timing_min_severity_always, absl::LogSeverity::kInfo);
   ExpectLog(absl::LogSeverity::kInfo, HasSubstr("Foo")).Times(1);
-  auto done = LogTiming() << "Foo";
+  const auto done = LogTiming() << "Foo";
 }
 
 TEST_F(LogTimingTest, AlwaysManualSeverity) {
   absl::SetFlag(&FLAGS_mbo_log_timing_min_duration, absl::InfiniteDuration());
   absl::SetFlag(&FLAGS_mbo_log_timing_min_severity_always, absl::LogSeverity::kError);
   ExpectLog(absl::LogSeverity::kError, HasSubstr("Foo")).Times(1);
-  auto done = LogTiming({.severity = absl::LogSeverity::kError}) << "Foo";
+  const auto done = LogTiming({.severity = absl::LogSeverity::kError}) << "Foo";
 }
 
 TEST_F(LogTimingTest, ManualSeverity) {
   absl::SetFlag(&FLAGS_mbo_log_timing_min_duration, absl::ZeroDuration());
   absl::SetFlag(&FLAGS_mbo_log_timing_min_severity_always, absl::LogSeverity::kError);
   ExpectLog(absl::LogSeverity::kWarning, HasSubstr("Foo")).Times(1);
-  auto done = LogTiming({.severity = absl::LogSeverity::kWarning}) << "Foo";
+  const auto done = LogTiming({.severity = absl::LogSeverity::kWarning}) << "Foo";
 }
 
 }  // namespace

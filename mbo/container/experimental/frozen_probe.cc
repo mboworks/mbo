@@ -41,6 +41,8 @@ bool Contains(std::string_view key) {
 }  // namespace
 }  // namespace mbo::container::experimental
 
+// Preserve the standard main signature; argv points to mutable argument strings.
+// NOLINTNEXTLINE(misc-const-correctness)
 int main(int argc, char** argv) {
   return mbo::container::experimental::Contains(argc > 1 ? argv[1] : "key-000000") ? 0 : 1;
 }

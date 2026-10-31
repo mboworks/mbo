@@ -107,8 +107,8 @@ TEST_F(AnyScanTest, TestInitializerList) {
 TEST_F(AnyScanTest, ReferenceIteratorsCompareByPosition) {
   std::array<int, 3> data{1, 2, 3};
   AnyScan<int> scan(MakeAnyScan(data));
-  auto first = scan.begin();
-  auto same = scan.begin();
+  const auto first = scan.begin();
+  const auto same = scan.begin();
   auto second = scan.begin();
   ++second;
 
@@ -291,7 +291,7 @@ std::vector<T> MoveTester(AnyScan<T> scan) {
 }
 
 TEST_F(AnyScanTest, MoveOnly) {
-  auto data = [] {
+  const auto data = [] {
     std::list<std::unique_ptr<std::string>> data;
     data.emplace_back(std::make_unique<std::string>("foo"));
     data.emplace_back(std::make_unique<std::string>("bar"));
@@ -343,7 +343,7 @@ TEST_F(ConvertingScanTest, CallFunctionWithConversion) {
 TEST_F(ConvertingScanTest, IteratorsOnlyCompareEqualToThemselves) {
   const std::array<std::string_view, 2> data{{"foo", "bar"}};
   const ConvertingScan<std::string> scan = MakeConvertingScan(data);
-  auto first = scan.begin();
+  const auto first = scan.begin();
   const auto same_position = scan.begin();
   EXPECT_THAT(first == first, IsTrue());
   EXPECT_THAT(first == same_position, IsFalse());

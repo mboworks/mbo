@@ -150,7 +150,7 @@ class SegmentedVector final {
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
     // This is the standard mutable-iterator to const-iterator conversion.
-    // NOLINTNEXTLINE(google-explicit-constructor)
+    // NOLINTNEXTLINE(*-explicit-constructor)
     constexpr Iterator(const Iterator<OtherConst>& other) noexcept : owner_(other.owner_), pos_(other.pos_) {}
 
     constexpr reference operator*() const { return (*owner_)[pos_]; }
@@ -956,7 +956,7 @@ class SegmentedVector final {
 
   constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
+    return container_internal::PopValue(back(), [this] noexcept { pop_back(); });
   }
 
   constexpr void clear() noexcept { DestroySuffix(0); }
@@ -1084,7 +1084,7 @@ class SegmentedVector final {
     }
     EnsureDirectoryCapacity(segments_.size() + 1);
     // The directory intentionally stores mutable Segment pointers: later appends construct Slots.
-    Segment* const segment = [this]() constexpr -> Segment* {  // NOLINT(misc-const-correctness)
+    Segment* const segment = [this] constexpr -> Segment* {  // NOLINT(misc-const-correctness)
       if consteval {
         if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {
           std::allocator<Segment> allocator;

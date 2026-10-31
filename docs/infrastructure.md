@@ -22,6 +22,13 @@ commands do not share a global limit. Interruptions terminate active children an
 work from starting. Source-only changes remain focused, while header/build changes retain
 mbo's conservative full-sweep behavior and SMHasher exclusions.
 
+LLVM 23's renamed checks retain the established policy in `.clang-tidy`: the HICPP signed-bitwise
+exclusion uses its new `bugprone` name, and deprecated `zircon` aliases follow the existing
+`fuchsia` exclusion. STYLE_CPP's per-initializer trailing-comma choice remains owned by
+clang-format. Const analysis and the other correctness checks remain enabled; required implicit
+conversions, generic move-only operations, and exception-injection tests document their narrow
+exceptions at the relevant source locations.
+
 ## Build caches and CI
 
 With `--config=clang`, the hermetic LLVM module selects Apple's native linker (`auto`)
@@ -65,7 +72,8 @@ MoPe uses `clang-format` from the pinned `toolchains_llvm` distribution for ever
 including GCC and distribution Clang. These jobs do not install or select another formatter.
 The formatting action uses the `@llvm_toolchain_llvm//:clang-format` executable target and
 its runfiles so the formatter and its declared dependencies are available inside Bazel sandboxes.
-Containers use Docker's init process to reap the Bazel server before cache upload.
+Containers use Docker's init process to reap the Bazel server before cache upload. They
+explicitly shut down Bazel after tests so PRs also exercise process reaping.
 Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;
 the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler
 probes reject a different compiler family or Clang major version. Cache namespaces include the

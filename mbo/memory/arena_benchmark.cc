@@ -92,7 +92,7 @@ void BmArenaAllocate(benchmark::State& state) {
   Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
   std::size_t used = 0;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(size, alignment));
     }
@@ -112,7 +112,7 @@ void BmPmrMonotonicAllocate(benchmark::State& state) {
   const auto alignment = static_cast<std::size_t>(state.range(1));
   std::pmr::monotonic_buffer_resource resource;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(resource.allocate(size, alignment));
     }
@@ -127,7 +127,7 @@ void BmAllocatorArenaAllocate(benchmark::State& state) {
   const auto alignment = static_cast<std::size_t>(state.range(1));
   Arena<AllocatorBlockSource<>, kBenchmarkOptions> arena;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(size, alignment));
     }
@@ -145,7 +145,7 @@ void BmPmrArenaAllocate(benchmark::State& state) {
   std::pmr::monotonic_buffer_resource resource;
   Arena<PmrBlockSource, kBenchmarkOptions> arena{PmrBlockSource(&resource)};
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(size, alignment));
     }
@@ -164,7 +164,7 @@ void BmNewDeleteAllocate(benchmark::State& state) {
   std::vector<void*> allocations;
   allocations.reserve(kBatch);
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       auto* value = ::operator new(size, std::align_val_t{effective_alignment});
       benchmark::DoNotOptimize(value);
@@ -183,7 +183,7 @@ void BmArenaFreshLifecycle(benchmark::State& state) {
   const auto size = static_cast<std::size_t>(state.range(0));
   const auto alignment = static_cast<std::size_t>(state.range(1));
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
     for (std::size_t index = 0; index < kBatch; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(size, alignment));
@@ -198,7 +198,7 @@ void BmArenaMixedStringLike(benchmark::State& state) {
   Arena<NewDeleteBlockSource, kBenchmarkOptions> arena;
   std::size_t used = 0;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     std::size_t bytes = 0;
     for (std::size_t index = 0; index < kBatch; ++index) {
       const auto size = kStringLikeSizes.at(index % kStringLikeSizes.size());
@@ -221,7 +221,7 @@ void BmArenaReset(benchmark::State& state) {
     benchmark::DoNotOptimize(arena.Allocate(64, 16));
   }
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     arena.Reset();
     benchmark::DoNotOptimize(arena.Allocate(64, 16));
   }
@@ -231,7 +231,7 @@ void BmFixedArenaExhaustion(benchmark::State& state) {
   alignas(64) std::array<std::byte, 4'096> storage{};
   Arena<FixedBlockSource, kFixedBenchmarkOptions> arena(FixedBlockSource(std::span<std::byte>(storage), 64));
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     arena.Reset();
     while (arena.TryAllocate(32, 16) != nullptr) {
       benchmark::ClobberMemory();

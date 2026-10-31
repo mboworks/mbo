@@ -314,7 +314,7 @@ auto DecomposeCountFunc(T&& v) {
         std::forward<decltype(v)>(v);
     std::integral_constant<std::size_t, 40>{};
   })) { return {}; };
-  auto overload_set = MakeOverloadedSet(
+  const auto overload_set = MakeOverloadedSet(
       std::move(fn1), std::move(fn2), std::move(fn3), std::move(fn4), std::move(fn5), std::move(fn6), std::move(fn7),
       std::move(fn8), std::move(fn9), std::move(fn10), std::move(fn11), std::move(fn12), std::move(fn13),
       std::move(fn14), std::move(fn15), std::move(fn16), std::move(fn17), std::move(fn18), std::move(fn19),

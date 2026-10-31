@@ -1181,7 +1181,7 @@ TEST_F(SegmentedDequeTest, DestructionCoversEveryConstructedElement) {
 constexpr bool ConstexprBothEndsAndWrappedIterators() {
   SegmentedDeque<int, SegmentedOptions{.segment_size = 2}> deque;
   deque.push_back(10);
-  auto saved = deque.begin();
+  const auto saved = deque.begin();
   for (int value = 9; value >= 0; --value) {
     deque.push_front(value);
   }
@@ -1268,7 +1268,7 @@ TEST_F(SegmentedDequeTest, DifferentialMixedOperationsMatchStandardDeque) {
         std::ranges::subrange(actual.rbegin(), actual.rend()), ElementsAreArray(expected.rbegin(), expected.rend()))
         << step;
     std::vector<int> segmented;
-    for (auto segment : actual.segments()) {
+    for (const auto segment : actual.segments()) {
       segmented.insert(segmented.end(), segment.begin(), segment.end());
     }
     ASSERT_THAT(segmented, ElementsAreArray(expected)) << step;
@@ -1323,7 +1323,7 @@ TEST_F(SegmentedDequeTest, PrependsForwardSinglePassAndSelfRangesInInputOrder) {
   deque.prepend_range(std::ranges::istream_view<int>(input));
   EXPECT_THAT(deque, ElementsAre(1, 2, 3, 4, 5, 6, 7));
   const int* const original = &deque.front();
-  auto saved = deque.begin();
+  const auto saved = deque.begin();
   deque.prepend_range(deque);
   EXPECT_THAT(deque, ElementsAre(1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7));
   EXPECT_THAT(&*saved, Eq(original));

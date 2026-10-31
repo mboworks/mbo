@@ -91,7 +91,7 @@ absl::StatusOr<Template*> Template::AddSection(std::string_view name) {
       .end = absl::StrCat("{{/", name, "}}"),
       .type = TagType::kSection,
   };
-  auto it = data_.emplace(name, TagData<Section>{.tag = std::move(tag), .data = {}}).first;
+  const auto it = data_.emplace(name, TagData<Section>{.tag = std::move(tag), .data = {}}).first;
   auto* section = std::get_if<TagData<Section>>(&it->second);
   if (section == nullptr) {
     return absl::AlreadyExistsError(absl::StrCat("A value for '", name, "' already exists with a different type."));
@@ -270,7 +270,7 @@ absl::Status Template::ExpandSection(const TagData<Section>& tag, Context& ctx, 
 
 absl::Status Template::ExpandConfiguredSection(
     std::string_view name,
-    std::vector<std::string> str_list,  // NOLINT(performance-unnecessary-value-param): Incorrect, we move strings out.
+    const std::vector<std::string>& str_list,
     std::string_view join,
     Context& ctx,
     std::string& output) const {
@@ -281,8 +281,8 @@ absl::Status Template::ExpandConfiguredSection(
     return absl::InvalidArgumentError(absl::StrCat("Cannot override existing section tag '", name, "'."));
   }
   const absl::Cleanup cleanup = [&] { ctx.data.erase(name); };
-  for (auto& str : str_list) {
-    MBO_RETURN_IF_ERROR(SetValueInternal(name, std::move(str), true, ctx.data));
+  for (const auto& str : str_list) {
+    MBO_RETURN_IF_ERROR(SetValueInternal(name, str, true, ctx.data));
     std::string result(original);
     MBO_RETURN_IF_ERROR(ExpandInternal(ctx, result));
     if (!first) {
@@ -324,7 +324,7 @@ absl::Status Template::ExpandConfiguredList(
   }
   // CONSIDER: A specialized type would make this faster. But also less generic
   // and thus complicate extensions.
-  MBO_RETURN_IF_ERROR(ExpandConfiguredSection(tag.name, std::move(str_list), std::move(join), ctx, output));
+  MBO_RETURN_IF_ERROR(ExpandConfiguredSection(tag.name, str_list, join, ctx, output));
   return absl::OkStatus();
 }
 

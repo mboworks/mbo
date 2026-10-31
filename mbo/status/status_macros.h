@@ -42,11 +42,11 @@
 // ```
 //
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define MBO_RETURN_IF_ERROR(expr)                                                    \
-  MBO_PRIVATE_STATUS_STATUS_MACROS_ELSE_BLOCKER_                                     \
-  if (auto var = (expr); var.ok()) { /* NOLINT(*-unnecessary-copy-initialization) */ \
-    /* GOOD */                                                                       \
-  } else                                                                             \
+#define MBO_RETURN_IF_ERROR(expr)                                                          \
+  MBO_PRIVATE_STATUS_STATUS_MACROS_ELSE_BLOCKER_                                           \
+  if (const auto var = (expr); var.ok()) { /* NOLINT(*-unnecessary-copy-initialization) */ \
+    /* GOOD */                                                                             \
+  } else                                                                                   \
     return mbo::status::StatusBuilder(var)
 
 // Similar to MBO_RETURN_IF_ERROR but this assigns the result of an `absl::StatusOr<T>`, to a target

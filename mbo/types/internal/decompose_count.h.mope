@@ -132,7 +132,7 @@ auto DecomposeCountFunc(T&& v) {
       std::integral_constant<std::size_t, {{num_fields}}>{};
     })){ return {}; };
 {{/num_fields}}
-    auto overload_set = MakeOverloadedSet({{#field=1;max_fields;;', '}}std::move(fn{{field}}){{/field}});
+    const auto overload_set = MakeOverloadedSet({{#field=1;max_fields;;', '}}std::move(fn{{field}}){{/field}});
     if constexpr (requires{ {overload_set(std::declval<T>())};}) {
         return overload_set(std::forward<T>(v));
     } else {

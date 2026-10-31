@@ -360,10 +360,10 @@ class AnyScanImpl {
       : funcs_{
             .iter =
                 [data = data] {
-                  auto pos = MakeSharedIterator(data.container());
+                  const auto pos = MakeSharedIterator(data.container());
                   return IterFuncs{
-                      .more = [data = data, pos = pos]() -> bool { return *pos != data.container().end(); },
-                      .curr = [&it = *pos]() -> AccessType { return *it; },
+                      .more = [data = data, pos = pos] -> bool { return *pos != data.container().end(); },
+                      .curr = [&it = *pos] -> AccessType { return *it; },
                       .next = [&it = *pos] { ++it; },
                   };
                 },
@@ -382,10 +382,10 @@ class AnyScanImpl {
             // NOTE: data must be copied here!
             .iter =
                 [data = data] {
-                  auto pos = MakeSharedIterator(data.container());
+                  const auto pos = MakeSharedIterator(data.container());
                   return IterFuncs{
-                      .more = [data = data, pos = pos]() -> bool { return *pos != data.container().end(); },
-                      .curr = [&it = *pos]() -> AccessType { return AccessType(*it); },
+                      .more = [data = data, pos = pos] -> bool { return *pos != data.container().end(); },
+                      .curr = [&it = *pos] -> AccessType { return AccessType(*it); },
                       .next = [&it = *pos] { ++it; },
                   };
                 },

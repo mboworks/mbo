@@ -40,7 +40,7 @@ TEST_F(BlockSourceTest, FixedSourceCanBeReacquiredAfterRelease) {
   alignas(32) std::array<std::byte, 128> storage{};
   FixedBlockSource source(std::span<std::byte>(storage), 32);
 
-  auto first = source.TryAcquire(64, 32);
+  const auto first = source.TryAcquire(64, 32);
   ASSERT_THAT(first, Optional(_));
   const MemoryBlock first_block = first.value_or(MemoryBlock{});
   EXPECT_THAT(first_block.size, Eq(storage.size()));
@@ -80,13 +80,13 @@ TEST_F(BlockSourceTest, NewDeleteSourceRejectsInvalidRequests) {
 
 TEST_F(BlockSourceTest, InlineSourceIsFixedAndAddressStable) {
   InlineBlockSource<128, 64> source;
-  auto block = source.TryAcquire(128, 64);
+  const auto block = source.TryAcquire(128, 64);
   ASSERT_THAT(block, Optional(_));
   const MemoryBlock acquired_block = block.value_or(MemoryBlock{});
   const auto* const address = acquired_block.data;
 
   source.Release(acquired_block);
-  auto reacquired = source.TryAcquire(1, 8);
+  const auto reacquired = source.TryAcquire(1, 8);
 
   ASSERT_THAT(reacquired, Optional(_));
   EXPECT_THAT(reacquired.value_or(MemoryBlock{}).data, Eq(address));
@@ -108,7 +108,7 @@ TEST_F(BlockSourceTest, InlineSourceRejectsInvalidRequestsWithoutConsumption) {
 TEST_F(BlockSourceTest, AllocatorSourceRoundsStorageToItsValueSize) {
   AllocatorBlockSource source;
 
-  auto block = source.TryAcquire(sizeof(std::max_align_t) + 1, alignof(std::max_align_t));
+  const auto block = source.TryAcquire(sizeof(std::max_align_t) + 1, alignof(std::max_align_t));
 
   ASSERT_THAT(block, Optional(_));
   const auto acquired = block.value_or(MemoryBlock{});
@@ -122,7 +122,7 @@ TEST_F(BlockSourceTest, AllocatorSourceRoundsStorageToItsValueSize) {
 TEST_F(BlockSourceTest, AllocatorSourcePreservesExactValueSize) {
   AllocatorBlockSource source;
 
-  auto block = source.TryAcquire(sizeof(std::max_align_t), alignof(std::max_align_t));
+  const auto block = source.TryAcquire(sizeof(std::max_align_t), alignof(std::max_align_t));
 
   ASSERT_THAT(block, Optional(_));
   const auto acquired = block.value_or(MemoryBlock{});
@@ -149,7 +149,7 @@ TEST_F(BlockSourceTest, PmrSourceUsesSelectedResource) {
   std::pmr::monotonic_buffer_resource resource(storage.data(), storage.size(), std::pmr::null_memory_resource());
   PmrBlockSource source(&resource);
 
-  auto block = source.TryAcquire(128, 64);
+  const auto block = source.TryAcquire(128, 64);
 
   ASSERT_THAT(block, Optional(_));
   const auto acquired = block.value_or(MemoryBlock{});

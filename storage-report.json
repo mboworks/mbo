@@ -1,46 +1,46 @@
 {
   "schema": 1,
-  "total_bytes": 71942281,
+  "total_bytes": 71775404,
   "sections": {
     "root": {
       "files": 30,
       "bytes": 201146
     },
     "coverage": {
-      "files": 4503,
-      "bytes": 68096268
+      "files": 4512,
+      "bytes": 67929391
     },
     "bazelmod": {
       "files": 4,
       "bytes": 9755
     },
+    ".trunk": {
+      "files": 4,
+      "bytes": 3865
+    },
     "third_party": {
       "files": 3,
       "bytes": 676
-    },
-    ".github": {
-      "files": 10,
-      "bytes": 47188
-    },
-    ".bcr": {
-      "files": 4,
-      "bytes": 933
     },
     ".pre-commit": {
       "files": 4,
       "bytes": 7707
     },
-    ".trunk": {
+    ".bcr": {
       "files": 4,
-      "bytes": 3865
-    },
-    "tools": {
-      "files": 23,
-      "bytes": 93700
+      "bytes": 933
     },
     "mbo": {
       "files": 388,
       "bytes": 2376736
+    },
+    ".github": {
+      "files": 10,
+      "bytes": 47188
+    },
+    "tools": {
+      "files": 23,
+      "bytes": 93700
     },
     "site": {
       "files": 39,

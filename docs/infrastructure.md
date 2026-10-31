@@ -46,6 +46,8 @@ Distribution LLD handles both target and build-tool links; the Ubuntu 26.10 binu
 linker crashed while linking the MoPe build tool in the initial validation run.
 MoPe uses `clang-format` from the pinned `toolchains_llvm` distribution for every compiler,
 including GCC and distribution Clang. These jobs do not install or select another formatter.
+The formatting action uses the `@llvm_toolchain_llvm//:clang-format` executable target and
+its runfiles so the formatter and its declared dependencies are available inside Bazel sandboxes.
 Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;
 the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler
 probes reject a different compiler family or Clang major version. Cache namespaces include the

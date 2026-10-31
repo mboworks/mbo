@@ -55,12 +55,12 @@ struct ThrowingOwnershipSource final {
   ThrowingOwnershipSource& operator=(const ThrowingOwnershipSource&) = delete;
 
   // Fault-model types deliberately do not promise nonthrowing ownership transfer.
-  // NOLINTBEGIN(bugprone-unsafe-to-allow-exceptions,performance-noexcept-move-constructor)
+  // NOLINTBEGIN(bugprone-unsafe-to-allow-exceptions,*-noexcept-move-*)
   ThrowingOwnershipSource(ThrowingOwnershipSource&& /*other*/) {}
 
   ThrowingOwnershipSource& operator=(ThrowingOwnershipSource&& /*other*/) { return *this; }
 
-  // NOLINTEND(bugprone-unsafe-to-allow-exceptions,performance-noexcept-move-constructor)
+  // NOLINTEND(bugprone-unsafe-to-allow-exceptions,*-noexcept-move-*)
 
   ~ThrowingOwnershipSource() = default;
 

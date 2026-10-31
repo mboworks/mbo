@@ -19,7 +19,7 @@ struct ThrowingValue {
   ThrowingValue(const ThrowingValue& other) : value(other.value) { MaybeThrow(); }
 
   // This move injects a caller exception to test the wrapper's exception guarantee.
-  // NOLINTNEXTLINE(bugprone-unsafe-to-allow-exceptions,performance-noexcept-move-constructor)
+  // NOLINTNEXTLINE(bugprone-unsafe-to-allow-exceptions,*-noexcept-move-*)
   ThrowingValue(ThrowingValue&& other) : value(other.value) { MaybeThrow(); }
 
   ThrowingValue& operator=(const ThrowingValue&) = default;

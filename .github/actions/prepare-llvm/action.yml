@@ -9,4 +9,7 @@ runs:
       run: |
         # These SDKs are not used by mbo's C++ or infrastructure builds.
         sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet
+        # Bazel's Android repository treats a stale SDK path as a broken SDK.
+        echo "ANDROID_HOME=" >>"${GITHUB_ENV}"
+        echo "ANDROID_SDK_ROOT=" >>"${GITHUB_ENV}"
         df -h .

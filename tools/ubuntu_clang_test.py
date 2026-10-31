@@ -206,6 +206,32 @@ class UbuntuClangTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("MemorySanitizer requires hermetic Clang", result.stdout)
 
+    def test_sdk_cleanup_clears_bazel_android_autodetection(self):
+        action = (
+            Path(__file__).resolve().parents[1]
+            / ".github/actions/prepare-llvm/action.yml"
+        ).read_text()
+        script = textwrap.dedent(action.split("      run: |\n", 1)[1])
+        # Do not remove any SDKs in this test; verify the environment handoff.
+        sudo = self.root / "sudo"
+        sudo.write_text("#!/bin/sh\nexit 0\n")
+        sudo.chmod(0o755)
+        result = subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", script],
+            cwd=self.root,
+            env=dict(self.environment, ANDROID_HOME="/unused/sdk"),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        environment = dict(
+            line.split("=", 1)
+            for line in self.environment_file.read_text().splitlines()
+        )
+        self.assertEqual(environment["ANDROID_HOME"], "")
+        self.assertEqual(environment["ANDROID_SDK_ROOT"], "")
+
     def test_existing_hermetic_mode_still_registers_its_toolchain(self):
         result = self.run_step("Setup", compiler="clang", version="")
         self.assertEqual(result.returncode, 0, result.stderr)

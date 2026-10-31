@@ -209,13 +209,13 @@ bool AllowApendStar(std::string_view pattern, std::size_t past_last_escape, cons
   if (options.allow_star_star) {
     return !pattern.ends_with("**");
   } else {
-    return !pattern.ends_with("*");
+    return !pattern.ends_with('*');
   }
 }
 
 bool AllowAppendSlash(std::string_view pattern, std::size_t past_last_escape) {
   pattern.remove_prefix(past_last_escape);
-  return !pattern.ends_with("/") || pattern.ends_with(":/");
+  return !pattern.ends_with('/') || pattern.ends_with(":/");
 }
 
 // Deduplicate '/'s, remove trailing '/' and reduce '*' sequences to at most `options.allow_star_star ? 2 : 1`.

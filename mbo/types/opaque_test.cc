@@ -89,6 +89,8 @@ using MyTypes = ::testing::Types<
 class MyTypeNames {
  public:
   template<typename T>
+  // GoogleTest stores generated type names through vector<string>::push_back.
+  // NOLINTNEXTLINE(modernize-use-string-view)
   static std::string GetName(int /*unused*/) {
     if constexpr (std::is_same<T, std::vector<std::string>>()) {
       return "VectorOfString";

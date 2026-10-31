@@ -84,7 +84,7 @@ void OrderedLookup(benchmark::State& state) {
   benchmark::DoNotOptimize(data);
   benchmark::DoNotOptimize(key);
   // NOLINTNEXTLINE(readability-identifier-length)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     if constexpr (Func == Function::kIndexOf) {
       benchmark::DoNotOptimize(data.index_of(key));
     } else if constexpr (Func == Function::kLowerBound) {

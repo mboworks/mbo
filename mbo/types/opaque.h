@@ -185,13 +185,13 @@ struct OpaqueContainer : ContainerProxy<OpaqueValue<Container>, Container> {};
 
 // Macro to define an ADL deletion hook for the specified type to be used with `OpaquePtr`.
 // NOLINTBEGIN(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)
-#define MBO_TYPES_OPAQUE_HOOKS(T)                                                   \
-  template<typename... Args>                                                        \
-  inline void OpaquePtrMakerHook(::mbo::types::OpaquePtr<T>& ptr, Args&&... args) { \
-    ptr.reset(new T(std::forward<Args>(args)...));                                  \
-  }                                                                                 \
-  inline void OpaquePtrDeleterHook(T* ptr) {                                        \
-    delete ptr; /* NOLINT(cppcoreguidelines-owning-memory) */                       \
+#define MBO_TYPES_OPAQUE_HOOKS(T)                                                                       \
+  template<typename... Args>                                                                            \
+  inline void OpaquePtrMakerHook(::mbo::types::OpaquePtr<T>& ptr, Args&&... args) {                     \
+    ptr.reset(new T(std::forward<Args>(args)...));                                                      \
+  }                                                                                                     \
+  inline void OpaquePtrDeleterHook(T* ptr) { /* NOLINT(misc-const-correctness): owning pointer hook. */ \
+    delete ptr;                              /* NOLINT(cppcoreguidelines-owning-memory) */              \
   }
 
 // NOLINTEND(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)

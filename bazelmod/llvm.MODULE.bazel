@@ -13,20 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""LLVM toolchain."""
+"""LLVM 23 by default; LLVM 22 with instrumented libc++ for MemorySanitizer."""
 
 bazel_dep(name = "toolchains_llvm", version = "1.12.0")
+
+LLVM_VERSION_MSAN = "22.1.8"
+
+MSAN_LIBCXX_URL = "https://github.com/RealtimeRoboticsGroup/toolchains/releases/download/{v}/libcxx-msan-{v}-x86_64-linux-gnu-ubuntu-22.04.tar.zst"
 
 llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm", dev_dependency = True)
 llvm.toolchain(
     name = "llvm_toolchain_llvm",
-    extra_llvm_distributions = {
-        # 22.1.8 - the minimum and default Clang/LLVM pin.
-        "LLVM-22.1.8-Linux-ARM64.tar.xz": "805efad2bb91cb4967fa569e0881d10c0f69c04461cf671cccbae19f547acc34",
-        "LLVM-22.1.8-Linux-X64.tar.xz": "df0e1ecf16caf3489a272a5eea4eec9b0d82878f6477fa309504f918a0006384",
-        "LLVM-22.1.8-macOS-ARM64.tar.xz": "f260f4f7c0d430828a81ae8a3826a1d63fc0963ec2459489308cc23b1f7eab4f",
-        "clang+llvm-22.1.8-aarch64-pc-windows-msvc.tar.xz": "de718c58ebbc5f61d58c17b90457fcf42983bc2c4a4aba3e010d108713bfd7f1",
-    },
     # Select Apple's native linker and its capabilities together, rather than
     # overriding LLD's executable while retaining LLD-specific feature flags.
     # Unspecified platforms retain the toolchain's bundled LLD default.
@@ -34,7 +31,18 @@ llvm.toolchain(
         "darwin-aarch64": "auto",
         "darwin-x86_64": "auto",
     },
-    llvm_version = "22.1.8",
+    llvm_version = "23.1.4",
+)
+
+# MSan requires a matching compiler and instrumented C++ standard library.
+# Use the same runtime archive as toolchains_llvm's end-to-end MSan test.
+llvm.feature_override(
+    name = "llvm_toolchain_llvm",
+    features = ["msan"],
+    libcxx_sha256 = "fd1ac49eeda4edc6deeda2037998e558718a63a5054fff4fdace7751b270217a",
+    libcxx_url = MSAN_LIBCXX_URL.format(v = LLVM_VERSION_MSAN),
+    llvm_version = LLVM_VERSION_MSAN,
+    targets = ["linux-x86_64"],
 )
 use_repo(llvm, "llvm_toolchain_llvm")
 

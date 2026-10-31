@@ -22,6 +22,13 @@ commands do not share a global limit. Interruptions terminate active children an
 work from starting. Source-only changes remain focused, while header/build changes retain
 mbo's conservative full-sweep behavior and SMHasher exclusions.
 
+LLVM 23's renamed checks retain the established policy in `.clang-tidy`: the HICPP signed-bitwise
+exclusion uses its new `bugprone` name, and deprecated `zircon` aliases follow the existing
+`fuchsia` exclusion. STYLE_CPP's per-initializer trailing-comma choice remains owned by
+clang-format. Const analysis and the other correctness checks remain enabled; required implicit
+conversions, generic move-only operations, and exception-injection tests document their narrow
+exceptions at the relevant source locations.
+
 ## Build caches and CI
 
 With `--config=clang`, the hermetic LLVM module selects Apple's native linker (`auto`)
@@ -32,10 +39,30 @@ the toolchain's bundled LLD default. Both target and host configurations use Baz
 `--macos_minimum_os=11.0` settings so Apple platform metadata and compile/link actions
 agree on the deployment target.
 
-Linux LLVM jobs and the Bazel compatibility matrix use `ubuntu-24.04`. The pinned LLVM
-distribution links its bundled LLD against `libxml2.so.2`; Ubuntu 26.04 provides the incompatible
-`libxml2.so.16` ABI. Regular GCC and CMake jobs continue to use `ubuntu-latest`. Compiler pins,
-warning policies, sanitizers, coverage requirements, and matrix combinations are unchanged.
+The default compiler and formatter are LLVM 23.1.4 from the `toolchains_llvm` 1.12.0 release
+catalogue. No supplemental LLVM distribution catalogue or Git override is required. Normal
+builds fetch only that LLVM distribution; GCC and distribution Clang share its formatter.
+The pre-commit formatter invokes `tools/clang_format.sh`, which builds and resolves the public
+Bazel formatter target without compiling mbo or downloading a separate formatter package.
+
+`bazel test --config=msan //...` enables MemorySanitizer on Linux x86_64. A feature override
+selects LLVM 22.1.8 and its matching instrumented libc++ archive, following
+[xff's LLVM module](https://github.com/mboworks/xff/blob/main/bazelmod/llvm.MODULE.bazel).
+The instrumented libc++ comes from the same checksum-pinned third-party archive as
+[toolchains_llvm's MSan test](https://github.com/bazel-contrib/toolchains_llvm/blob/v1.12.0/tests/MODULE.bazel).
+The toolchain replaces standard-library headers, libraries, and sanitizer flags together.
+Bazel's execution configuration keeps build tools uninstrumented on LLVM 23; formatting and
+symbolization use that same LLVM 23 distribution. Only MSan builds additionally fetch LLVM 22
+and the instrumented libc++ overlay. No sanitizer suppressions are configured. Linux jobs that fetch LLVM first remove the unused
+Android and .NET SDKs from their disposable runners to provide archive-extraction space.
+
+Linux LLVM jobs and the Bazel compatibility matrix use `ubuntu-24.04`; the MSan cell requires
+LLVM 22's `libxml2.so.2` runtime dependency, which Ubuntu 26.04 replaces with `libxml2.so.16`.
+Regular GCC and CMake jobs continue to use `ubuntu-latest`. The Linux Clang sanitizer matrix
+covers both ASan/UBSan on LLVM 23 and MSan on LLVM 22; macOS retains ASan/UBSan coverage.
+The digest unit-test target uses four shards so its million-byte vectors retain the existing
+small-test timeout under MSan. Every test case still runs; the timeout and sanitizer checks
+are unchanged.
 
 Two additional optimized Bazel jobs use distribution Clang/LLD 22 and the distribution's default
 standard library: one on the `ubuntu-26.04` host, and one in the official `ubuntu:26.10` container
@@ -48,6 +75,8 @@ MoPe uses `clang-format` from the pinned `toolchains_llvm` distribution for ever
 including GCC and distribution Clang. These jobs do not install or select another formatter.
 The formatting action uses the `@llvm_toolchain_llvm//:clang-format` executable target and
 its runfiles so the formatter and its declared dependencies are available inside Bazel sandboxes.
+Containers use Docker's init process to reap the Bazel server before cache upload. They
+explicitly shut down Bazel after tests so PRs also exercise process reaping.
 Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;
 the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler
 probes reject a different compiler family or Clang major version. Cache namespaces include the

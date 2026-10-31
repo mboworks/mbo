@@ -50,12 +50,19 @@ class UbuntuClangTest(unittest.TestCase):
             ARGUMENTS=str(self.arguments),
         )
 
-    def run_step(self, name, compiler="clang-system", version="22", **environment):
+    def run_step(
+        self,
+        name,
+        compiler="clang-system",
+        version="22",
+        bazel_config="opt",
+        **environment,
+    ):
         inputs = dict(
             compiler=compiler,
             llvm_version=version,
             gcc_version="",
-            bazel_config="opt",
+            bazel_config=bazel_config,
             bazel_version="",
         )
         script = re.sub(
@@ -151,6 +158,79 @@ class UbuntuClangTest(unittest.TestCase):
         configuration = (self.root / "gitconfig").read_text()
         self.assertIn(str(workspace), configuration)
         self.assertNotIn("*", configuration)
+
+    def test_hermetic_version_override_preserves_msan_compiler_pin(self):
+        module = self.root / "bazelmod/llvm.MODULE.bazel"
+        module.parent.mkdir()
+        module.write_text(
+            (
+                Path(__file__).resolve().parents[1] / "bazelmod/llvm.MODULE.bazel"
+            ).read_text()
+        )
+        result = self.run_step("Setup", compiler="clang", version="23.1.4")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('llvm_version = "23.1.4"', module.read_text())
+        self.assertIn('LLVM_VERSION_MSAN = "22.1.8"', module.read_text())
+        self.assertIn("llvm_version = LLVM_VERSION_MSAN", module.read_text())
+
+    def test_msan_selects_and_checks_matching_compiler(self):
+        uname = self.root / "uname"
+        uname.write_text(
+            '#!/bin/sh\ncase "$1" in -s) echo Linux;; -m) echo x86_64;; esac\n'
+        )
+        uname.chmod(0o755)
+        module = self.root / "bazelmod/llvm.MODULE.bazel"
+        module.parent.mkdir()
+        module.write_text('LLVM_VERSION_MSAN = "22.1.8"\n')
+        result = self.run_step(
+            "Setup", compiler="clang", version="", bazel_config="msan"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for line in self.environment_file.read_text().splitlines():
+            key, value = line.split("=", 1)
+            self.environment[key] = value
+        self.assertIn("--config=msan", self.environment["BAZEL_ARGS"])
+        for version, succeeds in (("22.1.8", True), ("23.1.4", False)):
+            with self.subTest(version=version):
+                result = self.run_step(
+                    "Show compiler",
+                    compiler="clang",
+                    version="23.1.4",
+                    bazel_config="msan",
+                    COMPILER_REPORT=f"Compiler: Clang\nCompiler version: {version}\n",
+                )
+                self.assertEqual(result.returncode == 0, succeeds, result.stdout)
+
+    def test_msan_rejects_distribution_compiler(self):
+        result = self.run_step("Setup", bazel_config="msan")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("MemorySanitizer requires hermetic Clang", result.stdout)
+
+    def test_sdk_cleanup_clears_bazel_android_autodetection(self):
+        action = (
+            Path(__file__).resolve().parents[1]
+            / ".github/actions/prepare-llvm/action.yml"
+        ).read_text()
+        script = textwrap.dedent(action.split("      run: |\n", 1)[1])
+        # Do not remove any SDKs in this test; verify the environment handoff.
+        sudo = self.root / "sudo"
+        sudo.write_text("#!/bin/sh\nexit 0\n")
+        sudo.chmod(0o755)
+        result = subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", script],
+            cwd=self.root,
+            env=dict(self.environment, ANDROID_HOME="/unused/sdk"),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        environment = dict(
+            line.split("=", 1)
+            for line in self.environment_file.read_text().splitlines()
+        )
+        self.assertEqual(environment["ANDROID_HOME"], "")
+        self.assertEqual(environment["ANDROID_SDK_ROOT"], "")
 
     def test_existing_hermetic_mode_still_registers_its_toolchain(self):
         result = self.run_step("Setup", compiler="clang", version="")

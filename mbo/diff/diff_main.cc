@@ -264,14 +264,14 @@ Diff::Options MakeDiffOptions(const std::string& strip_comments) {
       .minimal = absl::GetFlag(FLAGS_minimal),
       .show_chunk_headers = GetFlagOrDefault(FLAGS_show_chunk_headers, is_direct, false),
       .skip_left_deletions = absl::GetFlag(FLAGS_skip_left_deletions),
-      .ignore_matching_lines = [&]() -> std::optional<RE2> {
+      .ignore_matching_lines = [&] -> std::optional<RE2> {
         std::string regex = absl::GetFlag(FLAGS_ignore_matching_lines);
         if (regex.empty()) {
           return std::nullopt;
         }
         return std::make_optional<RE2>(regex);
       }(),
-      .strip_comments = [&]() -> Diff::Options::StripCommentOptions {
+      .strip_comments = [&] -> Diff::Options::StripCommentOptions {
         if (strip_comments.empty()) {
           return Diff::Options::NoCommentStripping{};
         } else if (absl::GetFlag(FLAGS_strip_parsed_comments)) {

@@ -155,7 +155,7 @@ void BmPopRegrow(benchmark::State& state) {
   const std::size_t low_segments = sequence.segment_count();
   regrow();
   counters = {};
-  for (auto _ : state) {
+  for (const auto _ : state) {
     pop();
     regrow();
   }
@@ -184,7 +184,7 @@ void BmClearRegrow(benchmark::State& state) {
   Fill(sequence);
   counters = {};
 
-  for (auto _ : state) {
+  for (const auto _ : state) {
     if constexpr (Release) {
       sequence.release();
     } else {

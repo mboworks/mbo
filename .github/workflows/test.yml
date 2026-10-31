@@ -49,7 +49,7 @@ on:
         type: string
         default: ""
       bazel_config:
-        description: "The way how Bazel should operate compilation and tests, one of (asan, coverage, fastbuild, opt)."
+        description: "The way how Bazel should operate compilation and tests, one of (asan, coverage, fastbuild, msan, opt)."
         type: string
         default: opt
       bazel_version:
@@ -67,7 +67,10 @@ env:
 jobs:
   test:
     runs-on: ${{inputs.os}}
-    container: ${{ inputs.ubuntu_container != '' && format('ubuntu:{0}', inputs.ubuntu_container) || '' }}
+    container:
+      image: ${{ inputs.ubuntu_container != '' && format('ubuntu:{0}', inputs.ubuntu_container) || '' }}
+      # Reap Bazel's server process so shutdown can finish before cache upload.
+      options: --init
     defaults:
       run:
         shell: bash
@@ -89,6 +92,7 @@ jobs:
         # committed data bundles for the SMHasher3 quality tables; actions/checkout
         # leaves them as LFS pointers, so materialize just those (each is small).
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
+      - uses: ./.github/actions/prepare-llvm
       - uses: bazel-contrib/setup-bazel@0.19.1
         with:
           bazelisk-version: ${{ inputs.ubuntu_container != '' && '1.30.0' || '' }}
@@ -227,6 +231,12 @@ jobs:
             if [ "${{inputs.compiler}}" == "gcc" ]; then
               BAZEL_ARGS+=("--config=asan-gcc")
             fi
+          elif [ "${{inputs.bazel_config}}" == "msan" ]; then
+            if [ "${{inputs.compiler}}" != "clang" ] || [ "$(uname -s):$(uname -m)" != "Linux:x86_64" ]; then
+              echo "::error::MemorySanitizer requires hermetic Clang on Linux x86_64."
+              exit 1
+            fi
+            BAZEL_ARGS+=("-c" "dbg" "--config=msan")
           elif [ "${{inputs.bazel_config}}" == "coverage" ]; then
             BAZEL_ARGS+=("-c" "dbg")
             if [ "${{inputs.compiler}}" == "clang" ]; then
@@ -241,7 +251,7 @@ jobs:
           elif [ "${{inputs.bazel_config}}" == "opt" ]; then
             BAZEL_ARGS+=("-c" "opt")
           else
-            echo "::error::Matrix/Input var 'bazel_config' must be one of [asan, coverage, fastbuild, opt]."
+            echo "::error::Matrix/Input var 'bazel_config' must be one of [asan, coverage, fastbuild, msan, opt]."
             exit 1
           fi
           # Pin the Bazel release that bazelisk launches. bazelisk resolves the
@@ -310,6 +320,16 @@ jobs:
               *) echo "::error::Expected compiler prefix '${EXPECT}' but selected '${COMPILER}'."; exit 1 ;;
             esac
           fi
+          if [ "${{inputs.compiler}}" == "clang" ]; then
+            EXPECT_LLVM="${{inputs.llvm_version}}"
+            if [ "${{inputs.bazel_config}}" == "msan" ]; then
+              EXPECT_LLVM="$(sed -n 's/^LLVM_VERSION_MSAN = "\(.*\)"/\1/p' bazelmod/llvm.MODULE.bazel)"
+            fi
+            if [ -n "${EXPECT_LLVM}" ] && ! grep -qxF "Compiler version: ${EXPECT_LLVM}" <<<"${COMPILER}"; then
+              echo "::error::Expected hermetic Clang version ${EXPECT_LLVM}."
+              exit 1
+            fi
+          fi
           if [ "${{inputs.compiler}}" == "clang-system" ]; then
             if ! grep -q '^Compiler version: ${{inputs.llvm_version}}\.' <<<"${COMPILER}"; then
               echo "::error::Expected distribution Clang major version ${{inputs.llvm_version}}."
@@ -329,6 +349,11 @@ jobs:
           bazel ${BAZEL_INIT} test ${BAZEL_ARGS} \
             --//mbo/hash:mangle_seed_buckets=0 \
             //mbo/hash:hash_mangle_test
+
+      - name: Stop container Bazel server
+        # Exercise process reaping on PRs as well as main's cache-upload path.
+        if: inputs.ubuntu_container != ''
+        run: bazel ${BAZEL_INIT} shutdown
 
       - name: Collect coverage
         if: inputs.bazel_config == 'coverage'

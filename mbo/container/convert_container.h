@@ -46,7 +46,7 @@ class ConvertContainer final {
 
   template<typename ContainerOut>
   requires mbo::types::ContainerCopyConvertible<Container, ContainerOut, Func>
-  operator ContainerOut() {  // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+  operator ContainerOut() {  // NOLINT(*-explicit-constructor,hicpp-explicit-conversions)
     ContainerOut result;
     for (auto&& v : container_) {
       if constexpr (mbo::types::ContainerHasEmplace<ContainerOut, ValueType>) {

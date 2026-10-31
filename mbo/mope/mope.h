@@ -144,7 +144,7 @@ class Template {
       const;
   absl::Status ExpandConfiguredSection(
       std::string_view name,
-      std::vector<std::string> str_list,
+      const std::vector<std::string>& str_list,
       std::string_view join,
       Context& ctx,
       std::string& output) const;

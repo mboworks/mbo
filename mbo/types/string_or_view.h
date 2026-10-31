@@ -64,7 +64,7 @@ class StringOrView {
 
   constexpr StringOrView() noexcept = default;
 
-  StringOrView(std::string value)  // NOLINT(google-explicit-constructor)
+  StringOrView(std::string value)  // NOLINT(*-explicit-constructor)
       : value_(std::in_place_type<std::string>, std::move(value)) {}
 
   constexpr StringOrView(std::string_view value) noexcept  // NOLINT(*-explicit-*)
@@ -93,7 +93,7 @@ class StringOrView {
     return std::holds_alternative<std::string>(value_);
   }
 
-  [[nodiscard]] constexpr operator std::string_view() const noexcept {  // NOLINT(google-explicit-constructor)
+  [[nodiscard]] constexpr operator std::string_view() const noexcept {  // NOLINT(*-explicit-constructor)
     return view();
   }
 

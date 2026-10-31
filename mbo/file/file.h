@@ -46,7 +46,7 @@ inline std::filesystem::path JoinPaths(const std::filesystem::path& first_path, 
     } else if (first_path.empty()) {
       return JoinPaths(paths...);
     } else {
-      auto joined = JoinPaths(paths...);
+      const auto joined = JoinPaths(paths...);
       if (joined.is_absolute()) {
         return first_path / joined.relative_path();
       } else {

@@ -117,7 +117,7 @@ class Benchmarks {
     const auto* data = &test_data[0].data;
     const auto* input = &test_data[0].input;
     // NOLINTNEXTLINE(readability-identifier-length)
-    for (auto _ : state) {
+    for (const auto _ : state) {
       if constexpr (func == Function::kContains) {
         if (HaveOrMiss != data->contains((*input)[item])) {
           state.SkipWithError("BAD_RESULT");

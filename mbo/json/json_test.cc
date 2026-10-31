@@ -274,7 +274,7 @@ TEST_F(JsonTest, ValueIteratorErase) {
   object["one"] = 1;
   object["two"] = 2;
   object["three"] = 3;
-  auto values = object.values();
+  const auto values = object.values();
   const Json::const_value_iterator object_pos{values.begin()};
   object.erase(object_pos);
   const auto remaining_values = object.values();
@@ -448,7 +448,7 @@ TEST_F(JsonTest, ValueIteratorAssignment) {
   Json array;
   array.emplace_back(1);
   array.emplace_back(2);
-  auto array_values = array.values();
+  const auto array_values = array.values();
 
   Json::value_iterator mutable_it;
   mutable_it = array_values.begin();
@@ -477,7 +477,7 @@ TEST_F(JsonTest, ValueIteratorAssignment) {
 
   Json object;
   object["value"] = 3;
-  auto object_values = object.values();
+  const auto object_values = object.values();
   moved_it = object_values.begin();
   EXPECT_THAT(*moved_it, 3);
   EXPECT_THAT(moved_it->IsNumber(), true);
@@ -491,7 +491,7 @@ TEST_F(JsonTest, ValueIteratorAssignment) {
   const_it = moved_it;
   EXPECT_THAT(const_it, object_values.end());
 
-  auto previous_array = mutable_it++;
+  const auto previous_array = mutable_it++;
   EXPECT_THAT(*previous_array, 1);
   EXPECT_THAT(*mutable_it, 2);
 }

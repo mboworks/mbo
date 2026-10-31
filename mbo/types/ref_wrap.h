@@ -60,7 +60,7 @@ class RefWrap final {
 
   constexpr RefWrap() = delete;
 
-  constexpr /* implicit */ RefWrap(T& ref) noexcept : ptr_(&ref) {}  // NOLINT(google-explicit-*,hicpp-explicit-*)
+  constexpr /* implicit */ RefWrap(T& ref) noexcept : ptr_(&ref) {}  // NOLINT(*-explicit-*)
 
   constexpr RefWrap(const RefWrap&) noexcept = default;
   constexpr RefWrap& operator=(const RefWrap&) noexcept = default;

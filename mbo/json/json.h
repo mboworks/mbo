@@ -305,7 +305,9 @@ class Json {
     std::visit(
         types::Overloaded{
             [&](const Object& /*unused*/) { CopyObject(other); },
-            [&]<typename Other>(Other&& other) { Json::operator=(std::forward<Other>(other)); }},
+            [&]<typename Other>(Other&& other) {  // NOLINT(cppcoreguidelines-missing-std-forward): forwarded below.
+              Json::operator=(std::forward<Other>(other));
+            }},
         other.data_);
   }
 
@@ -501,7 +503,7 @@ class Json {
     MBO_CONFIG_REQUIRE(IsArray(), "Is not an Array.");
     auto& values = *std::get<Array>(data_);
     MBO_CONFIG_REQUIRE(!values.empty(), "Cannot pop an empty Json array.");
-    return ::mbo::container::container_internal::PopValue(values.back(), [&values]() noexcept { values.pop_back(); });
+    return ::mbo::container::container_internal::PopValue(values.back(), [&values] noexcept { values.pop_back(); });
   }
 
   // NOLINTBEGIN(*-avoid-unchecked-container-access): Json's own accessors. Each

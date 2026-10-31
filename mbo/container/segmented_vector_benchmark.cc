@@ -136,7 +136,7 @@ void BmGrowthBoundary(benchmark::State& state) {
   using Allocator = CountingDirectoryAllocator<std::byte>;
   using Sequence = SegmentedVector<std::uint64_t, Options, CountingBlockSource, Allocator>;
   constexpr std::size_t kPreparedElements = 2 * Options.segment_size;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     state.PauseTiming();
     {
       AllocationCounters counters;
@@ -165,7 +165,7 @@ void BmFreshConstructAppendDestroy(benchmark::State& state) {
   std::size_t capacity = 0;
   std::size_t reserved = 0;
   std::size_t segments = 0;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     SegmentedVector<std::uint64_t, Options> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.emplace_back(pos);
@@ -186,7 +186,7 @@ template<SegmentedOptions Options>
 void BmRetainedAppendClear(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.reserve(kElementCount);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.unchecked_emplace_back(pos);
     }
@@ -206,7 +206,7 @@ void BmIndexedLookup(benchmark::State& state) {
     sequence.unchecked_emplace_back(pos);
   }
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
@@ -224,7 +224,7 @@ void BmIteratorForward(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const std::uint64_t value : sequence) {
@@ -241,7 +241,7 @@ void BmIteratorArithmetic(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     const auto begin = sequence.cbegin();
@@ -260,7 +260,7 @@ void BmIteratorReverse(benchmark::State& state) {
   sequence.resize(kElementCount, 1);
   const auto& values = sequence;
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (auto iterator = values.rbegin(); iterator != values.rend(); ++iterator) {
@@ -277,7 +277,7 @@ void BmSegmentLookup(benchmark::State& state) {
   SegmentedVector<std::uint64_t, Options> sequence;
   sequence.resize(kElementCount, 1);
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const auto segment : sequence.segments()) {
@@ -293,7 +293,7 @@ void BmSegmentLookup(benchmark::State& state) {
 
 void BmVectorFreshConstructAppendDestroy(benchmark::State& state) {
   std::size_t capacity = 0;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     std::vector<std::uint64_t> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       // Growth is the operation under measurement, so pre-reserving would invalidate the case.
@@ -309,7 +309,7 @@ void BmVectorFreshConstructAppendDestroy(benchmark::State& state) {
 }
 
 void BmDequeFreshConstructAppendDestroy(benchmark::State& state) {
-  for (auto _ : state) {
+  for (const auto _ : state) {
     std::deque<std::uint64_t> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.push_back(pos);
@@ -321,7 +321,7 @@ void BmDequeFreshConstructAppendDestroy(benchmark::State& state) {
 }
 
 void BmListFreshConstructAppendDestroy(benchmark::State& state) {
-  for (auto _ : state) {
+  for (const auto _ : state) {
     std::list<std::uint64_t> sequence;
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.push_back(pos);
@@ -335,7 +335,7 @@ void BmListFreshConstructAppendDestroy(benchmark::State& state) {
 void BmVectorRetainedAppendClear(benchmark::State& state) {
   std::vector<std::uint64_t> sequence;
   sequence.reserve(kElementCount);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       sequence.push_back(pos);
     }
@@ -352,7 +352,7 @@ template<typename Sequence>
 void BmStandardIteratorForward(benchmark::State& state) {
   Sequence sequence(kElementCount, 1);
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const std::uint64_t value : sequence) {
@@ -370,7 +370,7 @@ void BmStandardIndexedLookup(benchmark::State& state) {
     sequence.push_back(pos);  // NOLINT(performance-inefficient-vector-operation): Untimed fixture setup.
   }
   benchmark::DoNotOptimize(sequence);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
@@ -398,7 +398,7 @@ void BmPushPopCycle(benchmark::State& state) {
     }
     sequence.pop_back();
   }
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t pos = 0; pos < kElementCount; ++pos) {
       benchmark::DoNotOptimize(sequence.emplace_back(pos));
     }

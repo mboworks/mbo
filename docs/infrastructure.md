@@ -60,6 +60,9 @@ Linux LLVM jobs and the Bazel compatibility matrix use `ubuntu-24.04`; the MSan 
 LLVM 22's `libxml2.so.2` runtime dependency, which Ubuntu 26.04 replaces with `libxml2.so.16`.
 Regular GCC and CMake jobs continue to use `ubuntu-latest`. The Linux Clang sanitizer matrix
 covers both ASan/UBSan on LLVM 23 and MSan on LLVM 22; macOS retains ASan/UBSan coverage.
+The digest unit-test target uses four shards so its million-byte vectors retain the existing
+small-test timeout under MSan. Every test case still runs; the timeout and sanitizer checks
+are unchanged.
 
 Two additional optimized Bazel jobs use distribution Clang/LLD 22 and the distribution's default
 standard library: one on the `ubuntu-26.04` host, and one in the official `ubuntu:26.10` container

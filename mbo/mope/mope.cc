@@ -305,7 +305,7 @@ absl::Status Template::ExpandConfiguredList(
   };
   str_list_data.remove_prefix(1);  // Drop '['
   // str_list_data.remove_suffix(1);  // Drop ']'
-  MBO_ASSIGN_OR_RETURN(auto str_list, mbo::strings::ParseStringList(kConfiguredListParseOptions, str_list_data));
+  MBO_ASSIGN_OR_RETURN(const auto str_list, mbo::strings::ParseStringList(kConfiguredListParseOptions, str_list_data));
   std::string join;
   if (str_list_data.empty() || mbo::strings::PopChar(str_list_data) != ']') {
     return absl::InvalidArgumentError(

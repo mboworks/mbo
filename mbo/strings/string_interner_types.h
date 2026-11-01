@@ -6,68 +6,19 @@
 
 #include <concepts>
 #include <cstddef>
-#include <map>
 #include <optional>
 #include <ranges>
-#include <set>
-#include <string>
 #include <string_view>
-#include <type_traits>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
-#include "absl/container/node_hash_map.h"
-#include "absl/container/node_hash_set.h"
 #include "mbo/strings/string_id.h"
 #include "mbo/strings/string_interner_error.h"
+#include "mbo/strings/string_interner_traits.h"
 
 namespace mbo::strings {
 
 template<typename Id>
 concept StringInternerId = IsStringIdRepresentation<Id> || mbo::types::IsConstStrongId<Id>;
-
-// Whether insertion preserves the addresses of existing key objects, including short strings.
-// Unknown containers default to false. Custom containers may specialize this trait to true only
-// when every insertion preserves this guarantee; declare the specialization before interner use.
-template<typename Container>
-inline constexpr bool kHasStableKeyAddresses = false;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<std::map<Args...>> = true;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<std::set<Args...>> = true;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<std::unordered_map<Args...>> = true;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<std::unordered_set<Args...>> = true;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<absl::node_hash_map<Args...>> = true;
-
-template<typename... Args>
-inline constexpr bool kHasStableKeyAddresses<absl::node_hash_set<Args...>> = true;
-
-template<typename Container>
-struct StringInternerContainerTraits {
-  using KeyType = std::remove_const_t<typename Container::key_type>;
-  static constexpr bool kIsMap = requires { typename Container::mapped_type; };
-
-  template<typename Entry>
-  static constexpr decltype(auto) GetKey(Entry&& entry) noexcept {
-    if constexpr (kIsMap) {
-      return (std::forward<Entry>(entry).first);
-    } else {
-      return std::forward<Entry>(entry);
-    }
-  }
-};
-
-template<typename Container>
-using StringInternerKey = StringInternerContainerTraits<Container>::KeyType;
 
 // Key validation is independent of the mapped value.
 template<typename Container>

@@ -27,6 +27,7 @@ cc_library(
         ":string_id_cc",
         ":string_interner_base_cc",
         ":string_interner_policies_cc",
+        ":string_interner_traits_cc",
         ":string_interner_types_cc",
         "//mbo/config:require_cc",
         "//mbo/container:segmented_vector_cc",
@@ -61,10 +62,21 @@ cc_library(
     deps = [
         ":string_id_cc",
         ":string_interner_error_cc",
+        ":string_interner_traits_cc",
         "@abseil-cpp//absl/container:node_hash_map",
         "@abseil-cpp//absl/container:node_hash_set",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "string_interner_traits_cc",
+    hdrs = ["string_interner_traits.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/container:node_hash_set",
     ],
 )
 
@@ -129,6 +141,19 @@ cc_test(
     deps = [
         ":string_interner_policies_cc",
         "@abseil-cpp//absl/status:statusor",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_traits_test",
+    size = "small",
+    srcs = ["string_interner_traits_test.cc"],
+    deps = [
+        ":string_interner_traits_cc",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:node_hash_set",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

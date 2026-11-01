@@ -605,7 +605,9 @@ TEST_F(StringInternerTest, MapSupportsConstOwningKeysAndCustomHashCollisions) {
   ExpectMapEntry(owning.get(Id{0}), Pair("first", "one"));
 
   std::size_t calls = 0;
-  StringInternerMap<Id, int, CollidingHash> interner(nullptr, 0, CollidingHash{.calls = &calls, .value = 7});
+  using Interner = StringInternerMap<Id, int, CollidingHash>;
+  Interner interner(
+      Interner::options_type{.container = Interner::container_type(0, CollidingHash{.calls = &calls, .value = 7})});
   EXPECT_THAT(interner.insert("first", 10), Eq(Inserted{Id{0}, true}));
   EXPECT_THAT(interner.insert("second", 20), Eq(Inserted{Id{1}, true}));
   ExpectMapEntry(interner.get(Id{0}), Pair("first", 10));
@@ -646,7 +648,7 @@ TEST_F(StringInternerTest, SetAndMapExposeTheSameStringKeysAndSeparateIteratorId
 TEST_F(StringInternerTest, IdAccessAndIterationDoNotHashAndValuesSurviveIndexGrowth) {
   using Map = StringInternerMap<std::uint32_t, int, CollidingHash>;
   std::size_t calls = 0;
-  Map values(nullptr, 0, CollidingHash{.calls = &calls, .value = 7});
+  Map values(Map::options_type{.container = Map::container_type(0, CollidingHash{.calls = &calls, .value = 7})});
   ASSERT_THAT(values.insert("first", 10).has_value(), Eq(true));
   auto first = values.get(0);
   ASSERT_THAT(first.has_value(), Eq(true));
@@ -821,8 +823,10 @@ template<typename Interner>
 void ExpectStatefulHashAndCollisions() {
   using Id = Interner::id_type;
   using Inserted = std::pair<Id, bool>;
+  using Options = typename Interner::options_type;
+  using Container = typename Interner::container_type;
   std::size_t calls = 0;
-  Interner interner(nullptr, 0, CollidingHash{.calls = &calls, .value = 7});
+  Interner interner(Options{.container = Container(0, CollidingHash{.calls = &calls, .value = 7})});
   EXPECT_THAT(interner.insert("first"), Eq(Inserted{Id{0}, true}));
   EXPECT_THAT(interner.insert("second"), Eq(Inserted{Id{1}, true}));
   EXPECT_THAT(interner.insert("first"), Eq(Inserted{Id{0}, false}));

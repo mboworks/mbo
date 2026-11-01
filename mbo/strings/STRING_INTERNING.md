@@ -128,12 +128,13 @@ a mapped value. Custom entry containers must store that corresponding entry type
 bidirectional iteration, `size()`, default `emplace_back()`, and mutable `back()`. A fallible
 `try_emplace_back()` is used when available.
 
-The parent constructor forwards additional arguments to the string container. They must construct
-an empty index. For example, a stateful default-index hasher can be supplied as
-`StringInternerSet<Id, MyHash> strings(nullptr, 0, MyHash{seed})`. Both wrappers inherit this
-constructor and the base's parent-prefix behavior. The same constructor supports a
-container's comparator or allocator arguments. Hashing and allocating operations retain the
-selected container's exception behavior; string lookup is not forced through a `noexcept` adapter.
+The interner constructor accepts only a parent pointer, or an `options_type` containing a parent
+and a fully constructed empty index. This avoids forwarding arbitrary arguments to the selected
+container. For example, a stateful default-index hasher can be supplied as
+`StringInternerSet<Id, MyHash> strings({.container = {0, MyHash{seed}}})`. Both wrappers inherit
+these constructors and the base's parent-prefix behavior. Hashing and allocating operations retain
+the selected container's exception behavior; string lookup is not forced through a `noexcept`
+adapter.
 ID lookup is `noexcept`. If a mapped-value constructor throws, only the new index entry is erased;
 character bytes and the reserved dense slot are retained for the next attempt.
 

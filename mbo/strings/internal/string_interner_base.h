@@ -58,9 +58,15 @@ class StringInternerBase {
   using ElementTraits = StringInternerElementTraits<Element>;
 
  public:
+  struct options_type {
+    const StringInternerBase* parent = nullptr;
+    StringContainer container{};
+  };
+
   using id_type = Id;
   using key_type = ElementTraits::KeyType;
   using value_type = std::remove_const_t<Element>;
+  using container_type = StringContainer;
   using element_type = Element;
   using reference = element_type&;
   using const_reference = const element_type&;
@@ -169,13 +175,13 @@ class StringInternerBase {
 
   StringInternerBase() = default;
 
-  // The forwarded arguments must construct an empty string container.
-  template<typename... Args>
-  requires std::constructible_from<StringContainer, Args...>
-  explicit StringInternerBase(const StringInternerBase* parent, Args&&... args)
-      : parent_(parent),
-        first_local_id_(parent == nullptr ? 0 : parent->size()),
-        strings_(std::forward<Args>(args)...) {}
+  explicit StringInternerBase(const StringInternerBase* parent)
+      : parent_(parent), first_local_id_(parent == nullptr ? 0 : parent->size()) {}
+
+  explicit StringInternerBase(options_type options)
+      : parent_(options.parent),
+        first_local_id_(options.parent == nullptr ? 0 : options.parent->size()),
+        strings_(std::move(options.container)) {}
 
   StringInternerBase(const StringInternerBase&) = delete;
   StringInternerBase& operator=(const StringInternerBase&) = delete;

@@ -11,6 +11,7 @@
 
 #include "absl/status/statusor.h"
 #include "mbo/strings/string_interner_error.h"
+#include "mbo/strings/string_interner_index.h"
 #include "mbo/types/optional_ref.h"
 
 namespace mbo::strings {
@@ -90,10 +91,14 @@ struct StringInternerLookupStlPolicy {
   }
 };
 
-template<typename ErrorPolicy = StringInternerErrorStlPolicy, typename LookupPolicy = StringInternerLookupMboPolicy>
+template<
+    typename ErrorPolicy = StringInternerErrorStlPolicy,
+    typename LookupPolicy = StringInternerLookupMboPolicy,
+    typename IndexPolicy = StringInternerIndexStlPolicy>
 struct StringInternerPolicyHolder
     : ErrorPolicy
     , LookupPolicy {
+  using index_policy = IndexPolicy;
   using ErrorPolicy::Failure;
   using ErrorPolicy::Success;
   using LookupPolicy::Get;

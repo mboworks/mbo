@@ -67,6 +67,7 @@ class StringInternerBase {
   using lookup_result = typename Policy::template lookup_result<element_type>;
   using const_lookup_result = typename Policy::template lookup_result<const element_type>;
   using policy = Policy;
+  using index_policy = typename Policy::index_policy;
 
  private:
   template<bool IsConst>
@@ -249,11 +250,12 @@ class StringInternerBase {
       }
       stored_key = *stored;
     }
+    const auto prepared = index_policy::Prepare(strings_, stored_key);
     const auto [position, inserted] = [&] {
       if constexpr (ContainerTraits::kIsMap) {
-        return strings_.emplace(StringInternerKey<StringContainer>(stored_key), *identifier);
+        return index_policy::Insert(strings_, prepared, *identifier);
       } else {
-        return strings_.emplace(StringInternerKey<StringContainer>(stored_key));
+        return index_policy::Insert(strings_, prepared, *identifier);
       }
     }();
     if (!inserted) {
@@ -329,7 +331,8 @@ class StringInternerBase {
   }
 
   std::optional<id_type> FindLocal(std::string_view key, size_type limit) const {
-    const auto found = strings_.find(key);
+    const auto prepared = index_policy::Prepare(strings_, key);
+    const auto found = index_policy::Find(strings_, prepared);
     if (found == strings_.end()) {
       return std::nullopt;
     }

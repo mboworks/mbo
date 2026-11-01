@@ -117,14 +117,26 @@ struct StringInternerLookupStlPolicy {
   }
 };
 
+// The exception-free policy omits the rollback guard around value publication. This is the
+// fastest mode and is also useful when the surrounding build enables exceptions globally.
+struct StringInternerExceptionFreePolicy {
+  static constexpr bool kRollbackOnException = false;
+};
+
+struct StringInternerExceptionSafePolicy {
+  static constexpr bool kRollbackOnException = true;
+};
+
 template<
     typename ErrorPolicy = StringInternerErrorStlPolicy,
     typename LookupPolicy = StringInternerLookupMboPolicy,
-    typename IndexPolicy = StringInternerIndexStlPolicy>
+    typename IndexPolicy = StringInternerIndexStlPolicy,
+    typename ExceptionPolicy = StringInternerExceptionFreePolicy>
 struct StringInternerPolicyHolder
     : ErrorPolicy
     , LookupPolicy {
   using index_policy = IndexPolicy;
+  using exception_policy = ExceptionPolicy;
   using ErrorPolicy::Failure;
   using ErrorPolicy::Success;
   using LookupPolicy::Get;

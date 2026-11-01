@@ -40,5 +40,16 @@ TEST_F(StringInternerPoliciesTest, LookupPoliciesPreserveReferences) {
   EXPECT_THAT(value, Eq("changed"));
 }
 
+TEST_F(StringInternerPoliciesTest, ExceptionPoliciesSelectRollbackMode) {
+  static_assert(!StringInternerExceptionFreePolicy::kRollbackOnException);
+  static_assert(StringInternerExceptionSafePolicy::kRollbackOnException);
+  static_assert(!StringInternerPolicyHolder<>::exception_policy::kRollbackOnException);
+  static_assert(StringInternerPolicyHolder<
+                StringInternerErrorStlPolicy, StringInternerLookupMboPolicy, StringInternerIndexStlPolicy,
+                StringInternerExceptionSafePolicy>::exception_policy::kRollbackOnException);
+  EXPECT_THAT(StringInternerExceptionFreePolicy::kRollbackOnException, Eq(false));
+  EXPECT_THAT(StringInternerExceptionSafePolicy::kRollbackOnException, Eq(true));
+}
+
 }  // namespace
 }  // namespace mbo::strings

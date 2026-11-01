@@ -286,14 +286,21 @@ class StringInternerBase {
     if (!inserted) {
       return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
     }
+    const auto publish = [&] {
+      ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
+    };
 #if __cpp_exceptions
-    // If a caller's value constructor throws, discard only the unpublished index entry.
-    // Character storage and the reserved dense slot remain append-only.
-    absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
-#endif
-    ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
-#if __cpp_exceptions
-    std::move(erase_unpublished).Cancel();
+    if constexpr (Policy::exception_policy::kRollbackOnException) {
+      // If a caller's value constructor throws, discard only the unpublished index entry.
+      // Character storage and the reserved dense slot remain append-only.
+      absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
+      publish();
+      std::move(erase_unpublished).Cancel();
+    } else {
+      publish();
+    }
+#else
+    publish();
 #endif
     ++local_size_;
     return Policy::Success(*identifier, true);

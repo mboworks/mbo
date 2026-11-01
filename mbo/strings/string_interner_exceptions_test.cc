@@ -51,13 +51,32 @@ void ExpectConstructionFailurePreservesPublishedEntries() {
   EXPECT_THAT(values.try_emplace("failed", -1), Eq(Inserted{2, false}));
 }
 
+using ExceptionSafePolicy = StringInternerPolicyHolder<
+    StringInternerErrorStlPolicy,
+    StringInternerLookupMboPolicy,
+    StringInternerIndexStlPolicy,
+    StringInternerExceptionSafePolicy>;
+using FlatIndex = absl::flat_hash_map<std::string_view, std::uint32_t>;
+using FlatMap = StringInternerMap<
+    std::uint32_t,
+    ThrowingValue,
+    absl::DefaultHashContainerHash<std::string_view>,
+    FlatIndex,
+    ArenaStringStorage<>,
+    strings_internal::StringInternerEntriesFor<std::pair<const std::string_view, ThrowingValue>>,
+    ExceptionSafePolicy>;
+
 TEST_F(StringInternerExceptionsTest, ViewKeyIndexDiscardsUnpublishedEntryWhenValueConstructionThrows) {
-  ExpectConstructionFailurePreservesPublishedEntries<StringInternerMap<std::uint32_t, ThrowingValue>>();
+  ExpectConstructionFailurePreservesPublishedEntries<FlatMap>();
 }
 
 TEST_F(StringInternerExceptionsTest, OwningKeyIndexDiscardsUnpublishedEntryWhenValueConstructionThrows) {
   using Index = std::map<std::string, std::uint32_t, std::less<>>;
-  ExpectConstructionFailurePreservesPublishedEntries<StringInternerMap<std::uint32_t, ThrowingValue, void, Index>>();
+  using OwningMap = StringInternerMap<
+      std::uint32_t, ThrowingValue, void, Index, void,
+      strings_internal::StringInternerEntriesFor<strings_internal::StringInternerMapElement<Index, ThrowingValue>>,
+      ExceptionSafePolicy>;
+  ExpectConstructionFailurePreservesPublishedEntries<OwningMap>();
 }
 
 }  // namespace

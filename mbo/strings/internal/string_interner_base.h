@@ -18,6 +18,13 @@
 #include <utility>
 #include <variant>
 
+#if __has_include(<flat_map>)
+# include <flat_map>
+#endif
+#if __has_include(<flat_set>)
+# include <flat_set>
+#endif
+
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -30,14 +37,26 @@
 
 namespace mbo::strings::strings_internal {
 
+// Owning string keys must not move when the index grows. Custom contiguous or open-addressing
+// indexes must specialize this trait to true when their key addresses are not stable.
 template<typename Container>
-inline constexpr bool kIsFlatHashContainer = false;
+inline constexpr bool kHasUnstableKeyAddresses = false;
 
 template<typename... Args>
-inline constexpr bool kIsFlatHashContainer<absl::flat_hash_map<Args...>> = true;
+inline constexpr bool kHasUnstableKeyAddresses<absl::flat_hash_map<Args...>> = true;
 
 template<typename... Args>
-inline constexpr bool kIsFlatHashContainer<absl::flat_hash_set<Args...>> = true;
+inline constexpr bool kHasUnstableKeyAddresses<absl::flat_hash_set<Args...>> = true;
+
+#if __has_include(<flat_map>)
+template<typename... Args>
+inline constexpr bool kHasUnstableKeyAddresses<std::flat_map<Args...>> = true;
+#endif
+
+#if __has_include(<flat_set>)
+template<typename... Args>
+inline constexpr bool kHasUnstableKeyAddresses<std::flat_set<Args...>> = true;
+#endif
 
 // Element storage is independent of the string index. Views are inexpensive values;
 // owning keys are referenced in their address-stable string container.
@@ -139,7 +158,7 @@ requires(
     && std::same_as<typename StringInternerElementTraits<Element>::KeyType, StringInternerKey<StringContainer>>
     && StringInternerEntries<Entries, typename StringInternerElementTraits<Element>::Entry>
     && ((std::same_as<Storage, void> && std::same_as<StringInternerKey<StringContainer>, std::string>
-         && !kIsFlatHashContainer<StringContainer>)
+         && !kHasUnstableKeyAddresses<StringContainer>)
         || (StringInternerStorage<Storage> && std::same_as<StringInternerKey<StringContainer>, std::string_view>)))
 class StringInternerBase {
   using ContainerTraits = StringInternerContainerTraits<StringContainer>;

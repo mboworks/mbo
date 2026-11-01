@@ -841,7 +841,7 @@ TEST_F(StringInternerTest, StorageSelectionFollowsKeyOwnership) {
   static_assert(!SupportsInternerStorage<OwningSet, ArenaStringStorage<>>);
 }
 
-TEST_F(StringInternerTest, OwningFlatHashContainersAreRejected) {
+TEST_F(StringInternerTest, OwningUnstableKeyContainersAreRejected) {
   using OwningMap = absl::flat_hash_map<std::string, StringIdU32<>>;
   using BorrowingMap = absl::flat_hash_map<std::string_view, StringIdU32<>>;
   static_assert(!SupportsInternerStorage<OwningMap, void>);

@@ -139,6 +139,7 @@ requires(
 class StringInternerBase {
   using ContainerTraits = StringInternerContainerTraits<StringContainer>;
   using ElementTraits = StringInternerElementTraits<Element>;
+
  public:
   using id_type = Id;
   using key_type = ElementTraits::KeyType;

@@ -15,8 +15,8 @@ namespace mbo::strings {
 
 namespace arena_string_storage_internal {
 inline constexpr mbo::memory::ArenaOptions kDefaultArenaOptions{
-    .initial_block_size = 256,
-    .maximum_block_size = 1'024,
+    .initial_block_size = 4'096,
+    .maximum_block_size = 65'536,
     .growth_numerator = 2,
     .growth_denominator = 1,
 };

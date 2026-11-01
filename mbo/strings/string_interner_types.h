@@ -66,7 +66,6 @@ struct StringInternerErrorStlPolicy {
   static insertion_result<Id> Failure(StringInternerError error) {
     return std::unexpected(error);
   }
-
 };
 
 struct StringInternerErrorStatusPolicy {
@@ -131,10 +130,10 @@ struct StringInternerLookupStlPolicy {
   }
 };
 
-template<
-    typename ErrorPolicy = StringInternerErrorStlPolicy,
-    typename LookupPolicy = StringInternerLookupMboPolicy>
-struct StringInternerPolicyHolder : ErrorPolicy, LookupPolicy {
+template<typename ErrorPolicy = StringInternerErrorStlPolicy, typename LookupPolicy = StringInternerLookupMboPolicy>
+struct StringInternerPolicyHolder
+    : ErrorPolicy
+    , LookupPolicy {
   using ErrorPolicy::Failure;
   using ErrorPolicy::Success;
   using LookupPolicy::Get;

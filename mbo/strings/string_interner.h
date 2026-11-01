@@ -34,33 +34,19 @@ template<
     typename Policy = StringInternerPolicyHolder<>>
 requires requires {
   typename strings_internal::StringInternerBase<
-      Id,
-      const StringInternerKey<StringContainer>,
-      Hash,
-      StringContainer,
-      Storage,
-      Entries,
-      Policy>;
+      Id, const StringInternerKey<StringContainer>, Hash, StringContainer, Storage, Entries, Policy>;
 }
 class StringInternerSet final
-    : public strings_internal::
-          StringInternerBase<
-              Id,
-              const StringInternerKey<StringContainer>,
-              Hash,
-              StringContainer,
-              Storage,
-              Entries,
-              Policy> {
-  using Base = strings_internal::
-      StringInternerBase<
+    : public strings_internal::StringInternerBase<
           Id,
           const StringInternerKey<StringContainer>,
           Hash,
           StringContainer,
           Storage,
           Entries,
-          Policy>;
+          Policy> {
+  using Base = strings_internal::
+      StringInternerBase<Id, const StringInternerKey<StringContainer>, Hash, StringContainer, Storage, Entries, Policy>;
 
  public:
   using Base::Base;
@@ -80,12 +66,7 @@ template<
     typename Policy = StringInternerPolicyHolder<>>
 requires requires {
   typename strings_internal::StringInternerBase<
-      Id,
-      strings_internal::StringInternerMapElement<StringContainer, Value>,
-      Hash,
-      StringContainer,
-      Storage,
-      Entries,
+      Id, strings_internal::StringInternerMapElement<StringContainer, Value>, Hash, StringContainer, Storage, Entries,
       Policy>;
 }
 class StringInternerMap final

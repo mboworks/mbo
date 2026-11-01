@@ -16,6 +16,8 @@
 
 namespace mbo::strings {
 
+// NOLINTBEGIN(readability-identifier-naming): policies expose the interner's STL-style type aliases.
+
 // Index policies own hash/probe preparation. A prepared value may contain a hash, bucket, and
 // container-specific probe state; it must remain valid until Find or Insert is called. Insert
 // normally returns the container's iterator/bool pair directly. A fallible policy may instead
@@ -26,7 +28,7 @@ struct StringInternerIndexStlPolicy {
   using prepared_type = std::string_view;
 
   template<typename Container>
-  static prepared_type<Container> Prepare(const Container&, std::string_view key) noexcept {
+  static prepared_type<Container> Prepare(const Container& /*container*/, std::string_view key) noexcept {
     return key;
   }
 
@@ -116,7 +118,11 @@ struct StringInternerLookupStlPolicy {
 
   template<typename T>
   static T& Get(result<T>& value) noexcept {
-    return value->get();
+    // As with dereferencing a standard iterator, the caller must provide an engaged result.
+    if (value) {
+      return value->get();
+    }
+    std::unreachable();
   }
 };
 
@@ -146,11 +152,13 @@ struct StringInternerPolicyHolder
   using LookupPolicy::Make;
 
   template<typename Id>
-  using insertion_result = typename ErrorPolicy::template insertion_result<Id>;
+  using insertion_result = ErrorPolicy::template insertion_result<Id>;
 
   template<typename T>
-  using lookup_result = typename LookupPolicy::template result<T>;
+  using lookup_result = LookupPolicy::template result<T>;
 };
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace mbo::strings
 

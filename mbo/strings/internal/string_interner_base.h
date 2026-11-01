@@ -70,11 +70,11 @@ class StringInternerBase {
   using reference = element_type&;
   using const_reference = const element_type&;
   using size_type = std::size_t;  // MUST be unsigned.
-  using insertion_result = typename Policy::template insertion_result<id_type>;
-  using lookup_result = typename Policy::template lookup_result<element_type>;
-  using const_lookup_result = typename Policy::template lookup_result<const element_type>;
+  using insertion_result = Policy::template insertion_result<id_type>;
+  using lookup_result = Policy::template lookup_result<element_type>;
+  using const_lookup_result = Policy::template lookup_result<const element_type>;
   using policy = Policy;
-  using index_policy = typename Policy::index_policy;
+  using index_policy = Policy::index_policy;
 
  private:
   template<bool IsConst>
@@ -96,7 +96,8 @@ class StringInternerBase {
 
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
-    // NOLINTNEXTLINE(google-explicit-constructor): Mutable iterators convert to const iterators.
+    // Mutable iterators implicitly convert to const iterators, as in STL containers.
+    // NOLINTNEXTLINE(google-explicit-constructor,cppcoreguidelines-explicit-constructor,misc-explicit-constructor)
     Iterator(const Iterator<OtherConst>& other) noexcept : owner_(other.owner_), position_(other.position_) {}
 
     reference operator*() const noexcept { return ElementAt(*owner_, position_); }
@@ -272,6 +273,7 @@ class StringInternerBase {
     if (entries_.size() == local_size_ && !TryAppendEntry()) {
       return Policy::template Failure<id_type>(StringInternerError::kEntryStorageExhausted);
     }
+    // NOLINTNEXTLINE(misc-const-correctness): the separate-storage specialization rebinds this view.
     auto stored_key = key;
     if constexpr (!std::same_as<Storage, void>) {
       const auto stored = storage_.try_store(key);
@@ -281,7 +283,7 @@ class StringInternerBase {
       stored_key = *stored;
     }
     const auto prepared = index_policy::Prepare(strings_, stored_key);
-    const auto finish_insert = [&](typename StringContainer::iterator position, bool inserted) -> insertion_result {
+    const auto finish_insert = [&](StringContainer::iterator position, bool inserted) -> insertion_result {
       if (!inserted) {
         return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
       }

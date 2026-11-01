@@ -13,10 +13,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@mboworks_bashtest//bashtest:bashtest.bzl", "bashtest")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 
 package(default_visibility = ["//visibility:private"])
+
+cc_binary(
+    name = "string_interner_benchmark",
+    testonly = True,
+    srcs = ["string_interner_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_interner_base_cc",
+        ":string_interner_cc",
+        ":string_interner_policies_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/memory:arena_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "string_interner_exceptions_benchmark",
+    testonly = True,
+    srcs = ["string_interner_benchmark.cc"],
+    copts = ["-fexceptions"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_interner_base_cc",
+        ":string_interner_cc",
+        ":string_interner_policies_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/memory:arena_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+bashtest(
+    name = "string_interner_benchmark_test",
+    size = "small",
+    srcs = ["string_interner_benchmark_test.sh"],
+    data = [":string_interner_benchmark"],
+)
 
 cc_library(
     name = "string_interner_cc",
@@ -114,6 +171,7 @@ cc_test(
         ":string_id_cc",
         ":string_interner_base_cc",
         ":string_interner_cc",
+        ":string_interner_error_cc",
         ":string_interner_types_cc",
         "//mbo/testing:status_cc",
         "@abseil-cpp//absl/container:flat_hash_set",

@@ -1,5 +1,8 @@
 # String interning design
 
+The checked-in [benchmark harness and measurement instructions](STRING_INTERNER_BENCHMARKS.md)
+cover the current implementation and its supported configuration choices.
+
 This document records the design of an owning string interner for `mbo::strings`. It is a design
 document, not yet an API contract. Settled decisions are separated from questions so experiments
 can change the implementation without obscuring the required semantics.

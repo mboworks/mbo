@@ -51,6 +51,7 @@ using ::testing::IsEmpty;
 using ::testing::Optional;
 using ::testing::Pair;
 using ::testing::Pointee;
+using ::testing::ResultOf;
 using ::testing::SizeIs;
 
 struct StringInternerTest : ::testing::Test {};
@@ -124,7 +125,7 @@ struct FallibleIndexPolicy final {
   using prepared_type = std::string_view;
 
   template<typename Container>
-  static prepared_type<Container> Prepare(const Container&, std::string_view key) noexcept {
+  static prepared_type<Container> Prepare(const Container& /*container*/, std::string_view key) noexcept {
     return key;
   }
 
@@ -292,8 +293,10 @@ TEST_F(StringInternerTest, StlResultPolicyUsesReferenceWrappersForLookup) {
   static_assert(std::same_as<Base::const_lookup_result, std::optional<std::reference_wrapper<const std::string_view>>>);
   Base interner;
   ASSERT_THAT(interner.insert("value").has_value(), Eq(true));
-  ASSERT_THAT(interner.get(StringIdU32<>(0)).has_value(), Eq(true));
-  EXPECT_THAT(interner.get(StringIdU32<>(0))->get(), Eq(std::string_view("value")));
+  EXPECT_THAT(
+      interner.get(StringIdU32<>(0)),
+      Optional(
+          ResultOf([](const auto& entry) -> decltype(auto) { return entry.get(); }, Eq(std::string_view("value")))));
 }
 
 TEST_F(StringInternerTest, OptionalErrorPolicyDropsDetailedInsertionErrors) {
@@ -861,8 +864,8 @@ template<typename Interner>
 void ExpectStatefulHashAndCollisions() {
   using Id = Interner::id_type;
   using Inserted = std::pair<Id, bool>;
-  using Options = typename Interner::options_type;
-  using Container = typename Interner::container_type;
+  using Options = Interner::options_type;
+  using Container = Interner::container_type;
   std::size_t calls = 0;
   Interner interner(Options{.container = Container(0, CollidingHash{.calls = &calls, .value = 7})});
   EXPECT_THAT(interner.insert("first"), Eq(Inserted{Id{0}, true}));

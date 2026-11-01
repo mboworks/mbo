@@ -18,7 +18,7 @@ struct ArenaStringStorageTest : ::testing::Test {};
 TEST_F(ArenaStringStorageTest, CopiesBytesIncludingEmbeddedNulsAndDoesNotBorrowInput) {
   ArenaStringStorage<> storage;
   std::string input("a\0b", 3);
-  auto stored = storage.try_store(input);
+  const auto stored = storage.try_store(input);
   ASSERT_THAT(stored.has_value(), Eq(true));
   input.assign("changed");
   EXPECT_THAT(stored.value_or(std::string_view{}), Eq(std::string_view("a\0b", 3)));

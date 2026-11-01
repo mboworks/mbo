@@ -64,10 +64,9 @@ struct StringInternerElementTraits<std::pair<Key, Value>> {
 
   template<typename Slot>
   static decltype(auto) GetElement(Slot& entry) noexcept {
-    if (entry) {
-      return *entry;
-    }
-    std::unreachable();
+    // Only published slots in [0, local_size) are exposed through IDs and iterators.
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    return *entry;
   }
 
   static const KeyType& GetKey(const Element& element) noexcept { return element.first; }

@@ -119,10 +119,8 @@ struct StringInternerLookupStlPolicy {
   template<typename T>
   static T& Get(result<T>& value) noexcept {
     // As with dereferencing a standard iterator, the caller must provide an engaged result.
-    if (value) {
-      return value->get();
-    }
-    std::unreachable();
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    return value->get();
   }
 };
 

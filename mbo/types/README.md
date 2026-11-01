@@ -795,7 +795,7 @@ use a serialization library when schema evolution, parsing, or protocol guarante
 - `SetStringifyOstreamOptions` accepts an options lvalue; its rvalue overload is deleted.
 - The adapter is separate from `extender::Streamable`. For output with a particular formatting policy,
   use a `Stringify` instance's `Stream(out, value)` or `ToString(value)` directly.
-The package also provides utilities that do not depend on `Extend`:
+  The package also provides utilities that do not depend on `Extend`:
 
 | Utility                                | Purpose                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------- |

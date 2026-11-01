@@ -1171,6 +1171,54 @@ TEST_F(StringInternerTest, EightBitIdsReserveInvalidValueAndFindDuplicatesAfterE
   EXPECT_THAT(interner.size(), Eq(255));
 }
 
+template<typename Id>
+void ExpectPlainIdExhaustion() {
+  using Inserted = std::pair<Id, bool>;
+  TestStringInterner<Id> interner;
+  const auto last = static_cast<unsigned>(std::numeric_limits<Id>::max());
+  for (unsigned ordinal = 0; ordinal <= last; ++ordinal) {
+    ASSERT_THAT(interner.insert(std::to_string(ordinal)), Eq(Inserted{static_cast<Id>(ordinal), true}));
+  }
+  EXPECT_THAT(interner, SizeIs(last + 1));
+  EXPECT_THAT(interner.get_string(std::numeric_limits<Id>::max()), Optional(Eq(std::to_string(last))));
+  EXPECT_THAT(interner.insert("exhausted"), Eq(std::unexpected(StringInternerError::kIdExhausted)));
+  EXPECT_THAT(interner.find("exhausted"), Eq(std::nullopt));
+  EXPECT_THAT(interner.insert("0"), Eq(Inserted{0, false}));
+  EXPECT_THAT(interner, SizeIs(last + 1));
+}
+
+TEST_F(StringInternerTest, SignedPlainIdsUseEveryNonnegativeValueBeforeExhaustion) {
+  ExpectPlainIdExhaustion<std::int8_t>();
+}
+
+TEST_F(StringInternerTest, UnsignedPlainIdsUseEveryValueBeforeExhaustion) {
+  ExpectPlainIdExhaustion<std::uint8_t>();
+}
+
+TEST_F(StringInternerTest, StringLookupRejectsMissingAndNegativeIds) {
+  StringInternerSet<std::int32_t> interner;
+  EXPECT_THAT(interner.get_string(0), Eq(std::nullopt));
+  ASSERT_THAT(interner.insert("value"), Eq(std::pair<std::int32_t, bool>{0, true}));
+  EXPECT_THAT(interner.get_string(0), Optional(Eq("value")));
+  EXPECT_THAT(interner.get_string(1), Eq(std::nullopt));
+  EXPECT_THAT(interner.get_string(-1), Eq(std::nullopt));
+}
+
+TEST_F(StringInternerTest, OptionsCaptureTheParentPrefixAndNullParentConstructsARoot) {
+  using Interner = StringInternerSet<std::uint32_t>;
+  using Inserted = std::pair<std::uint32_t, bool>;
+  Interner root(nullptr);
+  ASSERT_THAT(root.insert("root"), Eq(Inserted{0, true}));
+  Interner child(Interner::options_type{.parent = &root});
+  EXPECT_THAT(child.parent(), Eq(&root));
+  EXPECT_THAT(child.first_local_id(), Eq(1));
+  ASSERT_THAT(root.insert("late-root"), Eq(Inserted{1, true}));
+  EXPECT_THAT(child.find("root"), Optional(Eq(0)));
+  EXPECT_THAT(child.find("late-root"), Eq(std::nullopt));
+  EXPECT_THAT(child.insert("child"), Eq(Inserted{1, true}));
+  EXPECT_THAT(child, ElementsAre("root", "child"));
+}
+
 TEST_F(StringInternerTest, EmptyDeclaredParentRetainsIdentityWithoutExposingLaterValues) {
   TestStringInterner<> root;
   TestStringInterner<> child(&root);

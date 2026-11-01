@@ -15,13 +15,9 @@ namespace mbo::strings {
 enum class StringInternerError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
 
 [[nodiscard]] constexpr absl::StatusCode ToStatusCode(StringInternerError error) noexcept {
-  switch (error) {
-    case StringInternerError::kCharacterStorageExhausted:
-    case StringInternerError::kEntryStorageExhausted: return absl::StatusCode::kResourceExhausted;
-    case StringInternerError::kIdExhausted: return absl::StatusCode::kOutOfRange;
-    case StringInternerError::kIndexExhausted: return absl::StatusCode::kResourceExhausted;
-  }
-  std::unreachable();
+  // IDs exhaust their representable range; all storage failures exhaust a resource.
+  return error == StringInternerError::kIdExhausted ? absl::StatusCode::kOutOfRange
+                                                    : absl::StatusCode::kResourceExhausted;
 }
 
 template<typename Id>

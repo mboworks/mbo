@@ -114,8 +114,8 @@ rejected. These rules also apply to const-qualified keys and to both maps and se
 Owning containers must preserve key addresses during insertion, including for short strings.
 Flat-hash, C++23 flat-associative, and unknown custom containers are rejected at compile time for
 owning keys because growth may move their keys. Flat containers with `std::string_view` keys remain
-supported because separate storage owns the characters. Standard node containers and Abseil node
-containers are explicitly recognized as stable. Other custom indexes must specialize
+supported because separate storage owns the characters. Standard node containers and Abseil
+`node_hash_map` / `node_hash_set` are explicitly recognized as stable. Other custom indexes must specialize
 `mbo::strings::kHasStableKeyAddresses<CustomIndex>` to `true` before interner use, and only when
 they provide the same lifetime guarantee. The trait is declared in `string_interner_types.h` and
 defaults to `false`; no member marker is required or inspected on the container.

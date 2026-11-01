@@ -29,6 +29,7 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
+#include "absl/container/node_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "gmock/gmock.h"
@@ -689,6 +690,18 @@ TEST_F(StringInternerTest, OwningAbseilNodeMapPreservesShortAndLongViewsThroughG
   using Hash = absl::DefaultHashContainerHash<std::string_view>;
   ExpectDefaultIndexStability<
       StringInternerSet<std::uint64_t, Hash, absl::node_hash_map<std::string, std::uint64_t>>>();
+}
+
+TEST_F(StringInternerTest, OwningAbseilNodeSetPreservesShortAndLongViewsThroughGrowth) {
+  using Id = StringIdU32<>;
+  using Hash = absl::DefaultHashContainerHash<std::string_view>;
+  using Index = absl::node_hash_set<std::string>;
+  static_assert(kHasStableKeyAddresses<Index>);
+  static_assert(SupportsInternerStorage<Index, void>);
+  static_assert(SupportsSetStorage<Index, void>);
+  static_assert(SupportsMapStorage<Index, void>);
+  ExpectDefaultIndexStability<StringInternerSet<Id, Hash, Index>>();
+  ExpectMapGrowth<StringInternerMap<Id, std::uint32_t, Hash, Index>>();
 }
 
 TEST_F(StringInternerTest, StandardUnorderedMapPreservesBorrowedViewsThroughGrowth) {

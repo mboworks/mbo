@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "absl/container/node_hash_map.h"
+#include "absl/container/node_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "mbo/strings/string_id.h"
@@ -70,6 +71,9 @@ inline constexpr bool kHasStableKeyAddresses<std::unordered_set<Args...>> = true
 
 template<typename... Args>
 inline constexpr bool kHasStableKeyAddresses<absl::node_hash_map<Args...>> = true;
+
+template<typename... Args>
+inline constexpr bool kHasStableKeyAddresses<absl::node_hash_set<Args...>> = true;
 
 template<typename Container>
 struct StringInternerContainerTraits {

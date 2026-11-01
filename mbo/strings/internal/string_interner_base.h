@@ -281,30 +281,36 @@ class StringInternerBase {
       stored_key = *stored;
     }
     const auto prepared = index_policy::Prepare(strings_, stored_key);
-    const auto [position, inserted] = [&] {
-      if constexpr (ContainerTraits::kIsMap) {
-        return index_policy::Insert(strings_, prepared, *identifier);
-      } else {
-        return index_policy::Insert(strings_, prepared, *identifier);
+    const auto finish_insert = [&](typename StringContainer::iterator position, bool inserted) -> insertion_result {
+      if (!inserted) {
+        return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
       }
-    }();
-    if (!inserted) {
-      return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
-    }
-    const auto publish = [&] {
-      ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
+      const auto publish = [&] {
+        ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
+      };
+      if constexpr (mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException) {
+        // If a caller's value constructor throws, discard only the unpublished index entry.
+        // Character storage and the reserved dense slot remain append-only.
+        absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
+        publish();
+        std::move(erase_unpublished).Cancel();
+      } else {
+        publish();
+      }
+      ++local_size_;
+      return Policy::Success(*identifier, true);
     };
-    if constexpr (mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException) {
-      // If a caller's value constructor throws, discard only the unpublished index entry.
-      // Character storage and the reserved dense slot remain append-only.
-      absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
-      publish();
-      std::move(erase_unpublished).Cancel();
+    auto index_result = index_policy::Insert(strings_, prepared, *identifier);
+    if constexpr (requires { index_result.error(); }) {
+      if (!index_result) {
+        return Policy::template Failure<id_type>(index_result.error());
+      }
+      auto [position, inserted] = *std::move(index_result);
+      return finish_insert(position, inserted);
     } else {
-      publish();
+      auto [position, inserted] = index_result;
+      return finish_insert(position, inserted);
     }
-    ++local_size_;
-    return Policy::Success(*identifier, true);
   }
 
  private:

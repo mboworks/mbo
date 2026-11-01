@@ -119,6 +119,32 @@ struct CollidingHash final {
   std::size_t value;
 };
 
+struct FallibleIndexPolicy final {
+  template<typename Container>
+  using prepared_type = std::string_view;
+
+  template<typename Container>
+  static prepared_type<Container> Prepare(const Container&, std::string_view key) noexcept {
+    return key;
+  }
+
+  template<typename Container>
+  static auto Find(const Container& container, prepared_type<Container> key) {
+    return container.find(key);
+  }
+
+  template<typename Container, typename Id>
+  static std::expected<std::pair<typename Container::iterator, bool>, StringInternerError> Insert(
+      Container& container,
+      prepared_type<Container> key,
+      Id identifier) {
+    if (key == "reject") {
+      return std::unexpected(StringInternerError::kIndexExhausted);
+    }
+    return container.emplace(typename Container::key_type(key), identifier);
+  }
+};
+
 struct MutableStringKeys final {
   using key_type = std::string_view;
   using mapped_type = int;
@@ -233,6 +259,18 @@ TEST_F(StringInternerTest, BaseArenaAndFlatIndexPreserveViewsThroughGrowth) {
   static_assert(
       std::same_as<Base::insertion_result, std::expected<std::pair<StringIdU32<>, bool>, StringInternerError>>);
   ExpectDefaultIndexStability<Base>();
+}
+
+TEST_F(StringInternerTest, FallibleIndexPolicyReportsDirectIndexErrors) {
+  using Policy =
+      StringInternerPolicyHolder<StringInternerErrorStlPolicy, StringInternerLookupMboPolicy, FallibleIndexPolicy>;
+  using Base = strings_internal::StringInternerBase<
+      StringIdU32<>, const std::string_view, absl::DefaultHashContainerHash<std::string_view>,
+      absl::flat_hash_map<std::string_view, StringIdU32<>>, ArenaStringStorage<>,
+      strings_internal::StringInternerEntriesFor<const std::string_view>, Policy>;
+  Base interner;
+  EXPECT_THAT(interner.insert("reject"), Eq(std::unexpected(StringInternerError::kIndexExhausted)));
+  EXPECT_THAT(interner.insert("accepted"), Eq(std::pair<StringIdU32<>, bool>{0, true}));
 }
 
 TEST_F(StringInternerTest, CapacityReportsDenseEntryCapacity) {

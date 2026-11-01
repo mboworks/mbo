@@ -17,7 +17,10 @@
 namespace mbo::strings {
 
 // Index policies own hash/probe preparation. A prepared value may contain a hash, bucket, and
-// container-specific probe state; it must remain valid until Find or Insert is called.
+// container-specific probe state; it must remain valid until Find or Insert is called. Insert
+// normally returns the container's iterator/bool pair directly. A fallible policy may instead
+// return std::expected<std::pair<iterator, bool>, StringInternerError> to report an index-specific
+// failure without throwing.
 struct StringInternerIndexStlPolicy {
   template<typename Container>
   using prepared_type = std::string_view;

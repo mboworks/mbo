@@ -84,6 +84,23 @@ struct StringInternerErrorStatusPolicy {
   }
 };
 
+// Optional insertion results are useful when callers only distinguish success from failure.
+// Unlike the status and expected policies, this policy intentionally discards the specific error.
+struct StringInternerErrorOptionalPolicy {
+  template<typename Id>
+  using insertion_result = std::optional<std::pair<Id, bool>>;
+
+  template<typename Id>
+  static insertion_result<Id> Success(Id identifier, bool inserted) {
+    return std::pair<Id, bool>(identifier, inserted);
+  }
+
+  template<typename Id>
+  static insertion_result<Id> Failure(StringInternerError /*error*/) {
+    return std::nullopt;
+  }
+};
+
 struct StringInternerLookupMboPolicy {
   template<typename T>
   using result = mbo::types::OptionalRef<T>;

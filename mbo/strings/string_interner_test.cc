@@ -252,6 +252,21 @@ TEST_F(StringInternerTest, StlResultPolicyUsesReferenceWrappersForLookup) {
   EXPECT_THAT(interner.get(StringIdU32<>(0))->get(), Eq(std::string_view("value")));
 }
 
+TEST_F(StringInternerTest, OptionalErrorPolicyDropsDetailedInsertionErrors) {
+  using Policy = StringInternerPolicyHolder<
+      StringInternerErrorOptionalPolicy,
+      StringInternerLookupStlPolicy>;
+  using Base = strings_internal::StringInternerBase<
+      StringIdU32<>,
+      const std::string_view,
+      absl::DefaultHashContainerHash<std::string_view>,
+      absl::flat_hash_map<std::string_view, StringIdU32<>>,
+      ArenaStringStorage<>,
+      strings_internal::StringInternerEntriesFor<const std::string_view>,
+      Policy>;
+  static_assert(std::same_as<Base::insertion_result, std::optional<std::pair<StringIdU32<>, bool>>>);
+}
+
 TEST_F(StringInternerTest, DefaultSetWrapperPreservesViewsThroughGrowth) {
   ExpectDefaultIndexStability<StringInternerSet<>>();
 }

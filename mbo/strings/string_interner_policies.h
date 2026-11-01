@@ -7,14 +7,40 @@
 #include <expected>
 #include <functional>
 #include <optional>
+#include <string_view>
 #include <utility>
 
 #include "absl/status/statusor.h"
 #include "mbo/strings/string_interner_error.h"
-#include "mbo/strings/string_interner_index.h"
 #include "mbo/types/optional_ref.h"
 
 namespace mbo::strings {
+
+// Index policies own hash/probe preparation. A prepared value may contain a hash, bucket, and
+// container-specific probe state; it must remain valid until Find or Insert is called.
+struct StringInternerIndexStlPolicy {
+  template<typename Container>
+  using prepared_type = std::string_view;
+
+  template<typename Container>
+  static prepared_type<Container> Prepare(const Container&, std::string_view key) noexcept {
+    return key;
+  }
+
+  template<typename Container>
+  static auto Find(const Container& container, prepared_type<Container> prepared) {
+    return container.find(prepared);
+  }
+
+  template<typename Container, typename Id>
+  static auto Insert(Container& container, prepared_type<Container> prepared, Id identifier) {
+    if constexpr (requires { typename Container::mapped_type; }) {
+      return container.emplace(typename Container::key_type(prepared), identifier);
+    } else {
+      return container.emplace(typename Container::key_type(prepared));
+    }
+  }
+};
 
 struct StringInternerErrorStlPolicy {
   template<typename Id>

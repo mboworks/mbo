@@ -27,7 +27,6 @@ cc_library(
         ":string_id_cc",
         ":string_interner_base_cc",
         ":string_interner_policies_cc",
-        ":string_interner_index_cc",
         ":string_interner_traits_cc",
         ":string_interner_types_cc",
         "//mbo/config:require_cc",
@@ -100,16 +99,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":string_interner_error_cc",
-        ":string_interner_index_cc",
         "//mbo/types:optional_ref_cc",
         "@abseil-cpp//absl/status:statusor",
     ],
-)
-
-cc_library(
-    name = "string_interner_index_cc",
-    hdrs = ["string_interner_index.h"],
-    visibility = ["//visibility:public"],
 )
 
 cc_test(

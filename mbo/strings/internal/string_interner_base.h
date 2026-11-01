@@ -359,12 +359,15 @@ class StringInternerBase {
   }
 
   std::optional<id_type> FindForward(std::string_view key, size_type limit) const {
-    if (parent_ != nullptr) {
-      if (auto found = parent_->FindForward(key, first_local_id_)) {
+    const auto* owner = this;
+    while (owner != nullptr) {
+      if (auto found = owner->FindLocal(key, limit)) {
         return found;
       }
+      limit = owner->first_local_id_;
+      owner = owner->parent_;
     }
-    return FindLocal(key, limit);
+    return std::nullopt;
   }
 
   const StringInternerBase* const parent_ = nullptr;

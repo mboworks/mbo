@@ -12,7 +12,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "absl/cleanup/cleanup.h"
+#if __cpp_exceptions
+# include "absl/cleanup/cleanup.h"
+#endif
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/hash_container_defaults.h"
@@ -284,11 +286,15 @@ class StringInternerBase {
     if (!inserted) {
       return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
     }
+#if __cpp_exceptions
     // If a caller's value constructor throws, discard only the unpublished index entry.
     // Character storage and the reserved dense slot remain append-only.
     absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
+#endif
     ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
+#if __cpp_exceptions
     std::move(erase_unpublished).Cancel();
+#endif
     ++local_size_;
     return Policy::Success(*identifier, true);
   }

@@ -26,6 +26,7 @@ cc_library(
         ":arena_string_storage_cc",
         ":string_id_cc",
         ":string_interner_base_cc",
+        ":string_interner_policies_cc",
         ":string_interner_types_cc",
         "//mbo/config:require_cc",
         "//mbo/container:segmented_vector_cc",
@@ -41,6 +42,8 @@ cc_library(
     deps = [
         ":arena_string_storage_cc",
         ":string_id_cc",
+        ":string_interner_error_cc",
+        ":string_interner_policies_cc",
         ":string_interner_types_cc",
         "//mbo/container:segmented_vector_cc",
         "//mbo/types:optional_ref_cc",
@@ -57,9 +60,31 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":string_id_cc",
+        ":string_interner_error_cc",
         "@abseil-cpp//absl/container:node_hash_map",
         "@abseil-cpp//absl/container:node_hash_set",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "string_interner_error_cc",
+    hdrs = ["string_interner_error.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "string_interner_policies_cc",
+    hdrs = ["string_interner_policies.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":string_interner_error_cc",
+        "//mbo/types:optional_ref_cc",
         "@abseil-cpp//absl/status:statusor",
     ],
 )
@@ -92,6 +117,18 @@ cc_test(
     copts = ["-fexceptions"],
     deps = [
         ":string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_policies_test",
+    size = "small",
+    srcs = ["string_interner_policies_test.cc"],
+    deps = [
+        ":string_interner_policies_cc",
+        "@abseil-cpp//absl/status:statusor",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

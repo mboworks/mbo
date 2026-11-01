@@ -17,7 +17,8 @@
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/internal/string_interner_base.h"  // IWYU pragma: export
 #include "mbo/strings/string_id.h"
-#include "mbo/strings/string_interner_types.h"  // IWYU pragma: export
+#include "mbo/strings/string_interner_policies.h"  // IWYU pragma: export
+#include "mbo/strings/string_interner_types.h"     // IWYU pragma: export
 
 namespace mbo::strings {
 

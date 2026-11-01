@@ -6,8 +6,6 @@
 
 #include <concepts>
 #include <cstddef>
-#include <expected>
-#include <functional>
 #include <map>
 #include <optional>
 #include <ranges>
@@ -21,130 +19,13 @@
 
 #include "absl/container/node_hash_map.h"
 #include "absl/container/node_hash_set.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "mbo/strings/string_id.h"
-#include "mbo/types/optional_ref.h"
+#include "mbo/strings/string_interner_error.h"
 
 namespace mbo::strings {
 
-enum class StringInternerError { kIdExhausted, kCharacterStorageExhausted, kEntryStorageExhausted, kIndexExhausted };
-
-[[nodiscard]] constexpr absl::StatusCode ToStatusCode(StringInternerError error) noexcept {
-  switch (error) {
-    case StringInternerError::kCharacterStorageExhausted:
-    case StringInternerError::kEntryStorageExhausted: return absl::StatusCode::kResourceExhausted;
-    case StringInternerError::kIdExhausted: return absl::StatusCode::kOutOfRange;
-    case StringInternerError::kIndexExhausted: return absl::StatusCode::kResourceExhausted;
-  }
-  std::unreachable();
-}
-
-// Explicit conversion for status-based callers. Error messages remain empty.
-template<typename Id>
-[[nodiscard]] absl::StatusOr<std::pair<Id, bool>> ToStatusOr(
-    std::expected<std::pair<Id, bool>, StringInternerError> result) {
-  if (result) {
-    return std::move(*result);
-  }
-  return absl::Status(ToStatusCode(result.error()), {});
-}
-
 template<typename Id>
 concept StringInternerId = IsStringIdRepresentation<Id> || mbo::types::IsConstStrongId<Id>;
-
-struct StringInternerErrorStlPolicy {
-  template<typename Id>
-  using insertion_result = std::expected<std::pair<Id, bool>, StringInternerError>;
-
-  template<typename Id>
-  static insertion_result<Id> Success(Id identifier, bool inserted) {
-    return std::pair<Id, bool>(identifier, inserted);
-  }
-
-  template<typename Id>
-  static insertion_result<Id> Failure(StringInternerError error) {
-    return std::unexpected(error);
-  }
-};
-
-struct StringInternerErrorStatusPolicy {
-  template<typename Id>
-  using insertion_result = absl::StatusOr<std::pair<Id, bool>>;
-
-  template<typename Id>
-  static insertion_result<Id> Success(Id identifier, bool inserted) {
-    return std::pair<Id, bool>(identifier, inserted);
-  }
-
-  template<typename Id>
-  static insertion_result<Id> Failure(StringInternerError error) {
-    return absl::Status(ToStatusCode(error), {});
-  }
-};
-
-// Optional insertion results are useful when callers only distinguish success from failure.
-// Unlike the status and expected policies, this policy intentionally discards the specific error.
-struct StringInternerErrorOptionalPolicy {
-  template<typename Id>
-  using insertion_result = std::optional<std::pair<Id, bool>>;
-
-  template<typename Id>
-  static insertion_result<Id> Success(Id identifier, bool inserted) {
-    return std::pair<Id, bool>(identifier, inserted);
-  }
-
-  template<typename Id>
-  static insertion_result<Id> Failure(StringInternerError /*error*/) {
-    return std::nullopt;
-  }
-};
-
-struct StringInternerLookupMboPolicy {
-  template<typename T>
-  using result = mbo::types::OptionalRef<T>;
-
-  template<typename T>
-  static result<T> Make(T& value) {
-    return value;
-  }
-
-  template<typename T>
-  static T& Get(result<T>& value) {
-    return value.value();
-  }
-};
-
-struct StringInternerLookupStlPolicy {
-  template<typename T>
-  using result = std::optional<std::reference_wrapper<T>>;
-
-  template<typename T>
-  static result<T> Make(T& value) {
-    return std::ref(value);
-  }
-
-  template<typename T>
-  static T& Get(result<T>& value) {
-    return value->get();
-  }
-};
-
-template<typename ErrorPolicy = StringInternerErrorStlPolicy, typename LookupPolicy = StringInternerLookupMboPolicy>
-struct StringInternerPolicyHolder
-    : ErrorPolicy
-    , LookupPolicy {
-  using ErrorPolicy::Failure;
-  using ErrorPolicy::Success;
-  using LookupPolicy::Get;
-  using LookupPolicy::Make;
-
-  template<typename Id>
-  using insertion_result = typename ErrorPolicy::template insertion_result<Id>;
-
-  template<typename T>
-  using lookup_result = typename LookupPolicy::template result<T>;
-};
 
 // Whether insertion preserves the addresses of existing key objects, including short strings.
 // Unknown containers default to false. Custom containers may specialize this trait to true only

@@ -25,6 +25,7 @@
 #include "mbo/container/segmented_vector.h"
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/string_id.h"
+#include "mbo/strings/string_interner_policies.h"
 #include "mbo/strings/string_interner_types.h"
 #include "mbo/types/optional_ref.h"
 

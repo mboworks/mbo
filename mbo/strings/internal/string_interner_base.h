@@ -185,6 +185,18 @@ class StringInternerBase {
 
   size_type local_size() const noexcept { return local_size_; }
 
+  // Capacity of the dense entry sequence. This does not promise that the index or character
+  // storage can accept another key without allocation.
+  size_type local_capacity() const noexcept {
+    if constexpr (requires { entries_.capacity(); }) {
+      return entries_.capacity();
+    } else {
+      return local_size_;
+    }
+  }
+
+  size_type capacity() const noexcept { return first_local_id_ + local_capacity(); }
+
   bool empty() const noexcept { return size() == 0; }
 
   const StringInternerBase* parent() const noexcept { return parent_; }

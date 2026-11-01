@@ -45,6 +45,7 @@ using ::mbo::testing::IsOkAndHolds;
 using ::mbo::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Ge;
 using ::testing::Gt;
 using ::testing::IsEmpty;
 using ::testing::Optional;
@@ -239,7 +240,7 @@ TEST_F(StringInternerTest, CapacityReportsDenseEntryCapacity) {
   EXPECT_THAT(interner.local_capacity(), Eq(0));
   EXPECT_THAT(interner.capacity(), Eq(0));
   ASSERT_THAT(interner.insert("value").has_value(), Eq(true));
-  EXPECT_THAT(interner.local_capacity(), ::testing::Ge(interner.local_size()));
+  EXPECT_THAT(interner.local_capacity(), Ge(interner.local_size()));
   EXPECT_THAT(interner.capacity(), Eq(interner.local_capacity()));
 }
 

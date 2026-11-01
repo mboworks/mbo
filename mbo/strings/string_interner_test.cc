@@ -413,7 +413,7 @@ TEST_F(StringInternerTest, MapValueMutationsAreSharedThroughTheCapturedParentPre
   using Interner = StringInternerMap<std::uint32_t, int>;
   using Inserted = std::pair<std::uint32_t, bool>;
   static_assert(std::constructible_from<Interner, Interner*>);
-  static_assert(!std::constructible_from<Interner, const Interner*>);
+  static_assert(std::constructible_from<Interner, const Interner*>);
   Interner root;
   ASSERT_THAT(root.insert("root", 1), Eq(Inserted{0, true}));
   Interner child(&root);

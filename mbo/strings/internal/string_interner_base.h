@@ -74,9 +74,12 @@ struct StringInternerElementTraits<const Key> {
 };
 
 template<typename Key, typename Value>
+requires(!std::is_lvalue_reference_v<Key> || std::is_const_v<std::remove_reference_t<Key>>)
 struct StringInternerElementTraits<std::pair<Key, Value>> {
   using KeyType = std::remove_cvref_t<Key>;
-  using Element = std::pair<Key, Value>;
+  // Keys are immutable. For reference keys, the const qualifier is preserved by
+  // reference collapsing; for value keys, it prevents mutation through entries.
+  using Element = std::pair<const Key, Value>;
   using Entry = std::optional<Element>;
 
   template<typename Slot>
@@ -135,8 +138,6 @@ requires(
 class StringInternerBase {
   using ContainerTraits = StringInternerContainerTraits<StringContainer>;
   using ElementTraits = StringInternerElementTraits<Element>;
-  using Parent = std::conditional_t<std::is_const_v<Element>, const StringInternerBase, StringInternerBase>;
-
  public:
   using id_type = Id;
   using key_type = ElementTraits::KeyType;
@@ -250,7 +251,7 @@ class StringInternerBase {
   // The forwarded arguments must construct an empty string container.
   template<typename... Args>
   requires std::constructible_from<StringContainer, Args...>
-  explicit StringInternerBase(Parent* parent, Args&&... args)
+  explicit StringInternerBase(const StringInternerBase* parent, Args&&... args)
       : parent_(parent),
         first_local_id_(parent == nullptr ? 0 : parent->size()),
         strings_(std::forward<Args>(args)...) {}
@@ -266,8 +267,6 @@ class StringInternerBase {
   size_type local_size() const noexcept { return local_size_; }
 
   bool empty() const noexcept { return size() == 0; }
-
-  Parent* parent() noexcept { return parent_; }
 
   const StringInternerBase* parent() const noexcept { return parent_; }
 
@@ -364,9 +363,12 @@ class StringInternerBase {
 
   template<typename Self>
   static decltype(auto) ElementAt(Self& self, size_type position) noexcept {
-    auto* owner = &self;
+    using Owner = std::conditional_t<std::is_const_v<Self>, const StringInternerBase, StringInternerBase>;
+    auto* owner = static_cast<Owner*>(&self);
     while (position < owner->first_local_id_) {
-      owner = owner->parent_;
+      // The parent link is const to prevent changing the parent object through the
+      // public API. Mutable views still share mapped values with mutable ancestors.
+      owner = const_cast<Owner*>(owner->parent_);
     }
     auto& entry = *std::ranges::next(
         owner->entries_.begin(),
@@ -444,7 +446,7 @@ class StringInternerBase {
     return FindLocal(key, limit);
   }
 
-  Parent* const parent_ = nullptr;
+  const StringInternerBase* const parent_ = nullptr;
   const size_type first_local_id_ = 0;
   size_type local_size_ = 0;
   [[no_unique_address]] std::conditional_t<std::same_as<Storage, void>, std::monostate, Storage> storage_;

@@ -234,6 +234,24 @@ TEST_F(StringInternerTest, BaseArenaAndFlatIndexPreserveViewsThroughGrowth) {
   ExpectDefaultIndexStability<Base>();
 }
 
+TEST_F(StringInternerTest, StlResultPolicyUsesReferenceWrappersForLookup) {
+  using Base = strings_internal::StringInternerBase<
+      StringIdU32<>,
+      const std::string_view,
+      absl::DefaultHashContainerHash<std::string_view>,
+      absl::flat_hash_map<std::string_view, StringIdU32<>>,
+      ArenaStringStorage<>,
+      strings_internal::StringInternerEntriesFor<const std::string_view>,
+      StringInternerPolicyHolder<StringInternerErrorStlPolicy, StringInternerLookupStlPolicy>>;
+  static_assert(std::same_as<Base::lookup_result, std::optional<std::reference_wrapper<const std::string_view>>>);
+  static_assert(
+      std::same_as<Base::const_lookup_result, std::optional<std::reference_wrapper<const std::string_view>>>);
+  Base interner;
+  ASSERT_THAT(interner.insert("value").has_value(), Eq(true));
+  ASSERT_THAT(interner.get(StringIdU32<>(0)).has_value(), Eq(true));
+  EXPECT_THAT(interner.get(StringIdU32<>(0))->get(), Eq(std::string_view("value")));
+}
+
 TEST_F(StringInternerTest, DefaultSetWrapperPreservesViewsThroughGrowth) {
   ExpectDefaultIndexStability<StringInternerSet<>>();
 }

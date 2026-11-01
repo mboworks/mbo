@@ -127,7 +127,8 @@ template<
     typename StringContainer = absl::flat_hash_map<std::string_view, Id, Hash>,
     typename Storage =
         std::conditional_t<std::same_as<StringInternerKey<StringContainer>, std::string>, void, ArenaStringStorage<>>,
-    typename Entries = StringInternerEntriesFor<Element>>
+    typename Entries = StringInternerEntriesFor<Element>,
+    typename Policy = StringInternerPolicyHolder<>>
 requires(
     StringInternerIdIndex<StringContainer, Id>
     && std::same_as<typename StringInternerElementTraits<Element>::KeyType, StringInternerKey<StringContainer>>
@@ -146,9 +147,10 @@ class StringInternerBase {
   using reference = element_type&;
   using const_reference = const element_type&;
   using size_type = std::size_t;  // MUST be unsigned.
-  using insertion_result = std::expected<std::pair<id_type, bool>, StringInternerError>;
-  using lookup_result = mbo::types::OptionalRef<element_type>;
-  using const_lookup_result = mbo::types::OptionalRef<const element_type>;
+  using insertion_result = typename Policy::template insertion_result<id_type>;
+  using lookup_result = typename Policy::template lookup_result<element_type>;
+  using const_lookup_result = typename Policy::template lookup_result<const element_type>;
+  using policy = Policy;
 
  private:
   template<bool IsConst>
@@ -282,7 +284,7 @@ class StringInternerBase {
   std::optional<std::string_view> get_string(id_type identifier) const noexcept {
     auto entry = get(identifier);
     if (entry) {
-      return std::string_view(ElementTraits::GetKey(*entry));
+      return std::string_view(ElementTraits::GetKey(Policy::Get(entry)));
     }
     return std::nullopt;
   }
@@ -313,21 +315,21 @@ class StringInternerBase {
   template<typename... Args>
   [[nodiscard]] insertion_result Insert(std::string_view key, Args&&... args) {
     if (const auto existing = rfind(key)) {
-      return std::pair<id_type, bool>(*existing, false);
+      return Policy::Success(*existing, false);
     }
     const auto identifier = IdFromOrdinal(size());
     if (!identifier) {
-      return std::unexpected(StringInternerError::kIdExhausted);
+      return Policy::template Failure<id_type>(StringInternerError::kIdExhausted);
     }
     // Keep at most one unpublished slot and reuse it after a failed attempt.
     if (entries_.size() == local_size_ && !TryAppendEntry()) {
-      return std::unexpected(StringInternerError::kEntryStorageExhausted);
+      return Policy::template Failure<id_type>(StringInternerError::kEntryStorageExhausted);
     }
     auto stored_key = key;
     if constexpr (!std::same_as<Storage, void>) {
       const auto stored = storage_.try_store(key);
       if (!stored) {
-        return std::unexpected(StringInternerError::kCharacterStorageExhausted);
+        return Policy::template Failure<id_type>(StringInternerError::kCharacterStorageExhausted);
       }
       stored_key = *stored;
     }
@@ -339,7 +341,7 @@ class StringInternerBase {
       }
     }();
     if (!inserted) {
-      return std::unexpected(StringInternerError::kIndexExhausted);
+      return Policy::template Failure<id_type>(StringInternerError::kIndexExhausted);
     }
     // If a caller's value constructor throws, discard only the unpublished index entry.
     // Character storage and the reserved dense slot remain append-only.
@@ -347,7 +349,7 @@ class StringInternerBase {
     ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
     std::move(erase_unpublished).Cancel();
     ++local_size_;
-    return std::pair<id_type, bool>(*identifier, true);
+    return Policy::Success(*identifier, true);
   }
 
  private:
@@ -358,7 +360,7 @@ class StringInternerBase {
     if (!ordinal || *ordinal >= self.size()) {
       return std::nullopt;
     }
-    return ElementAt(self, *ordinal);
+    return Policy::Make(ElementAt(self, *ordinal));
   }
 
   template<typename Self>

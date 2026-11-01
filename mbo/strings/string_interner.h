@@ -30,16 +30,37 @@ template<
     typename StringContainer = absl::flat_hash_map<std::string_view, Id, Hash>,
     typename Storage =
         std::conditional_t<std::same_as<StringInternerKey<StringContainer>, std::string>, void, ArenaStringStorage<>>,
-    typename Entries = strings_internal::StringInternerEntriesFor<const StringInternerKey<StringContainer>>>
+    typename Entries = strings_internal::StringInternerEntriesFor<const StringInternerKey<StringContainer>>,
+    typename Policy = StringInternerPolicyHolder<>>
 requires requires {
   typename strings_internal::StringInternerBase<
-      Id, const StringInternerKey<StringContainer>, Hash, StringContainer, Storage, Entries>;
+      Id,
+      const StringInternerKey<StringContainer>,
+      Hash,
+      StringContainer,
+      Storage,
+      Entries,
+      Policy>;
 }
 class StringInternerSet final
     : public strings_internal::
-          StringInternerBase<Id, const StringInternerKey<StringContainer>, Hash, StringContainer, Storage, Entries> {
+          StringInternerBase<
+              Id,
+              const StringInternerKey<StringContainer>,
+              Hash,
+              StringContainer,
+              Storage,
+              Entries,
+              Policy> {
   using Base = strings_internal::
-      StringInternerBase<Id, const StringInternerKey<StringContainer>, Hash, StringContainer, Storage, Entries>;
+      StringInternerBase<
+          Id,
+          const StringInternerKey<StringContainer>,
+          Hash,
+          StringContainer,
+          Storage,
+          Entries,
+          Policy>;
 
  public:
   using Base::Base;
@@ -55,10 +76,17 @@ template<
     typename Storage =
         std::conditional_t<std::same_as<StringInternerKey<StringContainer>, std::string>, void, ArenaStringStorage<>>,
     typename Entries =
-        strings_internal::StringInternerEntriesFor<strings_internal::StringInternerMapElement<StringContainer, Value>>>
+        strings_internal::StringInternerEntriesFor<strings_internal::StringInternerMapElement<StringContainer, Value>>,
+    typename Policy = StringInternerPolicyHolder<>>
 requires requires {
   typename strings_internal::StringInternerBase<
-      Id, strings_internal::StringInternerMapElement<StringContainer, Value>, Hash, StringContainer, Storage, Entries>;
+      Id,
+      strings_internal::StringInternerMapElement<StringContainer, Value>,
+      Hash,
+      StringContainer,
+      Storage,
+      Entries,
+      Policy>;
 }
 class StringInternerMap final
     : public strings_internal::StringInternerBase<
@@ -67,14 +95,16 @@ class StringInternerMap final
           Hash,
           StringContainer,
           Storage,
-          Entries> {
+          Entries,
+          Policy> {
   using Base = strings_internal::StringInternerBase<
       Id,
       strings_internal::StringInternerMapElement<StringContainer, Value>,
       Hash,
       StringContainer,
       Storage,
-      Entries>;
+      Entries,
+      Policy>;
 
  public:
   using Base::Base;
@@ -86,13 +116,13 @@ class StringInternerMap final
   mapped_type& at(id_type identifier) {
     auto entry = Base::get(identifier);
     MBO_CONFIG_REQUIRE(entry.has_value(), "String interner ID out of range");
-    return entry->second;
+    return Base::policy::Get(entry).second;
   }
 
   const mapped_type& at(id_type identifier) const {
     auto entry = Base::get(identifier);
     MBO_CONFIG_REQUIRE(entry.has_value(), "String interner ID out of range");
-    return entry->second;
+    return Base::policy::Get(entry).second;
   }
 
   mapped_type& operator[](id_type identifier) { return at(identifier); }

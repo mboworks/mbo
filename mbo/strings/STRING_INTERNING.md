@@ -112,12 +112,14 @@ separate `Storage`, which defaults to `ArenaStringStorage<>`; `Storage = void` i
 rejected. These rules also apply to const-qualified keys and to both maps and sets.
 
 Owning containers must preserve key addresses during insertion, including for short strings.
-Abseil flat-hash and C++23 flat-associative containers are rejected at compile time because growth
-can move their keys. Flat containers with `std::string_view` keys remain supported because separate
-storage owns the characters. Standard node containers and Abseil node containers provide the
-required stability for owning strings. Other custom indexes must specialize the internal
-`kHasUnstableKeyAddresses` trait when their keys can move; otherwise they must preserve the same
-lifetime guarantee. Dense entries default to `SegmentedVector`, which preserves element
+Flat-hash, C++23 flat-associative, and unknown custom containers are rejected at compile time for
+owning keys because growth may move their keys. Flat containers with `std::string_view` keys remain
+supported because separate storage owns the characters. Standard node containers and Abseil node
+containers are explicitly recognized as stable. Other custom indexes must explicitly provide the
+`kStringInternerStableKeyAddresses` trait marker only when they provide the same lifetime guarantee.
+`LimitedMap` and `LimitedSet` currently relocate elements during insertion and therefore do not meet
+this requirement for owning keys, even when their capacity is fixed.
+Dense entries default to `SegmentedVector`, which preserves element
 addresses during growth. A view set stores string views; an owning set stores pointers to const
 strings. A map stores optional elements so it can reserve an unpublished slot without constructing
 a mapped value. Custom entry containers must store that corresponding entry type and support

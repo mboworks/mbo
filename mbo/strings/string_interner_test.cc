@@ -75,6 +75,7 @@ struct FixedStringStorage final {
 
 template<typename Key, typename Id, std::size_t Capacity, bool FailFirst = false>
 struct BoundedStringMap final : std::map<Key, Id, std::less<>> {
+  static constexpr bool kStringInternerStableKeyAddresses = true;
   using Map = std::map<Key, Id, std::less<>>;
 
   template<typename... Args>

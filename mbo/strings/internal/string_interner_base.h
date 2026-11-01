@@ -8,13 +8,17 @@
 #include <cstddef>
 #include <expected>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 
@@ -29,6 +33,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/hash_container_defaults.h"
+#include "absl/container/node_hash_map.h"
 #include "mbo/container/segmented_vector.h"
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/string_id.h"
@@ -37,25 +42,36 @@
 
 namespace mbo::strings::strings_internal {
 
-// Owning string keys must not move when the index grows. Custom contiguous or open-addressing
-// indexes must specialize this trait to true when their key addresses are not stable.
+// Owning string keys must not move when the index grows. Unknown containers are rejected by
+// default; custom containers with a documented stable-key guarantee may specialize this trait.
 template<typename Container>
-inline constexpr bool kHasUnstableKeyAddresses = false;
+inline constexpr bool kHasStableKeyAddresses = requires {
+  requires Container::kStringInternerStableKeyAddresses;
+};
 
 template<typename... Args>
-inline constexpr bool kHasUnstableKeyAddresses<absl::flat_hash_map<Args...>> = true;
+inline constexpr bool kHasStableKeyAddresses<std::map<Args...>> = true;
 
 template<typename... Args>
-inline constexpr bool kHasUnstableKeyAddresses<absl::flat_hash_set<Args...>> = true;
+inline constexpr bool kHasStableKeyAddresses<std::set<Args...>> = true;
+
+template<typename... Args>
+inline constexpr bool kHasStableKeyAddresses<std::unordered_map<Args...>> = true;
+
+template<typename... Args>
+inline constexpr bool kHasStableKeyAddresses<std::unordered_set<Args...>> = true;
+
+template<typename... Args>
+inline constexpr bool kHasStableKeyAddresses<absl::node_hash_map<Args...>> = true;
 
 #if __has_include(<flat_map>)
 template<typename... Args>
-inline constexpr bool kHasUnstableKeyAddresses<std::flat_map<Args...>> = true;
+inline constexpr bool kHasStableKeyAddresses<std::flat_map<Args...>> = false;
 #endif
 
 #if __has_include(<flat_set>)
 template<typename... Args>
-inline constexpr bool kHasUnstableKeyAddresses<std::flat_set<Args...>> = true;
+inline constexpr bool kHasStableKeyAddresses<std::flat_set<Args...>> = false;
 #endif
 
 // Element storage is independent of the string index. Views are inexpensive values;
@@ -158,7 +174,7 @@ requires(
     && std::same_as<typename StringInternerElementTraits<Element>::KeyType, StringInternerKey<StringContainer>>
     && StringInternerEntries<Entries, typename StringInternerElementTraits<Element>::Entry>
     && ((std::same_as<Storage, void> && std::same_as<StringInternerKey<StringContainer>, std::string>
-         && !kHasUnstableKeyAddresses<StringContainer>)
+         && kHasStableKeyAddresses<StringContainer>)
         || (StringInternerStorage<Storage> && std::same_as<StringInternerKey<StringContainer>, std::string_view>)))
 class StringInternerBase {
   using ContainerTraits = StringInternerContainerTraits<StringContainer>;

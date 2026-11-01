@@ -28,6 +28,9 @@ TEST_F(StringInternerPoliciesTest, ErrorPoliciesExposeTheirDeclaredResults) {
       std::same_as<StringInternerErrorOptionalPolicy::insertion_result<Id>, std::optional<std::pair<Id, bool>>>);
   EXPECT_THAT(StringInternerErrorOptionalPolicy::Success<Id>(7, true), Eq(std::pair<Id, bool>{7, true}));
   EXPECT_THAT(StringInternerErrorOptionalPolicy::Failure<Id>(StringInternerError::kIdExhausted), Eq(std::nullopt));
+  static_assert(noexcept(StringInternerErrorStlPolicy::Success<Id>(7, true)));
+  static_assert(noexcept(StringInternerErrorStlPolicy::Failure<Id>(StringInternerError::kIdExhausted)));
+  static_assert(noexcept(StringInternerErrorOptionalPolicy::Failure<Id>(StringInternerError::kIdExhausted)));
 }
 
 TEST_F(StringInternerPoliciesTest, LookupPoliciesPreserveReferences) {

@@ -47,12 +47,12 @@ struct StringInternerErrorStlPolicy {
   using insertion_result = std::expected<std::pair<Id, bool>, StringInternerError>;
 
   template<typename Id>
-  static insertion_result<Id> Success(Id identifier, bool inserted) {
+  static insertion_result<Id> Success(Id identifier, bool inserted) noexcept {
     return std::pair<Id, bool>(identifier, inserted);
   }
 
   template<typename Id>
-  static insertion_result<Id> Failure(StringInternerError error) {
+  static insertion_result<Id> Failure(StringInternerError error) noexcept {
     return std::unexpected(error);
   }
 };
@@ -82,7 +82,7 @@ struct StringInternerErrorOptionalPolicy {
   }
 
   template<typename Id>
-  static insertion_result<Id> Failure(StringInternerError /*error*/) {
+  static insertion_result<Id> Failure(StringInternerError /*error*/) noexcept {
     return std::nullopt;
   }
 };
@@ -92,7 +92,7 @@ struct StringInternerLookupMboPolicy {
   using result = mbo::types::OptionalRef<T>;
 
   template<typename T>
-  static result<T> Make(T& value) {
+  static result<T> Make(T& value) noexcept {
     return value;
   }
 
@@ -107,12 +107,12 @@ struct StringInternerLookupStlPolicy {
   using result = std::optional<std::reference_wrapper<T>>;
 
   template<typename T>
-  static result<T> Make(T& value) {
+  static result<T> Make(T& value) noexcept {
     return std::ref(value);
   }
 
   template<typename T>
-  static T& Get(result<T>& value) {
+  static T& Get(result<T>& value) noexcept {
     return value->get();
   }
 };

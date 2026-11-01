@@ -3,7 +3,6 @@
 
 #include "mbo/strings/arena_string_storage.h"
 
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -24,19 +23,6 @@ TEST_F(ArenaStringStorageTest, CopiesBytesIncludingEmbeddedNulsAndDoesNotBorrowI
   input.assign("changed");
   EXPECT_THAT(stored.value_or(std::string_view{}), Eq(std::string_view("a\0b", 3)));
   EXPECT_THAT(storage.bytes_used(), Eq(3));
-}
-
-TEST_F(ArenaStringStorageTest, RewindsUncommittedCopiesWithoutChangingPublishedViews) {
-  ArenaStringStorage<> storage;
-  const auto published = storage.try_store("published").value_or(std::string_view{});
-  const auto checkpoint = storage.checkpoint();
-  const auto used = storage.bytes_used();
-  const auto temporary = storage.try_store("temporary").value_or(std::string_view{});
-  storage.rewind(checkpoint);
-  EXPECT_THAT(storage.bytes_used(), Eq(used));
-  EXPECT_THAT(published, Eq("published"));
-  const auto replacement = storage.try_store("replacement").value_or(std::string_view{});
-  EXPECT_THAT(std::addressof(replacement.front()), Eq(std::addressof(temporary.front())));
 }
 
 TEST_F(ArenaStringStorageTest, EmptyStringsNeedNoAllocationAndBoundedExhaustionIsSeparate) {

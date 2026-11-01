@@ -23,15 +23,12 @@ inline constexpr mbo::memory::ArenaOptions kDefaultArenaOptions{
 }  // namespace arena_string_storage_internal
 
 // Byte ownership only: indexing and dense-ID assignment belong to the interner.
-// Checkpoints may rewind uncommitted copies; published views must never be rewound.
 // NOLINTBEGIN(readability-identifier-naming): storage adapter follows STL container vocabulary.
 template<
     typename Arena =
         mbo::memory::Arena<mbo::memory::NewDeleteBlockSource, arena_string_storage_internal::kDefaultArenaOptions>>
 class ArenaStringStorage final {
  public:
-  using checkpoint_type = Arena::Checkpoint;
-
   ArenaStringStorage() = default;
   ArenaStringStorage(const ArenaStringStorage&) = delete;
   ArenaStringStorage& operator=(const ArenaStringStorage&) = delete;
@@ -51,10 +48,6 @@ class ArenaStringStorage final {
     std::memcpy(data, input.data(), input.size());
     return std::string_view(data, input.size());
   }
-
-  checkpoint_type checkpoint() const noexcept { return arena_.checkpoint(); }
-
-  void rewind(const checkpoint_type& checkpoint) noexcept { arena_.rewind(checkpoint); }
 
   std::size_t bytes_used() const noexcept { return arena_.bytes_used(); }
 

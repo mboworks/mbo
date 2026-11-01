@@ -13,10 +13,233 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@mboworks_bashtest//bashtest:bashtest.bzl", "bashtest")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 
 package(default_visibility = ["//visibility:private"])
+
+cc_binary(
+    name = "string_interner_benchmark",
+    testonly = True,
+    srcs = ["string_interner_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_interner_base_cc",
+        ":string_interner_cc",
+        ":string_interner_policies_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/memory:arena_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_binary(
+    name = "string_interner_exceptions_benchmark",
+    testonly = True,
+    srcs = ["string_interner_benchmark.cc"],
+    copts = ["-fexceptions"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_interner_base_cc",
+        ":string_interner_cc",
+        ":string_interner_policies_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/memory:arena_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+bashtest(
+    name = "string_interner_benchmark_test",
+    size = "small",
+    srcs = ["string_interner_benchmark_test.sh"],
+    data = [":string_interner_benchmark"],
+)
+
+cc_library(
+    name = "string_interner_cc",
+    hdrs = ["string_interner.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_id_cc",
+        ":string_interner_base_cc",
+        ":string_interner_policies_cc",
+        ":string_interner_traits_cc",
+        ":string_interner_types_cc",
+        "//mbo/config:require_cc",
+        "//mbo/container:segmented_vector_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+    ],
+)
+
+cc_library(
+    name = "string_interner_base_cc",
+    hdrs = [
+        "internal/string_interner_base.h",
+        "internal/string_interner_traits.h",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_id_cc",
+        ":string_interner_error_cc",
+        ":string_interner_policies_cc",
+        ":string_interner_types_cc",
+        "//mbo/config:config_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/types:optional_ref_cc",
+        "@abseil-cpp//absl/cleanup",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:hash_container_defaults",
+    ],
+)
+
+cc_library(
+    name = "string_interner_types_cc",
+    hdrs = ["string_interner_types.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":string_id_cc",
+        ":string_interner_error_cc",
+        ":string_interner_traits_cc",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/container:node_hash_set",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "string_interner_traits_cc",
+    hdrs = ["string_interner_traits.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/container:node_hash_set",
+    ],
+)
+
+cc_library(
+    name = "string_interner_error_cc",
+    hdrs = ["string_interner_error.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "string_interner_policies_cc",
+    hdrs = ["string_interner_policies.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":string_interner_error_cc",
+        "//mbo/types:optional_ref_cc",
+        "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_test(
+    name = "string_interner_test",
+    size = "small",
+    srcs = ["string_interner_test.cc"],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_id_cc",
+        ":string_interner_base_cc",
+        ":string_interner_cc",
+        ":string_interner_error_cc",
+        ":string_interner_types_cc",
+        "//mbo/testing:status_cc",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:node_hash_map",
+        "@abseil-cpp//absl/container:node_hash_set",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_exceptions_test",
+    size = "small",
+    srcs = ["string_interner_exceptions_test.cc"],
+    copts = ["-fexceptions"],
+    deps = [
+        ":string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_policies_test",
+    size = "small",
+    srcs = ["string_interner_policies_test.cc"],
+    deps = [
+        ":string_interner_policies_cc",
+        "@abseil-cpp//absl/status:statusor",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_traits_test",
+    size = "small",
+    srcs = ["string_interner_traits_test.cc"],
+    deps = [
+        ":string_interner_traits_cc",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/container:node_hash_set",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "arena_string_storage_cc",
+    hdrs = ["arena_string_storage.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//mbo/memory:arena_cc"],
+)
+
+cc_test(
+    name = "arena_string_storage_test",
+    size = "small",
+    srcs = ["arena_string_storage_test.cc"],
+    deps = [
+        ":arena_string_storage_cc",
+        "//mbo/memory:arena_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
 
 cc_library(
     name = "string_id_cc",

@@ -795,5 +795,22 @@ use a serialization library when schema evolution, parsing, or protocol guarante
 - `SetStringifyOstreamOptions` accepts an options lvalue; its rvalue overload is deleted.
 - The adapter is separate from `extender::Streamable`. For output with a particular formatting policy,
   use a `Stringify` instance's `Stream(out, value)` or `ToString(value)` directly.
+  The package also provides utilities that do not depend on `Extend`:
+
+| Utility                                | Purpose                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `StringOrView`                         | Read-only text that either owns a string or borrows a string view.                     |
+| `OptionalRef`                          | Optional non-owning reference.                                                         |
+| `OptionalDataOrRef`                    | Optional value that can own data or borrow a reference.                                |
+| `Required`                             | Always-engaged value wrapper with configurable requirement failure behavior.           |
+| `NoDestruct`                           | Static-lifetime storage that deliberately does not invoke the contained destructor.    |
+| `OpaquePtr` / `OpaqueValue`            | Ownership wrappers suitable for forward-declared implementation types.                 |
+| `ContainerProxy`                       | Container access forwarding, including supported value-returning endpoint pops.        |
+| `RefWrap`                              | Reference wrapper with `*` and `->`.                                                   |
+| `TypedView`                            | View wrapper that supplies container-style type aliases.                               |
+| `CompareArithmetic` and family         | Strong/weak comparison helpers for mixed arithmetic and scalar types.                  |
+| `ConstStrongOrdinal` / `StrongOrdinal` | Zero-defaulted nominal integral ordinals with checked representation-bound arithmetic. |
+| `ConstStrongId`                        | Invalid-defaulted integral strong ID with no arithmetic API.                           |
+| `tstring`                              | Compile-time string-literal type used by the extender machinery and other templates.   |
 
 The repository's root [README](../../README.md) lists the complete header and Bazel target inventory.

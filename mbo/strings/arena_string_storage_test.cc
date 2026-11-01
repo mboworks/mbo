@@ -1,0 +1,43 @@
+// SPDX-FileCopyrightText: Copyright (c) M. Boerger, the MBO Works authors
+// SPDX-License-Identifier: Apache-2.0
+
+#include "mbo/strings/arena_string_storage.h"
+
+#include <string>
+#include <string_view>
+
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+
+namespace mbo::strings {
+namespace {
+using ::testing::Eq;
+
+struct ArenaStringStorageTest : ::testing::Test {};
+
+TEST_F(ArenaStringStorageTest, CopiesBytesIncludingEmbeddedNulsAndDoesNotBorrowInput) {
+  ArenaStringStorage<> storage;
+  std::string input("a\0b", 3);
+  const auto stored = storage.try_store(input);
+  ASSERT_THAT(stored.has_value(), Eq(true));
+  input.assign("changed");
+  EXPECT_THAT(stored.value_or(std::string_view{}), Eq(std::string_view("a\0b", 3)));
+  EXPECT_THAT(storage.bytes_used(), Eq(3));
+}
+
+TEST_F(ArenaStringStorageTest, EmptyStringsNeedNoAllocationAndBoundedExhaustionIsSeparate) {
+  constexpr mbo::memory::ArenaOptions kOneByteArenaOptions{
+      .initial_block_size = 256,
+      .maximum_block_size = 256,
+      .growth_numerator = 1,
+      .growth_denominator = 1,
+  };
+  using Arena = mbo::memory::Arena<mbo::memory::InlineBlockSource<1>, kOneByteArenaOptions>;
+  ArenaStringStorage<Arena> storage;
+  EXPECT_THAT(storage.try_store("").has_value(), Eq(true));
+  EXPECT_THAT(storage.bytes_reserved(), Eq(0));
+  EXPECT_THAT(storage.try_store("x").has_value(), Eq(false));
+  EXPECT_THAT(storage.bytes_used(), Eq(0));
+}
+}  // namespace
+}  // namespace mbo::strings

@@ -206,7 +206,18 @@ class StringInternerBase {
     return std::nullopt;
   }
 
-  std::optional<id_type> find(std::string_view key) const { return FindForward(key, size()); }
+  std::optional<id_type> find(std::string_view key) const {
+    const auto* owner = this;
+    auto limit = size();
+    while (owner != nullptr) {
+      if (auto found = owner->FindLocal(key, limit)) {
+        return found;
+      }
+      limit = owner->first_local_id_;
+      owner = owner->parent_;
+    }
+    return std::nullopt;
+  }
 
   std::optional<id_type> rfind(std::string_view key) const {
     const auto* owner = this;
@@ -354,18 +365,6 @@ class StringInternerBase {
         }
         ++ordinal;
       }
-    }
-    return std::nullopt;
-  }
-
-  std::optional<id_type> FindForward(std::string_view key, size_type limit) const {
-    const auto* owner = this;
-    while (owner != nullptr) {
-      if (auto found = owner->FindLocal(key, limit)) {
-        return found;
-      }
-      limit = owner->first_local_id_;
-      owner = owner->parent_;
     }
     return std::nullopt;
   }

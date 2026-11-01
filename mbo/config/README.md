@@ -26,6 +26,7 @@ for requirement checks.
 - `config_gen.h`: generated from [internal/config.h.in](internal/config.h.in) by
   [internal/config.bzl](internal/config.bzl); included through `config.h`.
 - Missing generated header: template defaults, with a compiler warning unless `IS_CLANGD` is defined.
+- `kExceptionsEnabled` reflects whether the current translation unit was compiled with C++ exception support.
 - Exceptions disabled: `kRequireThrows == false`, regardless of the Bazel flag.
 - Repository compilation default: `-fno-exceptions`.
 - Related container options: [container guide](../container/README.md).

@@ -49,6 +49,7 @@ cc_library(
         ":string_interner_error_cc",
         ":string_interner_policies_cc",
         ":string_interner_types_cc",
+        "//mbo/config:config_cc",
         "//mbo/container:segmented_vector_cc",
         "//mbo/types:optional_ref_cc",
         "@abseil-cpp//absl/cleanup",

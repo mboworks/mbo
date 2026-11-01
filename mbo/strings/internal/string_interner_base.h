@@ -12,12 +12,11 @@
 #include <type_traits>
 #include <utility>
 
-#if __cpp_exceptions
-# include "absl/cleanup/cleanup.h"
-#endif
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/hash_container_defaults.h"
+#include "mbo/config/config.h"
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/internal/string_interner_traits.h"
 #include "mbo/strings/string_id.h"
@@ -295,8 +294,7 @@ class StringInternerBase {
     const auto publish = [&] {
       ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
     };
-#if __cpp_exceptions
-    if constexpr (Policy::exception_policy::kRollbackOnException) {
+    if constexpr (mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException) {
       // If a caller's value constructor throws, discard only the unpublished index entry.
       // Character storage and the reserved dense slot remain append-only.
       absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
@@ -305,9 +303,6 @@ class StringInternerBase {
     } else {
       publish();
     }
-#else
-    publish();
-#endif
     ++local_size_;
     return Policy::Success(*identifier, true);
   }

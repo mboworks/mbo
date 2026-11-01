@@ -57,6 +57,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":string_id_cc",
+        "@abseil-cpp//absl/container:node_hash_map",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
     ],

@@ -75,7 +75,6 @@ struct FixedStringStorage final {
 
 template<typename Key, typename Id, std::size_t Capacity, bool FailFirst = false>
 struct BoundedStringMap final : std::map<Key, Id, std::less<>> {
-  static constexpr bool kStringInternerStableKeyAddresses = true;
   using Map = std::map<Key, Id, std::less<>>;
 
   template<typename... Args>
@@ -89,6 +88,17 @@ struct BoundedStringMap final : std::map<Key, Id, std::less<>> {
   bool fail_next = FailFirst;
 };
 
+// A container member is not a stability customization point.
+struct MarkerOnlyStringMap final : std::map<std::string, StringIdU32<>, std::less<>> {
+  static constexpr bool kStringInternerStableKeyAddresses = true;
+};
+
+}  // namespace
+
+template<typename Key, typename Id, std::size_t Capacity, bool FailFirst>
+inline constexpr bool kHasStableKeyAddresses<BoundedStringMap<Key, Id, Capacity, FailFirst>> = true;
+
+namespace {
 template<typename Id, std::size_t Capacity>
 using FixedStringContainer = BoundedStringMap<std::string_view, Id, Capacity>;
 
@@ -840,6 +850,15 @@ TEST_F(StringInternerTest, StorageSelectionFollowsKeyOwnership) {
   static_assert(SupportsInternerStorage<OwningSet, void>);
   static_assert(!SupportsInternerStorage<OwningMap, ArenaStringStorage<>>);
   static_assert(!SupportsInternerStorage<OwningSet, ArenaStringStorage<>>);
+}
+
+TEST_F(StringInternerTest, CustomOwningIndexesRequireAnExternalStabilityTrait) {
+  using CustomIndex = FixedOwningStringContainer<StringIdU32<>, 2>;
+  static_assert(kHasStableKeyAddresses<CustomIndex>);
+  static_assert(SupportsInternerStorage<CustomIndex, void>);
+  static_assert(MarkerOnlyStringMap::kStringInternerStableKeyAddresses);
+  static_assert(!kHasStableKeyAddresses<MarkerOnlyStringMap>);
+  static_assert(!SupportsInternerStorage<MarkerOnlyStringMap, void>);
 }
 
 TEST_F(StringInternerTest, OwningUnstableKeyContainersAreRejected) {

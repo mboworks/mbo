@@ -115,8 +115,10 @@ Owning containers must preserve key addresses during insertion, including for sh
 Flat-hash, C++23 flat-associative, and unknown custom containers are rejected at compile time for
 owning keys because growth may move their keys. Flat containers with `std::string_view` keys remain
 supported because separate storage owns the characters. Standard node containers and Abseil node
-containers are explicitly recognized as stable. Other custom indexes must explicitly provide the
-`kStringInternerStableKeyAddresses` trait marker only when they provide the same lifetime guarantee.
+containers are explicitly recognized as stable. Other custom indexes must specialize
+`mbo::strings::kHasStableKeyAddresses<CustomIndex>` to `true` before interner use, and only when
+they provide the same lifetime guarantee. The trait is declared in `string_interner_types.h` and
+defaults to `false`; no member marker is required or inspected on the container.
 `LimitedMap` and `LimitedSet` currently relocate elements during insertion and therefore do not meet
 this requirement for owning keys, even when their capacity is fixed.
 Dense entries default to `SegmentedVector`, which preserves element

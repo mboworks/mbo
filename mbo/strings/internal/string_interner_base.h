@@ -6,110 +6,24 @@
 
 #include <concepts>
 #include <cstddef>
-#include <expected>
 #include <iterator>
-#include <memory>
-#include <optional>
 #include <ranges>
-#include <string>
 #include <string_view>
-#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/hash_container_defaults.h"
-#include "mbo/container/segmented_vector.h"
 #include "mbo/strings/arena_string_storage.h"
+#include "mbo/strings/internal/string_interner_traits.h"
 #include "mbo/strings/string_id.h"
 #include "mbo/strings/string_interner_policies.h"
 #include "mbo/strings/string_interner_types.h"
 #include "mbo/types/optional_ref.h"
 
 namespace mbo::strings::strings_internal {
-
-// Element storage is independent of the string index. Views are inexpensive values;
-// owning keys are referenced in their address-stable string container.
-template<typename Element>
-struct StringInternerElementTraits;
-
-template<typename Key>
-struct StringInternerElementTraits<const Key> {
-  using KeyType = Key;
-  using Entry = std::conditional_t<std::same_as<Key, std::string_view>, Key, const Key*>;
-
-  template<typename Slot>
-  requires std::same_as<std::remove_const_t<Slot>, Entry>
-  static const Key& GetElement(Slot& entry) noexcept {
-    if constexpr (std::same_as<Key, std::string_view>) {
-      // Rvalue entries are rejected below; this reference points into the dense entry sequence.
-      // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
-      return entry;
-    } else {
-      return *entry;
-    }
-  }
-
-  static const Key& GetElement(const Entry&&) = delete;
-
-  template<typename StoredKey>
-  requires std::same_as<std::remove_const_t<StoredKey>, Key>
-  static const Key& GetKey(StoredKey& key) noexcept {
-    // Temporary keys, including const temporaries, are rejected by the rvalue overload below.
-    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
-    return key;
-  }
-
-  static const Key& GetKey(const Key&&) = delete;
-
-  static void Publish(Entry& entry, const Key& key) noexcept {
-    if constexpr (std::same_as<Key, std::string_view>) {
-      entry = key;
-    } else {
-      entry = std::addressof(key);
-    }
-  }
-};
-
-template<typename Key, typename Value>
-requires(!std::is_lvalue_reference_v<Key> || std::is_const_v<std::remove_reference_t<Key>>)
-struct StringInternerElementTraits<std::pair<Key, Value>> {
-  using KeyType = std::remove_cvref_t<Key>;
-  // Keys are immutable. For reference keys, the const qualifier is preserved by
-  // reference collapsing; for value keys, it prevents mutation through entries.
-  using Element = std::pair<const Key, Value>;
-  using Entry = std::optional<Element>;
-
-  template<typename Slot>
-  static decltype(auto) GetElement(Slot& entry) noexcept {
-    if (entry) {
-      return *entry;
-    }
-    std::unreachable();  // Only published entries are exposed.
-  }
-
-  static const KeyType& GetKey(const Element& element) noexcept { return element.first; }
-
-  template<typename... Args>
-  static void Publish(Entry& entry, const KeyType& key, Args&&... args) {
-    entry.emplace(
-        std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(std::forward<Args>(args)...));
-  }
-};
-
-template<typename Container, typename Value>
-using StringInternerMapElement = std::pair<
-    std::conditional_t<
-        std::same_as<StringInternerKey<Container>, std::string>,
-        const std::string&,
-        const std::string_view>,
-    Value>;
-
-template<typename Element>
-using StringInternerEntriesFor = mbo::container::SegmentedVector<typename StringInternerElementTraits<Element>::Entry>;
 
 // StringInternerBase:
 // - implements an append-only owner for strings that are referenced by IDs.

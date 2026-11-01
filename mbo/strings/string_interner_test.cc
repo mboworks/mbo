@@ -239,7 +239,7 @@ TEST_F(StringInternerTest, CapacityReportsDenseEntryCapacity) {
   EXPECT_THAT(interner.local_capacity(), Eq(0));
   EXPECT_THAT(interner.capacity(), Eq(0));
   ASSERT_THAT(interner.insert("value").has_value(), Eq(true));
-  EXPECT_THAT(interner.local_capacity() >= interner.local_size(), Eq(true));
+  EXPECT_THAT(interner.local_capacity(), ::testing::Ge(interner.local_size()));
   EXPECT_THAT(interner.capacity(), Eq(interner.local_capacity()));
 }
 

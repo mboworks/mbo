@@ -22,7 +22,7 @@ git_override(
     remote = "https://github.com/helly25/bazel-compile-commands-extractor.git",
 )
 
-bazel_dep(name = "depend_on_what_you_use", version = "1.1.2", dev_dependency = True)
+bazel_dep(name = "depend_on_what_you_use", version = "1.2.0", dev_dependency = True)
 
 # dwyu 1.1.2 pulls boost@1.83.0.bcr.4, whose BCR MODULE.bazel explicitly
 # passes repo_name = None. Bazel 8 rejects None for that string parameter.

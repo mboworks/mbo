@@ -51,6 +51,10 @@ static_assert(std::is_convertible_v<StringOrView, std::string_view>);
 static_assert(std::is_same_v<StringOrView::iterator, StringOrView::const_iterator>);
 static_assert(std::is_same_v<StringOrView::reference, StringOrView::const_reference>);
 static_assert(StringOrView::npos == std::string_view::npos);
+static_assert(kLiteral.str() == "literal");
+static_assert(StringOrView{"literal"}.str() == "literal");
+static_assert(std::is_same_v<decltype(std::declval<const StringOrView&>().str()), std::string>);
+static_assert(std::is_same_v<decltype(std::declval<StringOrView&&>().str()), std::string>);
 
 struct StringOrViewTest : ::testing::Test {};
 
@@ -71,6 +75,52 @@ TEST_F(StringOrViewTest, BorrowsStringViewAndLiteral) {
   EXPECT_THAT(literal.view(), Eq("literal"));
   EXPECT_THAT(literal.view().size(), Eq(7));
   EXPECT_THAT(literal.owns_string(), IsFalse());
+}
+
+TEST_F(StringOrViewTest, StringResultFromBorrowedLvalueOwnsIndependentBytes) {
+  std::string source(128, 'x');
+  const StringOrView value{std::string_view(source)};
+  const std::string result = value.str();
+  source.front() = 'y';
+  EXPECT_THAT(result, Eq(std::string(128, 'x')));
+  EXPECT_THAT(value.view(), Eq("y" + std::string(127, 'x')));
+  EXPECT_THAT(value.owns_string(), IsFalse());
+}
+
+TEST_F(StringOrViewTest, StringResultFromOwnedLvalueCopiesWithoutConsuming) {
+  const StringOrView value{std::string(128, 'x')};
+  std::string result = value.str();
+  EXPECT_THAT(&result.front(), Not(Eq(&value.view().front())));
+  result.front() = 'y';
+  EXPECT_THAT(value.view(), Eq(std::string(128, 'x')));
+  EXPECT_THAT(value.owns_string(), IsTrue());
+}
+
+TEST_F(StringOrViewTest, StringResultFromBorrowedRvalueCopiesBytes) {
+  std::string source(128, 'x');
+  StringOrView value{std::string_view(source)};
+  const std::string result = std::move(value).str();
+  source.assign("changed");
+  EXPECT_THAT(result, Eq(std::string(128, 'x')));
+}
+
+TEST_F(StringOrViewTest, StringResultFromOwnedRvalueTransfersHeapStorage) {
+  StringOrView value{std::string(4'096, 'x')};
+  const std::string_view allocation = value.view();
+  const std::string result = std::move(value).str();
+  EXPECT_THAT(&result.front(), Eq(&allocation.front()));
+  value = StringOrView{"reused"};
+  EXPECT_THAT(value.view(), Eq("reused"));
+  EXPECT_THAT(result, Eq(std::string(4'096, 'x')));
+}
+
+TEST_F(StringOrViewTest, StringResultsPreserveEmptyAndEmbeddedNullBytes) {
+  EXPECT_THAT(StringOrView{}.str(), IsEmpty());
+  EXPECT_THAT(StringOrView{std::string{}}.str(), IsEmpty());
+  constexpr std::string_view kBytes{"a\0b", 3};
+  const StringOrView borrowed{kBytes};
+  EXPECT_THAT(borrowed.str(), Eq(std::string(kBytes)));
+  EXPECT_THAT(StringOrView{std::string(kBytes)}.str(), Eq(std::string(kBytes)));
 }
 
 TEST_F(StringOrViewTest, OwnsCopiedLvalueAndMovedRvalue) {

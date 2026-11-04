@@ -1,5 +1,8 @@
 # 0.16.0
 
+- Add ref-qualified `StringOrView::str()` conversion: copy lvalues and borrowed views,
+  and move owned storage from rvalues without an additional text copy.
+
 - Use mboworks_bzl 0.8.0 runfiles keys in `diff_test` for source/generated inputs
   and its executable, including external repositories and manifest-only execution.
 

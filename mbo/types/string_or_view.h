@@ -89,6 +89,16 @@ class StringOrView {
     return std::get<std::string>(value_);
   }
 
+  // Return owned text. Lvalues copy; rvalues move owned storage or copy a borrowed view.
+  [[nodiscard]] constexpr std::string str() const & { return std::string(view()); }
+
+  [[nodiscard]] constexpr std::string str() && {
+    if (owns_string()) {
+      return std::get<std::string>(std::move(value_));
+    }
+    return std::string(std::get<std::string_view>(value_));
+  }
+
   [[nodiscard]] constexpr bool owns_string() const noexcept {  // NOLINT(*-identifier-naming)
     return std::holds_alternative<std::string>(value_);
   }

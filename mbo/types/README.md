@@ -241,6 +241,9 @@ The key can also select an overload, specialize a template, or name a custom ext
 ### `string_or_view.h`: owned or borrowed text
 
 - Type name: `mbo::StringOrView`.
+- `str()` returns an owning `std::string`. Lvalue calls copy the text;
+  `std::move(value).str()` transfers an owned string or copies a borrowed view.
+  The consumed object remains valid and can be assigned another value.
 - `std::string` input: own the string; lvalues are copied and rvalues are moved.
 - `std::string_view` or character-array input: borrow the storage. Array construction uses `N - 1`
   characters. The referenced character storage must outlive the wrapper and its copies.

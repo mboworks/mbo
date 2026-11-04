@@ -96,7 +96,7 @@ class StringOrView {
     if (owns_string()) {
       return std::get<std::string>(std::move(value_));
     }
-    return std::string(view());
+    return std::string(std::get<std::string_view>(value_));
   }
 
   [[nodiscard]] constexpr bool owns_string() const noexcept {  // NOLINT(*-identifier-naming)

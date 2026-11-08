@@ -71,6 +71,12 @@ repos:
         entry: tools/clang_format.sh -i
         types_or: [c, c++, cuda]
         require_serial: true
+      - id: clang-format-launcher-test
+        name: Test the hermetic formatter launcher
+        language: system
+        entry: python3 -m unittest tools/clang_format_test.py
+        files: ^tools/clang_format(_test)?[.](sh|py)$
+        pass_filenames: false
       - id: mope-uses-external-clang
         name: mope-uses-external-clang
         description: |

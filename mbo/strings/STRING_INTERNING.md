@@ -1,5 +1,8 @@
 # String interning design
 
+The checked-in [benchmark harness and measurement instructions](STRING_INTERNER_BENCHMARKS.md)
+cover the current implementation and its supported configuration choices.
+
 This document records the design of an owning string interner for `mbo::strings`. It is a design
 document, not yet an API contract. Settled decisions are separated from questions so experiments
 can change the implementation without obscuring the required semantics.
@@ -23,21 +26,189 @@ container guarantees. Standard unordered containers, Abseil hash containers, and
 index should be usable when they satisfy the eventual concepts.
 
 `SegmentedVector` and `Arena` are independent production components and prerequisites for the
-interner's default composition. Their public contracts remain separate from this design.
+interner's default composition. Their public contracts remain separate from this design, as do
+concrete character-storage and string-container adapters.
 
 ## Core model
 
-An interner consists conceptually of three independent facilities:
+[`strings_internal::StringInternerBase`](internal/string_interner_base.h) implements shared
+insertion, lookup, parent snapshots, and iteration for both key-only and key/value indexes.
+[`StringInternerSet` and `StringInternerMap`](string_interner.h) are thin public wrappers that
+provide string-set and string-to-value semantics. Shared public error types, conversions, and
+container concepts live in [`string_interner_types.h`](string_interner_types.h). The base has a
+private Bazel target, following the `LimitedOrdered` layout. The ID type comes first. The map
+requires its mapped value type second; the remaining parameters are hash, string container,
+character storage, and dense entry sequence:
+
+```cpp
+StringInternerSet<> strings;  // StringIdU32, flat string-to-ID index, arena bytes
+StringInternerMap<StringIdU32<>, int> counts;
+auto inserted = counts.insert("apple", 42);  // ID zero, value 42
+if (inserted) {
+  auto entry = counts.get(inserted->first);  // OptionalRef to ("apple", 42)
+  counts.at(inserted->first) += 1;
+}
+StringInternerMap<std::uint64_t, std::string> descriptions;
+StringInternerSet<StringIdU32<>, std::hash<std::string_view>> custom_hash;
+
+using OwnedMap = std::map<std::string, StringIdU32<>, std::less<>>;
+StringInternerMap<StringIdU32<>, int, void, OwnedMap> owned_counts;
+using OwnedSet = std::set<std::string, std::less<>>;
+StringInternerSet<StringIdU32<>, void, OwnedSet> owned_set;
+```
+
+Both wrappers expose string keys: `key_type` is the index's normalized key type, either
+`std::string_view` or `std::string`. IDs are separate handles. Ordinary set iteration returns
+`const key_type&`; ordinary map iteration returns a reference to a string/value pair. Neither
+iteration nor ID access hashes a string or searches for its ID.
+
+The base is parameterized by `element_type`, analogous to `LimitedOrdered`. Its shared lookup,
+parent traversal, and iterators operate on elements. For sets, `element_type` is `const key_type`.
+For maps, `mapped_type` is the caller's `Value`, and `element_type` is
+`std::pair<const std::string_view, Value>` for view keys or
+`std::pair<const std::string&, Value>` for owning keys. A view is stored directly without another
+indirection; an owning key is referenced without copying its string. Keys stay immutable, including
+the view descriptor: reassigning it would make the element disagree with the index. `value_type`
+is `element_type` with any top-level const removed.
+
+Non-const map iteration yields `element_type&`, while const iteration yields
+`const element_type&`. `get(id)` returns `mbo::types::OptionalRef<element_type>` from a mutable map
+and `mbo::types::OptionalRef<const element_type>` from a const map or a set. Missing IDs return
+an empty reference. `get_string(id)` provides an optional string view in either wrapper.
+`at(id)` and `operator[](id)` return mapped-value references with the same constness. Both require
+an existing ID, never insert, and use `MBO_CONFIG_REQUIRE` for an invalid ID. There are no string
+overloads of these accessors; `find(key)` and `rfind(key)` explicitly obtain an ID from a string.
+
+Both wrappers default to `absl::flat_hash_map<std::string_view, Id, Hash>` as their index. Map
+values live in the dense element sequence, independently of this string-to-ID index.
+`insert(key, value)` adds a map element; `try_emplace(key, args...)` constructs its value in place,
+including immovable types. Duplicate insertion keeps the existing value and does not consume
+the supplied value or construct a replacement, including for inherited entries.
+Public callers choose `StringInternerSet` or `StringInternerMap` directly; there is no
+`StringInterner` alias.
+
+Custom indexes use ordinary associative-container operations: `find`, `end`, and `emplace`.
+They also support iterator-based `erase` to discard an unpublished index entry if a mapped-value
+constructor throws; successful entries are never erased. Standard `std::map`,
+`std::unordered_map`, `std::set`, `std::unordered_set`, and Abseil maps or sets can serve as either
+wrapper's index. The `Hash` parameter selects the default index's hasher; an explicitly supplied
+container selects its own hash or comparison type.
+
+`StringInternerContainerTraits<Container>` distinguishes key/value maps from key-only sets by the
+presence of `mapped_type`. Its key accessor selects a map entry's `first` member or a set entry
+itself. `StringInternerKey<Container>` extracts the key type and removes its top-level `const`
+qualification. `StringInternerStringContainer` validates string keys and lookup independently of
+any mapped value. Stored keys must remain const through mutable iterators, as they do in standard
+maps and sets; const-qualified key-type aliases are also accepted.
+
+`StringInternerIdIndex<Container, Id>` checks insertion for both wrappers. Map-like indexes map
+keys to IDs and use `emplace(key, id)`; key-only indexes use `emplace(key)`. Key-only indexes
+recover IDs by scanning local dense elements within the captured cutoff. The default string-to-ID
+index avoids that scan. ID lookup always selects a dense element directly, without an index lookup.
+String lookup accepts `std::string_view` without constructing an owning string. Owning standard
+containers therefore need heterogeneous lookup, such as `std::less<>` or a transparent hash and
+equality pair.
+
+The key type selects ownership, enforced by template constraints. A `std::string_view` key requires
+separate `Storage`, which defaults to `ArenaStringStorage<>`; `Storage = void` is rejected. A
+`std::string` key owns its bytes and requires `Storage = void`; supplying separate storage is
+rejected. These rules also apply to const-qualified keys and to both maps and sets.
+
+Owning containers must preserve key addresses during insertion, including for short strings.
+Flat-hash, C++23 flat-associative, and unknown custom containers are rejected at compile time for
+owning keys because growth may move their keys. Flat containers with `std::string_view` keys remain
+supported because separate storage owns the characters. Standard node containers and Abseil
+`node_hash_map` / `node_hash_set` are explicitly recognized as stable. Other custom indexes must specialize
+`mbo::strings::kHasStableKeyAddresses<CustomIndex>` to `true` before interner use, and only when
+they provide the same lifetime guarantee. The trait is declared in `string_interner_types.h` and
+defaults to `false`; no member marker is required or inspected on the container.
+`LimitedMap` and `LimitedSet` currently relocate elements during insertion and therefore do not meet
+this requirement for owning keys, even when their capacity is fixed.
+Dense entries default to `SegmentedVector`, which preserves element
+addresses during growth. A view set stores string views; an owning set stores pointers to const
+strings. A map stores optional elements so it can reserve an unpublished slot without constructing
+a mapped value. Custom entry containers must store that corresponding entry type and support
+bidirectional iteration, `size()`, default `emplace_back()`, and mutable `back()`. A fallible
+`try_emplace_back()` is used when available.
+
+The interner constructor accepts only a parent pointer, or an `options_type` containing a parent
+and a fully constructed empty index. This avoids forwarding arbitrary arguments to the selected
+container. For example, a stateful default-index hasher can be supplied as
+`StringInternerSet<Id, MyHash> strings({.container = {0, MyHash{seed}}})`. Both wrappers inherit
+these constructors and the base's parent-prefix behavior. Hashing and allocating operations retain
+the selected container's exception behavior; string lookup is not forced through a `noexcept`
+adapter.
+ID lookup is `noexcept`. If a mapped-value constructor throws, only the new index entry is erased;
+character bytes and the reserved dense slot are retained for the next attempt.
+
+`insert` returns `std::expected<std::pair<Id, bool>, StringInternerError>`. Success contains the ID
+and whether this call inserted a new string; a duplicate returns its existing ID and `false`.
+Failure contains an enum identifying the exhausted component. Returning either result does not
+format or allocate an error message. Fully bounded configurations must also supply backends that
+do not allocate; the result type alone does not make the default, growing containers allocation-free.
+
+Status-based callers explicitly use `ToStatusOr(interner.insert(key))`. `ToStatusCode(error)`
+provides the enum mapping used by that conversion:
+
+| StringInternerError          | absl::StatusCode     |
+| ---------------------------- | -------------------- |
+| `kIdExhausted`               | `kOutOfRange`        |
+| `kCharacterStorageExhausted` | `kResourceExhausted` |
+| `kEntryStorageExhausted`     | `kResourceExhausted` |
+| `kIndexExhausted`            | `kResourceExhausted` |
+
+Converted errors have empty messages and no payloads. Callers that need the exact exhausted
+storage component inspect the enum before conversion; all three storage errors share a status
+code. Neither result representation is claimed to be faster without measurements.
+
+Character storage only needs `try_store`; it is append-only from the interner's perspective. If
+indexing fails after a copy, those bytes may remain allocated until destruction. The interner does
+not reclaim them or publish an ID for them. An `emplace` result with `second == false` for a missing
+key reports index exhaustion, allowing bounded indexes to reject insertion. The interner stores a
+element referring to the canonical key after successful indexing.
+
+Both ownership modes reserve at most one unpublished dense entry and reuse it after a failed
+attempt. `size()`, iteration, and ID lookup include only successfully published entries. Entry
+containers need append and a writable `back()`; neither entry removal nor character-storage
+rollback is required. Reserving the entry before storing bytes also ensures entry exhaustion cannot
+consume character capacity. Owning mode has no separate character-storage object or runtime
+ownership branch. The entry sequence is destroyed before the string container, and any separate
+character storage is destroyed last.
+
+The interner implements captured parent cutoffs, forward/reverse lookup, whole-chain bidirectional
+iteration yielding string views for sets or key/value pairs for maps, and append-only insertion
+that publishes an ID only after
+indexing succeeds. Declared empty parents retain their identity; a zero local starting ID does not
+imply a null parent. Internal ordinals use unsigned `size_type`; negative signed IDs are rejected
+before conversion or ancestor traversal. Ancestor cutoffs can be passed directly during lookup
+because each parent's local starting ID is at most its child's.
+
+Extended bounded-allocation configurations and performance tuning remain outstanding. Forward
+lookup currently recurses through ancestors, while reverse lookup iterates. These are initial
+algorithms, not benchmark-selected strategies.
+
+The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
+ownership independently of the index. `try_store` copies exactly the view length,
+including embedded NUL bytes, without adding a terminator. Empty strings need no
+allocation. Exhaustion returns an empty optional; the interner uses the adapter only
+for append-only storage and keeps successful views until destruction. The adapter
+is neither copyable nor movable and requires external synchronization. Its arena
+type is configurable. Unexpected arena exceptions terminate through the adapter's
+`noexcept` boundary; it does not convert exceptions into allocation-failure results.
+This is an initial implementation, not a benchmark-selected storage strategy.
+
+An interner consists conceptually of three facilities:
 
 1. stable character storage that owns the bytes behind returned `std::string_view` values;
-2. an ordered table mapping dense identifiers to those views;
+2. an ordered table mapping dense identifiers to elements (keys or key/value pairs);
 3. a heterogeneous string index mapping content to identifiers.
 
-Separating these concerns is important. An arena can eliminate per-string character allocations,
-but it does not make a node-based hash table allocation-free. A fully bounded interner must bound
-and supply storage for both the character data and every index/table allocation.
+The character storage and index can be separate or combined in an owning container. An arena can
+eliminate per-string character allocations, but it does not make a node-based hash table
+allocation-free. A fully bounded interner must bound and supply storage for both the character data
+and every index/table allocation.
 
-The ordered ID-to-view table naturally wants `SegmentedVector`, an append-oriented container made
+The ordered ID-to-element table naturally wants `SegmentedVector`, an append-oriented container made
 from fixed-capacity segments. It must provide stable element addresses and efficient indexing by
 dense position. Developing this reusable container is an explicit goal of the project, not merely
 a private interner implementation detail. Its API should nevertheless be driven by demonstrated
@@ -85,15 +256,15 @@ range, including zero, independently of the ID representation's invalid sentinel
 
 IDs are zero-based. The first inserted string receives ID zero and every new ID is `size()` before
 insertion. Zero is a valid ID, including for an empty string when that is the first value inserted.
-The largest underlying representation value is reserved as `StringId::invalid_value`, making a
-default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.
+For `StringId`, the largest underlying representation value is reserved as `invalid_value`, making
+a default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.
 
-A strong `StringId` type should prevent accidental arithmetic and avoid confusing an invalid value
-with a valid integer. Its underlying representation must be a selectable 8-, 16-, 32-, or 64-bit
-unsigned integer so applications can trade capacity against memory footprint. These are the
-supported POD representations; other underlying types, including signed integers, are not
-supported without a demonstrated use. ID exhaustion must be detected before mutating either
-storage or the index. The default underlying representation is `std::uint32_t`.
+The interner accepts either a plain non-boolean integral ID or `StringId` with a signed or unsigned
+integral representation. Signed types permit application-defined negative, pre-known values while
+the interner continues assigning its dense local range from zero. `StringId` prevents accidental
+arithmetic and reserves its maximum representation value as invalid; a plain integral uses every
+nonnegative representable value. ID exhaustion is detected before mutating storage or the index.
+The default ID type is `StringId<std::uint32_t>`.
 
 ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload
 may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output
@@ -110,8 +281,8 @@ coupling. They must not truncate the default hash merely because the default ID 
 `size()` is the number of identifiers visible from an interner, including its captured ancestors.
 
 The initial [`StringId`](string_id.h) helper constrains
-[`mbo::types::ConstStrongId`](../types/strong_id.h) to the four fixed-width unsigned
-representations. It provides explicit underlying-value access, ordering, constexpr checked ordinal
+[`mbo::types::ConstStrongId`](../types/strong_id.h) to non-boolean integral representations. It
+provides explicit underlying-value access, ordering, constexpr checked ordinal
 conversion via `try_from_ordinal`, an `invalid_value` sentinel, and `is_valid()`, but deliberately
 does not expose arithmetic or mutation operations. The largest underlying value is
 reserved, so an 8-bit ID supports 255 entries with valid IDs `0..254`; exhaustion returns an empty
@@ -142,6 +313,12 @@ Consequently:
 - a child cannot outlive its parent, and no descendant can outlive any ancestor on which it
   depends.
 
+For maps, captured entries share their mapped values rather than copying them. Changes through
+a parent, child, or sibling are visible to every interner that sees that ID. The snapshot fixes
+membership and ID ownership, not a historical copy of mapped values. Consequently map parents
+must be mutable; a map child cannot be constructed from a pointer to a const parent. Sets still
+accept const parents. Const access to either a map or its parent exposes only const references.
+
 The ordinary parent constructor should require the exact same interner specialization. Mixing
 hashers, indexes, or storage policies casually would make invariants and performance surprising.
 Heterogeneous parent specializations are deferred because no concrete workload has demonstrated
@@ -161,12 +338,11 @@ interner can see both branch-local entries. Search direction is therefore a perf
 choice, not duplicate precedence, unless the design deliberately introduces an operation that can
 bypass interning and append duplicates.
 
-Both directions are required for lookup and interning. Neither parent-first nor child-first is
-universally hotter: applications may concentrate reuse in a shared root dictionary or in recent
-branch-local additions. Explicit operations expose each direction. A compile-time option selects
-the direction of the unsuffixed convenience operation so the default hot path has no runtime branch.
-The explicit insertion operations are `intern_parent_first(...)` and `intern_child_first(...)`;
-`intern(...)` uses the direction selected by `StringInternerOptions`.
+Insertion has one operation, `insert(...)`. It reuses the ID of any string visible through the
+captured parent prefix or local entries; otherwise, it adds the string to the current interner.
+It never inserts into a parent. The result reports the ID and whether a new local entry was added.
+Duplicate lookup currently checks the current interner before its ancestors. That traversal order
+is an implementation detail; callers do not choose an insertion direction.
 
 ### Immutability and iteration
 
@@ -182,14 +358,32 @@ needed beyond the usual iterator representation.
 
 An iterator must retain interner identity as well as position. Numeric IDs alone are insufficient
 for iterator equality because different snapshot branches can assign the same local ID to different
-strings. Appending must preserve existing element references and iterators; as with other growing
-containers, an iterator that previously represented `end()` need not become the new end.
+strings. Appending preserves string views and ordinal iterators; as with other growing containers,
+an iterator that previously represented `end()` need not become the new end. References to map
+pairs and mapped values follow the dense entry container's invalidation rules. The default
+`SegmentedVector` preserves them even when the flat string index grows. A custom `std::vector`
+entry sequence can invalidate them on reallocation.
 
-Dereferencing an iterator yields only `std::string_view`. It does not expose an entry pair or an
-additional public ID accessor. A caller that needs IDs while traversing can count dense ordinal
-positions from `begin()`. IDs remain element ordinals; using arena byte offsets as IDs is not the
-default because variable-length storage would make the public representation and capacity less
-efficient.
+Dereferencing a set iterator yields a const string key reference; a map iterator yields a
+string/value pair reference. Both support `operator->`. Mutable map iterators allow changes to the
+mapped value; const iterators make the entire pair const. Mutable iterators convert to const
+iterators, and the two kinds compare directly. `cbegin`, `cend`, `crbegin`, and `crend` always
+provide const access.
+
+An iterator's `id()` exposes its current dense position as `id_type` without hashing or searching.
+It has the same dereferenceable-iterator precondition as `operator*`. This supports occasional
+`(id, string)` or `(id, string, value)` access without larger ordinary iteration results:
+
+```cpp
+for (auto position = counts.begin(); position != counts.end(); ++position) {
+  const auto id = position.id();
+  const auto& [key, value] = *position;
+  // Use id, key, and value together only where needed.
+}
+```
+
+IDs remain element ordinals; arena byte offsets would make the public representation and
+capacity depend on variable-length storage.
 
 ### Object and view lifetime
 
@@ -198,7 +392,7 @@ assignment, and it cannot be swapped. This anchors every parent reference and av
 block, child registry, relocation tracking, or other overhead solely to make object movement safe.
 
 There is no `clear` or `reset`: the interner is append-only until destruction. Destruction
-invalidates every view and iterator it produced and remains forbidden while any child exists. The
+invalidates every view, reference, and iterator it produced and remains forbidden while any child exists. The
 child-before-parent destruction requirement is a documented lifetime precondition because the
 parent intentionally does not pay to track children.
 
@@ -210,7 +404,7 @@ raw memory. The public design should permit separate policies or compatible impl
 - the hash function and transparent equality;
 - the string-to-ID index;
 - stable character storage;
-- the ID-to-view table;
+- the ID-to-element sequence;
 - the identifier representation and possibly the failure policy.
 
 Each extension point must have a narrow behavioral contract enforced by a C++ concept. Multiple
@@ -234,20 +428,20 @@ option. A persistent HAMT may align with parent/child snapshots through structur
 is neither the default nor a prerequisite until measurements justify it.
 
 The index is not the interner's iteration storage. Public StringInterner iterators traverse the
-dense ID-to-view sequence, and lookup results are converted from an index entry to that dense
+dense ID-to-element sequence, and lookup results are converted from an index entry to that dense
 position. No iterator from `std::unordered_map`, an Abseil container, HAMT, or another selected index
 escapes the interner. The index therefore need not provide stable iterators; stable strings and
 public interner iterators come from character storage and the dense sequence respectively.
 
 ### Owning-string insertion
 
-Owning `std::string` storage is a fundamentally different, viable backend rather than an incidental
-optimization of the arena/string-view design. It is expected to be slower for the primary workload
-and is not part of version one. Accepting an rvalue `std::string` does not force the default
-representation to store one `std::string` object per entry or weaken arena support; the initial
-arena backend copies the string's bytes into stable character storage.
+An owning string container is an alternative to a borrowing index with separate arena storage.
+Both use `insert(std::string_view)`; the owning container copies into its own storage and returns
+the canonical view, while an arena backend copies into the separate arena. The choice affects
+allocation strategy, per-entry storage, and locality; benchmarks must compare complete backend
+configurations before selecting a performance default.
 
-The overload is therefore a capability of the selected storage backend:
+An overload accepting an rvalue `std::string` remains a possible capability of a selected backend:
 
 - an owning-string backend may adopt the moved string's allocation where it can preserve the
   character address;
@@ -255,10 +449,9 @@ The overload is therefore a capability of the selected storage backend:
 - a bounded backend succeeds only when its supplied capacity can hold the bytes and index entry.
 
 Small-string optimization means moving a `std::string` does not universally transfer a stable heap
-allocation. An owning-string backend must also choose a representation whose later growth, moves,
-or relocation cannot invalidate views into short strings. This profile remains deferred and becomes
-an additional backend only if benchmarks demonstrate a meaningful winning workload. It is never a
-cost paid by the arena-oriented default.
+allocation. An owning-string backend must choose a representation whose later growth or relocation
+cannot invalidate views into short strings. A container that moves its stored string objects during
+growth cannot satisfy the owning contract unless it separately guarantees stable character storage.
 
 ### Embedded NUL bytes
 
@@ -306,17 +499,20 @@ offsets may be narrower than pointers and make arena segments more relocatable. 
 include lookup latency, insertion throughput, bytes per string, alignment loss, and cache behavior.
 
 The fully bounded mode must perform no hidden allocation. Exhaustion can arise independently from
-character capacity, entry capacity, index capacity, or identifier range. A failed insertion must
-be transactional: no bytes, ID, or index entry become observably committed unless the complete
-operation succeeds.
+character capacity, entry capacity, index capacity, or identifier range. A failed insertion
+publishes no ID or index entry and leaves previously published strings unchanged. Append-only
+character storage may retain bytes from a failed attempt; the unpublished dense slot is reused by
+the next attempt. Capacity reclamation is a backend choice, not an interner requirement.
 
-The lightweight error enum distinguishes `id_exhausted`, `character_storage_exhausted`,
-`entry_storage_exhausted`, and `index_exhausted`. Allocation and block-source failures map to the
-storage component whose capacity could not grow.
+The lightweight error enum distinguishes `kIdExhausted`, `kCharacterStorageExhausted`,
+`kEntryStorageExhausted`, and `kIndexExhausted`. Allocation and block-source failures reported by a
+backend map to the storage component whose capacity could not grow; ordinary container exceptions
+retain their existing behavior.
 
 ### Failure APIs
 
-The following interfaces are candidates and may coexist as adapters over one implementation:
+`insert` currently provides an expected result, including the inserted flag; `ToStatusOr` is an
+explicit adapter. The following broader interface forms remain comparison candidates:
 
 | Form                         | Information                  | Intended use                         |
 | ---------------------------- | ---------------------------- | ------------------------------------ |
@@ -331,52 +527,40 @@ Exceptions should not be the primary interface for a latency-sensitive container
 optional for builds with exceptions disabled. Successful-hit and successful-insert performance,
 result size, generated code, and failure behavior should be measured for each serious candidate.
 
-## Candidate operations
+## Operations
 
-Names and exact return types are deliberately provisional:
+Both wrappers return `std::expected<std::pair<Id, bool>, StringInternerError>` from insertion.
+`find(key)` and `rfind(key)` return `std::optional<Id>` and differ only in ancestor traversal order.
+Iteration follows dense ID order in either wrapper.
 
 ```cpp
-struct InsertResult {
-  StringId id;
-  bool inserted;
-};
+// StringInternerSet
+insertion_result insert(std::string_view key);
+const_lookup_result get(id_type id) const;
 
-InsertResult intern(std::string_view value);
-InsertResult intern(std::string&& value);
-InsertResult intern_parent_first(std::string_view value);
-InsertResult intern_child_first(std::string_view value);
+// StringInternerMap: mapped_type is the caller-supplied Value.
+insertion_result insert(std::string_view key, auto&& value);
+insertion_result try_emplace(std::string_view key, auto&&... args);
+lookup_result get(id_type id);
+const_lookup_result get(id_type id) const;
+mapped_type& at(id_type id);
+const mapped_type& at(id_type id) const;
+mapped_type& operator[](id_type id);
+const mapped_type& operator[](id_type id) const;
 
-iterator find(std::string_view value) const;
-reverse_iterator rfind(std::string_view value) const;
-std::optional<std::string_view> lookup(StringId id) const;
-
-std::size_t size() const;
-std::size_t local_size() const;
+// Both wrappers
+std::optional<std::string_view> get_string(id_type id) const;
+std::optional<id_type> find(std::string_view key) const;
+std::optional<id_type> rfind(std::string_view key) const;
+size_type size() const;
+size_type local_size() const;
 bool empty() const;
 ```
 
-Insertion follows the standard associative-container convention and reports both the ID and whether
-it created a local entry. This result should have no measurable cost over returning only the ID. If
-measurement finds a material cost, or ID-only use is sufficiently common, an additional convenience
-method may return only `StringId`. The fast hard-failing API and failure-aware API may still need
-distinct names such as `intern` and `try_intern`.
-
-`find` returns a forward iterator and uses `end()` for a miss. `rfind` returns a reverse iterator and
-uses `rend()` for a miss. Iteration itself exposes only `string_view`; callers can count dense
-ordinal IDs when needed.
-
-Search direction and result orientation are independent choices:
-
-| Operation model              | Result                  | Consequence                                      |
-| ---------------------------- | ----------------------- | ------------------------------------------------ |
-| Associative-container `find` | Forward `iterator`      | Familiar `end()` miss; direction stays internal  |
-| Reverse-range search         | `reverse_iterator`      | Miss compares with `rend()`                      |
-| String-like position lookup  | Optional or sentinel ID | Direct dense ID; not associative-container style |
-| Counted forward iteration    | Forward `iterator`      | Natural string-view range; caller counts IDs     |
-
-Because visible strings are unique, a reverse search need not force a reverse-oriented result.
-Returning `reverse_iterator` from `rfind` intentionally exposes its traversal orientation, while
-dereference still yields only `string_view`.
+Map lookup returns an optional reference to the complete key/value entry, preserving the map's
+constness. No lookup copies or default-constructs the mapped value. Insertion into an existing
+entry preserves the prior value. Assignment through `at(id)`, `operator[](id)`, a mutable lookup
+result, or a mutable iterator changes the existing mapped value without changing its key or ID.
 
 ## Serialization
 
@@ -390,10 +574,12 @@ without coupling the public contract to an index or arena representation.
 - Every visible byte string maps to exactly one ID within one interner view.
 - Re-interning a visible string returns its existing visible ID and does not allocate.
 - New local IDs form a contiguous suffix after the captured parent cutoff.
-- Parent mutation after child creation cannot change any lookup result in the child.
+- Parent insertion after child creation cannot change the child's string-to-ID mapping; mapped
+  values of visible entries remain shared.
 - Hash collisions never merge unequal strings.
 - Successful insertion leaves all previously returned views valid.
-- Failed insertion leaves observable state unchanged.
+- Failed insertion leaves published IDs, lookups, and iteration unchanged; backing storage may
+  retain allocations made during the attempt.
 - Destruction order is parent after all children; the API should make misuse difficult and document
   that this remains a lifetime precondition if static enforcement is impractical.
 
@@ -443,7 +629,7 @@ The version-one semantic contract has no remaining open questions. Measurements 
   `BlockSource` boundary without coupling arena and `SegmentedVector` ownership models;
 - native pointers versus segment-relative offsets for arena descriptors, including the best useful
   offset width;
-- whether a later owning-`std::string` backend has a meaningful winning workload.
+- which owning-string and separate-storage backend configurations win for each workload.
 
 ## Language baseline
 

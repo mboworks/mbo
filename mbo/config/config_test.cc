@@ -50,6 +50,7 @@ TEST_F(ConfigTest, ExposesTheGeneratedConfigValues) {
   // them at compile time (LimitedOrdered static_asserts on kUnrollMaxCapacityDefault).
   static_assert(std::same_as<decltype(kUnrollMaxCapacityDefault), const std::size_t>);
   static_assert(std::same_as<decltype(kRequireThrows), const bool>);
+  static_assert(std::same_as<decltype(kExceptionsEnabled), const bool>);
 }
 
 TEST_F(ConfigTest, UnrollCapacityIsWithinTheRangeItsConsumersRequire) {

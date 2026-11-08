@@ -43,12 +43,13 @@ struct HamtStringInternerPolicyTest : ::testing::Test {
       Policy>;
 };
 
-using IndexTypes = ::testing::Types<HamtStringIndex<Id, Hash>, HamtNodeStringIndex<Id, Hash>>;
+using FlatIndex = HamtStringIndex<Id, Hash, std::equal_to<>, HamtOptions{.fragment_bits = 6}>;
+using IndexTypes = ::testing::Types<FlatIndex, HamtNodeStringIndex<Id, Hash>>;
 
 struct IndexNames final {
   template<typename T>
   static std::string GetName(int /*index*/) {
-    if constexpr (std::same_as<T, HamtStringIndex<Id, Hash>>) {
+    if constexpr (std::same_as<T, FlatIndex>) {
       return "Flat";
     } else {
       return "Node";

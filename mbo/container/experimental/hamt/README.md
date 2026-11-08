@@ -78,7 +78,8 @@ policy when a mapped-value constructor can throw.
 
 using Id = mbo::strings::StringIdU32<>;
 using Hash = mbo::hash::DefaultHasher;
-using Index = mbo::container::experimental::hamt::HamtStringIndex<Id, Hash>;
+constexpr mbo::container::experimental::hamt::HamtOptions kIndexOptions{.fragment_bits = 6};
+using Index = mbo::container::experimental::hamt::HamtStringIndex<Id, Hash, std::equal_to<>, kIndexOptions>;
 using Policy = mbo::strings::StringInternerPolicyHolder<
     mbo::strings::StringInternerErrorStlPolicy,
     mbo::strings::StringInternerLookupMboPolicy,
@@ -98,12 +99,18 @@ Parent visibility continues to use the generic interner's captured ID prefix. Ke
 interner's character storage; insertion results never expose mutable keys or IDs.
 
 The flat adapter avoids separate payload allocations and is the initial compact composition.
-The node adapter is available for comparison. Fragment widths, hash algorithms, character-block
-sizes, and expected populations remain measurement axes rather than universal speed defaults.
+The example selects six-bit fragments for lookup-oriented use. Local nine-repetition diagnostics
+at 1,024 and 16,384 keys favored width 6 for lookup and duplicate insertion; width 5 built the larger
+population slightly faster. The node adapter is available for comparison. Fragment widths, hash
+algorithms, character-block sizes, and expected populations remain measurement axes rather than
+universal speed defaults. These diagnostics do not change the core `HamtOptions` defaults.
 The [generic interner benchmark](HAMT_MAP_BENCHMARKS.md#generic-stringinterner-compositions)
 compares these choices using the same interner implementation.
 
 Failed index insertion leaves no published ID or lookup entry. As in the generic interner on
 `main`, an uncommitted character copy can remain reserved until storage destruction. Checkpoint
 rollback is not part of this composition. With exception-safe mapped publication, `erase(iterator)`
-removes the unpublished index entry if the caller's value constructor throws.
+removes the unpublished index entry if the caller's value constructor throws. HAMT erasure can
+allocate and retains its source's exhaustion behavior; bounded configurations with throwing
+mapped constructors must also provision the storage needed for that rollback. The recommended
+exception-free composition uses non-throwing mapped construction.

@@ -18,6 +18,13 @@ try-import %workspace%/.bazelrc.user
 
 common --consistent_labels
 common --enable_bzlmod --noenable_workspace
+# Retry transient repository download failures with bounded backoff.
+common --http_connector_attempts=20
+common --http_connector_retry_max_timeout=5s
+common --experimental_repository_downloader_retries=20
+# CI cache trimming evicts individual CAS blobs. Check cached action results for
+# missing outputs before reuse; Bazel 9 disables that check with action rewinding.
+common --norewind_lost_inputs
 common --incompatible_disallow_empty_glob
 common --nolegacy_external_runfiles
 common --features=layering_check,parse_headers

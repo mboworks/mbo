@@ -2,18 +2,18 @@
 # To learn more about the format of this file, see https://docs.trunk.io/reference/trunk-yaml
 version: 0.1
 cli:
-  version: 1.25.0
+  version: 1.29.0
 plugins:
   sources:
     - id: trunk
-      ref: v1.10.2
+      ref: v1.11.0
       uri: https://github.com/trunk-io/plugins
 # Many linters and tools depend on runtimes - configure them here. (https://docs.trunk.io/runtimes)
 runtimes:
   enabled:
-    - go@1.21.0
-    - node@22.16.0
-    - python@3.14.4
+    - go@1.27.3
+    - node@22.23.4
+    - python@3.14.10
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   definitions:
@@ -44,7 +44,7 @@ lint:
       environment:
         - name: PATH
           list: ["${linter}"]
-      known_good_version: 7.1.0
+      known_good_version: 10.2.0
       version_command:
         parse_regex: ${semver}
         run: buildifier --version
@@ -55,13 +55,13 @@ lint:
   # `clang-tidy` pre-commit hook (tools/clang_tidy.sh, hermetic clang >= 22); CI's
   # hard gate stays the bazel -Werror matrix. Do not re-add it here.
   enabled:
-    - buildifier@8.5.1
-    - checkov@3.3.6
+    - buildifier@10.2.0
+    - checkov@3.4.3
     - git-diff-check
-    - markdownlint@0.49.0
-    - prettier@3.9.4
-    - trivy@0.72.0
-    - trufflehog@3.95.7
+    - markdownlint@0.50.0
+    - prettier@3.9.10
+    - trivy@0.76.2
+    - trufflehog@3.99.8
     - yamllint@1.38.0
 actions:
   # Git hooks are owned by pre-commit (see .pre-commit-config.yaml). These trunk

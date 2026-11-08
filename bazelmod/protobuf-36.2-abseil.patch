@@ -1,9 +1,6 @@
-diff --git a/MODULE.bazel b/MODULE.bazel
-index 2c0da7a..4dab588 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -21,8 +21,8 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
- #ifndef PROTO2_OPENSOURCE
+@@ -23,7 +23,7 @@
  # LINT.IfChange
  #endif // PROTO2_OPENSOURCE
  # protoc dependencies

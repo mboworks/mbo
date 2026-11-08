@@ -77,6 +77,10 @@ class StringInternerBase {
   using index_policy = Policy::index_policy;
 
  private:
+  static constexpr bool kUseIndexTransaction =
+      mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException
+      && requires(StringContainer& container) { index_policy::BeginInsertion(container); };
+
   template<bool IsConst>
   class Iterator final {
     using Owner = std::conditional_t<IsConst, const StringInternerBase, StringInternerBase>;
@@ -262,9 +266,6 @@ class StringInternerBase {
  protected:
   template<typename... Args>
   [[nodiscard]] insertion_result Insert(std::string_view key, Args&&... args) {
-    static constexpr bool kUseIndexTransaction =
-        mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException
-        && requires(StringContainer& container) { index_policy::BeginInsertion(container); };
     if (const auto existing = rfind(key)) {
       return Policy::Success(*existing, false);
     }

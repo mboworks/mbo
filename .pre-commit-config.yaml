@@ -65,6 +65,18 @@ repos:
 
   - repo: local
     hooks:
+      - id: clang-format
+        name: clang-format (hermetic LLVM)
+        language: script
+        entry: tools/clang_format.sh -i
+        types_or: [c, c++, cuda]
+        require_serial: true
+      - id: clang-format-launcher-test
+        name: Test the hermetic formatter launcher
+        language: system
+        entry: python3 -m unittest tools/clang_format_test.py
+        files: ^tools/clang_format(_test)?[.](sh|py)$
+        pass_filenames: false
       - id: mope-uses-external-clang
         name: mope-uses-external-clang
         description: |
@@ -267,6 +279,18 @@ repos:
         entry: python3 -m unittest tools/coverage_test.py tools/coverage_sources_test.py tools/coverage_html_test.py tools/coverage_index_test.py tools/coverage_lcovrc_test.py tools/coverage_policy_test.py
         files: ^(coverage_policy\.json|tools/coverage(_html|_index|_lcovrc|_policy|_sources)?(_test)?\.py)$
         pass_filenames: false
+      - id: site-storage-tests
+        name: Test retained coverage storage and publication
+        language: system
+        entry: python3 -m unittest discover -s tools -p '*storage_test.py'
+        files: ^tools/(coverage_storage|site_storage|coverage_viewer|site_page)(_test)?\.(py|js)$
+        pass_filenames: false
+      - id: site-publication-tests
+        name: Test complete-site storage limits and publisher integration
+        language: system
+        entry: python3 -m unittest discover -s tools -p compact_site_test.py
+        files: ^(tools/compact_site(_test)?\.py|\.github/workflows/(coverage_pages|pages)\.yml)$
+        pass_filenames: false
       - id: align-markdown-tables
         name: Align Markdown tables
         description: Keep Markdown table columns vertically aligned in source files.
@@ -331,15 +355,6 @@ repos:
         language: system
         entry: trunk fmt
         require_serial: true
-
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.8
-    hooks:
-      - id: clang-format
-        # The default `types_or` for this hook includes `json`, where
-        # clang-format fights with trunk's prettier (multi-line vs single-line
-        # arrays). Restrict to actual C/C++/CUDA sources.
-        types_or: [c, c++, cuda]
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.11.0-1

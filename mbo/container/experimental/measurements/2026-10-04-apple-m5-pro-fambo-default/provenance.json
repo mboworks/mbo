@@ -1,0 +1,17 @@
+{
+  "description": "Verify the new fambo-backed Frozen default against explicitly supplied fambo.",
+  "artifact": "read.json.xz",
+  "artifact_sha256": "abe15a15d061e0df1cdacccddcc10d1cd94c7907291df982d44349b2a4328770",
+  "compressed_sha256": "ea82c39f28699e6943426186179d9e900409ce77be4632c5fbe336709f848b15",
+  "source_commit": "130b24128ff18112872835a4e8660238a8f9ca9c",
+  "baseline_commit": "40392d84b119d9413e0e7b78cea44b08e7046259",
+  "build_command": "bazel build -c opt --config=clang --config=opt_apple_m5 //mbo/container/experimental:frozen_benchmark",
+  "cases": 86,
+  "samples": 774,
+  "aggregation": "Median CPU time of nine repetitions; CSV uses nine significant digits.",
+  "limitations": [
+    "One host and process, warm cyclic corpus, fixed 10-byte strings",
+    "Thread affinity and CPU-frequency metadata unavailable",
+    "No construction or allocation measurement; close timings vary between runs"
+  ]
+}

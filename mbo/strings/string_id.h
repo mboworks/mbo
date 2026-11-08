@@ -12,8 +12,7 @@
 namespace mbo::strings {
 
 template<typename T>
-concept StringIdRepresentation = std::same_as<T, std::uint8_t> || std::same_as<T, std::uint16_t>
-                                 || std::same_as<T, std::uint32_t> || std::same_as<T, std::uint64_t>;
+concept IsStringIdRepresentation = std::integral<T> && !std::same_as<T, bool>;
 
 namespace strings_internal {
 struct StringIdTag;
@@ -21,8 +20,24 @@ struct StringIdTag;
 
 // Dense identifier, not a hash. String IDs intentionally expose the immutable-in-semantics
 // ConstStrongId surface: zero is valid and the largest representation value is reserved as invalid.
-template<StringIdRepresentation Representation = std::uint32_t>
-using StringId = mbo::types::ConstStrongId<strings_internal::StringIdTag, Representation>;
+template<IsStringIdRepresentation Representation = std::uint64_t, typename TagType = strings_internal::StringIdTag>
+using StringId = mbo::types::ConstStrongId<TagType, Representation>;
+
+template<typename TagType = strings_internal::StringIdTag>
+using StringIdU32 = StringId<std::uint32_t, TagType>;
+
+template<typename TagType = strings_internal::StringIdTag>
+using StringIdU64 = StringId<std::uint64_t, TagType>;
+
+template<typename Type, typename Tag = strings_internal::StringIdTag>
+concept IsStringId = mbo::types::IsConstStrongId<Type, Tag> && std::same_as<Type, std::remove_cv_t<Type>>
+                     && std::same_as<Type, std::remove_reference_t<Type>>;
+
+template<typename Tag = strings_internal::StringIdTag>
+concept IsStringIdU32 = IsStringId<StringId<std::uint32_t, Tag>, Tag>;
+
+template<typename Tag = strings_internal::StringIdTag>
+concept IsStringIdU64 = IsStringId<StringId<std::uint64_t, Tag>, Tag>;
 
 }  // namespace mbo::strings
 

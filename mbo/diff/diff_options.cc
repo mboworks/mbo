@@ -37,7 +37,7 @@ std::optional<DiffOptions::Algorithm> DiffOptions::ParseAlgorithmFlag(std::strin
       {"naive", DiffOptions::Algorithm::kNaive},
       {"unified", DiffOptions::Algorithm::kMyers},  // Deprecated alias; implies unified format.
   });
-  auto it = kFlagMapping.find(flag);
+  const auto it = kFlagMapping.find(flag);
   if (it == kFlagMapping.end()) {
     return std::nullopt;
   }
@@ -51,7 +51,7 @@ std::optional<DiffOptions::OutputFormat> DiffOptions::ParseOutputFormatFlag(std:
       {"side-by-side", DiffOptions::OutputFormat::kSideBySide},
       {"unified", DiffOptions::OutputFormat::kUnified},
   });
-  auto it = kFlagMapping.find(flag);
+  const auto it = kFlagMapping.find(flag);
   if (it == kFlagMapping.end()) {
     return std::nullopt;
   }
@@ -65,7 +65,7 @@ std::optional<DiffOptions::FileHeaderUse> DiffOptions::ParseFileHeaderUse(std::s
       {"none", DiffOptions::FileHeaderUse::kNone},
       {"right", DiffOptions::FileHeaderUse::kRight},
   });
-  auto it = kFlagMapping.find(flag);
+  const auto it = kFlagMapping.find(flag);
   if (it == kFlagMapping.end()) {
     return std::nullopt;
   }

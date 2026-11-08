@@ -45,10 +45,10 @@ std::string SafeStr(const char* str, std::string_view default_str) {
 using rules_cc::cc::runfiles::Runfiles;
 
 absl::StatusOr<std::string> RunfilesDir(std::string_view source) {
-  if (source.starts_with("@")) {
+  if (source.starts_with('@')) {
     std::pair<std::string_view, std::string> parts = absl::StrSplit(source, absl::MaxSplits("//", 1));
     parts.first.remove_prefix(1);
-    if (auto pos = parts.second.find(':'); pos != std::string::npos) {
+    if (const auto pos = parts.second.find(':'); pos != std::string::npos) {
       parts.second.at(pos) = '/';
     }
     return RunfilesDir(parts.first, parts.second);
@@ -56,7 +56,7 @@ absl::StatusOr<std::string> RunfilesDir(std::string_view source) {
   if (source.starts_with("//")) {
     source.remove_prefix(2);
     std::string source_rel(source);
-    if (auto pos = source_rel.find(':'); pos != std::string::npos) {
+    if (const auto pos = source_rel.find(':'); pos != std::string::npos) {
       source_rel.at(pos) = '/';
     }
     return RunfilesDir("", source_rel);

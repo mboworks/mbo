@@ -86,7 +86,7 @@ void BmIndexed(benchmark::State& state) {
   }
   benchmark::ClobberMemory();
 
-  for (auto _ : state) {
+  for (const auto _ : state) {
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < kElementCount; ++ordinal) {
       const std::size_t pos = Permuted ? (ordinal * 40'503) & (kElementCount - 1) : ordinal;

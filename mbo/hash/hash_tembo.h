@@ -113,7 +113,7 @@ constexpr bool FirstEntriesDistinct(const std::array<uint64_t, N>& arr, std::siz
 // The table itself: every secret must be odd (an even multiplier operand
 // throws away a low bit in the widening multiply) and pairwise distinct.
 static_assert(
-    []() constexpr {
+    [] constexpr {
       for (const auto& secret_code : kSecretCodes) {
         if ((secret_code & 1U) == 0U) {
           return false;
@@ -380,7 +380,7 @@ MBO_FORCE_INLINE constexpr uint64_t GetHash64(std::string_view str, uint64_t see
         lane_f ^= kSecretCodes[(kLoopInitConstIndex + 0x0f) % kNumConsts];
       }
     }
-    constexpr std::array<uint64_t, kNumLanes> kLaneSecrets = [&]() constexpr {
+    constexpr std::array<uint64_t, kNumLanes> kLaneSecrets = [&] constexpr {
       std::array<uint64_t, kNumLanes> secrets;  // NOLINT(*-member-init)
       secrets[0x00] = kSecretCodes[(kLoopBaseConstIndex + 0x00) % kNumConsts];
       if constexpr (kNumLanes > 1) {
@@ -538,7 +538,7 @@ MBO_FORCE_INLINE constexpr uint64_t GetHash64(std::string_view str, uint64_t see
   if (len > 16) {
     // The first here is `+2` and not `+0`. Otherwise `fambo` fails SMHasher.
     // Technically we need kNumLaneCount - 1, but it is simpler to go up to kLanecount.
-    constexpr std::array<uint64_t, kNumLanes> kILSecrets = [&]() constexpr {
+    constexpr std::array<uint64_t, kNumLanes> kILSecrets = [&] constexpr {
       std::array<uint64_t, kNumLanes> secrets;  // NOLINT(*-member-init)
       secrets[0x00] = kSecretCodes[(kIfLadderConstIndex + 0x02) % kNumConsts];
       if constexpr (kNumLanes > 1) {

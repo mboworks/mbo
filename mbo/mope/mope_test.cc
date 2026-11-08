@@ -28,10 +28,11 @@
 #include "gtest/gtest.h"
 #include "mbo/mope/ini.h"
 #include "mbo/testing/matchers.h"
+#include "mbo/testing/status.h"
 
 // Unit tests for the mope Template engine and its ini loader. The golden
 // `*_diff_test`s exercise the binary end to end; these pin the LIBRARY contract:
-// what SetValue/AddSection/Expand and ReadIniToTemlate do, one behaviour each.
+// what SetValue/AddSection/Expand and ReadIniToTemplate do, one behaviour each.
 
 namespace mbo::mope {
 
@@ -98,8 +99,10 @@ struct MopeTest : ::testing::Test {
 
 namespace {
 
+using ::mbo::testing::IsOk;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
+using ::testing::Not;
 
 namespace fs = std::filesystem;
 
@@ -432,7 +435,7 @@ TEST_F(MopeTest, ValueTagCannotRenderASectionDictionary) {
   EXPECT_THAT(tpl.Expand(output).code(), absl::StatusCode::kUnimplemented);
 }
 
-TEST_F(MopeTest, ReadIniToTemlateLoadsRootValues) {
+TEST_F(MopeTest, ReadIniToTemplateLoadsRootValues) {
   constexpr std::string_view kInput = "{{foo}}";
   const fs::path ini_path = fs::temp_directory_path() / "mope_test_root.ini";
   {
@@ -440,14 +443,14 @@ TEST_F(MopeTest, ReadIniToTemlateLoadsRootValues) {
     out << "foo=bar\n";
   }
   Template tpl;
-  ASSERT_THAT(ReadIniToTemlate(ini_path.string(), tpl), absl::OkStatus());
+  ASSERT_THAT(ReadIniToTemplate(ini_path.string(), tpl), absl::OkStatus());
   std::string output(kInput);
   ASSERT_THAT(tpl.Expand(output), absl::OkStatus());
   EXPECT_THAT(output, "bar");
   fs::remove(ini_path);
 }
 
-TEST_F(MopeTest, ReadIniToTemlateBuildsRepeatedNestedSections) {
+TEST_F(MopeTest, ReadIniToTemplateBuildsRepeatedNestedSections) {
   constexpr std::string_view kInput =
       R"({{root}}|{{#person:","}}{{name}}:{{#contact}}{{phone}}{{/contact}}{{/person}})";
   const fs::path ini_path = fs::temp_directory_path() / "mope_test_nested.ini";
@@ -462,38 +465,39 @@ TEST_F(MopeTest, ReadIniToTemlateBuildsRepeatedNestedSections) {
            "name=two\n";
   }
   Template tpl;
-  ASSERT_THAT(ReadIniToTemlate(ini_path.string(), tpl), absl::OkStatus());
+  ASSERT_THAT(ReadIniToTemplate(ini_path.string(), tpl), absl::OkStatus());
   std::string output(kInput);
   ASSERT_THAT(tpl.Expand(output), absl::OkStatus());
   EXPECT_THAT(output, "top|one:123,two:");
   fs::remove(ini_path);
 }
 
-TEST_F(MopeTest, ReadIniToTemlateRejectsInvalidSectionNames) {
+TEST_F(MopeTest, ReadIniToTemplateRejectsInvalidSectionNames) {
   const fs::path ini_path = fs::temp_directory_path() / "mope_test_invalid_section.ini";
   {
     std::ofstream out(ini_path);
     out << "[not valid]\nkey=value\n";
   }
   Template tpl;
-  EXPECT_THAT(ReadIniToTemlate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(ReadIniToTemplate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);
   fs::remove(ini_path);
 }
 
-TEST_F(MopeTest, ReadIniToTemlateRejectsInvalidValueNames) {
+TEST_F(MopeTest, ReadIniToTemplateRejectsInvalidValueNames) {
   const fs::path ini_path = fs::temp_directory_path() / "mope_test_invalid_value.ini";
   {
     std::ofstream out(ini_path);
     out << "not valid=value\n";
   }
   Template tpl;
-  EXPECT_THAT(ReadIniToTemlate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(ReadIniToTemplate(ini_path.string(), tpl).code(), absl::StatusCode::kInvalidArgument);
   fs::remove(ini_path);
 }
 
-TEST_F(MopeTest, ReadIniToTemlateFailsForAMissingFile) {
+TEST_F(MopeTest, ReadIniNamesFailForAMissingFile) {
   Template tpl;
-  EXPECT_THAT(ReadIniToTemlate("/nonexistent/no.ini", tpl).ok(), IsFalse());
+  EXPECT_THAT(ReadIniToTemplate("/nonexistent/no.ini", tpl), Not(IsOk()));
+  EXPECT_THAT(ReadIniToTemlate("/nonexistent/no.ini", tpl), Not(IsOk()));
 }
 
 }  // namespace

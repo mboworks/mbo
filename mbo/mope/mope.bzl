@@ -27,7 +27,7 @@ load("//mbo/diff:diff.bzl", "diff_test")
 # The `clang-format` tool is selected as follows:
 # 1) If custom bazel flag `--//mbo/mope:clang_format` is set, then that value will be used.
 # 2) If the custom flag is empty and this variable is a non empty string, then use its value.
-#    Otherwise use `@llvm_toolchain_llvm//:bin/clang-format`.
+#    Otherwise use `@llvm_toolchain_llvm//:clang-format`.
 # 3) If the resulting value is `clang-format-auto` (or the above result is not found or not
 #    executable), then the rule tries to find the tool:
 #    a) clang-format found through `toolchains_llvm` in bazel's external directory
@@ -57,13 +57,13 @@ def _clang_format_impl(ctx, src, dst):
     """
     execution_requirements = {"no-sandbox": "1"} if _CLANG_FORMAT_BINARY else {}
     clang_config = ctx.files._clang_format_config[0]
-    clang_format_tool = [] if _CLANG_FORMAT_BINARY else [ctx.executable._clang_format_tool]
+    clang_format_tool = [] if _CLANG_FORMAT_BINARY else [ctx.attr._clang_format_tool[DefaultInfo].files_to_run]
     clang_format = _get_clang_format(ctx)
     if not clang_format:
         clang_format = ctx.attr._clang_format_tool if _CLANG_FORMAT_BINARY else ctx.executable._clang_format_tool.path
     ctx.actions.run_shell(
         outputs = [dst],
-        inputs = [src, clang_config] + clang_format_tool,
+        inputs = [src, clang_config],
         tools = clang_format_tool,
         command = """
             CLANG_FORMAT="{clang_format}"
@@ -150,7 +150,7 @@ _clang_format_common_attrs = {
         default = _CLANG_FORMAT_BINARY or "clang-format-auto",
     ) if _CLANG_FORMAT_BINARY else attr.label(
         doc = "The target of the clang-format executable.",
-        default = Label("@llvm_toolchain_llvm//:bin/clang-format"),
+        default = Label("@llvm_toolchain_llvm//:clang-format"),
         allow_single_file = True,
         executable = True,
         cfg = "exec",

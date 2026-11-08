@@ -29,7 +29,7 @@
 
 namespace mbo::mope {
 
-absl::Status ReadIniToTemlate(std::string_view ini_filename, Template& root_template) {
+absl::Status ReadIniToTemplate(std::string_view ini_filename, Template& root_template) {
   using SectionPath = std::vector<std::pair<std::string, std::string>>;
   MBO_ASSIGN_OR_RETURN(const mbo::file::IniFile ini, mbo::file::IniFile::Read(ini_filename));
   absl::btree_map<SectionPath, mbo::mope::Template*> sections;
@@ -59,6 +59,10 @@ absl::Status ReadIniToTemlate(std::string_view ini_filename, Template& root_temp
     }
   }
   return absl::OkStatus();
+}
+
+absl::Status ReadIniToTemlate(std::string_view ini_filename, Template& root_template) {
+  return ReadIniToTemplate(ini_filename, root_template);
 }
 
 }  // namespace mbo::mope

@@ -15,6 +15,16 @@ import cache_report
 
 
 class CacheReportTest(unittest.TestCase):
+    def test_cmake_measurement_uses_the_exact_main_upload(self):
+        key = f"cmake-ccache-v1-Linux-X64-gcc-15.2.0-{'a' * 64}-123-1"
+        metric = {"key": key, "before": 12, "uncompressed": 8, "evicted": 1}
+        inventory = [{"key": key, "ref": "refs/heads/main", "sizeInBytes": 4},
+                     {"key": key, "ref": "refs/pull/559/merge", "sizeInBytes": 2}]
+        report = cache_report.render([metric], inventory)
+        row = [line for line in report.splitlines() if line.startswith("|")][-1]
+        self.assertEqual([cell.strip() for cell in row.split("|")[1:-1]],
+                         ["Linux-X64-gcc-15.2.0", "12", "8", "4", "1"])
+
     def test_report_counts_all_refs_and_uses_exact_main_upload(self):
         key = f"bazel-actions-v2-Linux-X64-coverage-{'a' * 64}-123-1"
         metrics = [{"key": key, "before": 4_200_000_000, "uncompressed": 4_000_000_000, "evicted": 2}]

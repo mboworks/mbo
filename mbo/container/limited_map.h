@@ -175,13 +175,13 @@ class LimitedMap final
   // Find and search: at, [], lower_bound, upper_bound, equal_range, find, contains, count
 
   constexpr Value& at(const Key& key) {
-    auto it = find(key);
+    const auto it = find(key);
     MBO_CONFIG_REQUIRE(it != end(), "Out of range");
     return it->second;
   }
 
   constexpr const Value& at(const Key& key) const {
-    auto it = find(key);
+    const auto it = find(key);
     MBO_CONFIG_REQUIRE(it != end(), "Out of range");
     return it->second;
   }
@@ -195,7 +195,7 @@ class LimitedMap final
   template<typename K>
   requires(LimitedBase::template kIsForeignKey<K>)
   constexpr Value& at(const K& key) {
-    auto it = find(key);
+    const auto it = find(key);
     MBO_CONFIG_REQUIRE(it != end(), "Out of range");
     return it->second;
   }
@@ -203,7 +203,7 @@ class LimitedMap final
   template<typename K>
   requires(LimitedBase::template kIsForeignKey<K>)
   constexpr const Value& at(const K& key) const {
-    auto it = find(key);
+    const auto it = find(key);
     MBO_CONFIG_REQUIRE(it != end(), "Out of range");
     return it->second;
   }

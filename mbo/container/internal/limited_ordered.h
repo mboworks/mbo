@@ -325,7 +325,7 @@ class [[nodiscard]] LimitedOrdered {
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
     // Deliberately implicit: a mutable iterator must convert to const_iterator.
-    // NOLINTNEXTLINE(google-explicit-constructor)
+    // NOLINTNEXTLINE(*-explicit-constructor)
     constexpr Iterator(const Iterator<OtherConst>& other) noexcept : pos_(other.pos_) {}
 
     MBO_ALWAYS_INLINE constexpr reference operator*() const noexcept { return pos_->data; }
@@ -1048,7 +1048,7 @@ class [[nodiscard]] LimitedOrdered {
   constexpr size_type erase(const Key& key) {
     size_type count = 0;
     while (true) {
-      auto pos = find(key);
+      const auto pos = find(key);
       if (pos == end()) {
         break;
       }
@@ -1077,7 +1077,7 @@ class [[nodiscard]] LimitedOrdered {
       // ever built. `key` is therefore never forwarded - there is no target to move
       // into - which is what the NOLINT above is about.
       while (true) {
-        auto pos = find(key);
+        const auto pos = find(key);
         if (pos == end()) {
           break;
         }
@@ -1101,7 +1101,7 @@ class [[nodiscard]] LimitedOrdered {
       //   * forwarded once into this binding:               1 conversion, a move for an rvalue
       const Key& key_ref = std::forward<K>(key);
       while (true) {
-        auto pos = find(key_ref);
+        const auto pos = find(key_ref);
         if (pos == end()) {
           break;
         }

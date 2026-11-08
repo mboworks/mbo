@@ -30,6 +30,8 @@ source "${mboworks_bashtest}"
 
 DIGEST="${TEST_SRCDIR}/${TEST_WORKSPACE}/mbo/digest/digest"
 declare -r DIGEST
+TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/mbo/digest/testdata/digest_cli_sh_test"
+declare -r TESTDATA
 
 [[ -x ${DIGEST} ]] || die "Program digest not found."
 
@@ -83,9 +85,10 @@ function test::default_algorithm_is_sha256() {
 # compared against an expected output generated with independent references
 # (python hashlib / the official blake3 module) - never with this binary.
 function test::algorithm_output_matrix() {
-  local algorithm
-  for algorithm in "${ALL_ALGORITHMS[@]}"; do
-    local expected="${TESTDATA}/${algorithm}.out"
+  local expected
+  for expected in "${TESTDATA}"/*.out; do
+    local algorithm="${expected##*/}"
+    algorithm="${algorithm%.out}"
     [[ -r ${expected} ]] || die "Missing expected output testdata for ${algorithm}."
     (
       cd "${TESTDATA}" \

@@ -77,7 +77,7 @@ class CircularBuffer final {
 
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
-    // NOLINTNEXTLINE(google-explicit-constructor): standard mutable-to-const iterator conversion.
+    // NOLINTNEXTLINE(*-explicit-constructor): standard mutable-to-const iterator conversion.
     constexpr Iterator(const Iterator<OtherConst>& other) noexcept : owner_(other.owner_), pos_(other.pos_) {}
 
     constexpr reference operator*() const noexcept { return (*owner_)[pos_]; }
@@ -416,12 +416,12 @@ class CircularBuffer final {
 
   constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
+    return container_internal::PopValue(back(), [this] noexcept { pop_back(); });
   }
 
   constexpr T pop_front_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return container_internal::PopValue(front(), [this]() noexcept { pop_front(); });
+    return container_internal::PopValue(front(), [this] noexcept { pop_front(); });
   }
 
   template<typename... Args>

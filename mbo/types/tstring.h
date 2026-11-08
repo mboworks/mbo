@@ -444,7 +444,7 @@ class MakeTstringHelper {
 
 template<std::size_t N>
 struct TstringLiteral final {
-  // NOLINTNEXTLINE(*-avoid-c-arrays,google-explicit-constructor): required literal-operator shape.
+  // NOLINTNEXTLINE(*-avoid-c-arrays,*-explicit-constructor): required literal-operator shape.
   consteval TstringLiteral(const char (&literal)[N]) noexcept {
     for (std::size_t pos = 0; pos < N; ++pos) {
       data[pos] = literal[pos];

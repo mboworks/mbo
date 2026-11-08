@@ -250,7 +250,7 @@ int RunCheck(const NamedAlgorithm& algorithm, const std::vector<std::string_view
     CheckStream(algorithm, sums, stats);
   }
   const bool silent = absl::GetFlag(FLAGS_status);
-  auto warn = [&](std::size_t count, std::string_view what) {
+  const auto warn = [&](std::size_t count, std::string_view what) {
     if (count > 0 && !silent) {
       std::cerr << "digest: WARNING: " << count << " " << what << "\n";
     }

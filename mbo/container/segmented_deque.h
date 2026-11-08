@@ -114,7 +114,7 @@ class SegmentedDeque final {
     template<bool OtherConst>
     requires(IsConst && !OtherConst)
     // This is the standard mutable-iterator to const-iterator conversion.
-    // NOLINTNEXTLINE(google-explicit-constructor)
+    // NOLINTNEXTLINE(*-explicit-constructor)
     constexpr Iterator(const Iterator<OtherConst>& other) noexcept : owner_(other.owner_), pos_(other.pos_) {}
 
     constexpr reference operator*() const { return owner_->AtCoordinate(pos_); }
@@ -379,7 +379,7 @@ class SegmentedDeque final {
 
   template<typename SourceArg>
   requires(
-      std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
+      std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>
       && std::default_initializable<Directory>)
   constexpr explicit SegmentedDeque(SourceArg&& source) noexcept(
       Options.segment_reservation == 0
@@ -398,7 +398,7 @@ class SegmentedDeque final {
   }
 
   template<typename SourceArg>
-  requires(std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
+  requires(std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
   constexpr SegmentedDeque(std::allocator_arg_t /*unused*/, const DirectoryAllocator& directory_allocator, SourceArg&& source) noexcept(
       Options.segment_reservation == 0 && std::is_nothrow_constructible_v<Source, SourceArg&&>
@@ -426,7 +426,7 @@ class SegmentedDeque final {
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel, typename SourceArg>
   requires(
       std::constructible_from<T, std::iter_reference_t<Iterator>>
-      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
+      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>)
   constexpr SegmentedDeque(Iterator first, Sentinel last, SourceArg&& source)
       : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
@@ -461,7 +461,7 @@ class SegmentedDeque final {
   template<std::ranges::input_range Range, typename SourceArg>
   requires(
       std::constructible_from<T, std::ranges::range_reference_t<Range>>
-      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>)
+      && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>)
   constexpr SegmentedDeque(std::from_range_t /*from_range*/, Range&& range, SourceArg&& source)
       : source_(std::forward<SourceArg>(source)) {
     InitializeDirectory();
@@ -502,7 +502,7 @@ class SegmentedDeque final {
 
   template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel, typename SourceArg>
   requires(std::constructible_from<T, std::iter_reference_t<Iterator>>
-           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
+           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
   constexpr SegmentedDeque(
       std::allocator_arg_t /*unused*/,
@@ -549,7 +549,7 @@ class SegmentedDeque final {
 
   template<std::ranges::input_range Range, typename SourceArg>
   requires(std::constructible_from<T, std::ranges::range_reference_t<Range>>
-           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg &&>
+           && std::same_as<std::remove_cvref_t<SourceArg>, Source> && std::is_constructible_v<Source, SourceArg&&>
            && std::constructible_from<SegmentPointerAllocator, const DirectoryAllocator&>)
   constexpr SegmentedDeque(
       std::allocator_arg_t /*unused*/,
@@ -800,7 +800,7 @@ class SegmentedDeque final {
   }
 
   constexpr reference push_front(T&& value)
-  requires(std::constructible_from<T, T &&>) {
+  requires(std::constructible_from<T, T&&>) {
     return emplace_front(std::move(value));
   }
 
@@ -810,7 +810,7 @@ class SegmentedDeque final {
   }
 
   constexpr std::optional<std::reference_wrapper<T>> try_push_front(T&& value)
-  requires(std::constructible_from<T, T &&> && Source::supports_recoverable_failure) {
+  requires(std::constructible_from<T, T&&> && Source::supports_recoverable_failure) {
     return try_emplace_front(std::move(value));
   }
 
@@ -820,7 +820,7 @@ class SegmentedDeque final {
   }
 
   constexpr reference unchecked_push_front(T&& value)
-  requires(std::constructible_from<T, T &&>) {
+  requires(std::constructible_from<T, T&&>) {
     return unchecked_emplace_front(std::move(value));
   }
 
@@ -830,7 +830,7 @@ class SegmentedDeque final {
   }
 
   constexpr reference push_back(T&& value)
-  requires(std::constructible_from<T, T &&>) {
+  requires(std::constructible_from<T, T&&>) {
     return emplace_back(std::move(value));
   }
 
@@ -840,7 +840,7 @@ class SegmentedDeque final {
   }
 
   constexpr std::optional<std::reference_wrapper<T>> try_push_back(T&& value)
-  requires(std::constructible_from<T, T &&> && Source::supports_recoverable_failure) {
+  requires(std::constructible_from<T, T&&> && Source::supports_recoverable_failure) {
     return try_emplace_back(std::move(value));
   }
 
@@ -850,7 +850,7 @@ class SegmentedDeque final {
   }
 
   constexpr reference unchecked_push_back(T&& value)
-  requires(std::constructible_from<T, T &&>) {
+  requires(std::constructible_from<T, T&&>) {
     return unchecked_emplace_back(std::move(value));
   }
 
@@ -864,7 +864,7 @@ class SegmentedDeque final {
   template<std::ranges::input_range Range>
   requires(
       std::constructible_from<T, std::ranges::range_reference_t<Range>>
-      && (std::ranges::forward_range<Range> || std::ranges::sized_range<Range> || std::constructible_from<T, T &&>))
+      && (std::ranges::forward_range<Range> || std::ranges::sized_range<Range> || std::constructible_from<T, T&&>))
   constexpr void prepend_range(Range&& range) {
     auto&& values = std::forward<Range>(range);
     if constexpr (std::ranges::forward_range<Range> || std::ranges::sized_range<Range>) {
@@ -948,12 +948,12 @@ class SegmentedDeque final {
 
   constexpr T pop_front_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return container_internal::PopValue(front(), [this]() noexcept { pop_front(); });
+    return container_internal::PopValue(front(), [this] noexcept { pop_front(); });
   }
 
   constexpr T pop_back_value() noexcept(!kRequireThrows && std::is_nothrow_move_constructible_v<T>)
   requires std::move_constructible<T> {
-    return container_internal::PopValue(back(), [this]() noexcept { pop_back(); });
+    return container_internal::PopValue(back(), [this] noexcept { pop_back(); });
   }
 
   constexpr void clear() noexcept { DestroySuffix(0); }
@@ -1161,7 +1161,7 @@ class SegmentedDeque final {
       return false;
     }
     segments_.reserve(segment_count() + 1);
-    Segment* const segment = [this]() constexpr -> Segment* {  // NOLINT(misc-const-correctness)
+    Segment* const segment = [this] constexpr -> Segment* {  // NOLINT(misc-const-correctness)
       if consteval {
         if constexpr (std::same_as<Source, mbo::memory::NewDeleteBlockSource>) {
           std::allocator<Segment> allocator;

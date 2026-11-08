@@ -45,6 +45,9 @@ namespace mbo::mope {
 // [person:1.contact:1]
 // phone=4567
 // ```
+absl::Status ReadIniToTemplate(std::string_view filename, Template& root_template);
+
+// Compatibility alias for ReadIniToTemplate.
 absl::Status ReadIniToTemlate(std::string_view filename, Template& root_template);
 
 }  // namespace mbo::mope

@@ -105,8 +105,8 @@ TEST_F(StatusMacrosTest, StatusOrMoveToStatus) {
 }
 
 TEST_F(StatusMacrosTest, ReturnIfErrorAppend) {
-  auto test = [](absl::Status status, std::string_view prefix = "<Prefix>",
-                 std::string_view suffix = "<Suffix>") -> absl::Status {
+  const auto test = [](absl::Status status, std::string_view prefix = "<Prefix>",
+                       std::string_view suffix = "<Suffix>") -> absl::Status {
     MBO_RETURN_IF_ERROR(status).SetPrepend() << prefix << StatusBuilder::Append << suffix;
     return absl::OkStatus();
   };

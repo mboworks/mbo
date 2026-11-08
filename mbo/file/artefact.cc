@@ -30,7 +30,7 @@ absl::StatusOr<Artefact> Artefact::Read(std::string_view filename, const Artefac
   if (!data.ok()) {
     return data.status();
   }
-  const auto time = [&]() -> absl::StatusOr<absl::Time> {
+  const auto time = [&] -> absl::StatusOr<absl::Time> {
     if (options.skip_time) {
       return absl::UnixEpoch();
     } else {
@@ -56,7 +56,7 @@ absl::StatusOr<Artefact> Artefact::ReadMaxLines(
   if (!data.ok()) {
     return data.status();
   }
-  const auto time = [&]() -> absl::StatusOr<absl::Time> {
+  const auto time = [&] -> absl::StatusOr<absl::Time> {
     if (options.skip_time) {
       return absl::UnixEpoch();
     } else {

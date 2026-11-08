@@ -281,7 +281,7 @@ void PrintStructVisitor(
     std::string_view type = {},
     std::string_view name = {},
     ...) {
-  const std::string line = [&]() -> std::string {
+  const std::string line = [&] -> std::string {
     if (!format.starts_with('%')) {
       return std::string(format);
     } else if (format == "%s" || format == "%s}\n") {

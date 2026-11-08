@@ -1,6 +1,8 @@
 # mbo/diff: Unified-Diffing Utilities
 
-Part of the **MBO** library ecosystem, `mbo/diff` provides lightweight utilities for generating unified diffs, a standalone command-line diffing tool, and Bazel macros designed for integration testing against golden files.
+`mbo::diff` compares text by line and produces unified, context, normal, or side-by-side diffs.
+It provides a C++ API, a command-line tool for comparing files, and a Bazel macro for testing
+generated output against golden files.
 
 ## 1. C++ API Reference: `mbo::diff::Diff`
 

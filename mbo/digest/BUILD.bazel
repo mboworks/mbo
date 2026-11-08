@@ -74,6 +74,8 @@ cc_test(
     name = "digest_test",
     size = "small",
     srcs = ["digest_test.cc"],
+    # MSan's million-byte vectors need separate shards to stay within the small-test timeout.
+    shard_count = 4,
     deps = [
         ":digest_cc",
         "@googletest//:gtest",

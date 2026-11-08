@@ -299,7 +299,7 @@ TEST_F(LimitedSetTest, MakeInitArgBasics) {
 }
 
 TEST_F(LimitedSetTest, MakeInitWithDuplicates) {
-  auto test = MakeLimitedSet<3>({1, 3, 3, 3, 5});
+  const auto test = MakeLimitedSet<3>({1, 3, 3, 3, 5});
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(3));
   EXPECT_THAT(test, CapacityIs(3)) << "There are duplicates, and so the construction with M=3 works.";
@@ -349,7 +349,7 @@ TEST_F(LimitedSetTest, MakeIteratorArg) {
 
 TEST_F(LimitedSetTest, MakeWithStrings) {
   const std::vector<std::string> data{{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = MakeLimitedSet<4>(data.begin(), data.end());
+  const auto test = MakeLimitedSet<4>(data.begin(), data.end());
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -425,7 +425,7 @@ TEST_F(LimitedSetTest, ToLimitedSet) {
 TEST_F(LimitedSetTest, ToLimitedSetStringCopy) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   const std::string array[4] = {{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = ToLimitedSet(array);
+  const auto test = ToLimitedSet(array);
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -436,7 +436,7 @@ TEST_F(LimitedSetTest, ToLimitedSetStringCopy) {
 TEST_F(LimitedSetTest, ToLimitedSetStringMove) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   const std::string array[4] = {{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = ToLimitedSet(array);
+  const auto test = ToLimitedSet(array);
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));

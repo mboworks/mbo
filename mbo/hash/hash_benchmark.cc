@@ -217,7 +217,7 @@ void BmHash64(benchmark::State& state) {
   // NOLINTNEXTLINE(cert-msc51-cpp,cert-msc32-c,bugprone-random-generator-seed): fixed data per length
   std::mt19937_64 rng(0x1234);
   const std::string data = algo::RandomString(rng, length);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::DoNotOptimize(Algo::GetHash64(data, kSeed));
   }
   state.SetBytesProcessed(state.iterations() * static_cast<int64_t>(length));
@@ -231,7 +231,7 @@ void BmHash128(benchmark::State& state) {
   // NOLINTNEXTLINE(cert-msc51-cpp,cert-msc32-c,bugprone-random-generator-seed): fixed data per length
   std::mt19937_64 rng(0x1234);
   const std::string data = algo::RandomString(rng, length);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::DoNotOptimize(Algo::GetHash128(data, kSeed));
   }
   state.SetBytesProcessed(state.iterations() * static_cast<int64_t>(length));
@@ -348,7 +348,7 @@ void BmHash64Throughput(benchmark::State& state, std::size_t dist_index, std::si
     total_bytes += static_cast<int64_t>(key.size());
   }
   std::size_t counter = 0;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     // NOLINTNEXTLINE(*-avoid-unchecked-container-access): timed loop; the power-of-two mask keeps it in range.
     benchmark::DoNotOptimize(Algo::GetHash64(keys[counter++ & (kLatencyKeys - 1)], kSeed));
   }
@@ -367,7 +367,7 @@ void BmHash128Throughput(benchmark::State& state, std::size_t dist_index, std::s
     total_bytes += static_cast<int64_t>(key.size());
   }
   std::size_t counter = 0;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     // NOLINTNEXTLINE(*-avoid-unchecked-container-access): timed loop; the power-of-two mask keeps it in range.
     benchmark::DoNotOptimize(Algo::GetHash128(keys[counter++ & (kLatencyKeys - 1)], kSeed));
   }

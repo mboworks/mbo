@@ -4,8 +4,10 @@
 # Containers
 
 `mbo::container` provides bounded inline containers, stable segmented sequences, and adapters for
-container-independent iteration and conversion. The public experimental circular buffer lives in
-`mbo::container::experimental`. All require the repository's C++23 compiler and library baseline:
+container-independent iteration and conversion. Its experimental namespace also provides immutable
+hash maps and sets and a growable circular buffer.
+
+All require the repository's C++23 compiler and library baseline:
 GCC 15/libstdc++ 15, Clang 22/libc++ 22, or Xcode 16.3 with its matching Apple Clang/libc++.
 
 ## Choosing a container
@@ -55,6 +57,22 @@ deps = [
 ```
 
 The examples below are exercised by `//mbo/container:container_readme_test`.
+
+## Frozen containers
+
+The experimental [`FrozenMap` and `FrozenSet`](experimental/FROZEN.md) provide immutable
+perfect-hash tables with constexpr and runtime construction, generic keys and values,
+transparent lookup, and const forward iteration. They use fixed inline storage and a shared
+index builder. See their guide for the read-only C++26 interface, construction limits,
+minimal/sparse layouts, and benchmark commands.
+
+**Read performance:** the [measured comparison and hash diagnosis](experimental/FROZEN.md#measured-read-performance)
+cover STL unordered and Abseil flat/node maps and sets, including constexpr `mumbo`,
+`fambo`, and `dumbo` alternatives. In the nine-repetition Apple M5 Pro 64-string-key
+fixture, sparse FrozenMap mixed lookup took 5.97 ns with fambo versus 11.16 ns with its
+former FNV-based default; native STL/Abseil maps took 5.81 to 6.44 ns. The guide retains the
+complete results, matching-hasher controls, and comparisons at 8/64/256 entries. String-view
+keys now use fambo by default; no custom hasher argument is needed.
 
 ## Limited containers
 

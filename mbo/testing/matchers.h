@@ -82,7 +82,7 @@ class IsElementOfMatcher {
       : container_(std::move(container)), positive_lead_(positive_lead), negative_lead_(negative_lead) {}
 
   template<typename Value>
-  operator ::testing::Matcher<Value>() const {  // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+  operator ::testing::Matcher<Value>() const {  // NOLINT(*-explicit-constructor,hicpp-explicit-conversions)
     return ::testing::Matcher<Value>(new Impl<const Value&>(container_, positive_lead_, negative_lead_));
   }
 
@@ -228,7 +228,7 @@ class CapacityIsMatcher {
   explicit CapacityIsMatcher(const CapacityMatcher& capacity_matcher) : capacity_matcher_(capacity_matcher) {}
 
   template<typename Container>
-  operator ::testing::Matcher<Container>() const {  // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+  operator ::testing::Matcher<Container>() const {  // NOLINT(*-explicit-constructor,hicpp-explicit-conversions)
     return ::testing::Matcher<Container>(new Impl<const Container&>(capacity_matcher_));
   }
 
@@ -411,7 +411,7 @@ class EqualsTextMatcher : public ::testing::MatcherInterface<std::string_view> {
     if (!options_.drop_indent && text_ == other) {
       return true;
     }
-    const auto wants_lines = [&]() -> std::vector<std::string> {
+    const auto wants_lines = [&] -> std::vector<std::string> {
       if (options_.drop_indent) {
         *listener << "[" << mbo::strings::DropIndent(text_) << "]\n";
         return absl::StrSplit(mbo::strings::DropIndent(text_), '\n');

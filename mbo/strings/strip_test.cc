@@ -36,7 +36,7 @@ using ::testing::Pair;
 struct StripTest : public ::testing::Test {};
 
 TEST_F(StripTest, ConsumePrefix) {
-  auto test_prefix = [](std::string text, std::string_view prefix) {
+  const auto test_prefix = [](std::string text, std::string_view prefix) {
     const std::string stripped = StripPrefix(std::string{text}, prefix);
     const bool consumed = ConsumePrefix(text, prefix);
     EXPECT_THAT(stripped, text);

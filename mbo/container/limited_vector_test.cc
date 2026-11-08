@@ -310,7 +310,7 @@ TEST_F(LimitedVectorTest, MakeIteratorArg) {
 
 TEST_F(LimitedVectorTest, MakeWithStrings) {
   const std::vector<std::string> data{{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = MakeLimitedVector<4>(data.begin(), data.end());
+  const auto test = MakeLimitedVector<4>(data.begin(), data.end());
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -362,7 +362,7 @@ TEST_F(LimitedVectorTest, ToLimitedVector) {
 TEST_F(LimitedVectorTest, ToLimitedVectorStringCopy) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   const std::string array[4] = {{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = ToLimitedVector(array);
+  const auto test = ToLimitedVector(array);
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -373,7 +373,7 @@ TEST_F(LimitedVectorTest, ToLimitedVectorStringCopy) {
 TEST_F(LimitedVectorTest, ToLimitedVectorStringMove) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   std::string array[4] = {{"0"}, {"1"}, {"2"}, {"3"}};
-  auto test = ToLimitedVector(std::move(array));
+  const auto test = ToLimitedVector(std::move(array));
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));

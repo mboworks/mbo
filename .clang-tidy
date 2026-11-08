@@ -47,8 +47,8 @@
 #     throws std::runtime_error. The check keeps it that way if that ever grows.
 #   - hicpp-multiway-paths-covered: ON. Wants every switch/if-else chain to cover
 #     its paths (default/else), which is a real bug class, not a style rule.
-#   - hicpp-signed-bitwise: OFF. Parity masks over signed ptrdiff_t in the Myers
-#     diff; diagonals run negative, the signedness is the algorithm's.
+#   - bugprone-signed-bitwise (formerly hicpp-signed-bitwise): OFF. Myers parity
+#     masks use signed ptrdiff_t; diagonals run negative by design.
 #   - hicpp-no-assembler: OFF. No inline asm here; the check only adds noise if
 #     a portability-driven intrinsic ever needs it.
 # llvm-header-guard: STYLE_CPP mandates {PATH}_{FILE}_; the header-guards hook
@@ -67,8 +67,11 @@
 # readability-redundant-parentheses: its fix deletes the __builtin_dump_struct
 #   callee (a clang-tidy bug around the builtin's own expansion), corrupting the
 #   reflection machinery.
+# readability-trailing-comma: STYLE_CPP uses a per-initializer opt-in; neither a
+#   global append nor a global removal policy expresses that formatting rule.
 # readability-use-concise-preprocessor-directives: the #ifdef rewrite cannot apply
 #   to the compound conditions next door, making neighbours less consistent.
+# zircon-*: deprecated aliases of the fuchsia checks, which are already excluded.
 #
 # Kept, with options below: cppcoreguidelines-rvalue-reference-param-not-moved
 # uses IgnoreNonDeducedTemplateTypes (a class template's Container&& is a real
@@ -89,6 +92,7 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
   -bugprone-random-generator-seed,
+  -bugprone-signed-bitwise,
   -bugprone-std-namespace-modification,
   -cert-dcl50-cpp,
   -cert-err58-cpp,
@@ -133,7 +137,9 @@ Checks: >
   -readability-magic-numbers,
   -readability-redundant-inline-specifier,
   -readability-redundant-parentheses,
+  -readability-trailing-comma,
   -readability-use-concise-preprocessor-directives,
+  -zircon-*,
 
 # A check-name glob, not a bool: the former `true` matched no check, so findings
 # never escalated to a non-zero exit.

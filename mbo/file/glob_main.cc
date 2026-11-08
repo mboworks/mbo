@@ -95,10 +95,10 @@ class Entries {
       if (!dotdir_ && glob_entry.entry.path().filename().string().starts_with('.')) {
         return mbo::file::GlobEntryAction::kDoNotRecurse;
       }
-    } else if (glob_entry.entry.is_regular_file()) {
-      if (!dotfile_ && glob_entry.entry.path().filename().string().starts_with('.')) {
-        return mbo::file::GlobEntryAction::kContinue;
-      }
+    } else if (
+        glob_entry.entry.is_regular_file() && !dotfile_
+        && glob_entry.entry.path().filename().string().starts_with('.')) {
+      return mbo::file::GlobEntryAction::kContinue;
     }
     // Actual Add
     if (glob_entry.entry.is_directory()) {
@@ -117,7 +117,7 @@ class Entries {
           const auto ext = glob_entry.entry.path().extension().string();
           ++extensions_[absl::StrCat("FileExt(", ext, ")")];
           extensions_[absl::StrCat("FileSize(", ext, ")")] += size;
-        } else if (glob_entry.entry.path().filename().string().starts_with(".")) {
+        } else if (glob_entry.entry.path().filename().string().starts_with('.')) {
           // Dot files (/.conf) are shown as the full file name.
           const auto ext = glob_entry.entry.path().filename().string();
           ++extensions_[absl::StrCat("FileExt(", ext, ")")];

@@ -469,7 +469,7 @@ absl::StatusOr<std::filesystem::path> CreateFileSystemEntries(
   }
   std::set<std::string> created;
   for (const std::string_view& entry : entries) {
-    const auto [path, file] = [&]() {
+    const auto [path, file] = [&] {
       std::vector<std::string> split = absl::StrSplit(entry, absl::MaxSplits(':', 2));
       while (split.size() < 2) {
         split.emplace_back("");
@@ -537,6 +537,17 @@ TEST_F(GlobFileTest, GlobCanPruneRecursiveDirectories) {
   }));
   EXPECT_THAT(requested_pruning, IsTrue());
   EXPECT_THAT(found, Contains("sub"));
+}
+
+TEST_F(GlobFileTest, GlobEmptyRootUsesCurrentDirectory) {
+  bool visited = false;
+  ASSERT_OK(GlobRe2({}, RE2(""), {.use_rel_path = true, .recursive = false}, [&](const GlobEntry& entry) {
+    visited = true;
+    EXPECT_THAT(entry.entry.path().parent_path(), std::filesystem::current_path());
+    EXPECT_THAT(entry.MaybeRelativePath(), entry.entry.path().filename());
+    return GlobEntryAction::kStop;
+  }));
+  EXPECT_THAT(visited, IsTrue());
 }
 
 TEST_F(GlobFileTest, GlobCanResolveCurrentAndRelativeRoots) {

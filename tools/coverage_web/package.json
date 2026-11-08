@@ -1,0 +1,11 @@
+{
+  "name": "mbo-coverage-viewer-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test coverage.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

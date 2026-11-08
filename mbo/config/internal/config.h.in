@@ -23,6 +23,15 @@
 
 namespace mbo::config {
 
+// Whether this translation unit was compiled with C++ exception support enabled.
+// This centralizes the compiler feature check for consumers that need to select an exception-aware
+// implementation without repeating compiler-specific preprocessor checks.
+#if __cpp_exceptions
+static constexpr bool kExceptionsEnabled = true;
+#else
+static constexpr bool kExceptionsEnabled = false;
+#endif
+
 // The maximum unroll capacity for `LimitedOrdered` based containers: `LimitedMap` and `LimitedSet`.
 // Beyond unrolling 32 comparison steps, unrolling has deminishing returns for any architecture.
 // The acceptable range is [4..32].

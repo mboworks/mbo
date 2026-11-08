@@ -179,7 +179,7 @@ class StructMeta final {
   }
 
   // Older compilers may not allow this to be a `constexpr`.
-  inline static constexpr FieldData kFieldData = []() consteval {
+  inline static constexpr FieldData kFieldData = [] consteval {
     FieldData fields;
     if constexpr (!IsEmptyType<T>) {
       // NOLINTNEXTLINE(misc-const-correctness): `&storage.Get()` needs a mutable object.
@@ -190,7 +190,7 @@ class StructMeta final {
     return fields;
   }();
 
-  inline static constexpr std::array<std::string_view, kFieldCount> kFieldNames = []() consteval {
+  inline static constexpr std::array<std::string_view, kFieldCount> kFieldNames = [] consteval {
     std::array<std::string_view, kFieldCount> data;
     if constexpr (!IsEmptyType<T>) {
       for (std::size_t pos = 0; pos < kFieldCount; ++pos) {
@@ -248,7 +248,7 @@ class StructMeta<T, true, false> final {
   }
 
   // Older compilers may not allow this to be a `constexpr`.
-  inline static const FieldData kFieldData = []() {
+  inline static const FieldData kFieldData = [] {
     FieldData fields;
     if constexpr (!IsEmptyType<T>) {
       // NOLINTNEXTLINE(misc-const-correctness): `&storage.Get()` needs a mutable object.
@@ -259,7 +259,7 @@ class StructMeta<T, true, false> final {
     return fields;
   }();
 
-  inline static const auto kFieldNames = []() {
+  inline static const auto kFieldNames = [] {
     std::array<std::string_view, kFieldCount> data;
     if constexpr (!IsEmptyType<T>) {
 # if __has_feature(address_sanitizer)

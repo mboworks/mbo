@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
+GENERATION_KEY_PATTERN = r"((?:bazel-actions-v2|cmake-ccache-v1)-.+)-[0-9a-f]{64}-\d+-\d+"
 MAX_CACHE_BYTES = 700_000_000
 
 
@@ -38,7 +39,7 @@ def obsolete_cache_ids(caches: list[dict[str, Any]], closed_prs: set[int]) -> li
   for cache in candidates:
     if cache["id"] in oversized or cache["sizeInBytes"] <= 0:
       continue
-    match = re.fullmatch(r"(bazel-actions-v2-.+)-[0-9a-f]{64}-\d+-\d+", cache["key"])
+    match = re.fullmatch(GENERATION_KEY_PATTERN, cache["key"])
     if match:
       generations.setdefault((cache["ref"], match[1]), []).append(cache)
   superseded = []
@@ -50,8 +51,7 @@ def obsolete_cache_ids(caches: list[dict[str, Any]], closed_prs: set[int]) -> li
 
 def replaced_cache_ids(caches: list[dict[str, Any]], replacement_key: str) -> list[int]:
   """Retire older main generations only after finding a usable replacement."""
-  pattern = r"(bazel-actions-v2-.+)-[0-9a-f]{64}-\d+-\d+"
-  match = re.fullmatch(pattern, replacement_key)
+  match = re.fullmatch(GENERATION_KEY_PATTERN, replacement_key)
   if not match:
     return []
   replacements = [cache for cache in caches
@@ -63,7 +63,7 @@ def replaced_cache_ids(caches: list[dict[str, Any]], replacement_key: str) -> li
     return []
   result = []
   for cache in caches:
-    candidate = re.fullmatch(pattern, cache["key"])
+    candidate = re.fullmatch(GENERATION_KEY_PATTERN, cache["key"])
     if (cache["ref"] == "refs/heads/main" and candidate and candidate[1] == match[1]
         and cache["createdAt"] < replacement["createdAt"]):
       result.append(cache["id"])

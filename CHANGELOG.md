@@ -1,5 +1,15 @@
 # 0.16.0
 
+- Add ref-qualified `StringOrView::str()` conversion: copy lvalues and borrowed views,
+  and move owned storage from rvalues without an additional text copy.
+
+- Use mboworks_bzl 0.8.0 runfiles keys in `diff_test` for source/generated inputs
+  and its executable, including external repositories and manifest-only execution.
+
+- Compact retained coverage into shared compressed source pages and report data, keeping aggregate
+  history indefinitely and browsable source details for seven days. Add complete-site size reporting
+  and publication guards, bounded history fetches, and browser validation. Restore report ingestion
+  for successful reusable coverage jobs named `coverage / test`.
 - Added `SegmentedVector` and `SegmentedDeque`: fixed-size segments, stable element addresses,
   constant-time indexing, shared `SegmentedOptions`, configurable block sources, and independent
   directory allocators. The deque supports growth/removal at both ends and reuses empty segments.
@@ -33,7 +43,7 @@
   timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
 
 - Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
-  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.10.0`.
+  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.11.0`.
 
 - Replaced the remaining C++20 compatibility branches with the selected C++23 facilities, including
   static constexpr locals, `string_view::contains`, and `std::byteswap`.

@@ -3,9 +3,12 @@
     "README.md": "index.html",
     "CHANGELOG.md": "CHANGELOG.html",
     "CONTRIBUTING.md": "CONTRIBUTING.html",
+    "cmake/README.md": "cmake/README.html",
     "docs/coverage.md": "docs/coverage.html",
+    "docs/site-storage.md": "docs/site-storage.html",
     "mbo/container/SEGMENTED_DEQUE.md": "mbo/container/SEGMENTED_DEQUE.html",
     "mbo/container/experimental/CIRCULAR_BUFFER.md": "mbo/container/experimental/CIRCULAR_BUFFER.html",
+    "mbo/container/experimental/FROZEN.md": "mbo/container/experimental/FROZEN.html",
     "mbo/container/measurements/SEGMENTED_DEQUE.md": "mbo/container/measurements/SEGMENTED_DEQUE.html",
     "mbo/container/SEGMENTED_VECTOR.md": "mbo/container/SEGMENTED_VECTOR.html",
     "mbo/container/measurements/README.md": "mbo/container/measurements/README.html",
@@ -16,6 +19,15 @@
     "mbo/file/README.md": "mbo/file/README.html",
     "mbo/hash/README.md": "mbo/hash/README.html",
     "mbo/hash/measurements/README.md": "mbo/hash/measurements/README.html",
+    "mbo/config/README.md": "mbo/config/README.html",
+    "mbo/json/README.md": "mbo/json/README.html",
+    "mbo/log/README.md": "mbo/log/README.html",
+    "mbo/memory/README.md": "mbo/memory/README.html",
+    "mbo/mope/README.md": "mbo/mope/README.html",
+    "mbo/status/README.md": "mbo/status/README.html",
+    "mbo/strings/README.md": "mbo/strings/README.html",
+    "mbo/testing/README.md": "mbo/testing/README.html",
+    "mbo/memory/measurements/README.md": "mbo/memory/measurements/README.html",
     "mbo/types/README.md": "mbo/types/README.html",
     ".github/workflows/README.md": "workflows/index.html",
     "AGENTS.md": "AGENTS.html",
@@ -55,5 +67,20 @@
       "label": "Coverage",
       "href": "/{repo}/coverage/tag/{version}/"
     }
-  ]
+  ],
+  "files": {
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-source.patch": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-source.patch",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/hash-summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/provenance.json",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-raw.json.gz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-raw.json.gz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-source.patch": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-source.patch",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro/read-summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv",
+    "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json": "mbo/container/experimental/measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json"
+  }
 }

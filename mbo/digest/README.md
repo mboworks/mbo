@@ -1,7 +1,8 @@
 # mbo/digest - message digests
 
-Spec-based, fast, constexpr-compatible, Apache-licensed, no-nonsense message
-digest implementations - the digest counterpart of [mbo/hash](../hash/README.md).
+`mbo::digest` provides constexpr-compatible message digests, extendable-output functions, and
+message authentication codes. Its APIs support one-shot and incremental computation, and its
+command-line tool generates and verifies file checksums.
 
 Scope: this library is cryptographic **message digests and MACs** (below). Fast
 hash-table hashing (the `GetHash64` / `Hasher` API) lives in

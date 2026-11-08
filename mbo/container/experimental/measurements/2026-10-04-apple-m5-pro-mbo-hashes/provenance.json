@@ -1,0 +1,19 @@
+{
+  "description": "Nine-repetition Frozen read comparison with constexpr Mumbo, Fambo, Dumbo and native hash baselines.",
+  "artifact": "read.json.xz",
+  "artifact_sha256": "0d9a0f06f809d74111be087cc122887a255ba1695157456384dc388f42dd1e0f",
+  "compressed_sha256": "8eea8bad332ba0659a6f0e61dd0f5b01741f574742169f1834d263a9fb982e18",
+  "source_commit": "4184766f5104f0bcc9eb032f3a4bf71e5a98b30c",
+  "baseline_commit": "60501f1c032aada948b25735d78fd596e33953cb",
+  "build_command": "bazel build -c opt --config=clang --config=opt_apple_m5 //mbo/container/experimental:frozen_benchmark",
+  "cases": 1083,
+  "samples": 9747,
+  "aggregation": "Median CPU time of raw repetitions; full iteration also reported per element; CSV uses nine significant digits.",
+  "limitations": [
+    "One Apple M5 Pro host; warm cyclic corpus of fixed 10-byte borrowed string views",
+    "Random benchmark order, not shuffled query order",
+    "One process per study; no independent Abseil hash-seed samples",
+    "Thread affinity and CPU-frequency metadata unavailable on this host",
+    "object_bytes excludes heap allocations and borrowed key storage"
+  ]
+}

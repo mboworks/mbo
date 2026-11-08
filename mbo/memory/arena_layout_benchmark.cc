@@ -451,7 +451,7 @@ void BmRetentionAfterBurst(benchmark::State& state) {
   EndRetentionCycle<Mode>(arena);
   std::size_t peak_reserved = 0;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kSteadyAllocationCount; ++index) {
       benchmark::DoNotOptimize(arena.Allocate(kStringLikeSizes.at(index % kStringLikeSizes.size()), 1));
     }
@@ -468,7 +468,7 @@ template<ArenaOptions Options>
 void BmGrowthRetained(benchmark::State& state) {
   Arena<NewDeleteBlockSource, Options> arena;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     AllocateWorkload(arena);
     SetMemoryCounters(state, arena);
     arena.Reset();
@@ -479,7 +479,7 @@ void BmGrowthRetained(benchmark::State& state) {
 template<ArenaOptions Options>
 void BmGrowthFresh(benchmark::State& state) {
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     Arena<NewDeleteBlockSource, Options> arena;
     AllocateWorkload(arena);
     SetMemoryCounters(state, arena);
@@ -502,7 +502,7 @@ void RegisterGrowthBenchmarks() {
 void BmListedRetained(benchmark::State& state) {
   Arena<ListedNewDeleteSource, kFixedGrowth> arena;
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kAllocationCount; ++index) {
       const auto ordinary_size = kStringLikeSizes.at(index % kStringLikeSizes.size());
       const auto size = index % 257 == 256 ? std::size_t{64} * 1'024 : ordinary_size;
@@ -519,7 +519,7 @@ void BmListedRetained(benchmark::State& state) {
 
 void BmListedFresh(benchmark::State& state) {
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     Arena<ListedNewDeleteSource, kFixedGrowth> arena;
     for (std::size_t index = 0; index < kAllocationCount; ++index) {
       const auto ordinary_size = kStringLikeSizes.at(index % kStringLikeSizes.size());
@@ -539,7 +539,7 @@ template<typename Records>
 void BmRecordInsert(benchmark::State& state) {
   const auto bytes = RecordCorpusBytes();
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     Records records(kAllocationCount, bytes);
     for (const auto& value : RecordCorpus()) {
       records.Add(value);
@@ -559,7 +559,7 @@ void BmRecordLookup(benchmark::State& state) {
     records.Add(value);
   }
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t ordinal = 0; ordinal < kAllocationCount; ++ordinal) {
       const auto index = Permuted ? (ordinal * 40'503) % kAllocationCount : ordinal;
       const auto value = records.Get(index);

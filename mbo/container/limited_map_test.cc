@@ -353,7 +353,7 @@ TEST_F(LimitedMapTest, MakeIteratorArg) {
 
 TEST_F(LimitedMapTest, MakeWithStrings) {
   const std::vector<std::pair<std::string, std::string>> data{{"0", "a"}, {"1", "b"}, {"2", "c"}, {"3", "d"}};
-  auto test = MakeLimitedMap<4>(data.begin(), data.end());
+  const auto test = MakeLimitedMap<4>(data.begin(), data.end());
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -512,7 +512,7 @@ TEST_F(LimitedMapTest, ToLimitedMap) {
 TEST_F(LimitedMapTest, ToLimitedMapStringCopy) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   const std::pair<std::string, std::string> array[4] = {{"0", "a"}, {"1", "b"}, {"2", "c"}, {"3", "d"}};
-  auto test = ToLimitedMap(array);
+  const auto test = ToLimitedMap(array);
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));
@@ -523,7 +523,7 @@ TEST_F(LimitedMapTest, ToLimitedMapStringCopy) {
 TEST_F(LimitedMapTest, ToLimitedMapStringMove) {
   // NOLINTBEGIN(*-avoid-c-arrays)
   std::pair<std::string, std::string> array[4] = {{"0", "a"}, {"1", "b"}, {"2", "c"}, {"3", "d"}};
-  auto test = ToLimitedMap(std::move(array));
+  const auto test = ToLimitedMap(std::move(array));
   EXPECT_THAT(test, Not(IsEmpty()));
   EXPECT_THAT(test, SizeIs(4));
   EXPECT_THAT(test, CapacityIs(4));

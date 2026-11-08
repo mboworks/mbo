@@ -39,34 +39,34 @@ TEST_F(TypedViewTest, ExposesTheUnderlyingViewsValueType) {
   // The point of the type: a view whose value_type is spelled out rather than
   // buried in whatever `views::transform` deduced.
   const std::vector<int> data{1, 2, 3};
-  auto view = TypedView(std::views::all(data));
+  const auto view = TypedView(std::views::all(data));
   static_assert(std::same_as<decltype(view)::value_type, int>);
   static_assert(std::same_as<decltype(view)::difference_type, std::ptrdiff_t>);
 }
 
 TEST_F(TypedViewTest, IteratesTheUnderlyingView) {
   const std::vector<int> data{1, 2, 3};
-  auto view = TypedView(std::views::all(data));
+  const auto view = TypedView(std::views::all(data));
   EXPECT_THAT(view, ElementsAre(1, 2, 3));
 }
 
 TEST_F(TypedViewTest, IteratesAnEmptyView) {
   const std::vector<int> data;
-  auto view = TypedView(std::views::all(data));
+  const auto view = TypedView(std::views::all(data));
   EXPECT_THAT(view, IsEmpty());
   EXPECT_THAT(view.begin() == view.end(), IsTrue());
 }
 
 TEST_F(TypedViewTest, WrapsATransformedView) {
   const std::vector<int> data{1, 2, 3};
-  auto view = TypedView(std::views::transform(data, [](int val) { return val * 2; }));
+  const auto view = TypedView(std::views::transform(data, [](int val) { return val * 2; }));
   EXPECT_THAT(view, ElementsAre(2, 4, 6));
   static_assert(std::same_as<decltype(view)::value_type, int>);
 }
 
 TEST_F(TypedViewTest, CarriesANonTrivialValueType) {
   const std::vector<std::string> data{"a", "bb"};
-  auto view = TypedView(std::views::all(data));
+  const auto view = TypedView(std::views::all(data));
   static_assert(std::same_as<decltype(view)::value_type, std::string>);
   EXPECT_THAT(view, ElementsAre("a", "bb"));
 }

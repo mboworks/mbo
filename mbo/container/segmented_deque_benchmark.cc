@@ -74,7 +74,7 @@ std::uint64_t ReadPass(const Sequence& sequence, std::size_t count) {
       sum += Value(*iterator);
     }
   } else if constexpr (Mode == Access::kSegments) {
-    for (auto segment : sequence.segments()) {
+    for (const auto segment : sequence.segments()) {
       for (const auto& value : segment) {
         sum += Value(value);
       }
@@ -110,7 +110,7 @@ void BmRead(benchmark::State& state) {
     state.SkipWithError("traversal did not consume the expected logical values");
     return;
   }
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = ReadPass<Mode>(sequence, count);
     benchmark::DoNotOptimize(sum);
@@ -123,7 +123,7 @@ void BmRead(benchmark::State& state) {
 
 template<typename Sequence, bool Front>
 void BmFresh(benchmark::State& state) {
-  for (auto _ : state) {
+  for (const auto _ : state) {
     Sequence sequence;
     for (std::size_t index = 0; index < kWindow; ++index) {
       if constexpr (Front) {
@@ -153,7 +153,7 @@ void BmQueue(benchmark::State& state) {
       sequence.emplace_back(index);
     }
   }
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       if constexpr (Reverse) {
         benchmark::DoNotOptimize(sequence.back());
@@ -223,7 +223,7 @@ void BmArenaQueue(benchmark::State& state) {
   const auto warm_allocations = resource.GetCounters().allocations;
   const auto warm_bytes = resource.GetCounters().allocated_bytes;
   const auto warm_deallocations = resource.GetCounters().deallocations;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     for (std::size_t index = 0; index < kBatch; ++index) {
       if constexpr (Reverse) {
         benchmark::DoNotOptimize(sequence.back());
@@ -255,7 +255,7 @@ template<SegmentedOptions Options, bool Front>
 void BmGrowthBoundary(benchmark::State& state) {
   using Allocator = std::pmr::polymorphic_allocator<std::byte>;
   using Sequence = SegmentedDeque<std::uint64_t, Options, mbo::memory::PmrBlockSource, Allocator>;
-  for (auto _ : state) {
+  for (const auto _ : state) {
     state.PauseTiming();
     {
       CountingResource resource(*std::pmr::new_delete_resource());
@@ -291,7 +291,7 @@ template<typename Sequence, bool Release>
 void BmLifecycle(benchmark::State& state) {
   Sequence sequence;
   sequence.resize(kWindow, 1);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     if constexpr (Release) {
       sequence.release();
     } else {

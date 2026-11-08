@@ -64,7 +64,7 @@ class StringOrView {
 
   constexpr StringOrView() noexcept = default;
 
-  StringOrView(std::string value)  // NOLINT(google-explicit-constructor)
+  StringOrView(std::string value)  // NOLINT(*-explicit-constructor)
       : value_(std::in_place_type<std::string>, std::move(value)) {}
 
   constexpr StringOrView(std::string_view value) noexcept  // NOLINT(*-explicit-*)
@@ -89,11 +89,21 @@ class StringOrView {
     return std::get<std::string>(value_);
   }
 
+  // Return owned text. Lvalues copy; rvalues move owned storage or copy a borrowed view.
+  [[nodiscard]] constexpr std::string str() const & { return std::string(view()); }
+
+  [[nodiscard]] constexpr std::string str() && {
+    if (owns_string()) {
+      return std::get<std::string>(std::move(value_));
+    }
+    return std::string(std::get<std::string_view>(value_));
+  }
+
   [[nodiscard]] constexpr bool owns_string() const noexcept {  // NOLINT(*-identifier-naming)
     return std::holds_alternative<std::string>(value_);
   }
 
-  [[nodiscard]] constexpr operator std::string_view() const noexcept {  // NOLINT(google-explicit-constructor)
+  [[nodiscard]] constexpr operator std::string_view() const noexcept {  // NOLINT(*-explicit-constructor)
     return view();
   }
 

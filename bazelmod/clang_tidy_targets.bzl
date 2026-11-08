@@ -36,6 +36,8 @@ repository's flags would only produce bogus errors for the SMHasher3 headers
 """
 
 CLANG_TIDY_MANUAL_TARGETS = [
+    "//mbo/container/experimental:frozen_benchmark",
+    "//mbo/container/experimental:frozen_probe",
     "//mbo/container:limited_set_benchmark",
     "//mbo/container:ordered_lookup_benchmark",
     "//mbo/container:segmented_deque_benchmark",
@@ -47,6 +49,8 @@ CLANG_TIDY_MANUAL_TARGETS = [
     "//mbo/hash:hash_differential_test",
     "//mbo/memory:arena_benchmark",
     "//mbo/memory:arena_layout_benchmark",
+    "//mbo/strings:string_interner_benchmark",
+    "//mbo/strings:string_interner_exceptions_benchmark",
     "//tools:show_compiler",
     "//mbo/container/experimental/hamt:hamt_map_benchmark",
     "//mbo/strings/experimental:string_interner_benchmark",

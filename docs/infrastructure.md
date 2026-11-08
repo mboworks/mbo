@@ -99,6 +99,8 @@ Do not upload extracted LLVM distributions or downloaded module repositories.
 The default Bazel version is 9.3.2; the minimum supported release and compatibility rung is
 Bazel 9.2.0. Bazel 8's dependency-metadata patches and root-only compatibility overrides are
 removed, so development and downstream builds resolve the same published dependency metadata.
+The registry presubmit supplies both macOS deployment-target flags at 11.0, matching native
+archive-consumer builds; dependencies do not inherit the root module's `.bazelrc` settings.
 
 The required `release-artifacts` matrix packages committed HEAD using the real release-preparation
 script in a disposable clone, then extracts and validates that tarball. Independent native-toolchain

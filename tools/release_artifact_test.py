@@ -125,6 +125,18 @@ class ReleaseArtifactTest(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 artifact.build(source, self.root / "consumer", "all", 2, "9.3.2")
 
+    def test_macos_deployment_settings_match_the_registry_presubmit(self):
+        source = artifact.extract(self.archive(), self.root / "extracted")
+        with mock.patch.object(artifact.sys, "platform", "darwin"), mock.patch.object(artifact, "run") as run:
+            artifact.build(source, self.root / "consumer", "bazel", 2, "9.3.2")
+        command = run.call_args_list[0].args[0]
+        presubmit = (artifact.ROOT / ".bcr/presubmit.yml").read_text()
+        build_flags = presubmit.split("    build_flags:\n", 1)[1].split("    build_targets:\n", 1)[0]
+        for flag in ("--macos_minimum_os=11.0", "--host_macos_minimum_os=11.0"):
+            with self.subTest(flag=flag):
+                self.assertIn(flag, command)
+                self.assertIn(f'      - "{flag}"', build_flags)
+
 
 if __name__ == "__main__":
     unittest.main()

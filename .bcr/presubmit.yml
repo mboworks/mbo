@@ -13,6 +13,8 @@ tasks:
     build_flags:
       - "--cxxopt=-std=c++23"
       - "--host_cxxopt=-std=c++23"
+      - "--macos_minimum_os=11.0"
+      - "--host_macos_minimum_os=11.0"
     build_targets:
       - "@mboworks_mbo//mbo/container:container_readme_test"
       - "@mboworks_mbo//mbo/strings:string_interner_readme_test"

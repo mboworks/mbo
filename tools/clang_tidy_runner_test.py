@@ -39,7 +39,13 @@ class ClangTidyRunnerTest(unittest.TestCase):
                     import time
 
                     path = pathlib.Path(sys.argv[-1]).name
-                    time.sleep(0.05 if path == "slow.cc" else 0.01)
+                    if path != "good.cc":
+                        reported = pathlib.Path(__file__).with_name("good-reported")
+                        deadline = time.monotonic() + 10
+                        while not reported.exists():
+                            if time.monotonic() >= deadline:
+                                raise SystemExit("good.cc completion was not reported")
+                            time.sleep(0.01)
                     if path == "bad.cc":
                         print("bad.cc:1:1: error: finding")
                         raise SystemExit(1)
@@ -50,7 +56,15 @@ class ClangTidyRunnerTest(unittest.TestCase):
             )
             executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
             output = root / "diagnostics.txt"
-            stream = io.StringIO()
+
+            class ProgressStream(io.StringIO):
+                def write(self, text):
+                    written = super().write(text)
+                    if "PASS good.cc" in text:
+                        (root / "good-reported").touch()
+                    return written
+
+            stream = ProgressStream()
             status = clang_tidy_runner.run_all(
                 [
                     clang_tidy_runner.Task("slow.cc"),

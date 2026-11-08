@@ -300,8 +300,9 @@ The initial [`StringId`](string_id.h) helper constrains
 provides explicit underlying-value access, ordering, constexpr checked ordinal
 conversion via `try_from_ordinal`, an `invalid_value` sentinel, and `is_valid()`, but deliberately
 does not expose arithmetic or mutation operations. The largest underlying value is
-reserved, so an 8-bit ID supports 255 entries with valid IDs `0..254`; exhaustion returns an empty
-optional. Hash width remains independent. Direct construction assumes an already representable
+reserved, so an unsigned 8-bit ID supports 255 entries with valid IDs `0..254`; a signed 8-bit
+representation supports 127 dense entries with IDs `0..126`. Exhaustion returns an empty optional.
+Hash width remains independent. Direct construction assumes an already representable
 underlying value; constructing `invalid_value` deliberately produces an invalid ID. Use checked
 conversion when assigning from a wider count. This helper does not establish membership in any
 particular interner or chain.

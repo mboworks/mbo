@@ -509,6 +509,13 @@ The lightweight error enum distinguishes `kIdExhausted`, `kCharacterStorageExhau
 backend map to the storage component whose capacity could not grow; ordinary container exceptions
 retain their existing behavior.
 
+For exception-enabled consumers, `StringInternerExceptionSafePolicy` removes an unpublished
+index entry if mapped construction throws. The default rollback uses `erase(iterator)`. An index
+policy may instead provide `BeginInsertion(container)`, returning a guard whose destructor restores
+the prior index without throwing or allocating unless its non-throwing `Commit()` was called.
+This hook runs only for exception-safe publication; exception-free publication creates no guard.
+Character storage and the reserved dense slot retain their append-only behavior in either case.
+
 ### Failure APIs
 
 `insert` currently provides an expected result, including the inserted flag; `ToStatusOr` is an

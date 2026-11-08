@@ -16,6 +16,11 @@ namespace mbo::container::experimental::hamt {
 // Preserve recoverable HAMT exhaustion through the generic interner's policy
 // extension point. Its normal emplace() interface retains the hard-failure form.
 struct HamtStringInternerIndexPolicy : mbo::strings::StringInternerIndexStlPolicy {
+  template<typename Container>
+  static auto BeginInsertion(Container& container) noexcept(noexcept(container.BeginInsertion())) {
+    return container.BeginInsertion();
+  }
+
   template<typename Container, typename Id>
   static auto Insert(Container& container, std::string_view key, Id identifier) noexcept(
       noexcept(container.try_emplace(key, identifier)))

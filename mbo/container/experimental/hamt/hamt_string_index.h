@@ -7,6 +7,7 @@
 #include <exception>
 #include <expected>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <type_traits>
@@ -92,6 +93,9 @@ class HamtStringIndex final {
   const_iterator find(std::string_view key) const noexcept { return map_.find(key); }
 
   [[nodiscard]] insertion_result try_emplace(std::string_view key, Id identifier) noexcept {
+    if (transaction_active_) {
+      return TryEmplaceTransactional(key, identifier);
+    }
     auto result = map_.try_insert(value_type(key, identifier));
     if (const auto* error = std::get_if<HamtError>(&result)) {
       return std::unexpected(*error);
@@ -109,8 +113,8 @@ class HamtStringIndex final {
   }
 
   void erase(iterator position) noexcept {
-    // The key view outlives the index node, including during rollback after a
-    // mapped-value constructor fails in the generic interner.
+    // Ordinary erasure retains the source's allocation-failure behavior.
+    // Exception-safe publication uses InsertionTransaction instead.
     const auto key = position->first;
     map_.erase(key);
   }
@@ -123,10 +127,62 @@ class HamtStringIndex final {
     map_.visit_node_diagnostics(std::forward<Visitor>(visitor));
   }
 
+  // A publication guard retains the old root, not a copy of every entry. While
+  // active, insertion path-copies through the persistent API so preparing a
+  // mutable iterator cannot clone the entire tree. Restore only ownership on
+  // failure: rollback must not allocate from an already exhausted source.
+  class InsertionTransaction final {
+   public:
+    InsertionTransaction(const InsertionTransaction&) = delete;
+    InsertionTransaction& operator=(const InsertionTransaction&) = delete;
+    InsertionTransaction(InsertionTransaction&&) = delete;
+    InsertionTransaction& operator=(InsertionTransaction&&) = delete;
+
+    ~InsertionTransaction() {
+      if (index_ != nullptr) {
+        index_->map_ = std::move(previous_).transient();
+        index_->transaction_active_ = false;
+      }
+    }
+
+    void Commit() noexcept {
+      index_->transaction_active_ = false;
+      index_ = nullptr;
+    }
+
+   private:
+    friend class HamtStringIndex;
+
+    explicit InsertionTransaction(HamtStringIndex& index) noexcept
+        : index_(std::addressof(index)), previous_(std::move(index.map_).persistent()) {
+      index.map_ = previous_.transient();
+      index.transaction_active_ = true;
+    }
+
+    HamtStringIndex* index_;
+    Map previous_;
+  };
+
+  // Policy hook: the index must not be moved or reentered while this guard lives.
+  [[nodiscard]] InsertionTransaction BeginInsertion() noexcept { return InsertionTransaction(*this); }
+
  private:
   explicit HamtStringIndex(Map&& map) noexcept : map_(std::move(map).transient()) {}
 
+  insertion_result TryEmplaceTransactional(std::string_view key, Id identifier) noexcept {
+    auto snapshot = std::move(map_).persistent();
+    auto result = snapshot.try_insert(value_type(key, identifier));
+    if (const auto* error = std::get_if<HamtError>(&result)) {
+      map_ = std::move(snapshot).transient();
+      return std::unexpected(*error);
+    }
+    auto& inserted = std::get<std::pair<Map, bool>>(result);
+    map_ = std::move(inserted.first).transient();
+    return std::pair<iterator, bool>(std::as_const(map_).find(key), inserted.second);
+  }
+
   Map::transient_type map_{Map{}};
+  bool transaction_active_ = false;
 };
 
 // NOLINTEND(readability-identifier-naming)

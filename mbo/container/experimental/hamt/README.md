@@ -109,8 +109,10 @@ compares these choices using the same interner implementation.
 
 Failed index insertion leaves no published ID or lookup entry. As in the generic interner on
 `main`, an uncommitted character copy can remain reserved until storage destruction. Checkpoint
-rollback is not part of this composition. With exception-safe mapped publication, `erase(iterator)`
-removes the unpublished index entry if the caller's value constructor throws. HAMT erasure can
-allocate and retains its source's exhaustion behavior; bounded configurations with throwing
-mapped constructors must also provision the storage needed for that rollback. The recommended
-exception-free composition uses non-throwing mapped construction.
+rollback is not part of this composition. With exception-safe mapped publication, the index policy
+retains the pre-insertion root until publication succeeds. A throwing mapped constructor restores
+that root without allocating, including when insertion consumed the source's remaining capacity.
+Transactional insertion path-copies only the modified branch; it does not prepare mutable iteration
+or clone the whole tree. Normal exception-free insertion retains its transient fast path and does
+not retain an extra root. Ordinary `erase(iterator)` can still allocate and retains its source's
+exhaustion behavior; publication rollback does not call it.

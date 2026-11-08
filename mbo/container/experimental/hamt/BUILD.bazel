@@ -788,6 +788,7 @@ cc_test(
         ":hamt_string_index_cc",
         ":hamt_string_interner_policy_cc",
         "//mbo/container:segmented_vector_cc",
+        "//mbo/memory:block_source_cc",
         "//mbo/strings:arena_string_storage_cc",
         "//mbo/strings:string_id_cc",
         "//mbo/strings:string_interner_cc",

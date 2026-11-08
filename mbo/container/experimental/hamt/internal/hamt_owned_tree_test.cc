@@ -16,13 +16,16 @@
 #include "mbo/container/experimental/hamt/internal/hamt_tree.h"
 #include "mbo/memory/block_source.h"
 
-#ifndef MBO_HAS_ADDRESS_SANITIZER
-# if defined(__has_feature)
-#  if __has_feature(address_sanitizer)
-#   define MBO_HAS_ADDRESS_SANITIZER 1
-#  endif
-# elif defined(__SANITIZE_ADDRESS__)
-#  define MBO_HAS_ADDRESS_SANITIZER 1
+#if defined(__has_feature)
+# if __has_feature(address_sanitizer) || __has_feature(memory_sanitizer)
+#  define MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR 1
+# endif
+#endif
+#ifndef MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR
+# if defined(__SANITIZE_ADDRESS__)
+#  define MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR 1
+# else
+#  define MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR 0
 # endif
 #endif
 
@@ -262,11 +265,16 @@ TEST_F(HamtOwnedTreeTest, CloneReportsDestinationDomainAllocationFailure) {
     FAIL() << "allocation-domain creation failed";
     return;
   }
-#if !MBO_HAS_ADDRESS_SANITIZER
-  // ASan deliberately aborts rather than honoring nothrow for allocations larger than its
-  // supported range. Ordinary and coverage allocators return the failure this test exercises.
+  EXPECT_THAT(original->tree().try_insert(42).changed, Eq(true));
+#if MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR
+  // ASan and MSan abort before nothrow new can return null for this deliberate
+  // oversized request. Verify their diagnostic without changing allocator options.
+  EXPECT_DEATH(
+      static_cast<void>(original->try_clone_to<UnallocatableControlSource>()), "exceeds maximum supported size");
+#else
   EXPECT_THAT(original->try_clone_to<UnallocatableControlSource>().has_value(), Eq(false));
 #endif
+  EXPECT_THAT(original->tree().contains(42), Eq(true));
 }
 
 TEST_F(HamtOwnedTreeTest, OwnedBoundedSourceReportsFailureWithoutChangingTheTree) {
@@ -285,3 +293,5 @@ TEST_F(HamtOwnedTreeTest, OwnedBoundedSourceReportsFailureWithoutChangingTheTree
 }
 }  // namespace
 }  // namespace mbo::container::experimental::hamt::hamt_internal
+
+#undef MBO_PRIVATE_TEST_HAS_SANITIZER_ALLOCATOR

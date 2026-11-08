@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "total_bytes": 73643705,
+  "total_bytes": 72908949,
   "sections": {
     "root": {
       "files": 30,
       "bytes": 201146
     },
-    "coverage": {
-      "files": 4743,
-      "bytes": 69797692
+    "mbo": {
+      "files": 388,
+      "bytes": 2376736
     },
-    "bazelmod": {
+    ".bcr": {
       "files": 4,
-      "bytes": 9755
+      "bytes": 933
     },
     ".trunk": {
       "files": 4,
@@ -26,13 +26,13 @@
       "files": 4,
       "bytes": 7707
     },
-    ".bcr": {
-      "files": 4,
-      "bytes": 933
+    "coverage": {
+      "files": 4733,
+      "bytes": 69062936
     },
-    "mbo": {
-      "files": 388,
-      "bytes": 2376736
+    "bazelmod": {
+      "files": 4,
+      "bytes": 9755
     },
     ".github": {
       "files": 10,

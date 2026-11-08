@@ -129,10 +129,10 @@ excluded from uploads.
 
 ## Preparation profiles
 
-Experimental HAMT and string interning remain included in the `container` and `strings` coverage
-categories through their existing recursive globs. The supplemental exception-policy target for
-interning is `//mbo/strings/experimental:string_interner_require_exceptions_test`. Relocation does
-not exclude these headers, tests, or benchmark translation units from coverage or clang-tidy.
+Experimental HAMT production headers are included in the `container` coverage category through
+its recursive glob. HAMT integration tests use the generic StringInterner from `mbo/strings`.
+Manual HAMT benchmarks are listed explicitly for clang-tidy; benchmark translation units remain
+excluded from coverage reporting by `coverage_policy.json`.
 
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
 targets include the experimental frozen containers' construction and lookup failures,

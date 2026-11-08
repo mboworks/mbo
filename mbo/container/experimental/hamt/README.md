@@ -16,8 +16,8 @@ advantage over ordinary hash tables.
 | `hamt_node_map.h`          | `HamtNodeMap`         | Separately owned payloads for stable surviving addresses  |
 | `hamt_node_set.h`          | `HamtNodeSet`         | Separately owned keys for stable surviving addresses      |
 | `hamt_options.h`           | `HamtOptions`         | Fragment width, maximum size, and full-hash collision cap |
-| `hamt_string_index.h`      | `HamtStringIndex`     | Flat-map adapter for experimental string interning        |
-| `hamt_node_string_index.h` | `HamtNodeStringIndex` | Node-map adapter for experimental string interning        |
+| `hamt_string_index.h`      | `HamtStringIndex`     | Transient flat-map index for the generic StringInterner   |
+| `hamt_node_string_index.h` | `HamtNodeStringIndex` | Transient node-map index for the generic StringInterner   |
 
 Bazel targets use `//mbo/container/experimental/hamt:<header_basename>_cc`.
 For example, depend on `//mbo/container/experimental/hamt:hamt_flat_map_cc` and include
@@ -55,5 +55,55 @@ implementation is carried by this package.
 The [benchmark guide](HAMT_MAP_BENCHMARKS.md) describes the current harness and the review needed
 before publishing new performance results. Previous charts and measurements were removed because
 they predate this integrated implementation; their commits remain available in Git history.
-String ownership and cascading interning are documented in
-[the experimental interner guide](../../../strings/experimental/README.md).
+String ownership and cascading interning use the existing
+[generic StringInterner](../../../strings/STRING_INTERNING.md). The HAMT string-index adapters
+hold transient flat or node maps and expose const container iterators. Pair them with
+`HamtStringInternerIndexPolicy` to preserve recoverable index exhaustion through the generic
+interner's policy interface. Character storage uses the existing append-only `ArenaStringStorage`;
+Arena checkpoints are not required.
+
+## Generic interner composition
+
+Use an ID-bearing map index: a key-only set would force the generic interner to scan its dense
+entries to recover an ID. `StringIdU32` keeps the index payload compact, while `SegmentedVector`
+preserves descriptor and mapped-value addresses. The ordinary exception-free publication policy
+avoids a rollback guard for mapped values that cannot throw. Select the generic exception-safe
+policy when a mapped-value constructor can throw.
+
+```cpp
+#include "mbo/container/experimental/hamt/hamt_string_index.h"
+#include "mbo/container/experimental/hamt/hamt_string_interner_policy.h"
+#include "mbo/hash/hash.h"
+#include "mbo/strings/string_interner.h"
+
+using Id = mbo::strings::StringIdU32<>;
+using Hash = mbo::hash::DefaultHasher;
+using Index = mbo::container::experimental::hamt::HamtStringIndex<Id, Hash>;
+using Policy = mbo::strings::StringInternerPolicyHolder<
+    mbo::strings::StringInternerErrorStlPolicy,
+    mbo::strings::StringInternerLookupMboPolicy,
+    mbo::container::experimental::hamt::HamtStringInternerIndexPolicy>;
+using Interner = mbo::strings::StringInternerSet<
+    Id, Hash, Index, mbo::strings::ArenaStringStorage<>,
+    mbo::container::SegmentedVector<std::string_view>, Policy>;
+
+Interner strings;
+auto inserted = strings.insert("example");
+```
+
+`HamtStringIndex` and `HamtNodeStringIndex` are move-only containers with const iterators,
+`find`, `emplace`, `erase(iterator)`, and fallible `try_emplace`. An interner has one evolving
+local index, so insertion uses transient ownership rather than copying a persistent root first.
+Parent visibility continues to use the generic interner's captured ID prefix. Keys borrow the
+interner's character storage; insertion results never expose mutable keys or IDs.
+
+The flat adapter avoids separate payload allocations and is the initial compact composition.
+The node adapter is available for comparison. Fragment widths, hash algorithms, character-block
+sizes, and expected populations remain measurement axes rather than universal speed defaults.
+The [generic interner benchmark](HAMT_MAP_BENCHMARKS.md#generic-stringinterner-compositions)
+compares these choices using the same interner implementation.
+
+Failed index insertion leaves no published ID or lookup entry. As in the generic interner on
+`main`, an uncommitted character copy can remain reserved until storage destruction. Checkpoint
+rollback is not part of this composition. With exception-safe mapped publication, `erase(iterator)`
+removes the unpublished index entry if the caller's value constructor throws.

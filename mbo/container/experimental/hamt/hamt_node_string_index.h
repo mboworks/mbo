@@ -14,7 +14,7 @@ namespace mbo::container::experimental::hamt {
 
 // Node-owned index payloads; character bytes remain borrowed from string storage.
 template<
-    typename Id = mbo::strings::StringId<>,
+    typename Id = mbo::strings::StringIdU32<>,
     typename Hash = std::hash<std::string_view>,
     typename Equal = std::equal_to<>,
     mbo::container::experimental::hamt::HamtOptions Options = {},

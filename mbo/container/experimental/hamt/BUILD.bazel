@@ -706,7 +706,9 @@ cc_test(
     srcs = ["hamt_node_string_index_test.cc"],
     deps = [
         ":hamt_node_string_index_cc",
-        "//mbo/strings/experimental:string_interner_cc",
+        "//mbo/memory:block_source_cc",
+        "//mbo/strings:string_id_cc",
+        "//mbo/strings:string_interner_types_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -731,6 +733,86 @@ cc_test(
         ":hamt_string_index_cc",
         "//mbo/memory:block_source_cc",
         "//mbo/strings:string_id_cc",
+        "//mbo/strings:string_interner_types_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "hamt_string_interner_policy_cc",
+    hdrs = ["hamt_string_interner_policy.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mbo/strings:string_interner_error_cc",
+        "//mbo/strings:string_interner_policies_cc",
+    ],
+)
+
+cc_binary(
+    name = "hamt_string_interner_benchmark",
+    testonly = True,
+    srcs = ["hamt_string_interner_benchmark.cc"],
+    tags = [
+        "clang-tidy",
+        "manual",
+    ],
+    deps = [
+        ":hamt_node_string_index_cc",
+        ":hamt_string_index_cc",
+        ":hamt_string_interner_policy_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/hash:hash_cc",
+        "//mbo/memory:arena_cc",
+        "//mbo/memory:block_source_cc",
+        "//mbo/strings:arena_string_storage_cc",
+        "//mbo/strings:string_id_cc",
+        "//mbo/strings:string_interner_cc",
+        "//mbo/strings:string_interner_policies_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/strings",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_test(
+    name = "hamt_string_interner_exceptions_test",
+    size = "small",
+    srcs = ["hamt_string_interner_exceptions_test.cc"],
+    copts = ["-fexceptions"] + select({
+        "@rules_cc//cc/compiler:clang": ["-Wno-exceptions"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":hamt_node_string_index_cc",
+        ":hamt_string_index_cc",
+        ":hamt_string_interner_policy_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/strings:arena_string_storage_cc",
+        "//mbo/strings:string_id_cc",
+        "//mbo/strings:string_interner_cc",
+        "//mbo/strings:string_interner_policies_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hamt_string_interner_policy_test",
+    size = "small",
+    srcs = ["hamt_string_interner_policy_test.cc"],
+    deps = [
+        ":hamt_node_string_index_cc",
+        ":hamt_string_index_cc",
+        ":hamt_string_interner_policy_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/hash:hash_cc",
+        "//mbo/memory:block_source_cc",
+        "//mbo/strings:arena_string_storage_cc",
+        "//mbo/strings:string_id_cc",
+        "//mbo/strings:string_interner_cc",
+        "//mbo/strings:string_interner_error_cc",
+        "//mbo/strings:string_interner_policies_cc",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

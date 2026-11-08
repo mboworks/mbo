@@ -3,6 +3,36 @@
 This API is experimental and lives in `mbo::container::experimental::hamt`.
 See the [package guide](README.md) for headers, targets, and compatibility.
 
+## Generic StringInterner compositions
+
+`//mbo/container/experimental/hamt:hamt_string_interner_benchmark` uses the existing
+`mbo::strings::StringInternerSet` for every case. It compares transient flat HAMT fragment widths
+4 through 7, a transient node HAMT at width 5, and Abseil flat hashing with the same Mumbo hash,
+32-bit strong IDs, descriptor storage, and character storage. A separate width-5 flat case uses
+64 KiB initial character blocks with a 1 MiB growth ceiling to expose the allocation tradeoff.
+
+`Build` includes fresh index/interner construction, insertion, and destruction. `Hit`, `Miss`,
+`Duplicate`, and `Get` exclude population and destruction and visit a deterministic shuffled
+order. Populations are 1,024 and 16,384 unique keys. Every configuration validates insertion,
+ID assignment, duplicate handling, and lookup before timing. Items processed count strings;
+reported times are per complete batch, so divide by population for per-string latency.
+
+```sh
+bazel build --config=clang -c opt \
+  //mbo/container/experimental/hamt:hamt_string_interner_benchmark
+bazel-bin/mbo/container/experimental/hamt/hamt_string_interner_benchmark \
+  --benchmark_min_time=0.05s --benchmark_min_warmup_time=0.02 \
+  --benchmark_repetitions=9 --benchmark_enable_random_interleaving=true \
+  --benchmark_out=/private/tmp/hamt-generic-interner.json --benchmark_out_format=json
+```
+
+The adapter deliberately holds a transient map throughout the interner's lifetime. The former
+custom interner and its persistent-on-each-insert adapter are removed. Neither old custom-interner
+results nor short local diagnostics establish the best representation on every platform. Retain
+the source SHA, toolchain, host, complete command, and raw repetitions for any published comparison.
+
+## General map workloads
+
 `//mbo/container/experimental/hamt:hamt_map_benchmark` is a manual, test-only comparison of
 read-only general maps. It is not the final performance report. Final measurements
 follow the complete implementation and each draft PR's own-context CI validation.

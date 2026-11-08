@@ -3,35 +3,70 @@
 
 #include "mbo/container/experimental/hamt/hamt_string_index.h"
 
+#include <array>
 #include <cstddef>
-#include <optional>
+#include <functional>
+#include <span>
 #include <string_view>
+#include <type_traits>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/memory/block_source.h"
+#include "mbo/strings/string_interner_types.h"
 
 namespace mbo::container::experimental::hamt {
 namespace {
 using ::testing::Eq;
+using ::testing::IsEmpty;
 using ::testing::Optional;
+using ::testing::SizeIs;
+
+using Id = mbo::strings::StringIdU32<>;
+static_assert(mbo::strings::StringInternerIdIndex<HamtStringIndex<>, Id>);
+static_assert(!std::is_copy_constructible_v<HamtStringIndex<>>);
 
 struct HamtStringIndexTest : ::testing::Test {};
 
-TEST_F(HamtStringIndexTest, CallerOwnedControlStorageRetainsIndexUntilLastSnapshot) {
+struct CollisionHash final {
+  static std::size_t operator()(std::string_view /*key*/) noexcept { return 7; }
+};
+
+TEST_F(HamtStringIndexTest, ContainerInterfacePreservesIdsAcrossCollisionsAndErasure) {
+  HamtStringIndex<Id, CollisionHash> index;
+  EXPECT_THAT(index, IsEmpty());
+  const auto first = index.emplace("a", Id(0));
+  ASSERT_THAT(first.second, Eq(true));
+  EXPECT_THAT(first.first->second, Eq(Id(0)));
+  EXPECT_THAT(index.emplace("a", Id(9)).second, Eq(false));
+  const std::string_view embedded("a\0b", 3);
+  EXPECT_THAT(index.emplace(embedded, Id(1)).second, Eq(true));
+  EXPECT_THAT(index, SizeIs(2));
+  EXPECT_THAT(index.find(embedded)->second, Eq(Id(1)));
+  EXPECT_THAT(index.find("missing"), Eq(index.end()));
+  index.erase(index.find("a"));
+  EXPECT_THAT(index, SizeIs(1));
+  EXPECT_THAT(index.find("a"), Eq(index.end()));
+  EXPECT_THAT(index.find(embedded)->second, Eq(Id(1)));
+}
+
+TEST_F(HamtStringIndexTest, EmptyKeysAndMovesRetainContainerSemantics) {
+  HamtStringIndex<> index;
+  index.emplace("", Id(0));
+  auto moved = std::move(index);
+  EXPECT_THAT(moved.find("")->second, Eq(Id(0)));
+  HamtStringIndex<> assigned;
+  assigned = std::move(moved);
+  EXPECT_THAT(assigned.begin()->first, Eq(""));
+  EXPECT_THAT(assigned, SizeIs(1));
+}
+
+TEST_F(HamtStringIndexTest, CallerOwnedControlStorageIsReleasedWithTheIndex) {
   mbo::memory::InlineBlockSource<4'096> storage;
   {
     auto created = HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{});
-    if (!created) {
-      FAIL() << "control-storage domain creation failed";
-      return;
-    }
-    auto index = std::move(*created);
-    created.reset();
-    EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(true));
-    const auto snapshot = index;
-    index = HamtStringIndex<>();
-    EXPECT_THAT(snapshot.find("a"), Optional(mbo::strings::StringId<>(0)));
+    ASSERT_THAT(created.has_value(), Eq(true));
+    created->emplace("a", Id(0));
     EXPECT_THAT(
         HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
         Eq(false));
@@ -41,101 +76,59 @@ TEST_F(HamtStringIndexTest, CallerOwnedControlStorageRetainsIndexUntilLastSnapsh
       Eq(true));
 }
 
-struct CollisionHash final {
-  std::size_t operator()(std::string_view /*text*/) const noexcept { return 7; }
-};
-
-TEST_F(HamtStringIndexTest, DiagnosticsReflectOnlyTheInspectedIndexSnapshot) {
-  HamtStringIndex<mbo::strings::StringId<>, CollisionHash> index;
-  EXPECT_THAT(index.structural_diagnostics().entries, Eq(0));
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(true));
-  const auto snapshot = index;
-  EXPECT_THAT(index.try_insert("b", mbo::strings::StringId<>(1)), Optional(true));
-  const auto measured = index.structural_diagnostics();
-  EXPECT_THAT(measured.entries, Eq(2));
-  EXPECT_THAT(measured.collision_nodes, Eq(1));
-  EXPECT_THAT(measured.collision_entries, Eq(2));
-  EXPECT_THAT(measured.largest_collision, Eq(2));
-  EXPECT_THAT(snapshot.structural_diagnostics().entries, Eq(1));
-  EXPECT_THAT(snapshot.structural_diagnostics().collision_nodes, Eq(0));
-  EXPECT_THAT(index.find("b"), Optional(mbo::strings::StringId<>(1)));
+TEST_F(HamtStringIndexTest, FactoriesPropagateControlAndNodeExhaustion) {
+  mbo::memory::InlineBlockSource<1> control;
+  EXPECT_THAT(
+      HamtStringIndex<>::try_create_in(control, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
+      Eq(false));
+  using Index = HamtStringIndex<Id, CollisionHash, std::equal_to<>, {}, mbo::memory::FixedBlockSource>;
+  std::array<std::byte, 1> bytes{};
+  auto created = Index::try_create(CollisionHash{}, std::equal_to<>{}, std::span<std::byte>(bytes));
+  ASSERT_THAT(created.has_value(), Eq(true));
+  const auto result = created->try_emplace("a", Id(0));
+  ASSERT_THAT(result.has_value(), Eq(false));
+  EXPECT_THAT(result.error(), Eq(HamtError::kAllocationExhausted));
+  EXPECT_THAT(*created, IsEmpty());
 }
 
-struct CountingHash final {
-  std::size_t operator()(std::string_view key) const noexcept {
-    ++*calls;
-    return std::hash<std::string_view>{}(key);
-  }
+TEST_F(HamtStringIndexTest, RecoverableSizeAndCollisionLimitsPreserveExistingEntries) {
+  HamtStringIndex<Id, CollisionHash, std::equal_to<>, {.maximum_size = 1}> bounded;
+  ASSERT_THAT(bounded.try_emplace("a", Id(0)).has_value(), Eq(true));
+  const auto full = bounded.try_emplace("b", Id(1));
+  ASSERT_THAT(full.has_value(), Eq(false));
+  EXPECT_THAT(full.error(), Eq(HamtError::kMaxSizeExceeded));
+  ASSERT_THAT(bounded.try_emplace("a", Id(9)).has_value(), Eq(true));
+  EXPECT_THAT(bounded.find("a")->second, Eq(Id(0)));
 
-  std::size_t* calls;
-};
+  HamtStringIndex<Id, CollisionHash, std::equal_to<>, {.maximum_collision_size = 1}> collisions;
+  collisions.emplace("a", Id(0));
+  const auto collision = collisions.try_emplace("b", Id(1));
+  ASSERT_THAT(collision.has_value(), Eq(false));
+  EXPECT_THAT(collision.error(), Eq(HamtError::kCollisionLimitExceeded));
+}
 
-TEST_F(HamtStringIndexTest, StatefulHashIsRetainedAcrossIndexMutation) {
+TEST_F(HamtStringIndexTest, StatefulHashAndDiagnosticsRemainAvailable) {
+  struct Hash final {
+    std::size_t* calls;
+
+    std::size_t operator()(std::string_view text) const noexcept {
+      ++*calls;
+      return std::hash<std::string_view>{}(text);
+    }
+  };
+
   std::size_t calls = 0;
-  HamtStringIndex<mbo::strings::StringId<>, CountingHash> index(CountingHash{.calls = &calls});
-  EXPECT_THAT(index.try_insert("stateful", mbo::strings::StringId<>(0)), Optional(true));
+  HamtStringIndex<Id, Hash> index(Hash{.calls = &calls});
+  index.emplace("a", Id(0));
   const auto before = calls;
-  EXPECT_THAT(index.find("stateful"), Optional(mbo::strings::StringId<>(0)));
+  const auto& read = index;
+  EXPECT_THAT(read.find("a")->second, Eq(Id(0)));
   EXPECT_THAT(calls > before, Eq(true));
+  EXPECT_THAT(read.structural_diagnostics().entries, Eq(1));
+  std::size_t nodes = 0;
+  read.visit_node_diagnostics([&nodes](const auto&) noexcept { ++nodes; });
+  EXPECT_THAT(nodes > 0, Eq(true));
 }
 
-TEST_F(HamtStringIndexTest, FactoryConstructsNonDefaultSourceWithRecoverableNodeFailure) {
-  std::byte buffer{};
-  using Index = HamtStringIndex<
-      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::FixedBlockSource>;
-  auto index = Index::try_create(std::hash<std::string_view>{}, std::equal_to<>{}, std::span<std::byte>(&buffer, 1));
-  ASSERT_THAT(index.has_value(), Eq(true));
-  auto& value = index.value();  // NOLINT(bugprone-unchecked-optional-access): guarded by ASSERT_THAT above.
-  EXPECT_THAT(value.try_insert("too-large", mbo::strings::StringId<>(0)).has_value(), Eq(false));
-  EXPECT_THAT(value.find("too-large").has_value(), Eq(false));
-}
-
-TEST_F(HamtStringIndexTest, FullHashCollisionsAndEmbeddedNulsRetainDistinctDenseIds) {
-  HamtStringIndex<mbo::strings::StringId<>, CollisionHash> index;
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(Eq(true)));
-  EXPECT_THAT(index.try_insert(std::string_view("a\0b", 3), mbo::strings::StringId<>(1)), Optional(Eq(true)));
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(2)), Optional(Eq(false)));
-  EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
-  EXPECT_THAT(index.find(std::string_view("a\0b", 3)), Optional(Eq(mbo::strings::StringId<>(1))));
-  EXPECT_THAT(index.find("b"), Eq(std::nullopt));
-}
-
-TEST_F(HamtStringIndexTest, ExhaustionDoesNotCommitAnIndexEntry) {
-  HamtStringIndex<
-      mbo::strings::StringId<>, std::hash<std::string_view>, std::equal_to<>,
-      mbo::container::experimental::hamt::HamtOptions{.maximum_size = 1}>
-      index;
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(Eq(true)));
-  EXPECT_THAT(index.try_insert("b", mbo::strings::StringId<>(1)), Eq(std::nullopt));
-  EXPECT_THAT(index.find("b"), Eq(std::nullopt));
-  EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(2)), Optional(Eq(false)));
-  EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
-}
-
-TEST_F(HamtStringIndexTest, EmptyKeyCanBeInsertedAndLookedUp) {
-  HamtStringIndex<> index;
-  EXPECT_THAT(index.find(""), Eq(std::nullopt));
-  EXPECT_THAT(index.try_insert("", mbo::strings::StringId<>(0)), Optional(Eq(true)));
-  EXPECT_THAT(index.find(""), Optional(Eq(mbo::strings::StringId<>(0))));
-  EXPECT_THAT(index.try_insert("", mbo::strings::StringId<>(1)), Optional(Eq(false)));
-  EXPECT_THAT(index.find(""), Optional(Eq(mbo::strings::StringId<>(0))));
-}
-
-TEST_F(HamtStringIndexTest, BlockExhaustionPreservesExistingIdsAndDuplicateLookup) {
-  using Source = mbo::memory::InlineBlockSource<1'024>;
-  HamtStringIndex<
-      mbo::strings::StringId<>, CollisionHash, std::equal_to<>, mbo::container::experimental::hamt::HamtOptions{},
-      Source>
-      index;
-  ASSERT_THAT(index.try_insert("a", mbo::strings::StringId<>(0)), Optional(Eq(true)));
-  // The source lends one block. Path copying needs a second live block, even
-  // though the HAMT entry limit has not been reached.
-  EXPECT_THAT(index.try_insert("b", mbo::strings::StringId<>(1)), Eq(std::nullopt));
-  EXPECT_THAT(index.find("b"), Eq(std::nullopt));
-  EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
-  EXPECT_THAT(index.try_insert("a", mbo::strings::StringId<>(2)), Optional(Eq(false)));
-  EXPECT_THAT(index.find("a"), Optional(Eq(mbo::strings::StringId<>(0))));
-}
 }  // namespace
 }  // namespace mbo::container::experimental::hamt

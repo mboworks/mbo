@@ -53,5 +53,5 @@ CLANG_TIDY_MANUAL_TARGETS = [
     "//mbo/strings:string_interner_exceptions_benchmark",
     "//tools:show_compiler",
     "//mbo/container/experimental/hamt:hamt_map_benchmark",
-    "//mbo/strings/experimental:string_interner_benchmark",
+    "//mbo/container/experimental/hamt:hamt_string_interner_benchmark",
 ]

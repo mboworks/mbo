@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 #include "mbo/memory/arena.h"
 #include "mbo/memory/block_source.h"
@@ -74,6 +75,21 @@ class ArenaBlockSource final {
   static constexpr bool supports_recoverable_failure = true;
 
   explicit ArenaBlockSource(ArenaType& arena) noexcept : arena_(std::addressof(arena)) {}
+
+  ArenaBlockSource(const ArenaBlockSource&) = delete;
+  ArenaBlockSource& operator=(const ArenaBlockSource&) = delete;
+
+  ArenaBlockSource(ArenaBlockSource&& other) noexcept : arena_(other.arena_), free_(std::exchange(other.free_, {})) {}
+
+  ArenaBlockSource& operator=(ArenaBlockSource&& other) noexcept {
+    if (this != std::addressof(other)) {
+      arena_ = other.arena_;
+      free_ = std::exchange(other.free_, {});
+    }
+    return *this;
+  }
+
+  ~ArenaBlockSource() = default;
 
   std::size_t max_alignment() const noexcept {
     return std::min(Options.maximum_alignment, static_cast<std::size_t>(arena_->source().max_alignment()));

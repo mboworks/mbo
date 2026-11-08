@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <type_traits>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -17,6 +19,7 @@ namespace mbo::memory {
 namespace {
 
 using ::testing::Eq;
+using ::testing::Ne;
 using ::testing::NotNull;
 
 struct ArenaBlockSourceTest : ::testing::Test {};
@@ -29,6 +32,80 @@ using GeneralArena = Arena<
         .growth_numerator = 2,
         .growth_denominator = 1}>;
 static_assert(BlockSource<ArenaBlockSource<GeneralArena>>);
+static_assert(!std::is_copy_constructible_v<ArenaBlockSource<GeneralArena>>);
+static_assert(!std::is_copy_assignable_v<ArenaBlockSource<GeneralArena>>);
+static_assert(std::is_nothrow_move_constructible_v<ArenaBlockSource<GeneralArena>>);
+static_assert(std::is_nothrow_move_assignable_v<ArenaBlockSource<GeneralArena>>);
+
+// NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move): These regressions intentionally test moved-from
+// reuse.
+TEST_F(ArenaBlockSourceTest, MoveConstructionTransfersFreeListsAndKeepsTheSourceReusable) {
+  GeneralArena arena;
+  ArenaBlockSource source(arena);
+  const auto small = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  const auto large = source.TryAcquire(64, 1).value_or(MemoryBlock{});
+  const auto outstanding = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  ASSERT_THAT(small.data, NotNull());
+  ASSERT_THAT(large.data, NotNull());
+  ASSERT_THAT(outstanding.data, NotNull());
+  source.Release(small);
+  source.Release(large);
+  const auto used = arena.bytes_used();
+
+  auto moved = std::move(source);
+  EXPECT_THAT(&moved.arena(), Eq(&arena));
+  EXPECT_THAT(&source.arena(), Eq(&arena));
+  EXPECT_THAT(moved.TryAcquire(32, 1).value_or(MemoryBlock{}).data, Eq(small.data));
+  EXPECT_THAT(moved.TryAcquire(64, 1).value_or(MemoryBlock{}).data, Eq(large.data));
+  EXPECT_THAT(arena.bytes_used(), Eq(used));
+  const auto fresh = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  ASSERT_THAT(fresh.data, NotNull());
+  EXPECT_THAT(fresh.data, Ne(small.data));
+  EXPECT_THAT(fresh.data, Ne(outstanding.data));
+
+  moved.Release(outstanding);
+  EXPECT_THAT(moved.TryAcquire(32, 1).value_or(MemoryBlock{}).data, Eq(outstanding.data));
+  source.Release(fresh);
+  EXPECT_THAT(source.TryAcquire(32, 1).value_or(MemoryBlock{}).data, Eq(fresh.data));
+}
+
+TEST_F(ArenaBlockSourceTest, MoveAssignmentTransfersTheArenaAndFreeListsWithoutAliasing) {
+  GeneralArena arena;
+  GeneralArena old_arena;
+  ArenaBlockSource source(arena);
+  ArenaBlockSource assigned(old_arena);
+  const auto block = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  const auto old_block = assigned.TryAcquire(32, 1).value_or(MemoryBlock{});
+  ASSERT_THAT(block.data, NotNull());
+  ASSERT_THAT(old_block.data, NotNull());
+  source.Release(block);
+  assigned.Release(old_block);
+  const auto used = arena.bytes_used();
+
+  assigned = std::move(source);
+  EXPECT_THAT(&assigned.arena(), Eq(&arena));
+  EXPECT_THAT(&source.arena(), Eq(&arena));
+  EXPECT_THAT(assigned.TryAcquire(32, 1).value_or(MemoryBlock{}).data, Eq(block.data));
+  EXPECT_THAT(arena.bytes_used(), Eq(used));
+  const auto fresh = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  ASSERT_THAT(fresh.data, NotNull());
+  EXPECT_THAT(fresh.data, Ne(block.data));
+  EXPECT_THAT(fresh.data, Ne(old_block.data));
+}
+
+TEST_F(ArenaBlockSourceTest, SelfMoveAssignmentPreservesReleasedBlocks) {
+  GeneralArena arena;
+  ArenaBlockSource source(arena);
+  const auto block = source.TryAcquire(32, 1).value_or(MemoryBlock{});
+  ASSERT_THAT(block.data, NotNull());
+  source.Release(block);
+  auto* const same = &source;
+  source = std::move(*same);
+  EXPECT_THAT(&source.arena(), Eq(&arena));
+  EXPECT_THAT(source.TryAcquire(32, 1).value_or(MemoryBlock{}).data, Eq(block.data));
+}
+
+// NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 
 TEST_F(ArenaBlockSourceTest, ReusesReleasedBlocksWithoutConsumingMoreArenaCapacity) {
   alignas(std::max_align_t) std::array<std::byte, 1'024> storage{};

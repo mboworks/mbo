@@ -136,6 +136,12 @@ adapter and all blocks it supplies. Configure the arena's source, block sizes, a
 explicitly; `ArenaOptions{}` is invalid. A single-live-block `FixedBlockSource` is insufficient for
 multi-node HAMT storage without this adapter or another multi-block source.
 
+The adapter is move-only: copying free-list heads would allow overlapping live allocations.
+Moves transfer the free lists and leave the source empty but reusable with its original arena.
+Release outstanding blocks through the destination after moving. Move assignment replaces the
+destination's old cache; those cached bytes remain owned by its old arena until that arena is
+released. Neither moving nor destroying the adapter releases the caller-owned arena.
+
 `ArenaOptions` defines the initial and maximum normal block sizes and a rational growth factor.
 It deliberately supplies no performance default: `ArenaOptions{}` is invalid, and every `Arena`
 specialization names both its block source and a fully specified options value. This keeps the

@@ -105,7 +105,7 @@ TEST_F(HamtNodeMapTest, CallerOwnedControlStorageIsRetainedByPublishedMapSnapsho
       FAIL() << "control-storage domain creation failed";
       return;
     }
-    auto inserted = std::move(*created).insert({1, 99}).first;
+    const auto inserted = std::move(*created).insert({1, 99}).first;
     created.reset();
     EXPECT_THAT(inserted.at(1), Eq(99));
     EXPECT_THAT(CopyableMap::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
@@ -140,14 +140,14 @@ struct CollisionHash final {
 TEST_F(HamtNodeMapTest, MoveOnlyMappedValuesShareOwnershipWithoutConsumingDuplicates) {
   using Map = HamtNodeMap<int, std::unique_ptr<int>>;
   Map::value_type entry(42, std::make_unique<int>(99));
-  auto inserted = Map{}.insert(std::move(entry));
+  const auto inserted = Map{}.insert(std::move(entry));
   // NOLINTNEXTLINE(bugprone-use-after-move): verifies that successful insertion consumes the mapped value.
   EXPECT_THAT(entry.second.get(), Eq(nullptr));
   EXPECT_THAT(*inserted.first.at(42), Eq(99));
   const Map snapshot = inserted.first;
   EXPECT_THAT(snapshot.at(42).get(), Eq(inserted.first.at(42).get()));
   Map::value_type duplicate(42, std::make_unique<int>(100));
-  auto unchanged = snapshot.insert(std::move(duplicate));
+  const auto unchanged = snapshot.insert(std::move(duplicate));
   EXPECT_THAT(unchanged.second, Eq(false));
   // NOLINTNEXTLINE(bugprone-use-after-move): duplicate insertion must not consume the mapped value.
   ASSERT_THAT(duplicate.second.get(), NotNull());
@@ -204,8 +204,8 @@ void HamtNodeMapTest::CheckDeepMutationFailure() {
       FAIL() << "source domain creation failed";
       return;
     }
-    auto first = created->insert({0, 10});
-    auto second = first.first.insert({kHighBit, 20});
+    const auto first = created->insert({0, 10});
+    const auto second = first.first.insert({kHighBit, 20});
     const auto& snapshot = second.first;
     const auto* const original = &snapshot.at(0);
     const auto* const sibling = &snapshot.at(kHighBit);
@@ -217,7 +217,7 @@ void HamtNodeMapTest::CheckDeepMutationFailure() {
       const auto acquired = budget.acquired;
       const auto released = budget.released;
       {
-        auto result = [&]() {
+        auto result = [&] {
           if constexpr (Mutation == DeepMutation::kInsert) {
             return snapshot.try_insert({kNewKey, 30});
           } else if constexpr (Mutation == DeepMutation::kErase) {
@@ -324,7 +324,7 @@ TEST_F(HamtNodeMapTest, SnapshotsKeepTheirSourceAliveAfterOriginalContainersDisa
       FAIL() << "source domain creation failed";
       return;
     }
-    auto inserted = created->insert({42, 99});
+    const auto inserted = created->insert({42, 99});
     retained.emplace(inserted.first);
   }
   if (!retained) {
@@ -346,7 +346,7 @@ TEST_F(HamtNodeMapTest, IntermediateAllocationFailuresReleaseTemporaryOwnership)
       FAIL() << "source domain creation failed";
       return;
     }
-    auto inserted = created->insert({42, 99});
+    const auto inserted = created->insert({42, 99});
     const auto& snapshot = inserted.first;
     const auto* const address = &snapshot.at(42);
     budget.remaining = 1;
@@ -427,7 +427,7 @@ TEST_F(HamtNodeMapTest, MutablePreparationFailurePreservesValuesAndMissingLookup
       FAIL() << "source domain creation failed";
       return;
     }
-    auto inserted = created->insert({42, 99});
+    const auto inserted = created->insert({42, 99});
     auto edit = inserted.first.transient();
     budget.remaining = 0;
     const auto acquired = budget.acquired;
@@ -461,7 +461,7 @@ TEST_F(HamtNodeMapTest, SwappingPreparedAndSharedTransientsPreservesPayloadIsola
       FAIL() << "source domain creation failed";
       return;
     }
-    auto inserted = created->insert({42, 99});
+    const auto inserted = created->insert({42, 99});
     const auto& snapshot = inserted.first;
     auto prepared = snapshot.transient();
     auto result = prepared.try_begin();
@@ -480,7 +480,7 @@ TEST_F(HamtNodeMapTest, SwappingPreparedAndSharedTransientsPreservesPayloadIsola
     EXPECT_THAT(std::as_const(prepared).at(42), Eq(99));
     EXPECT_THAT(std::as_const(shared).at(42), Eq(100));
     auto moved = std::move(shared);
-    auto published = std::move(moved).persistent();
+    const auto published = std::move(moved).persistent();
     // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
     EXPECT_THAT(moved, IsEmpty());
     EXPECT_THAT(published.at(42), Eq(100));
@@ -503,8 +503,8 @@ TEST_F(HamtNodeMapTest, RecoverableMutableAccessFailuresPreserveBothSharedEntrie
       FAIL() << "source domain creation failed";
       return;
     }
-    auto first = created->insert({42, 99});
-    auto second = first.first.insert({7, 8});
+    const auto first = created->insert({42, 99});
+    const auto second = first.first.insert({7, 8});
     const auto& snapshot = second.first;
     const auto* const first_address = &snapshot.at(42);
     const auto* const second_address = &snapshot.at(7);
@@ -537,7 +537,7 @@ TEST_F(HamtNodeMapTest, MoveAssignmentDoesNotReuseTheReplacedMapsPayloadProof) {
       FAIL() << "source domain creation failed";
       return;
     }
-    auto inserted = created->insert({42, 99});
+    const auto inserted = created->insert({42, 99});
     const auto& snapshot = inserted.first;
     auto target = snapshot.transient();
     auto prepared = target.try_begin();
@@ -590,8 +590,8 @@ TEST_F(HamtNodeMapTest, ConstTransientTraversalAndLookupDoNotDetachSharedPayload
       FAIL() << "source domain creation failed";
       return;
     }
-    auto first = created->insert({42, 99});
-    auto second = first.first.insert({7, 8});
+    const auto first = created->insert({42, 99});
+    const auto second = first.first.insert({7, 8});
     const auto& snapshot = second.first;
     auto edit = snapshot.transient();
     const auto& read = std::as_const(edit);
@@ -618,12 +618,12 @@ TEST_F(HamtNodeMapTest, ConstTransientTraversalAndLookupDoNotDetachSharedPayload
 
 TEST_F(HamtNodeMapTest, HeterogeneousLookupAndEditUseTheStoredKeyWithoutChangingItsType) {
   using Map = HamtNodeMap<int, int>;
-  auto inserted = Map{}.insert({42, 99});
+  const auto inserted = Map{}.insert({42, 99});
   EXPECT_THAT(inserted.first.contains(short{42}), Eq(true));
   EXPECT_THAT(inserted.first.count(short{7}), Eq(0));
   EXPECT_THAT(inserted.first.find(short{42})->second, Eq(99));
   auto edit = inserted.first.transient();
-  auto found = edit.find(std::int16_t{42});
+  const auto found = edit.find(std::int16_t{42});
   found->second = 100;
   EXPECT_THAT(std::as_const(edit).at(short{42}), Eq(100));
   EXPECT_THAT(inserted.first.at(short{42}), Eq(99));
@@ -667,11 +667,11 @@ TEST_F(HamtNodeMapTest, PersistentMappedEditDetachesPayloadAndPreservesSnapshot)
 
 TEST_F(HamtNodeMapTest, CollisionEditsAndErasurePreserveSnapshotsAndSurvivingAddresses) {
   using Map = HamtNodeMap<int, int, CollisionHash>;
-  auto first = Map{}.insert({1, 10});
+  const auto first = Map{}.insert({1, 10});
   const auto* const address = &first.first.at(1);
-  auto second = first.first.insert({2, 20});
+  const auto second = first.first.insert({2, 20});
   EXPECT_THAT(&second.first.at(1), Eq(address));
-  auto duplicate = second.first.insert({1, 100});
+  const auto duplicate = second.first.insert({1, 100});
   EXPECT_THAT(duplicate.second, Eq(false));
   EXPECT_THAT(duplicate.first.at(1), Eq(10));
   auto edit = second.first.transient();
@@ -695,7 +695,7 @@ TEST_F(HamtNodeMapTest, SizeLimitAllowsDuplicatesAndEmptyStorageReportsExhaustio
   const Bounded empty;
   EXPECT_THAT(empty.try_insert({1, 10}), VariantWith<HamtError>(HamtError::kAllocationExhausted));
   EXPECT_THAT(empty.empty(), Eq(true));
-  auto clone = std::move(inserted.first).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto clone = std::move(inserted.first).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(clone.has_value(), Eq(false));
   EXPECT_THAT(inserted.first.at(1), Eq(10));
 }
@@ -703,12 +703,12 @@ TEST_F(HamtNodeMapTest, SizeLimitAllowsDuplicatesAndEmptyStorageReportsExhaustio
 TEST_F(HamtNodeMapTest, TransientAccessAndIterationPreservePublishedSnapshots) {
   using Map = HamtNodeMap<int, int>;
   const Map empty;
-  auto inserted = empty.insert({42, 99});
+  const auto inserted = empty.insert({42, 99});
   auto edit = inserted.first.transient();
   edit.at(42) = 100;
   EXPECT_THAT(inserted.first.at(42), Eq(99));
   EXPECT_THAT(edit.at(42), Eq(100));
-  auto added = edit.insert({7, 8});
+  const auto added = edit.insert({7, 8});
   EXPECT_THAT(added.second, Eq(true));
   added.first->second = 9;
   EXPECT_THAT(edit.at(7), Eq(9));
@@ -717,7 +717,7 @@ TEST_F(HamtNodeMapTest, TransientAccessAndIterationPreservePublishedSnapshots) {
   }
   EXPECT_THAT(edit.at(42), Eq(101));
   EXPECT_THAT(edit.at(7), Eq(10));
-  auto snapshot = std::move(edit).persistent();
+  const auto snapshot = std::move(edit).persistent();
   EXPECT_THAT(snapshot.at(42), Eq(101));
   // NOLINTNEXTLINE(bugprone-use-after-move): verifies the documented moved-from transient state.
   EXPECT_THAT(edit.empty(), Eq(true));
@@ -725,7 +725,7 @@ TEST_F(HamtNodeMapTest, TransientAccessAndIterationPreservePublishedSnapshots) {
 
 TEST_F(HamtNodeMapTest, IndependentCloneAllocatesIndependentPayloads) {
   using Map = HamtNodeMap<int, int>;
-  auto inserted = Map{}.insert({42, 99});
+  const auto inserted = Map{}.insert({42, 99});
   auto cloned = inserted.first.try_clone_to<mbo::memory::NewDeleteBlockSource>();
   ASSERT_THAT(cloned.has_value(), Eq(true));
   const auto copy = std::move(cloned).value_or(Map{});

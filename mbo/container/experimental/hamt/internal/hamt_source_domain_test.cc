@@ -4,8 +4,12 @@
 #include "mbo/container/experimental/hamt/internal/hamt_source_domain.h"
 
 #include <array>
+#include <atomic>
+#include <latch>
+#include <thread>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -184,6 +188,35 @@ TEST_F(HamtSourceDomainTest, CopiesAndMovesKeepNonmovableSourceAtTheSameAddress)
   const auto block = copy.get()->TryAcquire(16, 1);
   ASSERT_THAT(block.has_value(), Eq(true));
   copy.get()->Release(block.value_or(mbo::memory::MemoryBlock{}));
+}
+
+TEST_F(HamtSourceDomainTest, ConcurrentCopiesKeepTheSourceAliveUntilTheLastOwnerReleasesIt) {
+  using Domain = HamtSourceDomain<ObservedSource>;
+  int destructions = 0;
+  {
+    const auto domain = Domain::TryCreate(destructions).value_or(Domain{});
+    ASSERT_THAT(domain.get(), NotNull());
+    std::atomic<bool> valid{true};
+    std::latch start(8);
+    std::vector<std::jthread> workers;
+    workers.reserve(8);
+    for (int worker = 0; worker < 8; ++worker) {
+      workers.emplace_back([&] {
+        start.arrive_and_wait();
+        for (int copy = 0; copy < 2'000; ++copy) {
+          // NOLINTNEXTLINE(performance-unnecessary-copy-initialization): exercise atomic ownership acquisition.
+          const Domain retained = domain;
+          if (retained.get() != domain.get()) {
+            valid.store(false, std::memory_order_relaxed);
+          }
+        }
+      });
+    }
+    workers.clear();  // Join before reading destruction state or releasing the final owner.
+    EXPECT_THAT(valid.load(), Eq(true));
+    EXPECT_THAT(destructions, Eq(0));
+  }
+  EXPECT_THAT(destructions, Eq(1));
 }
 
 TEST_F(HamtSourceDomainTest, EmptyHandlesAndSelfAssignmentRemainValid) {

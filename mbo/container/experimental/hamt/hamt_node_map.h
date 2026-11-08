@@ -250,7 +250,7 @@ class HamtNodeMap final {
     if (auto error = tree.TryMakeUnique()) {
       return error;
     }
-    auto begin = std::get<typename Tree::mutable_iterator>(tree.TryMutableBegin());
+    const auto begin = std::get<typename Tree::mutable_iterator>(tree.TryMutableBegin());
     for (auto position = begin; position != typename Tree::mutable_iterator{}; ++position) {
       if (!position->try_get_mutable()) {
         return HamtError::kAllocationExhausted;
@@ -297,7 +297,7 @@ class HamtNodeMap final {
   template<typename LookupKey, typename Editor>
   hamt_internal::HamtMutationResult TryUpdate(const LookupKey& key, const Editor& editor) noexcept {
     auto result = TryMutableEntry(key);
-    auto* const entry = std::get_if<Entry*>(&result);
+    const auto* const entry = std::get_if<Entry*>(&result);
     if (entry == nullptr) {
       return {.changed = false, .error = std::get<HamtError>(result)};
     }
@@ -447,7 +447,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
       && requires(Tree& tree, const LookupKey& key) { tree.TryGetMutable(key); })
   [[nodiscard]] access_result try_at(const LookupKey& key) noexcept {
     auto result = map_.TryMutableEntry(key);
-    if (auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
+    if (const auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
       return *entry == nullptr ? nullptr : std::addressof((*entry)->second);
     }
     return std::get<HamtError>(result);
@@ -499,7 +499,7 @@ class HamtNodeMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
 
   [[nodiscard]] insertion_result try_insert(const value_type& entry) noexcept
   requires std::is_nothrow_copy_constructible_v<value_type> {
-    auto& tree = map_.owned_.tree();
+    const auto& tree = map_.owned_.tree();
     if (tree.size() == max_size() && !tree.contains(entry.first)) {
       return HamtError::kMaxSizeExceeded;
     }

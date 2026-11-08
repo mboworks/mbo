@@ -48,7 +48,6 @@
     "mbo/strings/STRING_INTERNER_BENCHMARKS.md": "mbo/strings/STRING_INTERNER_BENCHMARKS.html",
     "mbo/strings/INTERNING_IMPLEMENTATION.md": "mbo/strings/INTERNING_IMPLEMENTATION.html",
     "mbo/memory/ARENA.md": "mbo/memory/ARENA.html",
-    "mbo/memory/measurements/README.md": "mbo/memory/measurements/README.html",
     "mbo/container/experimental/hamt/README.md": "mbo/container/experimental/hamt/README.html",
     "mbo/container/experimental/hamt/HAMT_STORAGE.md": "mbo/container/experimental/hamt/HAMT_STORAGE.html",
     "mbo/container/experimental/hamt/HAMT_MAP_BENCHMARKS.md": "mbo/container/experimental/hamt/HAMT_MAP_BENCHMARKS.html",

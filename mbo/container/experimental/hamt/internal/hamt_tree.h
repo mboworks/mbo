@@ -297,7 +297,7 @@ class HamtTree final {
   [[nodiscard]] HamtMutationResult try_insert(const Entry& entry) noexcept {
     const auto& key = std::invoke(key_of_, entry);
     const hash_type hash = std::invoke(hash_, key);
-    const HamtLookupResult<Entry> inspected = [&]() noexcept {
+    const HamtLookupResult<Entry> inspected = [&] noexcept {
       if constexpr (
           Options.maximum_size != std::numeric_limits<std::size_t>::max()
           || Options.maximum_collision_size != std::numeric_limits<std::size_t>::max()) {

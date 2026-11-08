@@ -81,7 +81,7 @@ TEST_F(HamtFlatMapTest, SharedTransientErasureFailurePreservesBothMappedValues) 
 TEST_F(HamtFlatMapTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
   Map container;
   EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
-  auto transient = std::move(container).transient();
+  const auto transient = std::move(container).transient();
   EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
 }
 
@@ -93,7 +93,7 @@ TEST_F(HamtFlatMapTest, CallerOwnedControlStorageSupportsInsertionAndReclamation
       FAIL() << "control-storage domain creation failed";
       return;
     }
-    auto map = std::move(*created).insert({1, 99}).first;
+    const auto map = std::move(*created).insert({1, 99}).first;
     created.reset();
     EXPECT_THAT(map.at(1), Eq(99));
     EXPECT_THAT(Map::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
@@ -250,7 +250,7 @@ TEST_F(HamtFlatMapTest, MutableIteratorsKeepKeysConstAndDetachFromPersistentSnap
   auto [snapshot, inserted] = empty.insert(Map::value_type(1, 10));
   EXPECT_THAT(inserted, Eq(true));
   auto edit = snapshot.transient();
-  auto position = edit.find(1);
+  const auto position = edit.find(1);
   ASSERT_THAT(position == edit.end(), Eq(false));
   static_assert(std::is_const_v<std::remove_reference_t<decltype((position->first))>>);
   static_assert(!std::is_const_v<std::remove_reference_t<decltype((position->second))>>);
@@ -299,27 +299,27 @@ TEST_F(HamtFlatMapTest, PublicCloneChangesSourceAndConsumesOnlyOnSuccess) {
   }
   EXPECT_THAT(copied->at(1), Eq(10));
   EXPECT_THAT(std::addressof(*copied->find(1)) == std::addressof(*one.find(1)), Eq(false));
-  auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
   // A failed consuming clone must preserve the source persistent value.
   // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(one.at(1), Eq(10));
   auto edit = one.transient();
-  auto failed_transient = std::move(edit).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto failed_transient = std::move(edit).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed_transient.has_value(), Eq(false));
   // A failed consuming clone must preserve the source transient.
   // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(std::as_const(edit).at(1), Eq(10));
   // Reuse after the specified failed move is intentional.
   // NOLINTNEXTLINE(bugprone-use-after-move)
-  auto consumed_transient = std::move(edit).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  const auto consumed_transient = std::move(edit).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed_transient.has_value(), Eq(true));
   // A successful consuming clone leaves the source transient empty.
   // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THAT(edit.empty(), Eq(true));
   // Reuse after the specified failed move above is intentional.
   // NOLINTNEXTLINE(bugprone-use-after-move)
-  auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  const auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed.has_value(), Eq(true));
   // A successful consuming clone leaves the source persistent value empty.
   // NOLINTNEXTLINE(bugprone-use-after-move)
@@ -369,7 +369,7 @@ TEST_F(HamtFlatMapTest, MappedEditorCannotChangeKeysAndPreservesSnapshots) {
   EXPECT_THAT(edit.at(1), Eq(99));
   EXPECT_THAT(one.at(1), Eq(10));
   EXPECT_THAT(edit.try_update(2, SetValue{.value = 77}), VariantWith<bool>(Eq(false)));
-  auto snapshot = std::move(edit).persistent();
+  const auto snapshot = std::move(edit).persistent();
   auto updated = snapshot.try_update(1, SetValue{.value = 42});
   auto* const result = std::get_if<std::pair<Map, bool>>(&updated);
   ASSERT_THAT(result, NotNull());
@@ -399,7 +399,7 @@ TEST_F(HamtFlatMapTest, MutableAccessDetachesSnapshotsAndSubscriptInsertsZeroIni
   const int& existing_value = edit.operator[](2);
   EXPECT_THAT(existing_value, Eq(20));
   EXPECT_THAT(edit.try_at(3), VariantWith<int*>(Eq(nullptr)));
-  auto snapshot = std::move(edit).persistent();
+  const auto snapshot = std::move(edit).persistent();
   EXPECT_THAT(snapshot.at(1), Eq(99));
   EXPECT_THAT(snapshot.at(2), Eq(20));
 }
@@ -410,7 +410,7 @@ TEST_F(HamtFlatMapTest, RecoverableMutableAccessPreservesSharedValuesWhenAllocat
   BoundedMap empty;
   auto edit = std::move(empty).transient();
   EXPECT_THAT(edit.insert(BoundedMap::value_type(1, 10)).second, Eq(true));
-  auto snapshot = std::move(edit).persistent();
+  const auto snapshot = std::move(edit).persistent();
   auto shared = snapshot.transient();
   EXPECT_THAT(shared.try_begin(), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));
   EXPECT_THAT(shared.try_find(1), VariantWith<HamtError>(Eq(HamtError::kAllocationExhausted)));

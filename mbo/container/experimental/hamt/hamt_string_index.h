@@ -118,7 +118,7 @@ class HamtStringIndex final {
   auto structural_diagnostics() const noexcept { return map_.structural_diagnostics(); }
 
   template<typename Visitor>
-  requires requires(const typename Map::transient_type& map, Visitor& visitor) { map.visit_node_diagnostics(visitor); }
+  requires requires(const Map::transient_type& map, Visitor& visitor) { map.visit_node_diagnostics(visitor); }
   void visit_node_diagnostics(Visitor&& visitor) const noexcept {
     map_.visit_node_diagnostics(std::forward<Visitor>(visitor));
   }
@@ -126,7 +126,7 @@ class HamtStringIndex final {
  private:
   explicit HamtStringIndex(Map&& map) noexcept : map_(std::move(map).transient()) {}
 
-  typename Map::transient_type map_{Map{}};
+  Map::transient_type map_{Map{}};
 };
 
 // NOLINTEND(readability-identifier-naming)

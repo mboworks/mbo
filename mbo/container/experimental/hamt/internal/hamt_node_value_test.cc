@@ -4,10 +4,14 @@
 #include "mbo/container/experimental/hamt/internal/hamt_node_value.h"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
+#include <latch>
 #include <memory>
 #include <optional>
+#include <thread>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -63,7 +67,7 @@ TEST_F(HamtNodeValueTest, NonMovableValuesAreConstructedInPlaceAndDestroyedExact
   using ImmobilePayload = HamtNodeValue<NonMovableValue, Source>;
   int destructions = 0;
   {
-    auto domain_result = Domain::TryCreate();
+    const auto domain_result = Domain::TryCreate();
     ASSERT_THAT(domain_result.has_value(), Eq(true));
     const auto domain = domain_result.value_or(Domain{});
     auto created = ImmobilePayload::TryCreate(domain, destructions);
@@ -125,7 +129,7 @@ TEST_F(HamtNodeValueTest, InvalidReturnedStorageIsReleasedWithItsOriginalMetadat
   for (const auto kind : kKinds) {
     InvalidBlockState state;
     state.kind = kind;
-    auto domain_result = InvalidDomain::TryCreate(state);
+    const auto domain_result = InvalidDomain::TryCreate(state);
     ASSERT_THAT(domain_result.has_value(), Eq(true));
     const auto domain = domain_result.value_or(InvalidDomain{});
     EXPECT_THAT(InvalidPayload::TryCreate(domain, 42).has_value(), Eq(false));
@@ -140,10 +144,10 @@ TEST_F(HamtNodeValueTest, SharedPayloadKeepsItsSourceAndAddressAfterTheOriginalO
   Payload retained;
   const int* address = nullptr;
   {
-    auto domain_result = Domain::TryCreate();
+    const auto domain_result = Domain::TryCreate();
     ASSERT_THAT(domain_result.has_value(), Eq(true));
     const Domain domain = domain_result.value_or(Domain{});
-    auto created = Payload::TryCreate(domain, 42);
+    const auto created = Payload::TryCreate(domain, 42);
     ASSERT_THAT(created.has_value(), Eq(true));
     const Payload original = created.value_or(Payload{});
     retained = original;
@@ -159,6 +163,31 @@ TEST_F(HamtNodeValueTest, SharedPayloadKeepsItsSourceAndAddressAfterTheOriginalO
   // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move): the moved-from state is the contract.
   EXPECT_THAT(retained.get(), Eq(nullptr));
   EXPECT_THAT(moved.get(), Eq(address));
+}
+
+TEST_F(HamtNodeValueTest, ConcurrentCopiesPreservePayloadOwnershipAndTheOriginalAddress) {
+  const auto domain = Domain::TryCreate().value_or(Domain{});
+  const auto payload = Payload::TryCreate(domain, 42).value_or(Payload{});
+  ASSERT_THAT(payload.get(), NotNull());
+  std::atomic<bool> valid{true};
+  std::latch start(8);
+  std::vector<std::jthread> workers;
+  workers.reserve(8);
+  for (int worker = 0; worker < 8; ++worker) {
+    workers.emplace_back([&] {
+      start.arrive_and_wait();
+      for (int copy = 0; copy < 2'000; ++copy) {
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization): exercise atomic ownership acquisition.
+        const Payload retained = payload;
+        if (retained.get() != payload.get() || *retained.get() != 42) {
+          valid.store(false, std::memory_order_relaxed);
+        }
+      }
+    });
+  }
+  workers.clear();
+  EXPECT_THAT(valid.load(), Eq(true));
+  EXPECT_THAT(payload.is_unique(), Eq(true));
 }
 
 TEST_F(HamtNodeValueTest, EmptyHandlesRemainEmptyAcrossCopyMoveAndSwap) {
@@ -179,7 +208,7 @@ TEST_F(HamtNodeValueTest, AssignmentsReleaseReplacedOwnershipAndPreserveSharedPa
   using HeapSource = mbo::memory::NewDeleteBlockSource;
   using HeapDomain = HamtSourceDomain<HeapSource>;
   using HeapPayload = HamtNodeValue<int, HeapSource>;
-  auto domain_result = HeapDomain::TryCreate();
+  const auto domain_result = HeapDomain::TryCreate();
   ASSERT_THAT(domain_result.has_value(), Eq(true));
   const auto domain = domain_result.value_or(HeapDomain{});
   auto first_result = HeapPayload::TryCreate(domain, 42);
@@ -203,14 +232,14 @@ TEST_F(HamtNodeValueTest, EmptyDomainAndInsufficientStorageReportFailure) {
   EXPECT_THAT(Payload::TryCreate(Domain{}, 42).has_value(), Eq(false));
   using SmallSource = mbo::memory::InlineBlockSource<1>;
   using SmallDomain = HamtSourceDomain<SmallSource>;
-  auto domain_result = SmallDomain::TryCreate();
+  const auto domain_result = SmallDomain::TryCreate();
   ASSERT_THAT(domain_result.has_value(), Eq(true));
   const auto domain = domain_result.value_or(SmallDomain{});
   EXPECT_THAT((HamtNodeValue<int, SmallSource>::TryCreate(domain, 42).has_value()), Eq(false));
 }
 
 TEST_F(HamtNodeValueTest, TheLastPayloadOwnerReturnsStorageForReuse) {
-  auto domain_result = Domain::TryCreate();
+  const auto domain_result = Domain::TryCreate();
   ASSERT_THAT(domain_result.has_value(), Eq(true));
   const auto domain = domain_result.value_or(Domain{});
   {
@@ -229,7 +258,7 @@ TEST_F(HamtNodeValueTest, TheLastPayloadOwnerReturnsStorageForReuse) {
 }
 
 TEST_F(HamtNodeValueTest, SharedMutableAccessReportsExhaustionAndUniqueAccessKeepsTheAddress) {
-  auto domain_result = Domain::TryCreate();
+  const auto domain_result = Domain::TryCreate();
   ASSERT_THAT(domain_result.has_value(), Eq(true));
   const auto domain = domain_result.value_or(Domain{});
   auto created = Payload::TryCreate(domain, 42);
@@ -251,7 +280,7 @@ TEST_F(HamtNodeValueTest, SharedMutableAccessCopiesOnlyTheEditedPayload) {
   using HeapSource = mbo::memory::NewDeleteBlockSource;
   using HeapDomain = HamtSourceDomain<HeapSource>;
   using HeapPayload = HamtNodeValue<int, HeapSource>;
-  auto domain_result = HeapDomain::TryCreate();
+  const auto domain_result = HeapDomain::TryCreate();
   ASSERT_THAT(domain_result.has_value(), Eq(true));
   const auto domain = domain_result.value_or(HeapDomain{});
   auto created = HeapPayload::TryCreate(domain, 42);

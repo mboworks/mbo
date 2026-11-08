@@ -64,7 +64,7 @@ using IndexTypes = ::testing::Types<HamtStringIndex<>, HamtNodeStringIndex<>>;
 
 struct IndexNames final {
   template<typename T>
-  static std::string GetName(int /*index*/) {
+  static const char* GetName(int /*index*/) {
     if constexpr (std::same_as<T, HamtStringIndex<>>) {
       return "Flat";
     } else {

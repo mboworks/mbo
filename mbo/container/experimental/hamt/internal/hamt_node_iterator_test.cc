@@ -159,7 +159,7 @@ TEST_F(HamtNodeIteratorTest, CollisionBucketsProjectValuesForEverySupportedFragm
   const int second = 99;
   const auto handles =
       std::to_array<BorrowedHandle>({BorrowedHandle{.value = &first}, BorrowedHandle{.value = &second}});
-  const auto check = [&]<std::size_t FragmentBits>() {
+  const auto check = [&]<std::size_t FragmentBits> {
     using Node = HamtSharedNode<FragmentBits, BorrowedHandle>;
     using Projected = HamtNodeIterator<HamtIterator<FragmentBits, BorrowedHandle>>;
     mbo::memory::NewDeleteBlockSource source;

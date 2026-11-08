@@ -57,7 +57,7 @@ TEST_F(HamtMergePathTest, StartingAtTheEndReportsAnExhaustedPath) {
 }
 
 TEST_F(HamtMergePathTest, RoutesEveryHashBitForAllSupportedFragmentWidths) {
-  const auto check_width = []<std::size_t FragmentBits>() {
+  const auto check_width = []<std::size_t FragmentBits> {
     for (std::size_t bit = 0; bit < 64; ++bit) {
       const std::uint64_t hash = std::uint64_t{1} << bit;
       const auto path = FindHamtMergePath<std::uint64_t, FragmentBits>(0, hash);

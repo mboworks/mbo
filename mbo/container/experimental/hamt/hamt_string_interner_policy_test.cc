@@ -48,7 +48,7 @@ using IndexTypes = ::testing::Types<FlatIndex, HamtNodeStringIndex<Id, Hash>>;
 
 struct IndexNames final {
   template<typename T>
-  static std::string GetName(int /*index*/) {
+  static const char* GetName(int /*index*/) {
     if constexpr (std::same_as<T, FlatIndex>) {
       return "Flat";
     } else {
@@ -61,19 +61,21 @@ TYPED_TEST_SUITE(HamtStringInternerPolicyTest, IndexTypes, IndexNames);
 
 TYPED_TEST(HamtStringInternerPolicyTest, GenericInternerOwnsBytesAndRetainsDenseStableViews) {
   typename TestFixture::Interner interner;
-  const auto first = interner.insert(std::string("first"));
+  std::string key = "first";
+  const auto first = interner.insert(key);
+  key.assign("other");
   ASSERT_THAT(first.has_value(), Eq(true));
   EXPECT_THAT(first->first, Eq(Id(0)));
   EXPECT_THAT(first->second, Eq(true));
   const auto view = interner.get_string(Id(0));
   ASSERT_THAT(view.has_value(), Eq(true));
-  const auto* address = view->data();
+  const auto* address = view.value_or(std::string_view{}).data();
   for (std::uint32_t index = 1; index < 256; ++index) {
     ASSERT_THAT(interner.insert(std::to_string(index)).has_value(), Eq(true));
   }
   EXPECT_THAT(interner.insert("first")->second, Eq(false));
   EXPECT_THAT(interner.get_string(Id(0)), Optional(Eq("first")));
-  EXPECT_THAT(interner.get_string(Id(0))->data(), Eq(address));
+  EXPECT_THAT(interner.get_string(Id(0)).value_or(std::string_view{}).data(), Eq(address));
   EXPECT_THAT(interner, SizeIs(256));
   EXPECT_THAT(interner.find("255"), Optional(Eq(Id(255))));
 }
@@ -126,8 +128,11 @@ TEST_F(HamtStringInternerFailureTest, CallerOwnedNodeExhaustionPropagatesThrough
   mbo::memory::InlineBlockSource<4'096> control;
   {
     auto index = Index::try_create_in(control, Hash{}, std::equal_to<>{});
-    ASSERT_THAT(index.has_value(), Eq(true));
-    Interner interner(typename Interner::options_type{.container = std::move(*index)});
+    if (!index) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
+    Interner interner(Interner::options_type{.container = std::move(*index)});
     const auto failed = interner.insert("uncommitted");
     ASSERT_THAT(failed.has_value(), Eq(false));
     EXPECT_THAT(failed.error(), Eq(mbo::strings::StringInternerError::kIndexExhausted));

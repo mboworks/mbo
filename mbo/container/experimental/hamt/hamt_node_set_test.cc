@@ -29,7 +29,7 @@ struct HamtNodeSetTest : ::testing::Test {};
 TEST_F(HamtNodeSetTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
   Set container;
   EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
-  auto transient = std::move(container).transient();
+  const auto transient = std::move(container).transient();
   EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
 }
 
@@ -41,7 +41,7 @@ TEST_F(HamtNodeSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation
       FAIL() << "control-storage domain creation failed";
       return;
     }
-    auto set = std::move(*created).insert(1).first;
+    const auto set = std::move(*created).insert(1).first;
     created.reset();
     EXPECT_THAT(set.contains(1), Eq(true));
     EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
@@ -192,11 +192,11 @@ TEST_F(HamtNodeSetTest, CloningRebuildsPayloadsAndConsumesOnlyOnCompleteSuccess)
   const auto independent = std::move(cloned).value_or(Set{});
   EXPECT_THAT(independent, UnorderedElementsAre(42));
   EXPECT_THAT(std::addressof(*independent.find(42)) == std::addressof(*one.find(42)), Eq(false));
-  auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto failed = std::move(one).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
   // NOLINTNEXTLINE(bugprone-use-after-move): failed rvalue cloning preserves the source by contract.
   EXPECT_THAT(one, UnorderedElementsAre(42));
-  auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  const auto consumed = std::move(one).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed.has_value(), Eq(true));
   // NOLINTNEXTLINE(bugprone-use-after-move): successful rvalue cloning empties the source by contract.
   EXPECT_THAT(one.empty(), Eq(true));

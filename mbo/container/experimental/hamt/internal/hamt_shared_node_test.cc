@@ -7,8 +7,11 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <latch>
 #include <limits>
 #include <optional>
+#include <thread>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -74,6 +77,8 @@ TEST_F(HamtSharedNodeTest, DemotionRejectsInvalidOccupancyAndPositionsBeforeAllo
   EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, wrong_nodes, 0, 0, 42), Eq(std::nullopt));
   EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, demoted, 1, 0, 42), Eq(std::nullopt));
   EXPECT_THAT(Node::TryDemoteChildToEntry(source, *original, demoted, 0, 1, 42), Eq(std::nullopt));
+  mbo::memory::FixedBlockSource exhausted(std::span<std::byte>{});
+  EXPECT_THAT(Node::TryDemoteChildToEntry(exhausted, *original, demoted, 0, 0, 42), Eq(std::nullopt));
   EXPECT_THAT(source.acquired, Eq(acquired));
   EXPECT_THAT(original->use_count(), Eq(1));
   EXPECT_THAT(empty->use_count(), Eq(2));
@@ -123,6 +128,29 @@ TEST_F(HamtSharedNodeTest, ReferenceRetainRejectsOverflowAndResurrectionWithoutC
   references.store(0);
   EXPECT_THAT(TryRetainHamtReference(references), Eq(false));
   EXPECT_THAT(references.load(), Eq(0));
+}
+
+TEST_F(HamtSharedNodeTest, ConcurrentRetainsAndReleasesPreserveTheFinalOwnersReference) {
+  CountingSource source;
+  auto* const node = Node::TryCreate(source, {}, {}, {}).value_or(nullptr);
+  ASSERT_THAT(node, NotNull());
+  std::latch start(8);
+  std::vector<std::jthread> workers;
+  workers.reserve(8);
+  for (int worker = 0; worker < 8; ++worker) {
+    workers.emplace_back([&] {
+      start.arrive_and_wait();
+      for (int copy = 0; copy < 2'000; ++copy) {
+        Node::Retain(node);
+        Node::Release(source, node);
+      }
+    });
+  }
+  workers.clear();
+  EXPECT_THAT(node->use_count(), Eq(1));
+  EXPECT_THAT(source.released, Eq(0));
+  Node::Release(source, node);
+  EXPECT_THAT(source.released, Eq(1));
 }
 
 TEST_F(HamtSharedNodeTest, InsertionCanBorrowAnEntryFromTheOriginalNode) {
@@ -440,6 +468,21 @@ TEST_F(HamtSharedNodeTest, InsertionFailurePreservesTheOriginal) {
   EXPECT_THAT(original->use_count(), Eq(1));
   Node::Release(source, original);
   EXPECT_THAT(source.acquired, Eq(1));
+  EXPECT_THAT(source.released, Eq(1));
+}
+
+TEST_F(HamtSharedNodeTest, BitmapEntryInsertionRejectsCollisionNodesWithoutChangingOwnership) {
+  CountingSource source;
+  constexpr auto kEntries = std::to_array<int>({10, 20});
+  auto* const original = Node::TryCreateCollision(source, kEntries).value_or(nullptr);
+  ASSERT_THAT(original, NotNull());
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  EXPECT_THAT(Node::TryInsertEntry(source, *original, index, 0, 30), Eq(std::nullopt));
+  EXPECT_THAT(original->entries(), ElementsAre(10, 20));
+  EXPECT_THAT(original->use_count(), Eq(1));
+  EXPECT_THAT(source.acquired, Eq(1));
+  Node::Release(source, original);
   EXPECT_THAT(source.released, Eq(1));
 }
 

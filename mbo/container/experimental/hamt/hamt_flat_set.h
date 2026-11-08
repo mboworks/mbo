@@ -206,6 +206,9 @@ class HamtFlatSet final {
 
   template<typename Value>
   static Value RequireValue(std::variant<Value, HamtError> result) noexcept {
+    // Scalar instantiations can read through const; container results must move
+    // their ownership rather than acquire another shared root.
+    // NOLINTNEXTLINE(misc-const-correctness)
     if (auto* const value = std::get_if<Value>(&result); value != nullptr) {
       return std::move(*value);
     }

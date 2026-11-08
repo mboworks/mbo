@@ -720,7 +720,8 @@ TEST_F(HamtTreeTest, CloningToADifferentSourcePreservesStateAndIndependentLifeti
   EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
   mbo::memory::NewDeleteBlockSource destination;
   using OtherTree = HamtTree<kOptions, Entry, SeedHash, KeyOf, Equal, mbo::memory::NewDeleteBlockSource>;
-  auto cloned = tree.try_clone_to(destination).value_or(OtherTree(destination, SeedHash{.seed = 99}, KeyOf{}, Equal{}));
+  const auto cloned =
+      tree.try_clone_to(destination).value_or(OtherTree(destination, SeedHash{.seed = 99}, KeyOf{}, Equal{}));
   EXPECT_THAT(cloned, ElementsAre(Entry{.key = 1, .value = 10}));
   EXPECT_THAT(cloned.hash_function().seed, Eq(13));
   tree.clear();
@@ -784,6 +785,21 @@ TEST_F(HamtTreeTest, CopyInvalidatesBothPreviouslyProvenUniqueTrees) {
   ASSERT_THAT(snapshot.Find(1), NotNull());
   EXPECT_THAT(snapshot.Find(1)->value, Eq(10));
   EXPECT_THAT(tree.Find(1)->value, Eq(99));
+}
+
+TEST_F(HamtTreeTest, MutableFindRediscoversUniqueOwnershipAfterTheLastSnapshotReleasesItsRoot) {
+  EXPECT_THAT(tree.try_insert(Entry{.key = 1, .value = 10}), MutationIs(true));
+  Tree snapshot = tree;
+  snapshot.clear();
+  const auto allocations = source.acquired;
+  source.remaining = 0;
+  auto found = tree.TryMutableFind(1);
+  const auto* const position = std::get_if<Tree::mutable_iterator>(&found);
+  ASSERT_THAT(position, NotNull());
+  ASSERT_THAT(*position, Ne(tree.end()));
+  (*position)->value = 99;
+  EXPECT_THAT(tree.Find(1)->value, Eq(99));
+  EXPECT_THAT(source.acquired, Eq(allocations));
 }
 
 TEST_F(HamtTreeTest, MoveAndSwapKeepUniquenessProofAttachedToItsTree) {

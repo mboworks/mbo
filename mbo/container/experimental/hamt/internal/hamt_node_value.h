@@ -74,7 +74,7 @@ class HamtNodeValue final {
 
   ~HamtNodeValue() {
     if (control_ != nullptr && control_->references.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-      auto domain = std::move(control_->domain);
+      const auto domain = std::move(control_->domain);
       const auto block = control_->block;
       std::destroy_at(control_);
       domain.get()->Release(block);

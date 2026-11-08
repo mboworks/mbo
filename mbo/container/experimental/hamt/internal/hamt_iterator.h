@@ -41,7 +41,7 @@ class HamtIterator final {
   requires(!Mutable && OtherMutable)
   // Intentionally implicit: mutable iterators must convert to const iterators
   // like their standard-library counterparts.
-  // NOLINTNEXTLINE(google-explicit-constructor)
+  // NOLINTNEXTLINE(google-explicit-constructor,cppcoreguidelines-explicit-constructor,misc-explicit-constructor)
   HamtIterator(const HamtIterator<FragmentBits, Entry, OtherMutable>& other) noexcept
       : depth_(other.depth_), current_(other.current_), range_(other.range_) {
     for (std::size_t index = 0; index < depth_; ++index) {

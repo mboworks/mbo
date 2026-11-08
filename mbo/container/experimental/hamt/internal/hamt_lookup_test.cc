@@ -110,7 +110,7 @@ TEST_F(HamtLookupTest, NullRootIsAnEmptyLookup) {
 }
 
 TEST_F(HamtLookupTest, TraversesTheEntireHashWidthForEverySupportedFragmentSize) {
-  const auto check_width = []<std::size_t FragmentBits>() {
+  const auto check_width = []<std::size_t FragmentBits> {
     using DeepNode = HamtSharedNode<FragmentBits, Entry>;
     using Path = HamtHashPath<std::uint64_t, FragmentBits>;
     mbo::memory::NewDeleteBlockSource source;

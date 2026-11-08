@@ -244,6 +244,9 @@ class HamtFlatMap final {
 
   template<typename Value>
   static Value RequireValue(std::variant<Value, HamtError> result) noexcept {
+    // Scalar instantiations can read through const; container results must move
+    // their ownership rather than acquire another shared root.
+    // NOLINTNEXTLINE(misc-const-correctness)
     if (auto* const value = std::get_if<Value>(&result); value != nullptr) {
       return std::move(*value);
     }
@@ -347,7 +350,7 @@ class HamtFlatMap<Key, Mapped, Hash, Equal, Options, Source>::transient_type fin
   requires requires(Tree& tree, const LookupKey& key) { tree.TryGetMutable(key); }
   [[nodiscard]] access_result try_at(const LookupKey& key) noexcept {
     auto result = map_.owned_.tree().TryGetMutable(key);
-    if (auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
+    if (const auto* const entry = std::get_if<value_type*>(&result); entry != nullptr) {
       return *entry == nullptr ? nullptr : std::addressof((*entry)->second);
     }
     return std::get<HamtError>(result);

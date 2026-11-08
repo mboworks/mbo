@@ -89,7 +89,7 @@ void BmLookup(benchmark::State& state) {
   }
   const auto* read = &map;
   benchmark::DoNotOptimize(read);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (std::size_t ordinal = 0; ordinal < count; ++ordinal) {
@@ -132,7 +132,7 @@ void BmTraversal(benchmark::State& state) {
   }
   const auto* read = &map;
   benchmark::DoNotOptimize(read);
-  for (auto _ : state) {
+  for (const auto _ : state) {
     benchmark::ClobberMemory();
     std::uint64_t sum = 0;
     for (const auto& entry : *read) {
@@ -156,6 +156,7 @@ auto NewEditable() {
 template<bool Validate, typename Map>
 bool FillEraseCycle(Map& map, std::size_t count, benchmark::State& state) {
   for (std::size_t pos = 0; pos < count; ++pos) {
+    // NOLINTNEXTLINE(misc-const-correctness): DoNotOptimize requires a mutable lvalue in timed instantiations.
     auto inserted = map.insert({static_cast<std::uint64_t>(pos), static_cast<std::uint64_t>(pos + 1)});
     if constexpr (Validate) {
       if (!inserted.second || inserted.first == map.end() || inserted.first->first != pos
@@ -169,6 +170,7 @@ bool FillEraseCycle(Map& map, std::size_t count, benchmark::State& state) {
   }
   for (std::size_t ordinal = 0; ordinal < count; ++ordinal) {
     const auto key = static_cast<std::uint64_t>((ordinal * 40'503) & (count - 1));
+    // NOLINTNEXTLINE(misc-const-correctness): DoNotOptimize requires a mutable lvalue in timed instantiations.
     auto erased = map.erase(key);
     if constexpr (Validate) {
       if (erased != 1) {
@@ -197,7 +199,7 @@ void BmFillEraseFresh(benchmark::State& state) {
       return;
     }
   }
-  for (auto _ : state) {
+  for (const auto _ : state) {
     auto map = NewEditable<Map>();
     FillEraseCycle<false>(map, count, state);
     benchmark::DoNotOptimize(map);
@@ -238,7 +240,7 @@ void BmBranchUpdate(benchmark::State& state) {
       return;
     }
   }
-  for (auto _ : state) {
+  for (const auto _ : state) {
     auto child = EditableFrom(parent);
     for (std::size_t pos = 0; pos < edits; ++pos) {
       auto& mapped = child.at(static_cast<std::uint64_t>(pos));

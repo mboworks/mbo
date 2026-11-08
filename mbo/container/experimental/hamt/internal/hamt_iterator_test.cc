@@ -86,7 +86,7 @@ TEST_F(HamtIteratorTest, TraversesEntriesInLeavesBranchesAndCollisions) {
       {Entry{.hash = 1, .key = 10}, Entry{.hash = 1 + (std::uint64_t{3} << 15), .key = 20}, Entry{.hash = 7, .key = 30},
        Entry{.hash = 7, .key = 40}});
   for (const Entry entry : kEntries) {
-    auto inserted =
+    const auto inserted =
         TryInsertHamtEntry<std::uint64_t, 5>(source, root, entry.hash, entry.key, entry, HashOf{}, KeyOf{}, Equal{})
             .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});
     ASSERT_THAT(inserted.root, NotNull());
@@ -159,7 +159,7 @@ TEST_F(HamtIteratorTest, SharedEntriesInDifferentRootRangesDoNotCompareEqual) {
 }
 
 TEST_F(HamtIteratorTest, IsAMultiPassForwardIterator) {
-  auto inserted =
+  const auto inserted =
       TryInsertHamtEntry<std::uint64_t, 5>(
           source, static_cast<Node*>(nullptr), 1ULL, 10, Entry{.hash = 1, .key = 10}, HashOf{}, KeyOf{}, Equal{})
           .value_or(HamtInsertResult<Node>{.root = nullptr, .inserted = false});

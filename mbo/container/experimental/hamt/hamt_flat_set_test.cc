@@ -73,7 +73,7 @@ TEST_F(HamtFlatSetTest, FailedErasurePreservesPersistentAndTransientContents) {
 TEST_F(HamtFlatSetTest, EmptyPersistentAndTransientDiagnosticsHaveNoReachableNodes) {
   Set container;
   EXPECT_THAT(container.structural_diagnostics().nodes, Eq(0));
-  auto transient = std::move(container).transient();
+  const auto transient = std::move(container).transient();
   EXPECT_THAT(transient.structural_diagnostics().entries, Eq(0));
 }
 
@@ -85,7 +85,7 @@ TEST_F(HamtFlatSetTest, CallerOwnedControlStorageSupportsInsertionAndReclamation
       FAIL() << "control-storage domain creation failed";
       return;
     }
-    auto set = std::move(*created).insert(1).first;
+    const auto set = std::move(*created).insert(1).first;
     created.reset();
     EXPECT_THAT(set.contains(1), Eq(true));
     EXPECT_THAT(Set::try_create_in(storage, std::hash<int>{}, std::equal_to<>{}).has_value(), Eq(false));
@@ -110,7 +110,7 @@ TEST_F(HamtFlatSetTest, PublicCloneReturnsTheDestinationSourceSpecialization) {
   }
   EXPECT_THAT(*cloned, UnorderedElementsAre(1));
   EXPECT_THAT(original, UnorderedElementsAre(1));
-  auto consumed = std::move(original).try_clone_to<mbo::memory::NewDeleteBlockSource>();
+  const auto consumed = std::move(original).try_clone_to<mbo::memory::NewDeleteBlockSource>();
   EXPECT_THAT(consumed.has_value(), Eq(true));
   // The consuming overload deliberately leaves a successfully cloned source empty.
   // NOLINTNEXTLINE(bugprone-use-after-move)
@@ -119,7 +119,7 @@ TEST_F(HamtFlatSetTest, PublicCloneReturnsTheDestinationSourceSpecialization) {
   // NOLINTNEXTLINE(bugprone-use-after-move)
   auto reuse = std::move(original).transient();
   EXPECT_THAT(reuse.insert(2).second, Eq(true));
-  auto failed = std::move(reuse).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto failed = std::move(reuse).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
   // A failed consuming clone must preserve the source transient.
   // NOLINTNEXTLINE(bugprone-use-after-move)
@@ -143,7 +143,7 @@ TEST_F(HamtFlatSetTest, CollisionSnapshotsPreserveStateAndSupportHeterogeneousLo
   EXPECT_THAT(edit.count(std::int64_t{2}), Eq(1));
   EXPECT_THAT(edit.count(std::int64_t{4}), Eq(0));
   EXPECT_THAT(*edit.find(std::int64_t{2}), Eq(2));
-  auto snapshot = std::move(edit).persistent();
+  const auto snapshot = std::move(edit).persistent();
   auto [next, erased] = snapshot.erase(std::int64_t{2});
   EXPECT_THAT(erased, Eq(true));
   EXPECT_THAT(next, UnorderedElementsAre(1, 3));
@@ -179,7 +179,7 @@ TEST_F(HamtFlatSetTest, OrdinaryOperationsMatchTheDocumentedExample) {
   auto [position, added] = edit.insert(2);
   EXPECT_THAT(added, Eq(true));
   EXPECT_THAT(*position, Eq(2));
-  auto two = std::move(edit).persistent();
+  const auto two = std::move(edit).persistent();
   EXPECT_THAT(empty, IsEmpty());
   EXPECT_THAT(one, UnorderedElementsAre(1));
   EXPECT_THAT(two, UnorderedElementsAre(1, 2));
@@ -229,7 +229,7 @@ TEST_F(HamtFlatSetTest, TransientConversionIsConsumingAndLeavesReusableEmptyValu
   EXPECT_THAT(result->second, Eq(true));
   EXPECT_THAT(*result->first, Eq(1));
   EXPECT_THAT(*original, IsEmpty());
-  auto persistent = std::move(transient).persistent();
+  const auto persistent = std::move(transient).persistent();
   EXPECT_THAT(persistent, UnorderedElementsAre(1));
   // persistent() specifies that the consumed transient becomes reusable and empty.
   // NOLINTNEXTLINE(bugprone-use-after-move)

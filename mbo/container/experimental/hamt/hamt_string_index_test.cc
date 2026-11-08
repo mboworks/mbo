@@ -19,7 +19,6 @@ namespace mbo::container::experimental::hamt {
 namespace {
 using ::testing::Eq;
 using ::testing::IsEmpty;
-using ::testing::Optional;
 using ::testing::SizeIs;
 
 using Id = mbo::strings::StringIdU32<>;
@@ -65,7 +64,10 @@ TEST_F(HamtStringIndexTest, CallerOwnedControlStorageIsReleasedWithTheIndex) {
   mbo::memory::InlineBlockSource<4'096> storage;
   {
     auto created = HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{});
-    ASSERT_THAT(created.has_value(), Eq(true));
+    if (!created) {
+      FAIL() << "control-storage domain creation failed";
+      return;
+    }
     created->emplace("a", Id(0));
     EXPECT_THAT(
         HamtStringIndex<>::try_create_in(storage, std::hash<std::string_view>{}, std::equal_to<>{}).has_value(),
@@ -84,7 +86,10 @@ TEST_F(HamtStringIndexTest, FactoriesPropagateControlAndNodeExhaustion) {
   using Index = HamtStringIndex<Id, CollisionHash, std::equal_to<>, {}, mbo::memory::FixedBlockSource>;
   std::array<std::byte, 1> bytes{};
   auto created = Index::try_create(CollisionHash{}, std::equal_to<>{}, std::span<std::byte>(bytes));
-  ASSERT_THAT(created.has_value(), Eq(true));
+  if (!created) {
+    FAIL() << "source-domain creation failed";
+    return;
+  }
   const auto result = created->try_emplace("a", Id(0));
   ASSERT_THAT(result.has_value(), Eq(false));
   EXPECT_THAT(result.error(), Eq(HamtError::kAllocationExhausted));

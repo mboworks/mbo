@@ -82,7 +82,7 @@ void Build(benchmark::State& state) {
       return;
     }
   }
-  for (auto unused : state) {
+  for (const auto unused : state) {
     Container interner;
     for (const auto& key : keys) {
       benchmark::DoNotOptimize(interner.insert(key));
@@ -103,9 +103,9 @@ void Read(benchmark::State& state) {
     return;
   }
   std::vector<std::size_t> order(count);
-  std::iota(order.begin(), order.end(), 0);
+  std::ranges::iota(order, 0);
   std::mt19937 random(42);
-  std::shuffle(order.begin(), order.end(), random);
+  std::ranges::shuffle(order, random);
   for (const auto index : order) {
     if (interner.find(keys.at(index)) != Id(static_cast<std::uint32_t>(index)) || interner.find(missing.at(index))
         || interner.insert(keys.at(index))->second) {
@@ -113,7 +113,7 @@ void Read(benchmark::State& state) {
       return;
     }
   }
-  for (auto unused : state) {
+  for (const auto unused : state) {
     for (const auto index : order) {
       if constexpr (Op == Operation::kDuplicate) {
         benchmark::DoNotOptimize(interner.insert(keys.at(index)));
@@ -132,7 +132,7 @@ void Read(benchmark::State& state) {
 template<typename Container>
 void Register(std::string_view label) {
   const auto add = [label](std::string_view operation, auto function) {
-    benchmark::RegisterBenchmark(absl::StrCat("GenericInterner/", label, "/", operation).c_str(), function)
+    benchmark::RegisterBenchmark(absl::StrCat("GenericInterner/", label, "/", operation), function)
         ->Arg(1'024)
         ->Arg(16'384);
   };

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -103,6 +104,7 @@ TEST_F(HamtNodeCollisionTest, SizeLimitStillAllowsDuplicatesAndErasureReusesCapa
   EXPECT_THAT(bucket.find(7, 11), Eq(nullptr));
   EXPECT_THAT(bucket.erase(7, 11), Eq(false));
   ASSERT_THAT(bucket.try_insert(7, 11).entry, NotNull());
+  EXPECT_THAT(std::as_const(bucket).find(8, 11), Eq(nullptr));
   EXPECT_THAT(bucket.try_insert(7, 11).inserted, Eq(false));
   EXPECT_THAT(bucket.try_insert(7, 13).error, Eq(HamtError::kMaxSizeExceeded));
   EXPECT_THAT(bucket.erase(8, 11), Eq(false));

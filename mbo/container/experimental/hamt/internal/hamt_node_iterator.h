@@ -47,7 +47,7 @@ class HamtNodeIterator final {
   template<std::forward_iterator OtherIterator, bool OtherMutable>
   requires(!Mutable && OtherMutable && std::convertible_to<OtherIterator, Iterator>)
   // Mutable iterators convert implicitly to const iterators, matching standard container iterators.
-  // NOLINTNEXTLINE(google-explicit-constructor)
+  // NOLINTNEXTLINE(google-explicit-constructor,cppcoreguidelines-explicit-constructor,misc-explicit-constructor)
   HamtNodeIterator(const HamtNodeIterator<OtherIterator, OtherMutable>& other) noexcept : iterator_(other.iterator_) {
     static_assert(std::is_nothrow_constructible_v<Iterator, const OtherIterator&>);
   }

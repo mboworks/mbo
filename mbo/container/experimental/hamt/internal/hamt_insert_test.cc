@@ -56,9 +56,9 @@ struct HamtInsertTest : ::testing::Test {
 };
 
 TEST_F(HamtInsertTest, InsertsIntoEmptyRootAndPreservesTheOriginalVersion) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, 2, 20);
+  const auto second = Insert(first.root, 2, 20);
   ASSERT_THAT(second.root, NotNull());
 
   EXPECT_THAT(first.inserted, Eq(true));
@@ -80,11 +80,11 @@ TEST_F(HamtInsertTest, BuildsAndCopiesDeepBranches) {
   constexpr std::uint64_t kFirstHash = 3;
   constexpr std::uint64_t kSecondHash = 3 + (std::uint64_t{7} << 15);
   constexpr std::uint64_t kThirdHash = 3 + (std::uint64_t{9} << 15);
-  auto first = Insert(nullptr, kFirstHash, 10);
+  const auto first = Insert(nullptr, kFirstHash, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, kSecondHash, 20);
+  const auto second = Insert(first.root, kSecondHash, 20);
   ASSERT_THAT(second.root, NotNull());
-  auto third = Insert(second.root, kThirdHash, 30);
+  const auto third = Insert(second.root, kThirdHash, 30);
   ASSERT_THAT(third.root, NotNull());
 
   EXPECT_THAT(Find(second.root, kThirdHash, 30), IsNull());
@@ -97,11 +97,11 @@ TEST_F(HamtInsertTest, BuildsAndCopiesDeepBranches) {
 }
 
 TEST_F(HamtInsertTest, ExtendsFullHashCollisionsAndRejectsDuplicateKeys) {
-  auto first = Insert(nullptr, 7, 10);
+  const auto first = Insert(nullptr, 7, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, 7, 20);
+  const auto second = Insert(first.root, 7, 20);
   ASSERT_THAT(second.root, NotNull());
-  auto duplicate = Insert(second.root, 7, 20);
+  const auto duplicate = Insert(second.root, 7, 20);
   ASSERT_THAT(duplicate.root, NotNull());
 
   EXPECT_THAT(second.root->children().front()->is_collision(), Eq(true));
@@ -115,7 +115,7 @@ TEST_F(HamtInsertTest, ExtendsFullHashCollisionsAndRejectsDuplicateKeys) {
 }
 
 TEST_F(HamtInsertTest, ReportsAllocationFailureWithoutChangingTheOriginal) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
   mbo::memory::InlineBlockSource<1> exhausted;
   EXPECT_THAT(
@@ -133,7 +133,7 @@ TEST_F(HamtInsertTest, ReportsAllocationFailureWithoutChangingTheOriginal) {
 }
 
 TEST_F(HamtInsertTest, RejectsInsertionPastTheCompleteHashPath) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
   constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
   const auto failed = hamt_insert_internal::TryInsertAt<std::uint64_t, 5>(

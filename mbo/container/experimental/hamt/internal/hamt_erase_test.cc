@@ -65,11 +65,11 @@ struct HamtEraseTest : ::testing::Test {
 };
 
 TEST_F(HamtEraseTest, ErasesLeafAndPreservesOriginalVersion) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, 2, 20);
+  const auto second = Insert(first.root, 2, 20);
   ASSERT_THAT(second.root, NotNull());
-  auto erased = Erase(second.root, 1, 10);
+  const auto erased = Erase(second.root, 1, 10);
   ASSERT_THAT(erased.erased, Eq(true));
 
   EXPECT_THAT(erased.erased, Eq(true));
@@ -84,11 +84,11 @@ TEST_F(HamtEraseTest, ErasesLeafAndPreservesOriginalVersion) {
 TEST_F(HamtEraseTest, CollapsesDeepBranchesAfterErasingTheirLeaf) {
   constexpr std::uint64_t kFirstHash = 3;
   constexpr std::uint64_t kSecondHash = 3 + (std::uint64_t{7} << 15);
-  auto first = Insert(nullptr, kFirstHash, 10);
+  const auto first = Insert(nullptr, kFirstHash, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, kSecondHash, 20);
+  const auto second = Insert(first.root, kSecondHash, 20);
   ASSERT_THAT(second.root, NotNull());
-  auto erased = Erase(second.root, kSecondHash, 20);
+  const auto erased = Erase(second.root, kSecondHash, 20);
   ASSERT_THAT(erased.erased, Eq(true));
 
   ASSERT_THAT(erased.root, NotNull());
@@ -101,11 +101,11 @@ TEST_F(HamtEraseTest, CollapsesDeepBranchesAfterErasingTheirLeaf) {
 }
 
 TEST_F(HamtEraseTest, CollapsesTwoEntryCollisionToARegularLeaf) {
-  auto first = Insert(nullptr, 7, 10);
+  const auto first = Insert(nullptr, 7, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto second = Insert(first.root, 7, 20);
+  const auto second = Insert(first.root, 7, 20);
   ASSERT_THAT(second.root, NotNull());
-  auto erased = Erase(second.root, 7, 10);
+  const auto erased = Erase(second.root, 7, 10);
   ASSERT_THAT(erased.erased, Eq(true));
 
   ASSERT_THAT(erased.root, NotNull());
@@ -119,9 +119,9 @@ TEST_F(HamtEraseTest, CollapsesTwoEntryCollisionToARegularLeaf) {
 }
 
 TEST_F(HamtEraseTest, MissingKeyReturnsAnotherReferenceToTheSameVersion) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto missing = Erase(first.root, 2, 20);
+  const auto missing = Erase(first.root, 2, 20);
   ASSERT_THAT(missing.root, NotNull());
 
   EXPECT_THAT(missing.erased, Eq(false));
@@ -132,9 +132,9 @@ TEST_F(HamtEraseTest, MissingKeyReturnsAnotherReferenceToTheSameVersion) {
 }
 
 TEST_F(HamtEraseTest, ErasesTheLastEntryToAnEmptyRoot) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
-  auto erased = Erase(first.root, 1, 10);
+  const auto erased = Erase(first.root, 1, 10);
   ASSERT_THAT(erased.erased, Eq(true));
 
   EXPECT_THAT(erased.erased, Eq(true));
@@ -240,8 +240,42 @@ TEST_F(HamtEraseTest, CompactReleasesEmptyBitmapNodesAndPreservesCollisionNodes)
   Node::Release(source, preserved_step->node);
 }
 
+TEST_F(HamtEraseTest, CompactionReturnsTheSingletonAndReleasesItsNodeStorage) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  mbo::memory::InlineBlockSource<1'024> storage;
+  Node::index_type index;
+  ASSERT_THAT(index.InsertData(1), Eq(true));
+  constexpr auto kEntries = std::to_array<Entry>({Entry{.hash = 1, .key = 10}});
+  auto* const root = Node::TryCreate(storage, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(root, NotNull());
+  const auto compacted = hamt_erase_internal::Compact<Node, Entry>(storage, root);
+  EXPECT_THAT(compacted, Optional(Field("node", &Step::node, IsNull())));
+  EXPECT_THAT(compacted, Optional(Field("singleton", &Step::singleton, Optional(Field("key", &Entry::key, Eq(10))))));
+  auto* const reused = Node::TryCreate(storage, index, kEntries, {}).value_or(nullptr);
+  ASSERT_THAT(reused, NotNull());
+  Node::Release(storage, reused);
+}
+
+TEST_F(HamtEraseTest, CompactionKeepsADataEntryAlongsideItsNonemptyChild) {
+  using Step = hamt_erase_internal::HamtEraseStep<Node, Entry>;
+  const auto first = Insert(nullptr, 1, 10);
+  ASSERT_THAT(first.root, NotNull());
+  const auto second = Insert(first.root, 2, 20);
+  ASSERT_THAT(second.root, NotNull());
+  const auto third = Insert(second.root, 34, 30);
+  ASSERT_THAT(third.root, NotNull());
+  Node::Release(source, first.root);
+  Node::Release(source, second.root);
+  const auto compacted = hamt_erase_internal::Compact<Node, Entry>(source, third.root);
+  ASSERT_THAT(compacted, Optional(Field("node", &Step::node, Eq(third.root))));
+  EXPECT_THAT(Find(third.root, 1, 10), NotNull());
+  EXPECT_THAT(Find(third.root, 2, 20), NotNull());
+  EXPECT_THAT(Find(third.root, 34, 30), NotNull());
+  Node::Release(source, third.root);
+}
+
 TEST_F(HamtEraseTest, ErasurePastTheCompleteHashPathPreservesTheOriginal) {
-  auto first = Insert(nullptr, 1, 10);
+  const auto first = Insert(nullptr, 1, 10);
   ASSERT_THAT(first.root, NotNull());
   constexpr std::size_t kPastHashPath = HamtHashPath<std::uint64_t, 5>::kLevels;
   const auto missing = hamt_erase_internal::TryEraseAt<std::uint64_t, 5>(

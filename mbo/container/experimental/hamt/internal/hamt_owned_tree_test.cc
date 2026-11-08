@@ -231,10 +231,10 @@ TEST_F(HamtOwnedTreeTest, ConsumingClonePreservesOriginalOnFailureAndEmptiesItOn
     return;
   }
   EXPECT_THAT(original->tree().try_insert(1).changed, Eq(true));
-  auto failed = std::move(*original).try_clone_to<mbo::memory::InlineBlockSource<1>>();
+  const auto failed = std::move(*original).try_clone_to<mbo::memory::InlineBlockSource<1>>();
   EXPECT_THAT(failed.has_value(), Eq(false));
   EXPECT_THAT(original->tree().contains(1), Eq(true));
-  auto cloned = std::move(*original).try_clone_to<Source>();
+  const auto cloned = std::move(*original).try_clone_to<Source>();
   EXPECT_THAT(cloned.has_value(), Eq(true));
   EXPECT_THAT(original->tree().empty(), Eq(true));
   EXPECT_THAT(original->tree().try_insert(3).changed, Eq(true));

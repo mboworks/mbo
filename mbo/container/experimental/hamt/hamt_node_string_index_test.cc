@@ -37,7 +37,10 @@ TEST_F(HamtNodeStringIndexTest, PayloadExhaustionDoesNotPublishAnEntry) {
   using Index =
       HamtNodeStringIndex<Id, std::hash<std::string_view>, std::equal_to<>, {}, mbo::memory::InlineBlockSource<1>>;
   auto created = Index::try_create(std::hash<std::string_view>{}, std::equal_to<>{});
-  ASSERT_THAT(created.has_value(), Eq(true));
+  if (!created) {
+    FAIL() << "source-domain creation failed";
+    return;
+  }
   const auto result = created->try_emplace("a", Id(0));
   ASSERT_THAT(result.has_value(), Eq(false));
   EXPECT_THAT(result.error(), Eq(HamtError::kAllocationExhausted));

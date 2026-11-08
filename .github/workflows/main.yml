@@ -447,7 +447,7 @@ jobs:
       continue-on-error: false
       os: ubuntu-24.04
       compiler: clang
-      llvm_version: 23.1.4
+      llvm_version: 23.1.5
       bazel_config: coverage
 
   test-bcr:
@@ -459,11 +459,11 @@ jobs:
         compiler: [gcc, native, clang]
         gcc_version: [15]
         # The pinned default toolchain (see bazelmod/llvm.MODULE.bazel).
-        llvm_version: [23.1.4]
+        llvm_version: [23.1.5]
         bazel_config: [opt]
         # Bazel-version compatibility rungs: the minimum supported release and
         # the latest stable release, crossed with the os/compiler combos below.
-        bazel_version: [8.0.0, 9.2.0]
+        bazel_version: [8.0.0, 9.3.2]
         exclude:
           - os: ubuntu-24.04
             compiler: native
@@ -473,10 +473,10 @@ jobs:
           # Keep only the Bazel 8 GCC cell here as a compatibility check.
           - os: ubuntu-24.04
             compiler: gcc
-            bazel_version: 9.2.0
+            bazel_version: 9.3.2
           # The 8.x rung is a build-system-compat check (MODULE.bazel
           # loading, rules resolution) - platform-agnostic, so run it on
-          # ubuntu only. macOS keeps 9.2.0 for platform coverage.
+          # ubuntu only. macOS keeps 9.3.2 for platform coverage.
           - os: macos-26
             bazel_version: 8.0.0
 
@@ -502,12 +502,12 @@ jobs:
         # Hermetic toolchains_llvm clang (independent of the runner's Apple clang).
         # Optimized LLVM 23 builds run in test-bcr with explicit Bazel versions;
         # this job owns the sanitizer coverage without duplicating them.
-        llvm_version: [23.1.4]
+        llvm_version: [23.1.5]
         bazel_config: [asan]
         include:
           - os: ubuntu-24.04
             compiler: clang
-            llvm_version: 23.1.4
+            llvm_version: 23.1.5
             bazel_config: msan
 
     uses: ./.github/workflows/test.yml

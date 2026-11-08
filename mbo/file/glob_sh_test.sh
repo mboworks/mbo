@@ -47,7 +47,7 @@ function setup() {
     if [[ ${#dir_file[@]} -ge 2 ]]; then
       touch "${FIXTURE_DIR}/${dir_file[0]}/${dir_file[1]}"
     fi
-    if [[ ${#dir_file[@]} == 1 ]] && [[ ${#dir_file[@]} == 2 ]]; then
+    if [[ ${#dir_file[@]} -ne 1 && ${#dir_file[@]} -ne 2 ]]; then
       die "Bad expected entry."
     fi
   done

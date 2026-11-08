@@ -140,8 +140,13 @@ const std::pair<std::string, std::string> parts = absl::StrSplit("archive.tar.gz
 
 ## String identifiers
 
-- `StringId<Representation = std::uint32_t>`: alias of `mbo::types::ConstStrongId` with a string ID tag.
-- Supported representations: exactly `std::uint8_t`, `std::uint16_t`, `std::uint32_t`, `std::uint64_t`.
+- `StringId<Representation = std::uint64_t>`: alias of `mbo::types::ConstStrongId` with a string ID tag.
+- Supported representations: signed and unsigned integral types other than `bool`.
+- `StringIdU32<Tag>` and `StringIdU64<Tag>`: explicitly sized unsigned aliases; `StringInternerSet<>`
+  defaults to `StringIdU32<>`, independently of the standalone `StringId<>` default.
+- `IsStringId<Type, Tag>`, `IsStringIdU32<Type, Tag>`, and `IsStringIdU64<Type, Tag>` inspect an
+  unqualified candidate ID type. The width-specific concepts require the matching unsigned
+  representation. Omit `Tag` for the default string tag, or use `void` to accept any tag.
 - Zero: valid; maximum representation value: `invalid_value`.
 - Default state: invalid.
 - Construction: explicit representation value or checked `try_from_ordinal(integer)`.
@@ -149,6 +154,44 @@ const std::pair<std::string, std::string> parts = absl::StrSplit("archive.tar.gz
 - Copy/move construction and move assignment: supported; copy assignment and arithmetic: disabled.
 - Identifier only: no string storage, lookup table, or association between an ID and text.
 - Underlying contract: [mbo/types](../types/README.md).
+
+## String interning
+
+`StringInternerSet<>` owns stable copies of strings and assigns zero-based dense
+`StringIdU32<>` identifiers. `StringInternerMap<Id, Value>` adds mapped values without changing
+the string-to-ID index. Both are append-only, non-copyable, and non-movable.
+
+```cpp
+#include "mbo/strings/string_interner.h"
+
+using Id = mbo::strings::StringIdU32<>;
+mbo::strings::StringInternerSet<> strings;
+const auto first = strings.insert("apple");  // expected<pair<Id, bool>, StringInternerError>
+const auto again = strings.insert("apple");  // same ID, inserted flag false
+const auto text = strings.get_string(Id{0}); // optional<string_view>, "apple"
+
+mbo::strings::StringInternerMap<Id, int> counts;
+const auto inserted = counts.try_emplace("apple", 42);
+counts.at(Id{0}) += 1;                // requires an existing ID; never inserts
+```
+
+Insertion reports exhaustion through the selected error policy. Default `get(id)` returns an
+`OptionalRef` to the key or complete key/value pair; `find` and `rfind` return an optional ID.
+Set keys and map keys are immutable. Mapped values remain mutable through non-const map access.
+
+A child accepts a const parent pointer and captures its current visible prefix. Later parent
+insertions are invisible to that child; existing mapped values are shared rather than copied.
+Every ancestor must outlive its descendants. No interner tracks children or provides reset/erase.
+
+Result, lookup, index, and exception behavior compose through `StringInternerPolicyHolder`.
+The default omits exception rollback even in an exception-enabled translation unit. Select
+`StringInternerExceptionSafePolicy` if mapped-value construction can throw. An options-supplied
+index must be empty, though it may already have reserved capacity and a stateful hasher.
+
+See the [API and ownership contract](STRING_INTERNING.md) for policies, custom containers,
+complexity, allocation limits, and parent semantics, and the
+[benchmark guide](STRING_INTERNER_BENCHMARKS.md) for measured configuration comparisons.
+The examples are exercised by `//mbo/strings:string_interner_readme_test`.
 
 ## Tests
 

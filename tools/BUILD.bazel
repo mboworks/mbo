@@ -20,6 +20,20 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:private"])
 
+cc_binary(
+    name = "release_consumer",
+    srcs = ["release_consumer.cc"],
+    deps = [
+        "//mbo/container:limited_map_cc",
+        "//mbo/container:segmented_deque_cc",
+        "//mbo/container:segmented_vector_cc",
+        "//mbo/container/experimental:frozen_map_cc",
+        "//mbo/container/experimental/hamt:hamt_flat_map_cc",
+        "//mbo/strings:string_interner_cc",
+        "//mbo/types:string_or_view_cc",
+    ],
+)
+
 _SYMBOLIZER = "@llvm_toolchain_llvm//:llvm-symbolizer"
 
 # Bake the hermetic llvm-symbolizer's RUNFILES path (an rlocation string) into the

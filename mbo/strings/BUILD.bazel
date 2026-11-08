@@ -107,6 +107,7 @@ cc_library(
         ":string_interner_policies_cc",
         ":string_interner_types_cc",
         "//mbo/config:config_cc",
+        "//mbo/config:require_cc",
         "//mbo/container:segmented_vector_cc",
         "//mbo/types:optional_ref_cc",
         "@abseil-cpp//absl/cleanup",
@@ -191,6 +192,22 @@ cc_test(
     copts = ["-fexceptions"],
     deps = [
         ":string_interner_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_interner_readme_test",
+    size = "small",
+    srcs = ["string_interner_readme_test.cc"],
+    deps = [
+        ":arena_string_storage_cc",
+        ":string_interner_cc",
+        ":string_interner_policies_cc",
+        "//mbo/container:segmented_vector_cc",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:hash_container_defaults",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

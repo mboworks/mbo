@@ -72,6 +72,7 @@ EXCLUDES=(
   ".pre-commit"
   ".pre-commit-config.yaml"
   ".trunk"
+  "bazelmod/BUILD.bazel"
   "mbo/hash/measurements"
   "tools"
 )
@@ -99,7 +100,8 @@ trap cleanup EXIT
 GIT_INDEX_FILE="${TMP_INDEX}" git read-tree HEAD
 GIT_INDEX_FILE="${TMP_INDEX}" git add --all
 ARCHIVE_TREE="$(GIT_INDEX_FILE="${TMP_INDEX}" git write-tree)"
-git archive --format=tar.gz --prefix="${PREFIX}/" -o "${ARCHIVE}" --add-virtual-file="${PREFIX}/VERSION:${TAG}" --worktree-attributes "${ARCHIVE_TREE}"
+# VERSION would shadow the standard <version> header on case-insensitive filesystems.
+git archive --format=tar.gz --prefix="${PREFIX}/" -o "${ARCHIVE}" --add-virtual-file="${PREFIX}/VERSION.txt:${TAG}" --worktree-attributes "${ARCHIVE_TREE}"
 
 # Print header
 echo "# Version ${TAG}"

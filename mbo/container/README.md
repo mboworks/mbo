@@ -82,6 +82,23 @@ allocate. `size()` counts live elements; `capacity()` and `max_size()` report th
 Zero capacity is supported. `reserve(n)` cannot increase the bound. Exceeding it is a requirement
 failure, not an automatic transition to heap storage.
 
+### Migration from 0.15.0
+
+The Limited-container lifetime repairs intentionally remove an invalid contiguous-storage API:
+
+- Replace `data()`, pointer arithmetic, and assumptions that iterators are `T*` with iterators
+  and ranges. The iterators are random-access, not contiguous, so they cannot construct a
+  `std::span<T>` over the container. Copy into a real contiguous container when an API needs one.
+- Set keys are immutable. Erase and reinsert to change a key; never cast away constness.
+  Map keys are likewise immutable; mapped values remain writable.
+- `noexcept` depends on element and comparator operations. Do not require all instantiations
+  to be nothrow when user operations can throw.
+- Rebuild dependent binaries: the lifetime repairs change implementation layouts, and these
+  template types do not promise binary-layout compatibility across releases.
+
+`SegmentedSequence` was an unreleased development name, not a 0.15.0 API. New code uses
+`SegmentedVector` and the shared `SegmentedOptions`.
+
 ```cpp
 #include <string>
 

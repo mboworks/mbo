@@ -33,11 +33,11 @@ template<typename Type, typename Tag = strings_internal::StringIdTag>
 concept IsStringId = mbo::types::IsConstStrongId<Type, Tag> && std::same_as<Type, std::remove_cv_t<Type>>
                      && std::same_as<Type, std::remove_reference_t<Type>>;
 
-template<typename Tag = strings_internal::StringIdTag>
-concept IsStringIdU32 = IsStringId<StringId<std::uint32_t, Tag>, Tag>;
+template<typename Type, typename Tag = strings_internal::StringIdTag>
+concept IsStringIdU32 = IsStringId<Type, Tag> && std::same_as<typename Type::value_type, std::uint32_t>;
 
-template<typename Tag = strings_internal::StringIdTag>
-concept IsStringIdU64 = IsStringId<StringId<std::uint64_t, Tag>, Tag>;
+template<typename Type, typename Tag = strings_internal::StringIdTag>
+concept IsStringIdU64 = IsStringId<Type, Tag> && std::same_as<typename Type::value_type, std::uint64_t>;
 
 }  // namespace mbo::strings
 

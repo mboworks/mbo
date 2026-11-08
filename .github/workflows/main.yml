@@ -52,6 +52,54 @@ jobs:
           python3 tools/release_site.py . "${RUNNER_TEMP}/release-site-check" \
             --repository "${GITHUB_REPOSITORY}" --tag 0.0.0-verification --latest ""
 
+  release-artifacts:
+    name: Release archive (${{ matrix.os }}, ${{ matrix.build_system }}, ${{ matrix.bazel }})
+    needs: [trunk, pre-commit]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            build_system: bazel
+            bazel: 9.2.0
+          - os: ubuntu-latest
+            build_system: bazel
+            bazel: 9.3.2
+          - os: macos-26
+            build_system: bazel
+            bazel: 9.3.2
+          - os: ubuntu-latest
+            build_system: cmake
+            bazel: 9.3.2
+          - os: macos-26
+            build_system: cmake
+            bazel: 9.3.2
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: bazel-contrib/setup-bazel@0.19.1
+        with:
+          bazelisk-version: 1.30.0
+          bazelisk-cache: false
+          repository-cache: false
+          disk-cache: false
+          external-cache: false
+      - name: Install Linux consumer compiler
+        if: runner.os == 'Linux'
+        run: |
+          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install --yes gcc-15 g++-15 cmake
+          echo 'CC=gcc-15' >>"${GITHUB_ENV}"
+          echo 'CXX=g++-15' >>"${GITHUB_ENV}"
+      - name: Build and run an independent packaged consumer
+        run: >-
+          python3 tools/release_artifact.py --build-system "${{ matrix.build_system }}"
+          --bazel-version "${{ matrix.bazel }}" --jobs 3
+
   trunk:
     runs-on: ubuntu-latest
     steps:
@@ -463,22 +511,22 @@ jobs:
         bazel_config: [opt]
         # Bazel-version compatibility rungs: the minimum supported release and
         # the latest stable release, crossed with the os/compiler combos below.
-        bazel_version: [8.0.0, 9.3.2]
+        bazel_version: [9.2.0, 9.3.2]
         exclude:
           - os: ubuntu-24.04
             compiler: native
           - os: macos-26
             compiler: gcc
-          # test-gcc already covers GCC 15, opt, and the default Bazel 9.2.
-          # Keep only the Bazel 8 GCC cell here as a compatibility check.
+          # test-gcc already covers GCC 15, opt, and the default Bazel 9.3.2.
+          # Keep only the minimum-version GCC cell here as a compatibility check.
           - os: ubuntu-24.04
             compiler: gcc
             bazel_version: 9.3.2
-          # The 8.x rung is a build-system-compat check (MODULE.bazel
+          # The minimum-version rung is a build-system-compat check (MODULE.bazel
           # loading, rules resolution) - platform-agnostic, so run it on
           # ubuntu only. macOS keeps 9.3.2 for platform coverage.
           - os: macos-26
-            bazel_version: 8.0.0
+            bazel_version: 9.2.0
 
     uses: ./.github/workflows/test.yml
     with:
@@ -489,6 +537,36 @@ jobs:
       llvm_version: ${{ matrix.llvm_version }}
       bazel_config: ${{ matrix.bazel_config }}
       bazel_version: ${{ matrix.bazel_version }}
+
+  thread-sanitizer:
+    name: HAMT ownership ThreadSanitizer
+    needs: [trunk, pre-commit]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/prepare-llvm
+      - uses: bazel-contrib/setup-bazel@0.19.1
+        with:
+          bazelisk-cache: false
+          disk-cache: false
+          external-cache: false
+          repository-cache: false
+      - name: Route Bazel to a bounded compiled-output cache
+        run: echo "common --disk_cache=$HOME/.cache/bazel_disk-cache" >.bazelrc.user
+      - uses: ./.github/actions/bazel-cache-restore
+        id: cache_restore
+        with:
+          namespace: tsan-llvm23
+      - name: Test threaded ownership and reference counts
+        run: |
+          bazel test --config=tsan --jobs=2 \
+            //mbo/container/experimental/hamt:hamt_shared_node_test \
+            //mbo/container/experimental/hamt:hamt_node_value_test \
+            //mbo/container/experimental/hamt:hamt_source_domain_test
+      - uses: ./.github/actions/bazel-cache-save
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        with:
+          key: ${{ steps.cache_restore.outputs.key }}
 
   test-clang:
     # The Clang sanitizer cells and the BCR compatibility matrix are independent.
@@ -542,6 +620,7 @@ jobs:
     needs:
       [
         release-site-tests,
+        release-artifacts,
         trunk,
         pre-commit,
         clang-tidy,
@@ -549,6 +628,7 @@ jobs:
         cmake-gcc,
         test-gcc,
         test-clang,
+        thread-sanitizer,
         test-bcr,
         test-ubuntu,
       ]

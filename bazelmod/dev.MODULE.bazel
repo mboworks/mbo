@@ -24,15 +24,6 @@ git_override(
 
 bazel_dep(name = "depend_on_what_you_use", version = "1.2.0", dev_dependency = True)
 
-# dwyu 1.1.2 pulls boost@1.83.0.bcr.4, whose BCR MODULE.bazel explicitly
-# passes repo_name = None. Bazel 8 rejects None for that string parameter.
-single_version_override(
-    module_name = "boost",
-    patch_strip = 1,
-    patches = ["//bazelmod:boost-1.83.0-bazel8.patch"],
-    version = "1.83.0.bcr.4",
-)
-
 # Reference xxHash for //mbo/hash:hash_differential_test (dev/test only). Used
 # directly via http_archive because the BCR module's BUILD file predates
 # Bazel 9's rule autoload removal; header-only via XXH_INLINE_ALL. The BUILD

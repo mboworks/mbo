@@ -96,6 +96,10 @@ struct MarkerOnlyStringMap final : std::map<std::string, StringIdU32<>, std::les
   static constexpr bool kStringInternerStableKeyAddresses = true;
 };
 
+struct IndexWithoutEmpty final : std::map<std::string_view, std::uint32_t, std::less<>> {
+  bool empty() const = delete;
+};
+
 }  // namespace
 
 template<typename Key, typename Id, std::size_t Capacity, bool FailFirst>
@@ -883,7 +887,21 @@ TEST_F(StringInternerTest, SetWrapperForwardsStatefulHashAndResolvesCollisions) 
 }
 
 TEST_F(StringInternerTest, MapWrapperForwardsStatefulHashAndResolvesCollisions) {
-  ExpectStatefulHashAndCollisions<StringInternerSet<StringIdU32<>, CollidingHash>>();
+  using Map = StringInternerMap<std::uint32_t, int, CollidingHash>;
+  using Inserted = std::pair<std::uint32_t, bool>;
+  std::size_t calls = 0;
+  Map::options_type options{.container = Map::container_type(0, CollidingHash{.calls = &calls, .value = 7})};
+  options.container.reserve(64);
+  Map values(std::move(options));
+  EXPECT_THAT(calls, Eq(0));
+  EXPECT_THAT(values.try_emplace("first", 10), Eq(Inserted{0, true}));
+  EXPECT_THAT(values.try_emplace("second", 20), Eq(Inserted{1, true}));
+  EXPECT_THAT(values.try_emplace("first", 99), Eq(Inserted{0, false}));
+  EXPECT_THAT(values.find("second"), Optional(Eq(1)));
+  EXPECT_THAT(values.rfind("missing"), Eq(std::nullopt));
+  EXPECT_THAT(values.at(0), Eq(10));
+  EXPECT_THAT(values.at(1), Eq(20));
+  EXPECT_THAT(calls, Gt(0));
 }
 
 TEST_F(StringInternerTest, ChangingOnlyTheFirstTemplateArgumentSelectsTheIdType) {
@@ -1217,6 +1235,58 @@ TEST_F(StringInternerTest, OptionsCaptureTheParentPrefixAndNullParentConstructsA
   EXPECT_THAT(child.find("late-root"), Eq(std::nullopt));
   EXPECT_THAT(child.insert("child"), Eq(Inserted{1, true}));
   EXPECT_THAT(child, ElementsAre("root", "child"));
+}
+
+TEST_F(StringInternerTest, OptionsAcceptAnEmptyPrereservedStatefulIndex) {
+  using Interner = StringInternerSet<std::uint32_t, CollidingHash>;
+  std::size_t calls = 0;
+  Interner::options_type options{.container = Interner::container_type(0, CollidingHash{.calls = &calls, .value = 7})};
+  options.container.reserve(64);
+  Interner strings(std::move(options));
+  EXPECT_THAT(strings, IsEmpty());
+  EXPECT_THAT(calls, Eq(0));
+  EXPECT_THAT(strings.insert("first"), Eq(std::pair<std::uint32_t, bool>(0, true)));
+  EXPECT_THAT(strings.find("first"), Optional(Eq(0)));
+  EXPECT_THAT(calls, Gt(0));
+}
+
+TEST_F(StringInternerTest, IndexConceptRequiresObservableEmptinessForOptionsValidation) {
+  static_assert(!StringInternerStringContainer<IndexWithoutEmpty>);
+  static_assert(!StringInternerIdIndex<IndexWithoutEmpty, std::uint32_t>);
+}
+
+TEST_F(StringInternerTest, OptionsRejectAPopulatedMapIndexForSets) {
+  using Interner = StringInternerSet<std::uint32_t>;
+  EXPECT_DEATH(
+      {
+        Interner::options_type options;
+        options.container.emplace("existing", 0);
+        static_cast<void>(Interner(std::move(options)));
+      },
+      "String interner index must be empty");
+}
+
+TEST_F(StringInternerTest, OptionsRejectAPopulatedMapIndexForMappedValues) {
+  using Interner = StringInternerMap<std::uint32_t, int>;
+  EXPECT_DEATH(
+      {
+        Interner::options_type options;
+        options.container.emplace("existing", 0);
+        static_cast<void>(Interner(std::move(options)));
+      },
+      "String interner index must be empty");
+}
+
+TEST_F(StringInternerTest, OptionsRejectAPopulatedKeyOnlyIndex) {
+  using Interner = StringInternerSet<
+      std::uint32_t, absl::DefaultHashContainerHash<std::string_view>, absl::flat_hash_set<std::string_view>>;
+  EXPECT_DEATH(
+      {
+        Interner::options_type options;
+        options.container.emplace("existing");
+        static_cast<void>(Interner(std::move(options)));
+      },
+      "String interner index must be empty");
 }
 
 TEST_F(StringInternerTest, EmptyDeclaredParentRetainsIdentityWithoutExposingLaterValues) {

@@ -17,6 +17,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/hash_container_defaults.h"
 #include "mbo/config/config.h"
+#include "mbo/config/require.h"
 #include "mbo/strings/arena_string_storage.h"
 #include "mbo/strings/internal/string_interner_traits.h"
 #include "mbo/strings/string_id.h"
@@ -185,7 +186,9 @@ class StringInternerBase {
   explicit StringInternerBase(options_type options)
       : parent_(options.parent),
         first_local_id_(options.parent == nullptr ? 0 : options.parent->size()),
-        strings_(std::move(options.container)) {}
+        strings_(std::move(options.container)) {
+    MBO_CONFIG_REQUIRE(strings_.empty(), "String interner index must be empty");
+  }
 
   StringInternerBase(const StringInternerBase&) = delete;
   StringInternerBase& operator=(const StringInternerBase&) = delete;

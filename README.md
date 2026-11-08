@@ -46,6 +46,7 @@ The C++ library is organized in functional groups each residing in their own dir
   - [Experimental HAMT containers](mbo/container/experimental/hamt/README.md) in `mbo::container::experimental::hamt`: persistent flat/node maps and sets, transient editing, bounded block sources, and string-index adapters.
   - mbo/container/experimental:circular_buffer_cc, mbo/container/experimental/circular_buffer.h
     - class [`experimental::CircularBuffer`](mbo/container/experimental/CIRCULAR_BUFFER.md): A public experimental growable ring with allocator support, random-access iterators, and insertion/removal at both ends. Its API may change between releases.
+  - [Experimental FrozenMap and FrozenSet](mbo/container/experimental/FROZEN.md): immutable perfect-hash containers with constexpr/runtime construction, fixed inline storage, and explicit construction limits.
   - Eligible sequences provide [value-returning endpoint pops](mbo/container/README.md#value-returning-pops), including move-only and potentially throwing element moves.
 - [Diff](mbo/diff/README.md)
   - `namespace mbo::diff`
@@ -153,6 +154,8 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/memory:arena_cc, mbo/memory/arena.h
     - class `Arena<Source, Options>`: Raw byte allocation with explicit growth policy, alignment, reset/reuse, release, and allocation accounting. It does not manage typed object destruction.
     - `ArenaOptions` and `ValidArenaOptions`: Compile-time initial/maximum block sizes and growth ratio validation.
+  - mbo/memory:arena_block_source_cc, mbo/memory/arena_block_source.h
+    - `ArenaBlockSource`: A move-only recyclable-block adapter whose caller-owned arena must outlive its clients.
 - [Mope](mbo/mope/README.md)
   - `namespace mbo::mope`
   - The `MOPE` templating engine. Run `bazel run //mbo/mope -- --help` for detailed documentation.
@@ -192,8 +195,9 @@ The C++ library is organized in functional groups each residing in their own dir
   - mbo/strings:split_cc, mbo/strings/split.h
     - struct `AtLast`: Allows `absl::StrSplit' to split on the last occurrence of a separator.
   - mbo/strings:string_id_cc, mbo/strings/string_id.h
-    - alias template `StringId`: A compact dense string identifier with selectable 8-, 16-, 32-,
-      or 64-bit unsigned representation, an invalid default state, and no arithmetic operations.
+    - alias template `StringId`: A compact string identifier with signed or unsigned integral representation, an invalid default state, and no arithmetic operations. The standalone alias defaults to 64 bits.
+  - mbo/strings:string_interner_cc, mbo/strings/string_interner.h
+    - [`StringInternerSet` and `StringInternerMap`](mbo/strings/STRING_INTERNING.md): append-only owning string interning with dense IDs, captured parent prefixes, and composable policies. The default set uses 32-bit IDs and an Abseil flat index; HAMT is optional.
   - mbo/strings:strip_cc, mbo/strings/strip.h
     - function `ConsumePrefix`: Removes a prefix from a `std::string` (like `absl::ConsumePrefix`).
     - function `ConsumeSuffix`: Removes a suffix from a `std::string` (like `absl::ConsumeSuffix`).
@@ -358,7 +362,9 @@ The C++ library is organized in functional groups each residing in their own dir
 MBO supports builds with Bazel, its primary build system, and provides additional
 [CMake support](cmake/README.md). Both builds require C++23 with GCC 15 and matching libstdc++ 15,
 Clang/LLVM 22 and matching libc++ 22, or Xcode 16.3 and its matching Apple Clang/libc++.
-Bazel 8 and newer remain supported.
+Bazel 9.2 or newer is required; the default is 9.3.2. Bazel 8 is no longer supported.
+On macOS, consumers should select a deployment target of macOS 11 or newer, for example
+`--macos_minimum_os=11.0 --host_macos_minimum_os=11.0`; a dependency's `.bazelrc` is not inherited.
 
 The project can be added to other Bazel projects through `MODULE.bazel`.
 

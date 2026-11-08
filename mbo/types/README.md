@@ -153,7 +153,7 @@ std::string Describe(const Value& value) {
 | [ref_wrap.h](ref_wrap.h)                         | `RefWrap`                                     | Required non-owning reference with explicit pointer-style access.                    |
 | [required.h](required.h)                         | `Required`                                    | Always-engaged storage that can reconstruct non-assignable values.                   |
 | [string_or_view.h](string_or_view.h)             | `mbo::StringOrView`                           | Read-only text with owning and borrowed alternatives.                                |
-| [strong_id.h](strong_id.h)                       | `ConstStrongId`                               | Nominal unsigned identifiers with an invalid sentinel.                               |
+| [strong_id.h](strong_id.h)                       | `ConstStrongId`                               | Nominal signed or unsigned identifiers with an invalid sentinel.                     |
 | [strong_ordinal.h](strong_ordinal.h)             | `ConstStrongOrdinal`, `StrongOrdinal`         | Nominal integral ordinals with checked arithmetic.                                   |
 | [tstring.h](tstring.h)                           | `operator""_ts`, `tstring`                    | String contents encoded in the type; one-byte objects with static character storage. |
 | [typed_view.h](typed_view.h)                     | `TypedView`                                   | Range-view adapter with container-style element aliases.                             |
@@ -547,11 +547,11 @@ A tag separates application domains that share an integer representation. Constr
 `value()` retrieves the representation. The wrappers provide same-domain comparison, `std::hash`,
 and Abseil hashing.
 
-| Type                                                     | Default and mutation policy                                                                                                |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `ConstStrongId<Tag, Rep = std::uint32_t, Invalid = max>` | Invalid default; unsigned non-boolean representation; no arithmetic or copy assignment; move assignment remains available. |
-| `ConstStrongOrdinal<Tag, Rep>`                           | Zero default; all representation values are valid. No setters or copy assignment; move assignment remains available.       |
-| `StrongOrdinal<Tag, Rep>`                                | Mutable ordinal with setters, assignment, compound arithmetic, and increment/decrement.                                    |
+| Type                                                     | Default and mutation policy                                                                                                                   |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConstStrongId<Tag, Rep = std::uint32_t, Invalid = max>` | Invalid default; signed or unsigned non-boolean integral representation; no arithmetic or copy assignment; move assignment remains available. |
+| `ConstStrongOrdinal<Tag, Rep>`                           | Zero default; all representation values are valid. No setters or copy assignment; move assignment remains available.                          |
+| `StrongOrdinal<Tag, Rep>`                                | Mutable ordinal with setters, assignment, compound arithmetic, and increment/decrement.                                                       |
 
 - Ordinal representations: integral types other than `bool`; specify `Rep` explicitly.
 - `try_from_ordinal(value)`: `std::optional` result; reject values outside the representation range.

@@ -29,7 +29,7 @@ class UbuntuClangTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / ".bazelversion").write_text("9.2.0\n")
+        (self.root / ".bazelversion").write_text("9.3.2\n")
         self.environment_file = self.root / "environment"
         self.arguments = self.root / "arguments.json"
         executable = self.root / "bazel"
@@ -37,7 +37,7 @@ class UbuntuClangTest(unittest.TestCase):
             f"#!{sys.executable}\n"
             "import json, os, pathlib, sys\n"
             "if sys.argv[1:] == ['--version']:\n"
-            "    print('bazel 9.2.0')\n"
+            "    print('bazel 9.3.2')\n"
             "else:\n"
             "    pathlib.Path(os.environ['ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
             "    print(os.environ['COMPILER_REPORT'])\n"
@@ -167,9 +167,9 @@ class UbuntuClangTest(unittest.TestCase):
                 Path(__file__).resolve().parents[1] / "bazelmod/llvm.MODULE.bazel"
             ).read_text()
         )
-        result = self.run_step("Setup", compiler="clang", version="23.1.4")
+        result = self.run_step("Setup", compiler="clang", version="23.1.5")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('llvm_version = "23.1.4"', module.read_text())
+        self.assertIn('llvm_version = "23.1.5"', module.read_text())
         self.assertIn('LLVM_VERSION_MSAN = "22.1.8"', module.read_text())
         self.assertIn("llvm_version = LLVM_VERSION_MSAN", module.read_text())
 
@@ -190,12 +190,12 @@ class UbuntuClangTest(unittest.TestCase):
             key, value = line.split("=", 1)
             self.environment[key] = value
         self.assertIn("--config=msan", self.environment["BAZEL_ARGS"])
-        for version, succeeds in (("22.1.8", True), ("23.1.4", False)):
+        for version, succeeds in (("22.1.8", True), ("23.1.5", False)):
             with self.subTest(version=version):
                 result = self.run_step(
                     "Show compiler",
                     compiler="clang",
-                    version="23.1.4",
+                    version="23.1.5",
                     bazel_config="msan",
                     COMPILER_REPORT=f"Compiler: Clang\nCompiler version: {version}\n",
                 )

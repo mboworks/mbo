@@ -39,7 +39,7 @@ the toolchain's bundled LLD default. Both target and host configurations use Baz
 `--macos_minimum_os=11.0` settings so Apple platform metadata and compile/link actions
 agree on the deployment target.
 
-The default compiler and formatter are LLVM 23.1.4 from the `toolchains_llvm` 1.12.0 release
+The default compiler and formatter are LLVM 23.1.5 from the `toolchains_llvm` 1.13.0 release
 catalogue. No supplemental LLVM distribution catalogue or Git override is required. Normal
 builds fetch only that LLVM distribution; GCC and distribution Clang share its formatter.
 The pre-commit formatter invokes `tools/clang_format.sh`, which builds and resolves the public
@@ -49,7 +49,7 @@ Bazel formatter target without compiling mbo or downloading a separate formatter
 selects LLVM 22.1.8 and its matching instrumented libc++ archive, following
 [xff's LLVM module](https://github.com/mboworks/xff/blob/main/bazelmod/llvm.MODULE.bazel).
 The instrumented libc++ comes from the same checksum-pinned third-party archive as
-[toolchains_llvm's MSan test](https://github.com/bazel-contrib/toolchains_llvm/blob/v1.12.0/tests/MODULE.bazel).
+[toolchains_llvm's MSan test](https://github.com/bazel-contrib/toolchains_llvm/blob/v1.13.0/tests/MODULE.bazel).
 The toolchain replaces standard-library headers, libraries, and sanitizer flags together.
 Bazel's execution configuration keeps build tools uninstrumented on LLVM 23; formatting and
 symbolization use that same LLVM 23 distribution. Only MSan builds additionally fetch LLVM 22
@@ -86,6 +86,12 @@ Cache only compiled outputs: Bazel disk caches and the CMake job's ccache direct
 version, build configuration, dependency hash, run, and attempt. Only main saves generations;
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.
 Do not upload extracted LLVM distributions or downloaded module repositories.
+
+The default Bazel version is 9.3.2; the compatibility matrix also tests Bazel 8.0.0.
+`--norewind_lost_inputs` keeps cached-action output checks enabled when CI cache
+trimming evicts individual CAS blobs, so missing outputs cause a rebuild. Repository
+downloads use 20 connector attempts and 20 downloader retries, with connector retry
+backoff capped at five seconds.
 
 Before upload, stop the correct Bazel server and synchronously trim largest files first,
 oldest first at equal size. The starting limit is 600,000,000 uncompressed bytes and a compressed

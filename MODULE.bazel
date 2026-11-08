@@ -29,7 +29,7 @@ include("//bazelmod:llvm.MODULE.bazel")
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "mboworks_bzl", version = "0.8.0")
 bazel_dep(name = "platforms", version = "1.1.0")
-bazel_dep(name = "rules_cc", version = "0.2.27")
+bazel_dep(name = "rules_cc", version = "0.2.28")
 bazel_dep(name = "rules_fuzzing", version = "0.8.0")
 bazel_dep(name = "rules_shell", version = "0.8.0")
 
@@ -56,15 +56,15 @@ archive_override(
 single_version_override(
     module_name = "protobuf",
     patch_strip = 1,
-    patches = ["//bazelmod:protobuf-36.0-abseil.patch"],
-    version = "36.0.bcr.1",
+    patches = ["//bazelmod:protobuf-36.2-abseil.patch"],
+    version = "36.2",
 )
 
 single_version_override(
     module_name = "rules_java",
     patch_strip = 1,
-    patches = ["//bazelmod:rules_java-8.16.1-abseil.patch"],
-    version = "8.16.1",
+    patches = ["//bazelmod:rules_java-9.9.0-abseil.patch"],
+    version = "9.9.0",
 )
 
 # Abseil 20260817.0 still selects gloop 20260708.rc1, whose dependency on

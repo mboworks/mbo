@@ -18,7 +18,7 @@
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
-    commit = "85d83bc1ee3ab8034d9c40f6900a0753688068b6",
+    commit = "394f677d00a99ef31e7a3f7a831087edc6a58e73",
     remote = "https://github.com/helly25/bazel-compile-commands-extractor.git",
 )
 
@@ -43,7 +43,7 @@ http_archive(
     name = "xxhash_reference",
     build_file = "//third_party/xxhash:xxhash.BUILD.bazel",
     dev_dependency = True,
-    integrity = "sha256-quYI3+ghPf0F2QmldxjvgvMHIsOSNEWD0/OQUMfymoA=",
-    strip_prefix = "xxHash-0.8.3",
-    urls = ["https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.3.tar.gz"],
+    integrity = "sha256-VzgnCTXnw9OKebOt98lpJWbOeJWiX2feQ61Sq1BKzTI=",
+    strip_prefix = "xxHash-0.8.4",
+    urls = ["https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.4.tar.gz"],
 )

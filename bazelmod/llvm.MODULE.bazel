@@ -15,7 +15,7 @@
 
 """LLVM 23 by default; LLVM 22 with instrumented libc++ for MemorySanitizer."""
 
-bazel_dep(name = "toolchains_llvm", version = "1.12.0")
+bazel_dep(name = "toolchains_llvm", version = "1.13.0")
 
 LLVM_VERSION_MSAN = "22.1.8"
 
@@ -31,7 +31,7 @@ llvm.toolchain(
         "darwin-aarch64": "auto",
         "darwin-x86_64": "auto",
     },
-    llvm_version = "23.1.4",
+    llvm_version = "23.1.5",
 )
 
 # MSan requires a matching compiler and instrumented C++ standard library.

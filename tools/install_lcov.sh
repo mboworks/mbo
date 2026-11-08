@@ -13,7 +13,7 @@ trap 'rm -rf "${work}"' EXIT
 archive="${work}/lcov.tar.gz"
 checksum="${work}/lcov.sha256"
 
-curl --fail --location --retry 3 \
+curl --fail --location --retry 20 --retry-delay 5 \
   "https://github.com/linux-test-project/lcov/releases/download/v${version}/lcov-${version}.tar.gz" \
   --output "${archive}"
 printf '%s  %s\n' "${sha256}" "${archive}" >"${checksum}"

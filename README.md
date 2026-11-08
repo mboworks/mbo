@@ -361,7 +361,7 @@ Bazel 8 and newer remain supported.
 
 The project can be added to other Bazel projects through `MODULE.bazel`.
 
-The project is formatted with clang-format 23.1.4. Development builds fetch the matching hermetic
+The project is formatted with clang-format 23.1.5. Development builds fetch the matching hermetic
 tool through [`tools/clang_format.sh`](tools/clang_format.sh), also used by pre-commit.
 The wrapper builds only the formatter target when needed and uses no system or Python-package formatter.
 
@@ -372,10 +372,10 @@ and compilation database with `bazel build --config=clang-tidy //...` and
 `./compile_commands-update.sh`. See [STYLE_CPP.md](STYLE_CPP.md) and the
 [infrastructure guide](docs/infrastructure.md) for scope and concurrency requirements.
 
-Bazel development builds use LLVM 23.1.4 from the `toolchains_llvm` 1.12.0 release
+Bazel development builds use LLVM 23.1.5 from the `toolchains_llvm` 1.13.0 release
 catalogue with `--config=clang`. On Linux x86_64, `bazel test --config=msan //...`
 selects LLVM 22.1.8 and its matching MemorySanitizer-instrumented libc++; build tools
-and formatting continue to use LLVM 23.1.4. See the
+and formatting continue to use LLVM 23.1.5. See the
 [infrastructure guide](docs/infrastructure.md) for toolchain and sanitizer details.
 
 ### Build configuration

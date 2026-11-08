@@ -135,6 +135,11 @@ excluded from uploads.
 
 ## Preparation profiles
 
+Experimental HAMT production headers are included in the `container` coverage category through
+its recursive glob. HAMT integration tests use the generic StringInterner from `mbo/strings`.
+Manual HAMT benchmarks are listed explicitly for clang-tidy; benchmark translation units remain
+excluded from coverage reporting by `coverage_policy.json`.
+
 The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy
 targets include the experimental frozen containers' construction and lookup failures,
 the experimental circular buffer's checked operations and its deque integration,

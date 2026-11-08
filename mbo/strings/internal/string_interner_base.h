@@ -77,6 +77,10 @@ class StringInternerBase {
   using index_policy = Policy::index_policy;
 
  private:
+  static constexpr bool kUseIndexTransaction =
+      mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException
+      && requires(StringContainer& container) { index_policy::BeginInsertion(container); };
+
   template<bool IsConst>
   class Iterator final {
     using Owner = std::conditional_t<IsConst, const StringInternerBase, StringInternerBase>;
@@ -290,7 +294,8 @@ class StringInternerBase {
       const auto publish = [&] {
         ElementTraits::Publish(entries_.back(), ContainerTraits::GetKey(*position), std::forward<Args>(args)...);
       };
-      if constexpr (mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException) {
+      if constexpr (
+          mbo::config::kExceptionsEnabled && Policy::exception_policy::kRollbackOnException && !kUseIndexTransaction) {
         // If a caller's value constructor throws, discard only the unpublished index entry.
         // Character storage and the reserved dense slot remain append-only.
         absl::Cleanup erase_unpublished = [&] { strings_.erase(position); };
@@ -302,16 +307,28 @@ class StringInternerBase {
       ++local_size_;
       return Policy::Success(*identifier, true);
     };
-    auto index_result = index_policy::Insert(strings_, prepared, *identifier);
-    if constexpr (requires { index_result.error(); }) {
-      if (!index_result) {
-        return Policy::template Failure<id_type>(index_result.error());
+    const auto insert_and_publish = [&] -> insertion_result {
+      auto index_result = index_policy::Insert(strings_, prepared, *identifier);
+      if constexpr (requires { index_result.error(); }) {
+        if (!index_result) {
+          return Policy::template Failure<id_type>(index_result.error());
+        }
+        auto [position, inserted] = *std::move(index_result);
+        return finish_insert(position, inserted);
+      } else {
+        auto [position, inserted] = index_result;
+        return finish_insert(position, inserted);
       }
-      auto [position, inserted] = *std::move(index_result);
-      return finish_insert(position, inserted);
+    };
+    if constexpr (kUseIndexTransaction) {
+      // Some persistent indexes can restore a retained root without allocation,
+      // whereas erasing the unpublished entry could itself exhaust storage.
+      auto transaction = index_policy::BeginInsertion(strings_);
+      auto result = insert_and_publish();
+      transaction.Commit();
+      return result;
     } else {
-      auto [position, inserted] = index_result;
-      return finish_insert(position, inserted);
+      return insert_and_publish();
     }
   }
 

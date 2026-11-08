@@ -23,6 +23,9 @@ namespace mbo::strings {
 // normally returns the container's iterator/bool pair directly. A fallible policy may instead
 // return std::expected<std::pair<iterator, bool>, StringInternerError> to report an index-specific
 // failure without throwing.
+// Exception-safe publication optionally calls BeginInsertion(container) before Insert. Its
+// guard must restore the index without throwing or allocating on destruction unless Commit()
+// was called; Commit() must be noexcept. Policies without this hook use erase(iterator).
 struct StringInternerIndexStlPolicy {
   template<typename Container>
   using prepared_type = std::string_view;

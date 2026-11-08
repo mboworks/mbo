@@ -95,9 +95,11 @@ python3 tools/benchmark_artifact.py run \
   -- bazel run //mbo/memory:arena_benchmark --config=clang --config=opt_zen5 -c opt --
 ```
 
-Use the default nine repetitions, random interleaving, one-second warmup, and one-second minimum
-time. A smoke run may shorten time controls only when marked `suspect` with a reason; it is never
-merge evidence.
+Use nine repetitions, random interleaving, a nonzero warmup, and a sufficient minimum sample time.
+Record the exact controls in the artifact. The initial report uses a 0.01-second warmup and
+0.005-second minimum, matching the other initial-host component reports; every raw sample and its
+observed range remain available for noise review. A one-repetition smoke run is never measurement
+evidence.
 
 Validate every artifact:
 
@@ -123,7 +125,9 @@ python3 tools/benchmark_artifact.py validate mbo/memory/measurements/data/*.json
 
 Compare matched benchmark names from one randomly interleaved run. Retain all repetitions. Headline
 summaries use the mean of the fastest three of nine samples, matching the hash methodology, while
-also reporting the full minimum, median, mean, standard deviation, and coefficient of variation.
+also reporting the full minimum, median, and maximum. The immutable raw repetitions remain
+available for computing the mean, standard deviation, coefficient of variation, or another
+documented statistic without rerunning or silently changing the measurement.
 
 A candidate is selected only after inspecting latency distributions and memory cost together.
 Faster allocation does not excuse materially worse fragmentation or an incomplete failure/lifetime
@@ -244,3 +248,27 @@ full chain while retaining only 10.2% as many bytes. This supports reusable bloc
 intelligently bounded source rather than unconditional Arena retention. The exact 2 MiB/256 KiB
 limits are not selected defaults: this workload naturally retained only 652,926 bytes, and Zen 5
 plus additional burst shapes must establish useful thresholds.
+
+## Historical Apple Clang 21 report
+
+An earlier Apple M5 Pro run is retained in the original JSON and charts below. Its `Arena/Allocate`
+benchmark names refer to the explicit configuration in that historical executable;
+`ArenaOptions{}` is invalid in the current API. This single-machine run is diagnostic evidence,
+not a selected default or a cross-architecture recommendation.
+
+| Machine      | Compiler       | Implementation SHA | Artifact                                       | Status                   |
+| ------------ | -------------- | ------------------ | ---------------------------------------------- | ------------------------ |
+| Apple M5 Pro | Apple Clang 21 | `704c3bcb1`        | `macos-arm64-apple-m5-pro_clang-21_arena.json` | validated historical run |
+
+The charts normalize a 1,024-allocation batch to CPU nanoseconds per allocation. Bars show the
+median of nine randomly interleaved observations; whiskers show the observed minimum and maximum.
+
+![Historical retained 64-byte allocation](arena-allocate-64-align16.svg)
+
+![Historical retained 64-byte allocation with 256-byte alignment](arena-allocate-64-align256.svg)
+
+![Historical fresh 64-byte allocation lifecycle](arena-fresh-lifecycle-64-align16.svg)
+
+In that workload, region allocation and lifecycle were faster than the measured PMR monotonic and
+direct new/delete baselines. The raw artifact carries padding and reserved-byte counters. Later
+Clang 22 reports above provide the current Apple-host evidence; AMD Zen 5 remains pending.

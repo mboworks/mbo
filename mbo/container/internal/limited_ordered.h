@@ -113,6 +113,12 @@ class [[nodiscard]] LimitedOrdered {
     None none;
   };
 
+  static_assert(sizeof(Data) == sizeof(RawValue), "LimitedOrdered data() requires packed element slots");
+  static_assert(alignof(Data) == alignof(RawValue), "LimitedOrdered data() requires matching element alignment");
+
+  // TODO(https://wg21.link/p3726): Replace union slots with a real T[] once the compiler/library
+  // baseline implements the C++26 constexpr array-lifetime rules. See the container guide's migration plan.
+
   // A throwing constructor never runs `LimitedOrdered`'s destructor. Track the
   // partially constructed container so its already-live elements are destroyed
   // unless the constructor completes and releases the guard.
@@ -1191,6 +1197,12 @@ class [[nodiscard]] LimitedOrdered {
   constexpr std::size_t capacity() const noexcept { return Capacity; }
 
   constexpr bool empty() const noexcept { return size_ == 0; }
+
+  // Runtime span access relies on the documented packed-slot assumption. Returning the first
+  // element pointer is constexpr, but traversing multiple elements through it is not.
+  constexpr pointer data() noexcept { return empty() ? nullptr : std::addressof(values_[0].data); }
+
+  constexpr const_pointer data() const noexcept { return empty() ? nullptr : std::addressof(values_[0].data); }
 
   // NOLINTBEGIN(readability-container-data-pointer)
 

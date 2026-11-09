@@ -56,9 +56,9 @@ namespace mbo::container {
 // The resulting `LimitedSet` has a capacity of 4 and the elements {1, 2, 3, 4}.
 //
 // Internally slot storage is used and elements are moved as needed. That means
-// that element addresses are not stable. Iterators are random access but not
-// contiguous, there is no `data()` member, and every iterator exposes keys as
-// const so callers cannot invalidate the ordering.
+// that element addresses are not stable across insertion/erasure. Iterators are random access,
+// not contiguous. data() supports runtime pointer/count spans under the non-portable packed-slot
+// assumption in mbo/container/README.md. Both interfaces expose keys as const.
 //
 // Insertions and erasures provide the basic exception guarantee. If relocating
 // an existing element throws, the container remains valid and destructible but

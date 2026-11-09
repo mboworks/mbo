@@ -21,6 +21,7 @@
 #include <functional>
 #include <iterator>
 #include <ranges>  // IWYU pragma: keep
+#include <span>
 #include <sstream>
 #include <stdexcept>  // IWYU pragma: keep
 #include <string>
@@ -78,7 +79,15 @@ static_assert(std::is_const_v<std::remove_reference_t<std::iter_reference_t<Limi
 template<typename T>
 concept HasData = requires(T& value) { value.data(); };
 
-static_assert(!HasData<LimitedSet<int, 2>>);
+static_assert(HasData<LimitedSet<int, 2>>);
+static_assert(std::is_same_v<decltype(std::declval<LimitedSet<int, 3>&>().data()), const int*>);
+static_assert(std::is_same_v<decltype(std::declval<const LimitedSet<int, 3>&>().data()), const int*>);
+static_assert(noexcept(std::declval<LimitedSet<int, 3>&>().data()));
+static_assert(noexcept(std::declval<const LimitedSet<int, 3>&>().data()));
+static_assert([] {
+  const LimitedSet<int, 3> values{2, 1};
+  return *values.data() == 1;
+}());
 
 struct PotentiallyThrowingValue final {
   PotentiallyThrowingValue() = default;
@@ -164,6 +173,25 @@ struct Tracked final {
 struct LimitedSetTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+TEST_F(LimitedSetTest, DataSpansExposeOnlyImmutableSortedKeys) {
+  LimitedSet<int, 3> values{3, 1, 2};
+  const std::span<const int> view(values.data(), values.size());
+  EXPECT_THAT(view, ElementsAre(1, 2, 3));
+  const auto& read = values;
+  EXPECT_THAT(std::span<const int>(read.data(), read.size()), ElementsAre(1, 2, 3));
+}
+
+TEST_F(LimitedSetTest, EmptyAndZeroCapacityDataSpansAreEmpty) {
+  LimitedSet<int, 0> zero;
+  LimitedSet<int, 3> values;
+  EXPECT_THAT(zero.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const int>(zero.data(), zero.size()), IsEmpty());
+  EXPECT_THAT(values.data(), Eq(nullptr));
+  values.emplace(1);
+  values.clear();
+  EXPECT_THAT(std::span<const int>(values.data(), values.size()), IsEmpty());
+}
 
 TEST_F(LimitedSetTest, ManagesNonTrivialKeyLifetimes) {
   EXPECT_THAT(Tracked::live, Eq(0));

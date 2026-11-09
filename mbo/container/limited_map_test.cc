@@ -19,8 +19,9 @@
 #include <compare>
 #include <cstdint>
 #include <functional>
-#include <iterator>   // IWYU pragma: keep
-#include <ranges>     // IWYU pragma: keep
+#include <iterator>  // IWYU pragma: keep
+#include <ranges>    // IWYU pragma: keep
+#include <span>
 #include <stdexcept>  // IWYU pragma: keep
 #include <string>
 #include <string_view>
@@ -77,7 +78,18 @@ static_assert(
 template<typename T>
 concept HasData = requires(T& value) { value.data(); };
 
-static_assert(!HasData<LimitedMap<int, int, 3>>);
+static_assert(HasData<LimitedMap<int, int, 3>>);
+static_assert(std::is_same_v<decltype(std::declval<LimitedMap<int, int, 3>&>().data()), std::pair<const int, int>*>);
+static_assert(
+    std::is_same_v<decltype(std::declval<const LimitedMap<int, int, 3>&>().data()), const std::pair<const int, int>*>);
+static_assert(noexcept(std::declval<LimitedMap<int, int, 3>&>().data()));
+static_assert(noexcept(std::declval<const LimitedMap<int, int, 3>&>().data()));
+static_assert([] {
+  LimitedMap<int, int, 3> values{{2, 20}, {1, 10}};
+  values.data()->second = 11;
+  const auto& read = values;
+  return read.data()->first == 1 && read.data()->second == 11;
+}());
 
 struct PotentiallyThrowingValue final {
   PotentiallyThrowingValue() = default;
@@ -163,6 +175,32 @@ struct Tracked final {
 struct LimitedMapTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+TEST_F(LimitedMapTest, DataSpansRetainImmutableKeysAndWritableMappedValues) {
+  LimitedMap<int, std::string, 3> values;
+  values.try_emplace(3, "three");
+  values.try_emplace(1, "one");
+  values.try_emplace(2, "two");
+  const std::span<std::pair<const int, std::string>> view(values.data(), values.size());
+  EXPECT_THAT(view, ElementsAre(Pair(1, "one"), Pair(2, "two"), Pair(3, "three")));
+  view.subspan<1>().front().second.append(" more");
+  EXPECT_THAT(values.at(2), Eq("two more"));
+  const auto& read = values;
+  const std::span<const std::pair<const int, std::string>> read_view(read.data(), read.size());
+  EXPECT_THAT(read_view, ElementsAre(Pair(1, "one"), Pair(2, "two more"), Pair(3, "three")));
+}
+
+TEST_F(LimitedMapTest, EmptyAndZeroCapacityDataSpansAreEmpty) {
+  using Entry = std::pair<const int, int>;
+  LimitedMap<int, int, 0> zero;
+  LimitedMap<int, int, 3> values;
+  EXPECT_THAT(zero.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<Entry>(zero.data(), zero.size()), IsEmpty());
+  EXPECT_THAT(values.data(), Eq(nullptr));
+  values.try_emplace(1, 10);
+  values.clear();
+  EXPECT_THAT(std::span<Entry>(values.data(), values.size()), IsEmpty());
+}
 
 template<typename T>
 void MoveAssign(T& lhs, T& rhs) {

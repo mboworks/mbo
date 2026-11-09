@@ -23,11 +23,11 @@ GCC 15/libstdc++ 15, Clang 22/libc++ 22, or Xcode 16.3 with its matching Apple C
 | `AnyScan<T>`, `ConstScan<T>`, `ConvertingScan<T>`         | Type-erased input iteration over another container              | Access through references or converted values             |
 | `ConvertContainer(source[, conversion])`                  | An adapter used to construct a destination container            | Converts and inserts each source element                  |
 
-The owning containers provide random-access iterators, **not contiguous iterators**. None exposes
-the complete sequence as a `T*`, `data()`, or `std::span<T>`. Inline storage does not establish a
-single array of live `T` objects: the Limited containers manage individual union-slot lifetimes.
-Segment views also make no contiguity promise. Use `std::vector` or another contiguous container
-when that is a requirement.
+The Limited and segmented containers provide random-access iterators, **not contiguous iterators**.
+Limited containers additionally provide runtime pointer/count span access through `data()` under
+the [packed-slot portability assumption](#limited-dataspan-portability) below. This does not make
+them standard contiguous ranges. Segmented containers and segment views make no whole-sequence
+contiguity promise.
 
 ## Headers and Bazel dependencies
 
@@ -82,13 +82,61 @@ allocate. `size()` counts live elements; `capacity()` and `max_size()` report th
 Zero capacity is supported. `reserve(n)` cannot increase the bound. Exceeding it is a requirement
 failure, not an automatic transition to heap storage.
 
+### Limited data/span portability
+
+`LimitedVector`, `LimitedSet`, and `LimitedMap` retain `data()` for runtime pointer/count views:
+
+```cpp
+#include <span>
+#include <string>
+
+#include "mbo/container/limited_vector.h"
+
+mbo::container::LimitedVector<std::string, 4> tasks{"compile", "test"};
+const std::span<std::string> view(tasks.data(), tasks.size());
+view.subspan<1>().front().append(" all");  // Updates tasks[1] to "test all".
+```
+
+This is an intentional, temporary **non-portable layout assumption** for the supported compiler
+baseline. Elements are active `T` members of adjacent union slots; the implementation statically
+checks that slot size and alignment match `T`. The live prefix is physically packed, but those
+checks do not establish a single `T[]` object in the C++23 object model. Under ISO C++23, pointer
+arithmetic across those separate members has undefined behavior. Runtime pointer/span traversal
+intentionally relies on observed compiler behavior, and optimizations can expose this discrepancy.
+Runtime regression tests and sanitizer checks are evidence of observed behavior, not proof of
+standard conformance. See the [C++23 pointer-arithmetic rules](https://timsong-cpp.github.io/cppwp/n4950/expr.add).
+
+`data()` is `noexcept` and returns null when empty. Set data pointers expose const keys; map data
+pointers expose `std::pair<const Key, Value>` so only mapped values are writable. Views follow
+the same element-lifetime and invalidation rules as references. No hidden allocation or copy is
+performed. The iterators remain random access rather than claiming standard contiguous-iterator
+semantics, so construct spans from `data()` and `size()`, not from the container range.
+
+Existing constexpr container operations and iteration remain supported, including persistent
+`static constexpr` objects. Returning `data()` and accessing the first live element can be
+constant-evaluated, but cross-element pointer/span traversal is not supported in constant evaluation.
+Use container iterators or indexed access for constexpr traversal. C++23's [`std::start_lifetime_as_array`](https://timsong-cpp.github.io/cppwp/n4950/obj.lifetime) does not solve this because it is not constexpr.
+
+**Planned migration:** replace the union-slot representation with genuine inline typed-array
+storage once the supported compiler and standard-library baseline implements the required C++26
+array-lifetime and constant-expression rules, including partially initialized constexpr objects.
+The relevant work is [P3074](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3074r7.html)
+and [P3726](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3726r2.html).
+Merely selecting a C++26 language flag is not sufficient. The migration must preserve inline
+storage, supported element types, live-element-only construction/destruction, destructor-suppression
+options, and all existing constexpr operations. Add constexpr span-traversal regression tests;
+restore contiguous iterators only if those guarantees are retained. Until that migration, do not
+advertise this runtime compatibility API as portable or promise constexpr multi-element spans.
+
 ### Migration from 0.15.0
 
-The Limited-container lifetime repairs intentionally remove an invalid contiguous-storage API:
+The Limited-container lifetime repairs preserve runtime pointer/count span access while tightening
+iterator, lifetime, and const-correctness guarantees:
 
-- Replace `data()`, pointer arithmetic, and assumptions that iterators are `T*` with iterators
-  and ranges. The iterators are random-access, not contiguous, so they cannot construct a
-  `std::span<T>` over the container. Copy into a real contiguous container when an API needs one.
+- `data()` is retained under the [portability assumption](#limited-dataspan-portability) above.
+  Runtime pointer/count spans remain available. Iterators are random-access, not raw `T*` or
+  contiguous iterators, so construct spans from `data()` and `size()`, not from the range.
+  Use iterators or indexed access for constexpr traversal across elements.
 - Set keys are immutable. Erase and reinsert to change a key; never cast away constness.
   Map keys are likewise immutable; mapped values remain writable.
 - `noexcept` depends on element and comparator operations. Do not require all instantiations

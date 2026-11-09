@@ -54,12 +54,12 @@ concept LimitedVectorValid = std::is_object_v<T> && !std::is_array_v<T> && !std:
 //
 // Unlike `std::array` this type can vary in size.
 //
-// Iterators are random-access but not contiguous: elements are active
-// subobjects of separate union slots, not elements of a `T[]` array.
-// Consequently, pointer arithmetic from the first element is not valid, so
-// `LimitedVector` does not expose `data()`.
+// Iterators are constexpr-friendly random-access iterators, not contiguous iterators.
+// data() supports runtime pointer/count spans under the packed union-slot layout assumption
+// documented in mbo/container/README.md. This is not a portable C++23 T[] array guarantee;
+// use the container's iterators for constexpr traversal across elements.
 //
-// The type is fully `constexpr` compliant and can be used as a `static constexpr`.
+// The container supports constant evaluation and can be used as a `static constexpr` object.
 //
 // Can be constructed with helpers `MakeLimitedVector` or `ToLimitedVector`.
 //
@@ -116,6 +116,12 @@ class LimitedVector final {
     // accessors via `reference`/`const_reference`/`pointer`/`const_pointer`.
     RawValue data;
   };
+
+  static_assert(sizeof(Data) == sizeof(RawValue), "LimitedVector data() requires packed element slots");
+  static_assert(alignof(Data) == alignof(RawValue), "LimitedVector data() requires matching element alignment");
+
+  // TODO(https://wg21.link/p3726): Replace union slots with a real T[] once the compiler/library
+  // baseline implements the C++26 constexpr array-lifetime rules. See the container guide's migration plan.
 
   // A throwing constructor never runs `LimitedVector`'s destructor. Track the
   // partially constructed container so its already-live elements are destroyed
@@ -648,6 +654,12 @@ class LimitedVector final {
   constexpr std::size_t capacity() const noexcept { return Capacity; }
 
   constexpr bool empty() const noexcept { return size_ == 0; }
+
+  // Runtime span access relies on the documented packed-slot assumption. Returning the first
+  // element pointer is constexpr, but traversing multiple elements through it is not.
+  constexpr pointer data() noexcept { return empty() ? nullptr : std::addressof(values_[0].data); }
+
+  constexpr const_pointer data() const noexcept { return empty() ? nullptr : std::addressof(values_[0].data); }
 
   constexpr reference front() noexcept { return values_[0].data; }
 

@@ -344,6 +344,7 @@ cc_test(
     deps = [
         ":limited_vector_cc",
         "//mbo/testing:matchers_cc",
+        "//mbo/types:no_destruct_cc",
         "@abseil-cpp//absl/log:initialize",
         "@googletest//:gtest",
         "@googletest//:gtest_main",

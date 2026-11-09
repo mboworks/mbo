@@ -22,6 +22,7 @@
 #include <iterator>
 #include <memory>
 #include <ranges>  // IWYU pragma: keep
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -33,6 +34,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mbo/testing/matchers.h"
+#include "mbo/types/no_destruct.h"
 
 namespace mbo::container {
 namespace {
@@ -42,6 +44,7 @@ namespace {
 using ::mbo::testing::CapacityIs;
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Field;
 using ::testing::Ge;
 using ::testing::Gt;
 using ::testing::IsEmpty;
@@ -63,10 +66,77 @@ constexpr LimitedVector<std::string, 2> kConstexprStrings{"one", "two"};
 static_assert(kConstexprStrings.size() == 2);
 static_assert(kConstexprStrings.at(0) == "one");
 static_assert(kConstexprStrings.at(1) == "two");
+static_assert(kConstexprStrings.data() == std::addressof(kConstexprStrings.at(0)));
+static_assert(kConstexprStrings.data()->size() == 3);
 
 struct LimitedVectorTest : ::testing::Test {
   static void SetUpTestSuite() { absl::InitializeLog(); }
 };
+
+static_assert(std::is_same_v<decltype(std::declval<LimitedVector<int, 3>&>().data()), int*>);
+static_assert(std::is_same_v<decltype(std::declval<const LimitedVector<int, 3>&>().data()), const int*>);
+static_assert(std::is_same_v<decltype(std::declval<LimitedVector<const int, 3>&>().data()), const int*>);
+static_assert(noexcept(std::declval<LimitedVector<int, 3>&>().data()));
+static_assert(noexcept(std::declval<const LimitedVector<int, 3>&>().data()));
+
+TEST_F(LimitedVectorTest, DataSupportsMutableAndConstPointerCountSpans) {
+  LimitedVector<int, 3> values{1, 2, 3};
+  const std::span<int> view(values.data(), values.size());
+  EXPECT_THAT(view, ElementsAre(1, 2, 3));
+  view.subspan<1>().front() = 20;
+  EXPECT_THAT(values, ElementsAre(1, 20, 3));
+  EXPECT_THAT(view.subspan<2>().data(), Eq(std::addressof(values.at(2))));
+  const auto& read = values;
+  EXPECT_THAT(std::span<const int>(read.data(), read.size()), ElementsAre(1, 20, 3));
+}
+
+TEST_F(LimitedVectorTest, EmptyAndZeroCapacityDataSpansAreEmpty) {
+  LimitedVector<int, 0> zero;
+  LimitedVector<int, 3> values;
+  EXPECT_THAT(zero.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<int>(zero.data(), zero.size()), IsEmpty());
+  EXPECT_THAT(values.data(), Eq(nullptr));
+  const auto& zero_read = zero;
+  const auto& read = values;
+  EXPECT_THAT(zero_read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const int>(zero_read.data(), zero_read.size()), IsEmpty());
+  EXPECT_THAT(read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const int>(read.data(), read.size()), IsEmpty());
+  values.emplace_back(1);
+  EXPECT_THAT(std::span<const int>(read.data(), read.size()), ElementsAre(1));
+  values.clear();
+  EXPECT_THAT(std::span<int>(values.data(), values.size()), IsEmpty());
+  EXPECT_THAT(read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const int>(read.data(), read.size()), IsEmpty());
+}
+
+TEST_F(LimitedVectorTest, DataSpansPreserveNonTrivialElementLifetimes) {
+  LimitedVector<std::string, 3> values{"one", "two", "three"};
+  const std::span<std::string> view(values.data(), values.size());
+  EXPECT_THAT(view, ElementsAre("one", "two", "three"));
+  view.subspan<1>().front().append(" more");
+  EXPECT_THAT(values, ElementsAre("one", "two more", "three"));
+}
+
+TEST_F(LimitedVectorTest, RuntimeDataSpansReadPersistentConstexprElements) {
+  static constexpr LimitedVector<std::string, 3> kValues{"one", "two"};
+  EXPECT_THAT(std::span<const std::string>(kValues.data(), kValues.size()), ElementsAre("one", "two"));
+}
+
+TEST_F(LimitedVectorTest, DataSpansPreserveOverAlignedElementStride) {
+  struct alignas(64) Value {
+    int value;
+  };
+
+  LimitedVector<Value, 3> values;
+  values.emplace_back(Value{1});
+  values.emplace_back(Value{2});
+  values.emplace_back(Value{3});
+  EXPECT_THAT(
+      std::span<Value>(values.data(), values.size()),
+      ElementsAre(
+          Field("value", &Value::value, 1), Field("value", &Value::value, 2), Field("value", &Value::value, 3)));
+}
 
 struct TrackedValue {
   constexpr TrackedValue(int new_value, int& live_count) noexcept : value(new_value), live_count(&live_count) {
@@ -833,6 +903,7 @@ TEST_F(LimitedVectorTest, DtorCheck) {
     const LimitedVector<IncOnDtor, LimitedOptions<2, LimitedOptionsFlag::kEmptyDestructor>{}> data{
         IncOnDtor(&var3), IncOnDtor(&var5)};
     EXPECT_THAT(data, ElementsAre(3, 5));
+    EXPECT_THAT(std::span<const IncOnDtor>(data.data(), data.size()), ElementsAre(3, 5));
   }
   EXPECT_THAT(var3, 3) << "If this is 4, then LimitedVector called the destructors for its values.";
   EXPECT_THAT(var5, 5) << "If this is 6, then LimitedVector called the destructors for its values.";
@@ -842,6 +913,21 @@ TEST_F(LimitedVectorTest, DtorCheck) {
   }
   EXPECT_THAT(var3, 4) << "Destructor should have been called.";
   EXPECT_THAT(var5, 6) << "Destructor should have been called.";
+}
+
+TEST_F(LimitedVectorTest, RuntimeDataSpansPreserveNoDestructSuppression) {
+  int dtor_called = 0;
+  {
+    using HeldValue = types::NoDestruct<IncOnDtor>;
+    LimitedVector<HeldValue, 2> values;
+    values.emplace_back(&dtor_called);
+    values.emplace_back(&dtor_called);
+    const std::span<HeldValue> view(values.data(), values.size());
+    EXPECT_THAT(view.front().Get(), Field("dtor_called", &IncOnDtor::dtor_called, &dtor_called));
+    EXPECT_THAT(view.subspan<1>().front().Get(), Field("dtor_called", &IncOnDtor::dtor_called, &dtor_called));
+    EXPECT_THAT(dtor_called, Eq(0));
+  }
+  EXPECT_THAT(dtor_called, Eq(0));
 }
 
 struct BadDtor {

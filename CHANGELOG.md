@@ -17,8 +17,9 @@
   construction and constexpr/runtime support. Experimental APIs may change between releases.
 - Add CMake support alongside Bazel, with component/aggregate targets, existing C++ tests,
   configurable exceptions, dependency reuse, and an independently verified consumer build.
-- Migration: Limited containers no longer provide `data()` or contiguous iterators; keys are
-  immutable and exception specifications are conditional. Rebuild dependents and follow the
+- Migration: Limited containers retain runtime `data()`/pointer-count spans under a documented
+  non-portable packed-slot assumption; iterators remain non-contiguous and constexpr-friendly.
+  Keys are immutable and exception specifications are conditional. Rebuild dependents and follow the
   [container migration guide](mbo/container/README.md#migration-from-0150). Replace the removed
   `MBO_CONFIG_CONSTEXPR_23` compatibility macro with ordinary C++23 `constexpr` where needed.
 
@@ -78,13 +79,15 @@
   preserving embedded NUL characters without compiler-specific literal-operator extensions.
 
 - Repaired `LimitedVector` element lifetimes across copy, move, swap, insertion, erasure, and
-  destruction. Its iterators now correctly model random access rather than contiguous storage, and
-  the invalid `data()` API has been removed.
+  destruction. Its iterators model random access rather than contiguous storage; `data()` retains
+  runtime pointer/count span access under the documented packed-slot assumption. Plan a genuine
+  typed-array migration when the supported compiler/library baseline implements the required
+  C++26 constexpr lifetime rules, preserving existing constexpr functionality.
 - Repaired `LimitedMap` and `LimitedSet` element lifetimes during insertion, erasure, copying,
   moving, and swapping. Their iterators are now correctly random access rather than contiguous,
-  `data()` is removed, set keys are immutable, and map keys are never modified through a
-  `const_cast`. Operations remain conditionally `noexcept` when their element and comparator
-  operations cannot throw.
+  runtime `data()`/spans retain the same documented portability assumption, set keys are immutable,
+  and map keys are never modified through a `const_cast`. Operations remain conditionally `noexcept`
+  when their element and comparator operations cannot throw.
 
 - Updated clang-format to the hermetic LLVM 23.1.5 distribution, and kept opening braces with own-line
   trailing `requires` clauses.

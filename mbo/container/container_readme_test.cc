@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -44,6 +45,13 @@ TEST_F(ContainerReadmeTest, LimitedContainers) {
   names.at(2) = "second";
   EXPECT_THAT(names.at(1), Eq("one"));
   EXPECT_THAT(names.at(2), Eq("second"));
+}
+
+TEST_F(ContainerReadmeTest, LimitedRuntimeSpan) {
+  LimitedVector<std::string, 4> tasks{"compile", "test"};
+  const std::span<std::string> view(tasks.data(), tasks.size());
+  view.subspan<1>().front().append(" all");
+  EXPECT_THAT(tasks, ElementsAre("compile", "test all"));
 }
 
 TEST_F(ContainerReadmeTest, SegmentedVectorPreservesIteratorAcrossGrowth) {

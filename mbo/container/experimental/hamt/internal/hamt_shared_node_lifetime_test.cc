@@ -31,14 +31,20 @@ struct LifetimeCounts final {
 
 struct TrackedEntry final {
   TrackedEntry(LifetimeCounts& counts, int value) noexcept : counts(counts), value(value) {
-    ++counts.live[value];
+    ++counts.live.at(value);
     ++counts.constructed;
   }
 
   TrackedEntry(const TrackedEntry& other) noexcept : TrackedEntry(other.counts, other.value) {}
 
+  TrackedEntry& operator=(const TrackedEntry&) = delete;
+
+  TrackedEntry(TrackedEntry&& other) noexcept : TrackedEntry(other.counts, other.value) {}
+
+  TrackedEntry& operator=(TrackedEntry&&) = delete;
+
   ~TrackedEntry() {
-    --counts.live[value];
+    --counts.live.at(value);
     ++counts.destroyed;
   }
 
@@ -71,6 +77,7 @@ struct CountingSource final {
 struct HamtSharedNodeLifetimeTest : ::testing::Test {
   using Node = HamtSharedNode<5, TrackedEntry>;
 
+ protected:
   void TearDown() override {
     for (Node* owner : owners) {
       Node::Release(source, owner);
@@ -80,6 +87,7 @@ struct HamtSharedNodeLifetimeTest : ::testing::Test {
     EXPECT_THAT(source.acquired, Eq(source.released));
   }
 
+ public:
   Node* Own(std::optional<Node*> node) {
     if (node) {
       owners.push_back(*node);

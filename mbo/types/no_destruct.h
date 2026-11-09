@@ -17,7 +17,6 @@
 #define MBO_TYPES_NO_DESTRUCT_H_
 
 #include <initializer_list>
-#include <memory>  // IWYU pragma: keep
 #include <type_traits>
 #include <utility>
 
@@ -30,19 +29,21 @@ namespace mbo::types {
 // NoDestruct holds its value in a union precisely so the destructor is never
 // run; accessing the member is the point of the type.
 
-// NOLINTBEGIN(*-pro-type-member-init)
-
 // `NoDestruct` supports static const and, when T can be constant-evaluated, static constexpr
-// values. It uses constexpr `std::construct_at` because placement new is not permitted in constant
-// evaluation. The C++23 compiler baseline provides that operation; whether a particular
-// `NoDestruct<T>` is constexpr still depends on T and all of its fields.
+// values. Direct initialization of the union member supports const-qualified T and bounded arrays
+// without placement new or a later lifetime transition. Whether a particular `NoDestruct<T>` is
+// constexpr still depends on T and all of its fields. The union's empty destructor suppresses
+// destruction of T without changing the cv-qualification of the stored value or its accessors.
 template<typename T>
 class NoDestruct final {
  private:
   struct None final {};
 
   union Data {
-    constexpr Data() noexcept : none{} {}
+    template<typename... Args>
+    constexpr explicit Data(std::in_place_t /*tag*/, Args&&... args) noexcept(
+        std::is_nothrow_constructible_v<T, Args...>)
+        : value(std::forward<Args>(args)...) {}
 
     constexpr ~Data() noexcept {}
 
@@ -51,29 +52,27 @@ class NoDestruct final {
     Data(Data&&) = delete;
     Data& operator=(Data&&) = delete;
 
+    // Keep a literal variant so Data can be literal even when T's destructor is not constexpr.
+    // Construction always initializes value, not none.
     None none;
     T value;
   };
 
  public:
-  constexpr NoDestruct() noexcept(std::is_nothrow_default_constructible_v<T>) {
-    std::construct_at(std::addressof(data_.value));
-  }
+  constexpr NoDestruct() noexcept(std::is_nothrow_default_constructible_v<T>) : data_(std::in_place) {}
 
-  constexpr explicit NoDestruct(T arg) noexcept(std::is_nothrow_move_constructible_v<T>) {
-    std::construct_at(std::addressof(data_.value), std::move(arg));
-  }
+  constexpr explicit NoDestruct(std::remove_cv_t<T> arg) noexcept(
+      std::is_nothrow_constructible_v<T, std::remove_cv_t<T>&&>)
+      : data_(std::in_place, std::move(arg)) {}
 
   template<typename... Args>
-  constexpr explicit NoDestruct(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>) {
-    std::construct_at(std::addressof(data_.value), std::forward<Args>(args)...);
-  }
+  constexpr explicit NoDestruct(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
+      : data_(std::in_place, std::forward<Args>(args)...) {}
 
   template<typename U>
   constexpr NoDestruct(const std::initializer_list<U>& args) noexcept(
-      std::is_nothrow_constructible_v<T, const std::initializer_list<U>&>) {
-    std::construct_at(std::addressof(data_.value), args);
-  }
+      std::is_nothrow_constructible_v<T, const std::initializer_list<U>&>)
+      : data_(std::in_place, args) {}
 
   constexpr ~NoDestruct() noexcept = default;
 
@@ -105,10 +104,8 @@ class NoDestruct final {
   }
 
  private:
-  Data data_ = {};
+  Data data_;
 };
-
-// NOLINTEND(*-pro-type-member-init)
 
 // NOLINTEND(*-pro-type-union-access)
 

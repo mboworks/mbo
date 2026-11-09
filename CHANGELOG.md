@@ -1,5 +1,7 @@
 # 0.16.0
 
+- Fix `NoDestruct<const T>` and bounded-array construction by directly initializing its union
+  member, preserving constexpr support, const-correct access, and destructor suppression.
 - Require Bazel 9.2 or newer, retaining the 9.3.2 default. Remove Bazel 8-only dependency
   compatibility patches and root overrides; downstream builds use the published dependency graph.
 - Store release version metadata in `VERSION.txt`, avoiding a collision with C++ `<version>`

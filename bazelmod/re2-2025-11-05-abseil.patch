@@ -1,7 +1,0 @@
-diff --git a/MODULE.bazel b/MODULE.bazel
-index 224167e..c72d566 100644
---- a/MODULE.bazel
-+++ b/MODULE.bazel
-@@ -16 +16 @@
--bazel_dep(name = "abseil-cpp", version = "20250512.1")
-+bazel_dep(name = "abseil-cpp", version = "20260526.0")

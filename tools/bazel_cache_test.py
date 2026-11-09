@@ -89,7 +89,7 @@ class BazelCacheTest(unittest.TestCase):
 
     def test_workflows_refresh_only_main_and_release_only_restores(self):
         root = Path(__file__).resolve().parent.parent
-        for name, count in (("main", 1), ("test", 1)):
+        for name, count in (("main", 2), ("test", 1)):
             workflow = (root / f".github/workflows/{name}.yml").read_text()
             self.assertEqual(workflow.count("uses: ./.github/actions/bazel-cache-restore"), count)
             self.assertEqual(workflow.count("uses: ./.github/actions/bazel-cache-save"), count)

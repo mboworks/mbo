@@ -1,11 +1,11 @@
-# String interning design
+# String interning API and design
 
 The checked-in [benchmark harness and measurement instructions](STRING_INTERNER_BENCHMARKS.md)
 cover the current implementation and its supported configuration choices.
 
-This document records the design of an owning string interner for `mbo::strings`. It is a design
-document, not yet an API contract. Settled decisions are separated from questions so experiments
-can change the implementation without obscuring the required semantics.
+This document describes the public `mbo::strings` interner API and its ownership, failure, and
+parent-lifetime contracts. The allocation experiments, diagnostics proposals, and measurement
+sections identify future work; they do not promise additional implemented operations.
 
 ## Goals
 
@@ -23,7 +23,7 @@ and assigns compact dense identifiers. It supports fast lookup in both direction
 
 The design should make the efficient configuration easy while allowing users to choose different
 container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided
-index should be usable when they satisfy the eventual concepts.
+index can be used when they satisfy the public container concepts.
 
 `SegmentedVector` and `Arena` are independent production components and prerequisites for the
 interner's default composition. Their public contracts remain separate from this design, as do
@@ -34,11 +34,20 @@ concrete character-storage and string-container adapters.
 [`strings_internal::StringInternerBase`](internal/string_interner_base.h) implements shared
 insertion, lookup, parent snapshots, and iteration for both key-only and key/value indexes.
 [`StringInternerSet` and `StringInternerMap`](string_interner.h) are thin public wrappers that
-provide string-set and string-to-value semantics. Shared public error types, conversions, and
-container concepts live in [`string_interner_types.h`](string_interner_types.h). The base has a
+provide string-set and string-to-value semantics. Public headers are focused by responsibility:
+
+- [`string_interner.h`](string_interner.h): wrappers and their public operations;
+- [`string_interner_types.h`](string_interner_types.h): ID, index, storage, and entry concepts;
+- [`string_interner_traits.h`](string_interner_traits.h): key extraction and address-stability traits;
+- [`string_interner_policies.h`](string_interner_policies.h): result, lookup, index, and exception policies;
+- [`string_interner_error.h`](string_interner_error.h): exhaustion enum and status conversions;
+- [`string_id.h`](string_id.h): dense strong-ID aliases and concepts;
+- [`arena_string_storage.h`](arena_string_storage.h): append-only byte ownership.
+
+The base has a
 private Bazel target, following the `LimitedOrdered` layout. The ID type comes first. The map
 requires its mapped value type second; the remaining parameters are hash, string container,
-character storage, and dense entry sequence:
+character storage, dense entry sequence, and policy holder:
 
 ```cpp
 StringInternerSet<> strings;  // StringIdU32, flat string-to-ID index, arena bytes
@@ -87,7 +96,7 @@ the supplied value or construct a replacement, including for inherited entries.
 Public callers choose `StringInternerSet` or `StringInternerMap` directly; there is no
 `StringInterner` alias.
 
-Custom indexes use ordinary associative-container operations: `find`, `end`, and `emplace`.
+Custom indexes use ordinary associative-container operations: `find`, `end`, `empty`, and `emplace`.
 They also support iterator-based `erase` to discard an unpublished index entry if a mapped-value
 constructor throws; successful entries are never erased. Standard `std::map`,
 `std::unordered_map`, `std::set`, `std::unordered_set`, and Abseil maps or sets can serve as either
@@ -120,7 +129,7 @@ owning keys because growth may move their keys. Flat containers with `std::strin
 supported because separate storage owns the characters. Standard node containers and Abseil
 `node_hash_map` / `node_hash_set` are explicitly recognized as stable. Other custom indexes must specialize
 `mbo::strings::kHasStableKeyAddresses<CustomIndex>` to `true` before interner use, and only when
-they provide the same lifetime guarantee. The trait is declared in `string_interner_types.h` and
+they provide the same lifetime guarantee. The trait is declared in `string_interner_traits.h` and
 defaults to `false`; no member marker is required or inspected on the container.
 `LimitedMap` and `LimitedSet` currently relocate elements during insertion and therefore do not meet
 this requirement for owning keys, even when their capacity is fixed.
@@ -132,23 +141,28 @@ bidirectional iteration, `size()`, default `emplace_back()`, and mutable `back()
 `try_emplace_back()` is used when available.
 
 The interner constructor accepts only a parent pointer, or an `options_type` containing a parent
-and a fully constructed empty index. This avoids forwarding arbitrary arguments to the selected
+and a fully constructed empty index. A populated index is a configured requirement failure at
+construction: its entries have no corresponding dense IDs. Empty indexes may already have reserved
+capacity or stateful hash/comparison objects. This avoids forwarding arbitrary arguments to the selected
 container. For example, a stateful default-index hasher can be supplied as
 `StringInternerSet<Id, MyHash> strings({.container = {0, MyHash{seed}}})`. Both wrappers inherit
 these constructors and the base's parent-prefix behavior. Hashing and allocating operations retain
 the selected container's exception behavior; string lookup is not forced through a `noexcept`
 adapter.
-ID lookup is `noexcept`. If a mapped-value constructor throws, only the new index entry is erased;
-character bytes and the reserved dense slot are retained for the next attempt.
+ID lookup is `noexcept`. The default `StringInternerExceptionFreePolicy` omits mapped-publication
+rollback even when the translation unit enables exceptions; mapped-value construction must not
+throw in that mode. Select `StringInternerExceptionSafePolicy` for potentially throwing mapped
+construction. It restores the unpublished index entry through iterator erasure or an index-policy
+transaction; character bytes and the reserved dense slot are retained for the next attempt.
 
-`insert` returns `std::expected<std::pair<Id, bool>, StringInternerError>`. Success contains the ID
+By default, `insert` returns `std::expected<std::pair<Id, bool>, StringInternerError>`. Success contains the ID
 and whether this call inserted a new string; a duplicate returns its existing ID and `false`.
 Failure contains an enum identifying the exhausted component. Returning either result does not
 format or allocate an error message. Fully bounded configurations must also supply backends that
 do not allocate; the result type alone does not make the default, growing containers allocation-free.
 
-Status-based callers explicitly use `ToStatusOr(interner.insert(key))`. `ToStatusCode(error)`
-provides the enum mapping used by that conversion:
+Status-based callers can select `StringInternerErrorStatusPolicy` or explicitly use
+`ToStatusOr(interner.insert(key))`. `ToStatusCode(error)` provides the enum mapping:
 
 | StringInternerError          | absl::StatusCode     |
 | ---------------------------- | -------------------- |
@@ -164,7 +178,7 @@ code. Neither result representation is claimed to be faster without measurements
 Character storage only needs `try_store`; it is append-only from the interner's perspective. If
 indexing fails after a copy, those bytes may remain allocated until destruction. The interner does
 not reclaim them or publish an ID for them. An `emplace` result with `second == false` for a missing
-key reports index exhaustion, allowing bounded indexes to reject insertion. The interner stores a
+key reports index exhaustion, allowing bounded indexes to reject insertion. The interner stores an
 element referring to the canonical key after successful indexing.
 
 Both ownership modes reserve at most one unpublished dense entry and reuse it after a failed
@@ -183,9 +197,10 @@ imply a null parent. Internal ordinals use unsigned `size_type`; negative signed
 before conversion or ancestor traversal. Ancestor cutoffs can be passed directly during lookup
 because each parent's local starting ID is at most its child's.
 
-Extended bounded-allocation configurations and performance tuning remain outstanding. Forward
-lookup currently recurses through ancestors, while reverse lookup iterates. These are initial
-algorithms, not benchmark-selected strategies.
+Extended bounded-allocation configurations and performance tuning remain outstanding. Both
+`find` and `rfind` currently walk iteratively from local entries toward ancestors, respecting each
+captured cutoff. They have identical results under the uniqueness invariant. No interner parent
+traversal uses recursion.
 
 The initial [`ArenaStringStorage`](arena_string_storage.h) adapter implements byte
 ownership independently of the index. `try_store` copies exactly the view length,
@@ -285,16 +300,18 @@ The initial [`StringId`](string_id.h) helper constrains
 provides explicit underlying-value access, ordering, constexpr checked ordinal
 conversion via `try_from_ordinal`, an `invalid_value` sentinel, and `is_valid()`, but deliberately
 does not expose arithmetic or mutation operations. The largest underlying value is
-reserved, so an 8-bit ID supports 255 entries with valid IDs `0..254`; exhaustion returns an empty
-optional. Hash width remains independent. Direct construction assumes an already representable
+reserved, so an unsigned 8-bit ID supports 255 entries with valid IDs `0..254`; a signed 8-bit
+representation supports 127 dense entries with IDs `0..126`. Exhaustion returns an empty optional.
+Hash width remains independent. Direct construction assumes an already representable
 underlying value; constructing `invalid_value` deliberately produces an invalid ID. Use checked
 conversion when assigning from a wider count. This helper does not establish membership in any
 particular interner or chain.
 `local_size()` is the number added directly to that interner.
 
-Looking up an invalid or non-visible identifier returns `std::optional<std::string_view>` in the
-ordinary API. An unchecked lookup may be considered only if profiling establishes a need and its
-precondition is explicit.
+Looking up an invalid, negative, or non-visible identifier with `get` returns an empty policy-selected
+reference result. `get_string` returns an empty `std::optional<std::string_view>`. Negative known IDs
+remain available to application code but are not registered entries in this interner. `at` and
+`operator[]` enforce membership through configured requirement failures.
 
 ## Snapshot parent/child semantics
 
@@ -315,23 +332,24 @@ Consequently:
 
 For maps, captured entries share their mapped values rather than copying them. Changes through
 a parent, child, or sibling are visible to every interner that sees that ID. The snapshot fixes
-membership and ID ownership, not a historical copy of mapped values. Consequently map parents
-must be mutable; a map child cannot be constructed from a pointer to a const parent. Sets still
-accept const parents. Const access to either a map or its parent exposes only const references.
+membership and ID ownership, not a historical copy of mapped values. Both maps and sets accept a
+pointer to a const parent; a mutable pointer converts naturally. The stored parent link is a const
+pointer to const, and `parent()` is a const member returning only a const parent pointer. That link
+does not permit structural mutation of the parent. Mutable map views still share existing mapped
+values with mutable ancestors; const lookup exposes only const references.
 
 The ordinary parent constructor should require the exact same interner specialization. Mixing
 hashers, indexes, or storage policies casually would make invariants and performance surprising.
 Heterogeneous parent specializations are deferred because no concrete workload has demonstrated
 their value. Same-specialization chains may be arbitrarily deep subject to ordinary resource and
-recursion/iteration limits; cascading chains are a first-class, useful facility and require only a
+iteration/resource limits; cascading chains require only a
 parent reference plus the captured cutoff at each level.
 
-Lookup supports both traversal directions, analogous to `find` and `rfind`:
+Both `find` and `rfind` perform content lookup over the same captured view. The current
+implementation checks local entries before ancestors in both functions; callers should not use
+these names to infer opposite hash-callback evaluation orders.
 
-- `find` traverses forward from the beginning of the topmost visible parent and ends at the child;
-- `rfind` traverses backward from the last visible child ID and ends at the topmost visible parent.
-
-Both directions produce the same result under the uniqueness invariant. A child cannot insert a
+Both functions produce the same result under the uniqueness invariant. A child cannot insert a
 duplicate of a string visible at its cutoff, while a parent's later insertion is outside the
 child's captured prefix. Divergent branches may independently assign different IDs, but no one
 interner can see both branch-local entries. Search direction is therefore a performance and API
@@ -518,26 +536,36 @@ Character storage and the reserved dense slot retain their append-only behavior 
 
 ### Failure APIs
 
-`insert` currently provides an expected result, including the inserted flag; `ToStatusOr` is an
-explicit adapter. The following broader interface forms remain comparison candidates:
+`StringInternerPolicyHolder<Error, Lookup, Index, Exception>` composes independent policies.
+The defaults are `StringInternerErrorStlPolicy`, `StringInternerLookupMboPolicy`,
+`StringInternerIndexStlPolicy`, and `StringInternerExceptionFreePolicy`.
 
-| Form                         | Information                  | Intended use                         |
-| ---------------------------- | ---------------------------- | ------------------------------------ |
-| Invalid `StringId` sentinel  | Success/failure only         | Smallest and fastest hot-path result |
-| `std::optional<StringId>`    | Success/failure only         | Conventional non-throwing API        |
-| `absl::StatusOr<StringId>`   | Detailed failure             | Existing mbo/Abseil callers          |
-| `std::expected<StringId, E>` | Typed detailed failure       | C++23 callers                        |
-| Exception                    | Detailed out-of-band failure | Explicit throwing adapter only       |
+| Error policy                        | Insertion result                                          | Failure information        |
+| ----------------------------------- | --------------------------------------------------------- | -------------------------- |
+| `StringInternerErrorStlPolicy`      | `std::expected<std::pair<Id, bool>, StringInternerError>` | Exact exhausted component  |
+| `StringInternerErrorStatusPolicy`   | `absl::StatusOr<std::pair<Id, bool>>`                     | Status code, empty message |
+| `StringInternerErrorOptionalPolicy` | `std::optional<std::pair<Id, bool>>`                      | Absence only               |
 
-The C++23 baseline makes `std::expected` available, but it need not be the only public mechanism.
-Exceptions should not be the primary interface for a latency-sensitive container and must remain
-optional for builds with exceptions disabled. Successful-hit and successful-insert performance,
-result size, generated code, and failure behavior should be measured for each serious candidate.
+Every successful insertion result contains the ID and whether a new local entry was published.
+`StringInternerLookupMboPolicy` uses `OptionalRef<T>`; `StringInternerLookupStlPolicy` uses
+`std::optional<std::reference_wrapper<T>>`. These policies select `get`'s mutable/const reference
+results. `find`/`rfind` always return `std::optional<id_type>`; `get_string` always returns
+`std::optional<std::string_view>`. Neither operation returns a copied mapped value.
+
+An index policy provides `Prepare`, `Find`, and `Insert`; its prepared representation may retain
+a hash or backend-specific probe state. The STL policy forwards to ordinary container operations;
+it does not promise a single hash calculation across duplicate lookup and insertion. Fallible
+index policies can return an expected iterator/bool pair with a `StringInternerError`. HAMT
+adapters and their policy live in the experimental HAMT package, not the generic interner.
+
+Exception-free and exception-safe publication are independent of result representation and compiler
+exception mode. Selecting status or optional results does not catch arbitrary allocation, hashing,
+or user-operation exceptions. No invalid-ID sentinel or throwing insertion-result adapter is provided.
 
 ## Operations
 
-Both wrappers return `std::expected<std::pair<Id, bool>, StringInternerError>` from insertion.
-`find(key)` and `rfind(key)` return `std::optional<Id>` and differ only in ancestor traversal order.
+Both wrappers return their policy's `insertion_result` from insertion.
+`find(key)` and `rfind(key)` return `std::optional<Id>` with equivalent captured-view semantics.
 Iteration follows dense ID order in either wrapper.
 
 ```cpp
@@ -561,6 +589,9 @@ std::optional<id_type> find(std::string_view key) const;
 std::optional<id_type> rfind(std::string_view key) const;
 size_type size() const;
 size_type local_size() const;
+size_type capacity() const;
+size_type local_capacity() const;
+size_type first_local_id() const;
 bool empty() const;
 ```
 
@@ -568,6 +599,27 @@ Map lookup returns an optional reference to the complete key/value entry, preser
 constness. No lookup copies or default-constructs the mapped value. Insertion into an existing
 entry preserves the prior value. Assignment through `at(id)`, `operator[](id)`, a mutable lookup
 result, or a mutable iterator changes the existing mapped value without changing its key or ID.
+
+`parent()` is const and returns a pointer to the const shared base specialization, never a mutable
+parent. `capacity()` is the captured parent
+prefix plus `local_capacity()`. These count dense entry slots only, not index buckets or character
+bytes, and do not promise allocation-free insertion. For entry containers without `capacity()`,
+local capacity is reported as local size.
+
+### Complexity and custom entry storage
+
+With the default ID-bearing hash index, string lookup is expected constant time per visited
+interner, plus key hashing/comparison costs. An ordered index instead adds logarithmic lookup;
+a key-only index must scan dense entries to recover its ID. Parent traversal is linear in depth.
+Direct ID lookup and iterator dereference traverse only the necessary parent links, then select
+the local dense position. `SegmentedVector`, `std::vector`, and `std::deque` provide constant-time
+local selection; `std::list` selection is linear in the local ordinal, so full iteration over a
+list-backed interner can be quadratic. Ordinary appends do not move the default segmented entries;
+custom entry containers retain their own reference-invalidation rules.
+
+All configurations compare complete byte strings after hash routing; trusting hash uniqueness
+without key equality is not an available mode. Preparing/reusing more index state and alternative
+representations remain measured optimization work, not a different correctness contract.
 
 ## Serialization
 

@@ -1,5 +1,30 @@
 # 0.16.0
 
+- Require Bazel 9.2 or newer, retaining the 9.3.2 default. Remove Bazel 8-only dependency
+  compatibility patches and root overrides; downstream builds use the published dependency graph.
+- Store release version metadata in `VERSION.txt`, avoiding a collision with C++ `<version>`
+  in CMake consumers on case-insensitive filesystems. Validate generated archives through separate
+  Bazel and CMake consumers on Linux and macOS, including the minimum Bazel version.
+- Require successful exact-commit main CI, including the complete `done` gate, before release tagging.
+- Add tracked-payload lifetime proofs for HAMT erasure/replacement and a scoped Linux ThreadSanitizer
+  ownership gate. Reject populated StringInterner index options before publishing an inconsistent ID table.
+- Add `StringInternerSet` and `StringInternerMap` with stable owned strings, signed or unsigned
+  dense IDs, captured const-parent prefixes, mapped values, and independent result/index/exception
+  policies. The default uses 32-bit StringIds, an Abseil flat index, segmented entries, and arena bytes.
+- Add experimental persistent/transient HAMT flat/node maps and sets and optional generic-interner
+  adapters. Add the move-only `ArenaBlockSource` adapter; Arena checkpoints remain separate work.
+- Add experimental `FrozenMap` and `FrozenSet`, immutable perfect-hash containers with bounded
+  construction and constexpr/runtime support. Experimental APIs may change between releases.
+- Add CMake support alongside Bazel, with component/aggregate targets, existing C++ tests,
+  configurable exceptions, dependency reuse, and an independently verified consumer build.
+- Migration: Limited containers no longer provide `data()` or contiguous iterators; keys are
+  immutable and exception specifications are conditional. Rebuild dependents and follow the
+  [container migration guide](mbo/container/README.md#migration-from-0150). Replace the removed
+  `MBO_CONFIG_CONSTEXPR_23` compatibility macro with ordinary C++23 `constexpr` where needed.
+
+- Make `IsStringIdU32<Type, Tag>` and `IsStringIdU64<Type, Tag>` constrain the candidate ID type
+  and unsigned representation instead of accepting arbitrary types as tags.
+
 - Add ref-qualified `StringOrView::str()` conversion: copy lvalues and borrowed views,
   and move owned storage from rvalues without an additional text copy.
 
@@ -30,7 +55,7 @@
   Segmented container constructors also support immovable and over-aligned sources without
   passing them through by-value parameters.
 - Added strong value types and opt-in behaviors, dense identifiers, and compact `StringId` types
-  with explicit invalid states. HAMT and StringInterner remain separate development workstreams.
+  with explicit invalid states and signed/unsigned representations.
 - Added reproducible segmented-container benchmarks covering access, growth, element shape,
   retention, and deque/vector comparisons, with source and toolchain provenance.
 - Published versioned static release websites with checked documentation links, bounded local
@@ -42,8 +67,9 @@
 - Retain complete coverage reports per CI run and attempt, order the overview by actual PR merge/tag
   timestamps, preserve aggregation provenance, and hide closed-unmerged PRs from the overview.
 
-- Raised the language and library baseline to C++23, GCC 15/libstdc++ 15, Clang/LLVM 22/libc++ 22,
-  and Xcode 16.3; updated the bundled toolchain module to `toolchains_llvm@1.11.0`.
+- Retained the published C++23 baseline, raised GCC/libstdc++ from 14 to 15, and kept
+  Clang/LLVM 22/libc++ 22 and Xcode 16.3 as the other minimum toolchains. Development defaults
+  now use LLVM 23.1.5 from `toolchains_llvm@1.13.0`; Linux MSan retains matching LLVM/libc++ 22.1.8.
 
 - Replaced the remaining C++20 compatibility branches with the selected C++23 facilities, including
   static constexpr locals, `string_view::contains`, and `std::byteswap`.
@@ -60,7 +86,7 @@
   `const_cast`. Operations remain conditionally `noexcept` when their element and comparator
   operations cannot throw.
 
-- Updated clang-format and its pre-commit mirror to 22.1.8, and kept opening braces with own-line
+- Updated clang-format to the hermetic LLVM 23.1.5 distribution, and kept opening braces with own-line
   trailing `requires` clauses.
 
 - Expanded `//tools:show_compiler` to report the active C++ language macro, standard library, and

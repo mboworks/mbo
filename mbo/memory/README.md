@@ -10,10 +10,11 @@ the caller's responsibility.
 
 ## Headers and targets
 
-| Header                           | Bazel target                   | API                                                               |
-| -------------------------------- | ------------------------------ | ----------------------------------------------------------------- |
-| [block_source.h](block_source.h) | `//mbo/memory:block_source_cc` | `MemoryBlock`, source concepts, five block-source implementations |
-| [arena.h](arena.h)               | `//mbo/memory:arena_cc`        | `Arena<Source, Options>`, `ArenaOptions`, `ValidArenaOptions`     |
+| Header                                       | Bazel target                         | API                                                               |
+| -------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| [block_source.h](block_source.h)             | `//mbo/memory:block_source_cc`       | `MemoryBlock`, source concepts, five block-source implementations |
+| [arena.h](arena.h)                           | `//mbo/memory:arena_cc`              | `Arena<Source, Options>`, `ArenaOptions`, `ValidArenaOptions`     |
+| [arena_block_source.h](arena_block_source.h) | `//mbo/memory:arena_block_source_cc` | Move-only recyclable blocks from a caller-owned recoverable arena |
 
 ## Blocks and source concepts
 
@@ -46,6 +47,13 @@ the caller's responsibility.
 - Allocator copy policy: `select_on_container_copy_construction`.
 - PMR copy policy: retain the same resource pointer.
 - Source inspection: `allocator()` on allocator sources; `resource()` on PMR sources.
+
+`ArenaBlockSource<ArenaType, Options>` is a separate move-only adapter for clients that release
+blocks independently. It recycles suitably sized released blocks while the caller-owned arena
+retains the backing bytes. The arena must outlive the adapter and every outstanding allocation;
+do not reset or release it while clients remain. Moving transfers the reusable cache and clears
+the source cache without invalidating outstanding arena-owned blocks. See the
+[arena block-source contract](ARENA.md#block-sources-and-growth). Checkpoint support is not required.
 
 ## Arena policy
 

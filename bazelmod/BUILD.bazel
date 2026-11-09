@@ -19,13 +19,8 @@ load(":clang_tidy_targets.bzl", "CLANG_TIDY_MANUAL_TARGETS")
 package(default_visibility = [])
 
 exports_files([
-    "boost-1.83.0-bazel8.patch",
     "dev.MODULE.bazel",
     "llvm.MODULE.bazel",
-    "protobuf-36.2-abseil.patch",
-    "re2-2025-11-05-abseil.patch",
-    "rules_fuzzing-0.8.0-abseil.patch",
-    "rules_java-9.9.0-abseil.patch",
 ])
 
 # Generates `compile_commands.json`; run it through `//compile_commands-update.sh`.

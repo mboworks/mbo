@@ -64,6 +64,15 @@ The digest unit-test target uses four shards so its million-byte vectors retain 
 small-test timeout under MSan. Every test case still runs; the timeout and sanitizer checks
 are unchanged.
 
+`bazel test --config=tsan //mbo/container/experimental/hamt:hamt_shared_node_test
+//mbo/container/experimental/hamt:hamt_node_value_test
+//mbo/container/experimental/hamt:hamt_source_domain_test` checks the three threaded ownership/refcount
+targets on Linux with LLVM 23. The required `thread-sanitizer` job runs only those targets and
+uses the normal bounded compiled-output cache policy under the separate `tsan-llvm23` namespace.
+TSan stops on the first reported race; no suppressions are configured. Hermetic Clang builds also
+enable `-Wthread-safety`. This validates reference ownership, not unsynchronized publication or
+mutation of HAMT containers, which continue to require the documented external synchronization.
+
 Two additional optimized Bazel jobs use distribution Clang/LLD 22 and the distribution's default
 standard library: one on the `ubuntu-26.04` host, and one in the official `ubuntu:26.10` container
 on that host. Both run the full existing test suite, differential hashing, and disabled-mangling
@@ -87,7 +96,24 @@ version, build configuration, dependency hash, run, and attempt. Only main saves
 PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.
 Do not upload extracted LLVM distributions or downloaded module repositories.
 
-The default Bazel version is 9.3.2; the compatibility matrix also tests Bazel 8.0.0.
+The default Bazel version is 9.3.2; the minimum supported release and compatibility rung is
+Bazel 9.2.0. Bazel 8's dependency-metadata patches and root-only compatibility overrides are
+removed, so development and downstream builds resolve the same published dependency metadata.
+The registry presubmit supplies both macOS deployment-target flags at 11.0, matching native
+archive-consumer builds; dependencies do not inherit the root module's `.bazelrc` settings.
+
+The required `release-artifacts` matrix packages committed HEAD using the real release-preparation
+script in a disposable clone, then extracts and validates that tarball. Independent native-toolchain
+Bazel consumers run on Linux with 9.2.0 and 9.3.2 and on macOS with 9.3.2; independent CMake
+consumers run on both platforms. They exercise new public containers and string APIs without
+inheriting mbo's `.bazelrc`, toolchain, or root overrides. The archive stores version metadata as
+`VERSION.txt`, never `VERSION`, which would shadow `<version>` on case-insensitive filesystems.
+The dev-only `bazelmod/BUILD.bazel` is excluded so recursive external queries do not load Hedron.
+Run `python3 tools/release_artifact.py` locally on committed changes; use `--archive PATH` to
+validate an existing or downloaded release. These jobs do not tag, upload, or publish releases.
+`tools/trigger_release.sh`, including its dry run, requires the latest main-push CI run for the
+exact prospective tag commit to have succeeded, including the aggregate `done` gate. A green PR
+run, older main commit, or older successful run cannot substitute for that validation.
 `--norewind_lost_inputs` keeps cached-action output checks enabled when CI cache
 trimming evicts individual CAS blobs, so missing outputs cause a rebuild. Repository
 downloads use 20 connector attempts and 20 downloader retries, with connector retry

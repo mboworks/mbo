@@ -652,6 +652,18 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "hamt_shared_node_lifetime_test",
+    size = "small",
+    srcs = ["internal/hamt_shared_node_lifetime_test.cc"],
+    deps = [
+        ":hamt_shared_node_cc",
+        "//mbo/memory:block_source_cc",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "hamt_node_collision_cc",
     hdrs = ["internal/hamt_node_collision.h"],

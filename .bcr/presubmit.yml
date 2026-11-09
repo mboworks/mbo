@@ -1,6 +1,6 @@
 matrix:
   bazel:
-    - 8.x
+    - 9.2.0
     - 9.x
   platform:
     - ubuntu2404
@@ -13,7 +13,13 @@ tasks:
     build_flags:
       - "--cxxopt=-std=c++23"
       - "--host_cxxopt=-std=c++23"
+      - "--macos_minimum_os=11.0"
+      - "--host_macos_minimum_os=11.0"
     build_targets:
+      - "@mboworks_mbo//mbo/container:container_readme_test"
+      - "@mboworks_mbo//mbo/strings:string_interner_readme_test"
+      - "@mboworks_mbo//mbo/container/experimental/hamt/tests/public_api:hamt_maps_test"
+      - "@mboworks_mbo//mbo/container/experimental/hamt/tests/public_api:hamt_sets_test"
       - "@mboworks_mbo//mbo/container:limited_set_benchmark"
       - "@mboworks_mbo//mbo/diff:diff"
       - "@mboworks_mbo//mbo/digest:digest"

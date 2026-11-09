@@ -6,6 +6,7 @@
 #include <concepts>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <type_traits>
 
 #include "gmock/gmock.h"
@@ -90,6 +91,62 @@ TEST_F(StringIdTest, IsStringIdRequiresAnUnqualifiedValueType) {
   static_assert(!IsStringId<const Id&>);
   static_assert(!IsStringId<Id&&>);
   static_assert(!IsStringId<Id*>);
+}
+
+TEST_F(StringIdTest, WidthSpecificConceptsCheckTheCandidateRepresentation) {
+  static_assert(IsStringIdU32<StringIdU32<>>);
+  static_assert(IsStringIdU64<StringIdU64<>>);
+  static_assert(!IsStringIdU32<StringIdU64<>>);
+  static_assert(!IsStringIdU64<StringIdU32<>>);
+  static_assert(!IsStringIdU32<StringId<std::uint8_t>>);
+  static_assert(!IsStringIdU64<StringId<std::uint16_t>>);
+  static_assert(!IsStringIdU32<StringId<std::int32_t>>);
+  static_assert(!IsStringIdU64<StringId<std::int64_t>>);
+}
+
+TEST_F(StringIdTest, WidthSpecificConceptsRespectExplicitAndUnrestrictedTags) {
+  using FirstId = StringIdU32<FirstTag>;
+  using SecondId = StringIdU64<SecondTag>;
+  static_assert(IsStringIdU32<FirstId, FirstTag>);
+  static_assert(IsStringIdU64<SecondId, SecondTag>);
+  static_assert(IsStringIdU32<FirstId, void>);
+  static_assert(IsStringIdU64<SecondId, void>);
+  static_assert(!IsStringIdU32<FirstId>);
+  static_assert(!IsStringIdU64<SecondId>);
+  static_assert(!IsStringIdU32<FirstId, SecondTag>);
+  static_assert(!IsStringIdU64<SecondId, FirstTag>);
+}
+
+TEST_F(StringIdTest, WidthSpecificConceptsRejectUnrelatedAndLookalikeTypes) {
+  static_assert(!IsStringIdU32<int>);
+  static_assert(!IsStringIdU64<int>);
+  static_assert(!IsStringIdU32<std::string>);
+  static_assert(!IsStringIdU64<std::string>);
+  static_assert(!IsStringIdU32<void>);
+  static_assert(!IsStringIdU64<void>);
+  static_assert(!IsStringIdU32<FirstTag>);
+  static_assert(!IsStringIdU64<SecondTag>);
+  static_assert(!IsStringIdU32<StringIdLike<std::uint32_t>, FirstTag>);
+  static_assert(!IsStringIdU64<StringIdLike<std::uint64_t>, FirstTag>);
+}
+
+TEST_F(StringIdTest, WidthSpecificConceptsRequireUnqualifiedValueTypes) {
+  using Id32 = StringIdU32<>;
+  using Id64 = StringIdU64<>;
+  static_assert(!IsStringIdU32<const Id32>);
+  static_assert(!IsStringIdU32<volatile Id32>);
+  static_assert(!IsStringIdU32<const volatile Id32>);
+  static_assert(!IsStringIdU32<Id32&>);
+  static_assert(!IsStringIdU32<const Id32&>);
+  static_assert(!IsStringIdU32<Id32&&>);
+  static_assert(!IsStringIdU32<Id32*>);
+  static_assert(!IsStringIdU64<const Id64>);
+  static_assert(!IsStringIdU64<volatile Id64>);
+  static_assert(!IsStringIdU64<const volatile Id64>);
+  static_assert(!IsStringIdU64<Id64&>);
+  static_assert(!IsStringIdU64<const Id64&>);
+  static_assert(!IsStringIdU64<Id64&&>);
+  static_assert(!IsStringIdU64<Id64*>);
 }
 
 TEST_F(StringIdTest, DefaultIsInvalidAndDenseOrdinalsStartAtZero) {

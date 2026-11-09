@@ -53,7 +53,7 @@ on:
         type: string
         default: opt
       bazel_version:
-        description: "The Bazel version to pin via `.bazelversion` (e.g. 8.0.0, 9.3.2). If empty the checked-in `.bazelversion` is used as-is."
+        description: "The Bazel version to pin via `.bazelversion` (e.g. 9.2.0, 9.3.2). If empty the checked-in `.bazelversion` is used as-is."
         type: string
         default: ""
       coverage_target:

@@ -71,6 +71,7 @@ common:clang --//mbo/mope:clang_format=
 common:clang --cxxopt=-gmlt
 common:clang --host_cxxopt=-gmlt
 common:clang --define is_clang=true
+common:clang --cxxopt=-Wthread-safety --host_cxxopt=-Wthread-safety
 
 # Named config the compile DB is generated in (compile_commands-update.sh). Adds no
 # flags: the official toolchains_llvm module handles libc++ itself.
@@ -119,6 +120,16 @@ common:asan --action_env=ASAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symboli
 common:asan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
 common:asan --test_env=ASAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
 common:asan --test_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:symbolize=1:strip_path_prefix=/proc/self/cwd/:color=always
+
+# ThreadSanitizer: run the scoped ownership/refcount tests on Linux.
+common:tsan --config=clang
+common:tsan --config=symbolizer
+common:tsan --features=tsan
+common:tsan --copt=-g
+common:tsan --copt=-fsanitize=thread
+common:tsan --copt=-fno-omit-frame-pointer
+common:tsan --linkopt=-fsanitize=thread
+common:tsan --test_env=TSAN_OPTIONS=halt_on_error=1
 
 # MemorySanitizer: Linux x86_64 with the matching LLVM 22 compiler and libc++.
 # toolchains_llvm supplies the sanitizer compile/link flags and switches stdlib.

@@ -31,6 +31,7 @@ concept StringInternerStringContainer = requires(const Container& read, std::str
       *std::declval<typename Container::iterator>()))>>;
   { read.find(key) } -> std::same_as<typename Container::const_iterator>;
   { read.end() } -> std::same_as<typename Container::const_iterator>;
+  { read.empty() } -> std::convertible_to<bool>;
 };
 
 template<typename Container, typename Id>

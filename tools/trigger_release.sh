@@ -42,7 +42,7 @@ IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<<"${VERSION}"
 NEXT_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.$((VERSION_PATCH + 1))"
 NEXT_BRANCH="chore/bump_version_to_${NEXT_VERSION}"
 
-for tool in gh git gpg; do
+for tool in gh git gpg python3; do
   command -v "${tool}" >/dev/null 2>&1 || die "Required tool '${tool}' is not installed."
 done
 
@@ -57,6 +57,9 @@ CHANGELOG_VERSION="$(sed -rne 's,^# ([0-9]+([.][0-9]+)+.*)$,\1,p' <CHANGELOG.md 
 [[ "${VERSION}" == "${BAZELMOD_VERSION}" ]] || die "Requested version (${VERSION}) != repository version (${BAZELMOD_VERSION})."
 [[ -z "$(git tag --list "${VERSION}")" ]] || die "Tag '${VERSION}' already exists."
 gh release view "${VERSION}" >/dev/null 2>&1 && die "Release '${VERSION}' already exists."
+
+# PR checks and an older green main run do not validate the commit we are tagging.
+python3 tools/check_release_readiness.py --head "$(git rev-parse HEAD)"
 
 # Pre-flight: release_prep.sh applies .github/workflows/bazelmod.patch to the
 # worktree before archiving (it shapes the released MODULE.bazel/mope.bzl). If it

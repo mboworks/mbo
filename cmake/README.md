@@ -62,7 +62,7 @@ and compiles the existing `rules_cc` runfiles implementation. Linking `mbo::mbo`
 
 ## Binary targets
 
-Every existing `cc_binary` has a CMake target named `mbo_bin_<name>` and an executable alias
+Each `cc_binary` declared under `mbo/` has a CMake target named `mbo_bin_<name>` and an executable alias
 `mbo::bin::<name>`. Executables are written to `bin/<target>/<name>` in the build tree.
 Command-line programs and developer tools require `MBO_BUILD_BINARIES`; benchmarks require
 `MBO_BUILD_BENCHMARKS` independently.

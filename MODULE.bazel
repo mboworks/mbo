@@ -18,7 +18,7 @@
 module(
     name = "mboworks_mbo",
     version = "0.16.0",
-    bazel_compatibility = [">=8.0.0"],
+    bazel_compatibility = [">=9.2.0"],
 )
 
 # For local development we include LLVM and Hedron-Compile-Commands.
@@ -32,59 +32,6 @@ bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_cc", version = "0.2.28")
 bazel_dep(name = "rules_fuzzing", version = "0.8.0")
 bazel_dep(name = "rules_shell", version = "0.8.0")
-
-# These releases still declare compatibility-level-1 Abseil versions. Patch
-# their module metadata until upstream releases select compatibility level 0.
-single_version_override(
-    module_name = "rules_fuzzing",
-    patch_strip = 1,
-    patches = ["//bazelmod:rules_fuzzing-0.8.0-abseil.patch"],
-    version = "0.8.0",
-)
-
-# RE2's BCR MODULE differs from the release archive, so a source patch cannot
-# apply through single_version_override. Preserve the BCR source and integrity.
-archive_override(
-    module_name = "re2",
-    integrity = "sha256-x7Gnp8aNLXz400PcVmVcG1qMiq3twBfbRT1MHYkTuEQ=",
-    patch_strip = 1,
-    patches = ["//bazelmod:re2-2025-11-05-abseil.patch"],
-    strip_prefix = "re2-2025-11-05",
-    urls = ["https://github.com/google/re2/releases/download/2025-11-05/re2-2025-11-05.zip"],
-)
-
-single_version_override(
-    module_name = "protobuf",
-    patch_strip = 1,
-    patches = ["//bazelmod:protobuf-36.2-abseil.patch"],
-    version = "36.2",
-)
-
-single_version_override(
-    module_name = "rules_java",
-    patch_strip = 1,
-    patches = ["//bazelmod:rules_java-9.9.0-abseil.patch"],
-    version = "9.9.0",
-)
-
-# Abseil 20260817.0 still selects gloop 20260708.rc1, whose dependency on
-# compatibility-level-1 Abseil conflicts with the current level-0 release.
-# Newer gloop releases add a gRPC dependency chain that Bazel 8 cannot parse, so
-# patch only the stale dependency declaration until Abseil updates its metadata.
-single_version_override(
-    module_name = "gloop",
-    patch_strip = 1,
-    patches = ["//bazelmod:gloop-20260708.rc1-abseil.patch"],
-    version = "20260708.rc1",
-)
-
-# The gloop release above selects an older tcmalloc whose Abseil dependency has
-# the same compatibility-level mismatch. The current tcmalloc release uses the
-# level-0 Abseil line and remains compatible with Bazel 8.
-single_version_override(
-    module_name = "tcmalloc",
-    version = "0.0.0-20260818-15db23d",
-)
 
 bazel_dep(name = "abseil-cpp", version = "20260817.0")
 bazel_dep(name = "re2", version = "2025-11-05.bcr.1")

@@ -197,9 +197,18 @@ TEST_F(LimitedMapTest, EmptyAndZeroCapacityDataSpansAreEmpty) {
   EXPECT_THAT(zero.data(), Eq(nullptr));
   EXPECT_THAT(std::span<Entry>(zero.data(), zero.size()), IsEmpty());
   EXPECT_THAT(values.data(), Eq(nullptr));
+  const auto& zero_read = zero;
+  const auto& read = values;
+  EXPECT_THAT(zero_read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const Entry>(zero_read.data(), zero_read.size()), IsEmpty());
+  EXPECT_THAT(read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const Entry>(read.data(), read.size()), IsEmpty());
   values.try_emplace(1, 10);
+  EXPECT_THAT(std::span<const Entry>(read.data(), read.size()), ElementsAre(Pair(1, 10)));
   values.clear();
   EXPECT_THAT(std::span<Entry>(values.data(), values.size()), IsEmpty());
+  EXPECT_THAT(read.data(), Eq(nullptr));
+  EXPECT_THAT(std::span<const Entry>(read.data(), read.size()), IsEmpty());
 }
 
 template<typename T>

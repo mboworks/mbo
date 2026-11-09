@@ -15,7 +15,10 @@
 
 #include "mbo/types/no_destruct.h"
 
+#include <concepts>
+#include <initializer_list>
 #include <string>
+#include <utility>
 
 #include "absl/hash/hash.h"
 #include "absl/log/absl_check.h"
@@ -29,6 +32,7 @@
 namespace mbo::types {
 
 using ::mbo::types::Extend;
+using ::testing::ElementsAre;
 using ::testing::Ge;  // NOLINT(misc-unused-using-decls)
 using ::testing::Ne;
 
@@ -47,7 +51,7 @@ struct TestString : Extend<TestString> {
 };
 
 struct CountsDestruction {
-  explicit CountsDestruction(int& new_count) noexcept : count(&new_count) {}
+  constexpr explicit CountsDestruction(int& new_count) noexcept : count(&new_count) {}
 
   ~CountsDestruction() { ++*count; }
 
@@ -59,6 +63,61 @@ struct CountsDestruction {
   int* count;
 };
 
+struct InitializerListValue {
+  constexpr InitializerListValue(std::initializer_list<int> values) noexcept : value(*values.begin()) {}
+
+  int value;
+};
+
+struct ForwardedValue {
+  int first;
+  int second;
+};
+
+struct MoveOnlyValue {
+  constexpr explicit MoveOnlyValue(int arg) noexcept : value(arg) {}
+
+  MoveOnlyValue(const MoveOnlyValue&) = delete;
+  MoveOnlyValue& operator=(const MoveOnlyValue&) = delete;
+  MoveOnlyValue(MoveOnlyValue&&) noexcept = default;
+  MoveOnlyValue& operator=(MoveOnlyValue&&) noexcept = default;
+  ~MoveOnlyValue() = default;
+
+  int value;
+};
+
+// Exercise built-in arrays; std::array does not use the failing array construction path.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+using IntArray = int[3];
+using ConstIntArray = const IntArray;
+
+template<typename T>
+constexpr bool kHasExpectedNonConstAccess = std::same_as<decltype(std::declval<NoDestruct<T>&>().Get()), T&>
+                                            && std::same_as<decltype(*std::declval<NoDestruct<T>&>()), T&>
+                                            && std::same_as<decltype(std::declval<NoDestruct<T>&>().operator->()), T*>;
+
+template<typename T>
+constexpr bool kHasExpectedConstAccess =
+    std::same_as<decltype(std::declval<const NoDestruct<T>&>().Get()), const T&>
+    && std::same_as<decltype(*std::declval<const NoDestruct<T>&>()), const T&>
+    && std::same_as<decltype(std::declval<const NoDestruct<T>&>().operator->()), const T*>;
+
+static_assert(kHasExpectedNonConstAccess<int>);
+static_assert(kHasExpectedConstAccess<int>);
+static_assert(kHasExpectedNonConstAccess<const int>);
+static_assert(kHasExpectedConstAccess<const int>);
+static_assert(kHasExpectedNonConstAccess<IntArray>);
+static_assert(kHasExpectedConstAccess<IntArray>);
+static_assert(kHasExpectedNonConstAccess<ConstIntArray>);
+static_assert(kHasExpectedConstAccess<ConstIntArray>);
+static_assert(noexcept(NoDestruct<const int>()));
+static_assert(noexcept(NoDestruct<const int>(42)));
+static_assert(noexcept(NoDestruct<const ForwardedValue>(25, 42)));
+static_assert(noexcept(NoDestruct<const InitializerListValue>({42})));
+static_assert(noexcept(NoDestruct<const MoveOnlyValue>(MoveOnlyValue{42})));
+static_assert(!std::copy_constructible<NoDestruct<const int>>);
+static_assert(!std::move_constructible<NoDestruct<const int>>);
+
 static_assert(IsAggregate<TestSimple>, "Must be aggregate");
 static_assert(IsAggregate<TestString>, "Must be aggregate");
 
@@ -68,7 +127,7 @@ static_assert(DecomposeCountV<TestString> == 2, "There are 2 fields, no?");
 const NoDestruct<TestSimple> kTestSimple;
 const NoDestruct<TestString> kTestString;
 
-class NoDestructTest : public ::testing::Test {};
+struct NoDestructTest : ::testing::Test {};
 
 #ifdef _LIBCPP_STD_VER
 TEST_F(NoDestructTest, ClangCheck) {
@@ -97,6 +156,62 @@ TEST_F(NoDestructTest, ConstExpr) {
   EXPECT_THAT(kConstexprTest->b, kValueB);
 }
 
+TEST_F(NoDestructTest, ConstScalarDefaultConstruction) {
+  static constexpr NoDestruct<const int> kValue;
+  static_assert(*kValue == 0);
+  EXPECT_THAT(kValue.Get(), 0);
+}
+
+TEST_F(NoDestructTest, ConstScalarValueConstruction) {
+  static constexpr NoDestruct<const int> kValue(kValueB);
+  static_assert(*kValue == kValueB);
+  EXPECT_THAT(kValue.Get(), kValueB);
+}
+
+TEST_F(NoDestructTest, ConstexprConstImmovableValueWithNonConstexprDestructor) {
+  static int destruction_count = 0;
+  static constexpr NoDestruct<const CountsDestruction> kValue(destruction_count);
+  static_assert(kValue->count == &destruction_count);
+  EXPECT_THAT(kValue->count, &destruction_count);
+  EXPECT_THAT(destruction_count, 0);
+}
+
+TEST_F(NoDestructTest, ConstAggregateForwardedConstruction) {
+  static constexpr NoDestruct<const ForwardedValue> kValue(kValueA, kValueB);
+  static_assert(kValue->first == kValueA && kValue->second == kValueB);
+  EXPECT_THAT(kValue->first, kValueA);
+  EXPECT_THAT(kValue->second, kValueB);
+}
+
+TEST_F(NoDestructTest, ConstMoveOnlyValueConstruction) {
+  static constexpr NoDestruct<const MoveOnlyValue> kValue(MoveOnlyValue{kValueB});
+  static_assert(kValue->value == kValueB);
+  EXPECT_THAT(kValue->value, kValueB);
+}
+
+TEST_F(NoDestructTest, ConstInitializerListConstruction) {
+  static constexpr NoDestruct<const InitializerListValue> kValue({kValueB});
+  static_assert(kValue->value == kValueB);
+  EXPECT_THAT(kValue->value, kValueB);
+}
+
+TEST_F(NoDestructTest, ConstClassRuntimeConstruction) {
+  const NoDestruct<const std::string> value("abc");
+  EXPECT_THAT(value.Get(), "abc");
+}
+
+TEST_F(NoDestructTest, ArrayDefaultConstruction) {
+  static constexpr NoDestruct<IntArray> kValue;
+  static_assert((*kValue)[0] == 0 && (*kValue)[1] == 0 && (*kValue)[2] == 0);
+  EXPECT_THAT(kValue.Get(), ElementsAre(0, 0, 0));
+}
+
+TEST_F(NoDestructTest, ConstArrayForwardedConstruction) {
+  static constexpr NoDestruct<ConstIntArray> kValue(kValueA, kValueB);
+  static_assert((*kValue)[0] == kValueA && (*kValue)[1] == kValueB && (*kValue)[2] == 0);
+  EXPECT_THAT(kValue.Get(), ElementsAre(kValueA, kValueB, 0));
+}
+
 TEST_F(NoDestructTest, Modify) {
   static NoDestruct<TestSimple> test;
   EXPECT_THAT(test->a, kValueA);
@@ -122,6 +237,18 @@ TEST_F(NoDestructTest, DoesNotDestroyStoredValue) {
   int destruction_count = 0;
   {
     const NoDestruct<CountsDestruction> value(destruction_count);
+    EXPECT_THAT(value->count, &destruction_count);
+  }
+
+  EXPECT_THAT(destruction_count, 0);
+}
+
+TEST_F(NoDestructTest, DoesNotDestroyConstImmovableValue) {
+  int destruction_count = 0;
+  {
+    NoDestruct<const CountsDestruction> value(destruction_count);
+    EXPECT_THAT(value.Get().count, &destruction_count);
+    EXPECT_THAT((*value).count, &destruction_count);
     EXPECT_THAT(value->count, &destruction_count);
   }
 

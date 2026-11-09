@@ -402,6 +402,10 @@ void ReplaceRecord() {
 - Intended use: static values that must remain available during program shutdown.
 - Construction: default, value, forwarded constructor arguments, or an initializer list.
 - Copying and moving: disabled. Access: mutable/const `Get()`, `*`, and `->`.
+- Const-qualified `T` is supported and remains const even through a mutable wrapper. Construction
+  directly initializes the union member; it does not cast away const or require placement new.
+- Bounded built-in arrays support value initialization with no arguments and element-wise
+  construction with forwarded arguments, for example `NoDestruct<const int[3]>(1, 2, 3)`.
 - Constant evaluation: supported when construction of `T` and all its members permits it.
 - Abseil hashing and stringification use the contained value.
 - Destruction suppression does not extend the wrapper's storage lifetime. Use static storage for

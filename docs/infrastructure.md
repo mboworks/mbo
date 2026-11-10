@@ -111,6 +111,7 @@ template references the uploaded `mbo-<tag>.tar.gz`, whose `mbo-<version>/` pref
 `strip_prefix`; the publisher computes its integrity from that archive. Generated installation
 instructions link to tag-pinned module files and require consumers to select their own compiler
 and C++23 flags. The checkout-only development module is not a standalone consumer template.
+The metadata template preserves the maintainer's numeric GitHub ID, required by registry validation.
 
 The required `release-artifacts` matrix packages committed HEAD using the real release-preparation
 script in a disposable clone, then extracts and validates that tarball. Independent native-toolchain

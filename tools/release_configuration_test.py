@@ -72,6 +72,8 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertEqual(metadata["homepage"], "https://github.com/mboworks/mbo")
         self.assertIn("github:mboworks/mbo", metadata["repository"])
         self.assertTrue(metadata["maintainers"])
+        maintainer = next(entry for entry in metadata["maintainers"] if entry.get("github") == "helly25")
+        self.assertEqual(maintainer["github_user_id"], 6420169)
 
 
 class ReleasePreparationTest(unittest.TestCase):

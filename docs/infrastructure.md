@@ -101,6 +101,16 @@ Bazel 9.2.0. Bazel 8's dependency-metadata patches and root-only compatibility o
 removed, so development and downstream builds resolve the same published dependency metadata.
 The registry presubmit supplies both macOS deployment-target flags at 11.0, matching native
 archive-consumer builds; dependencies do not inherit the root module's `.bazelrc` settings.
+Its Ubuntu 24.04 tasks install and explicitly select GCC/libstdc++ 15 rather than the image's
+unsupported default compiler. Both platforms exercise the same targets with Bazel 9.2 and 9.x.
+
+Release coverage and the separate release build/test job both explicitly select the pinned
+hermetic LLVM toolchain. The reusable packaging workflow does not inherit the coverage runner's
+compiler selection, so its `bazel_test_command` must retain `--config=clang`. The BCR source
+template references the uploaded `mbo-<tag>.tar.gz`, whose `mbo-<version>/` prefix matches
+`strip_prefix`; the publisher computes its integrity from that archive. Generated installation
+instructions link to tag-pinned module files and require consumers to select their own compiler
+and C++23 flags. The checkout-only development module is not a standalone consumer template.
 
 The required `release-artifacts` matrix packages committed HEAD using the real release-preparation
 script in a disposable clone, then extracts and validates that tarball. Independent native-toolchain

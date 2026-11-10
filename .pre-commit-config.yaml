@@ -272,6 +272,12 @@ repos:
         entry: python3 -m unittest tools/bazel_cache_test.py tools/cache_cleanup_test.py tools/cache_report_test.py tools/site_artwork_test.py
         files: ^(\.github/(actions|workflows)/|tools/(bazel_cache|cache_cleanup|cache_report|site_artwork)(_test)?\.py$)
         pass_filenames: false
+      - id: release-configuration-tests
+        name: Test release compiler and module templates
+        language: system
+        entry: python3 -m unittest discover -s tools -p release_configuration_test.py
+        files: ^(\.bcr/|\.github/workflows/(release\.yml|release_prep\.sh|bazelmod\.patch)|\.github/release-notes\.md\.template|MODULE\.bazel|bazelmod/llvm\.MODULE\.bazel|\.bazelrc$|tools/release_configuration_test\.py)
+        pass_filenames: false
       - id: coverage-policy-tests
         name: coverage policy tests
         description: Verify LCOV parsing, grouping, indexing, presentation, exclusions, and threshold enforcement.

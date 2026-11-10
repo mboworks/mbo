@@ -39,7 +39,8 @@ jobs:
       # published only after their assets are uploaded. Prereleases remain
       # published during upload and are incompatible with immutable releases.
       prerelease: false
-      bazel_test_command: "bazel test //... --test_tag_filters=-lfs"
+      # This is a separate runner from coverage; select the hermetic compiler here too.
+      bazel_test_command: "bazel test --config=clang //... --test_tag_filters=-lfs"
 
   # Mirror the release to the Bazel Central Registry (replaces the retired
   # publish-to-bcr GitHub App). See .github/workflows/publish.yaml.

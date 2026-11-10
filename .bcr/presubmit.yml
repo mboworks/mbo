@@ -2,20 +2,23 @@ matrix:
   bazel:
     - 9.2.0
     - 9.x
-  platform:
-    - ubuntu2404
-    - macos_arm64
 tasks:
-  verify_targets:
-    name: Verify build targets
-    platform: ${{ platform }}
+  verify_targets_linux:
+    name: Verify build targets with GCC 15
+    platform: ubuntu2404
     bazel: ${{ bazel }}
+    # The Ubuntu 24.04 image defaults to GCC 13, below mbo's C++23 baseline.
+    environment:
+      CC: gcc-15
+      CXX: g++-15
+    shell_commands:
+      - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+      - sudo apt-get update -o Acquire::Retries=3
+      - sudo apt-get install --yes gcc-15 g++-15
     build_flags:
       - "--cxxopt=-std=c++23"
       - "--host_cxxopt=-std=c++23"
-      - "--macos_minimum_os=11.0"
-      - "--host_macos_minimum_os=11.0"
-    build_targets:
+    build_targets: &build_targets
       - "@mboworks_mbo//mbo/container:container_readme_test"
       - "@mboworks_mbo//mbo/strings:string_interner_readme_test"
       - "@mboworks_mbo//mbo/container/experimental/hamt/tests/public_api:hamt_maps_test"
@@ -26,3 +29,13 @@ tasks:
       - "@mboworks_mbo//mbo/file:glob"
       - "@mboworks_mbo//mbo/hash:hash_tool"
       - "@mboworks_mbo//mbo/mope:mope"
+  verify_targets_macos:
+    name: Verify build targets with Apple Clang
+    platform: macos_arm64
+    bazel: ${{ bazel }}
+    build_flags:
+      - "--cxxopt=-std=c++23"
+      - "--host_cxxopt=-std=c++23"
+      - "--macos_minimum_os=11.0"
+      - "--host_macos_minimum_os=11.0"
+    build_targets: *build_targets

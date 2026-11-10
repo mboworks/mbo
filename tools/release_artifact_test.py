@@ -131,7 +131,8 @@ class ReleaseArtifactTest(unittest.TestCase):
             artifact.build(source, self.root / "consumer", "bazel", 2, "9.3.2")
         command = run.call_args_list[0].args[0]
         presubmit = (artifact.ROOT / ".bcr/presubmit.yml").read_text()
-        build_flags = presubmit.split("    build_flags:\n", 1)[1].split("    build_targets:\n", 1)[0]
+        macos_task = presubmit.split("  verify_targets_macos:\n", 1)[1]
+        build_flags = macos_task.split("    build_flags:\n", 1)[1].split("    build_targets:", 1)[0]
         for flag in ("--macos_minimum_os=11.0", "--host_macos_minimum_os=11.0"):
             with self.subTest(flag=flag):
                 self.assertIn(flag, command)

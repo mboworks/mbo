@@ -111,7 +111,11 @@ echo "## [Changelog](https://github.com/mboworks/${PACKAGE_NAME}/blob/${TAG}/CHA
 awk '/^#/{if(NR>1)exit}/^[^#]/{print}' <CHANGELOG.md
 
 cat <<EOF
-## For Bazel MODULES.bazel
+## For Bazel MODULE.bazel
+
+Use Bazel 9.2 or newer and a supported C++23 compiler and standard library. See the
+[installation requirements](https://github.com/mboworks/${PACKAGE_NAME}/blob/${TAG}/README.md#installation-and-requirements).
+A dependency does not inherit mbo's development compiler or \`.bazelrc\` settings.
 
 \`\`\`bzl
 bazel_dep(name = "${BAZELMOD_NAME}", version = "${TAG}")
@@ -119,19 +123,24 @@ bazel_dep(name = "${BAZELMOD_NAME}", version = "${TAG}")
 
 ### Using the provided LLVM
 
-Copy [llvm.MODULE.bazel](https://github.com/mboworks/${PACKAGE_NAME}/blob/main/bazelmod/llvm.MODULE.bazel) to your repository's root directory and add the following line to your MODULES.bazel file or paste the whole contents into it.
+Copy [llvm.MODULE.bazel](https://github.com/mboworks/${PACKAGE_NAME}/blob/${TAG}/bazelmod/llvm.MODULE.bazel)
+to your repository's root directory and add the following to your \`MODULE.bazel\`:
 
 \`\`\`bzl
 include("//:llvm.MODULE.bazel")
+register_toolchains("@llvm_toolchain_llvm//:all")
 \`\`\`
 
-### Using the provided development modules
+The include declares the LLVM repository; the explicit registration selects its toolchains
+for your project. If your project needs multiple compiler configurations, select LLVM with
+\`--extra_toolchains=@llvm_toolchain_llvm//:all\` only in the relevant configuration instead
+of registering it globally. Set \`--cxxopt=-std=c++23 --host_cxxopt=-std=c++23\` in your own
+\`.bazelrc\`. On macOS, also set
+\`--macos_minimum_os=11.0 --host_macos_minimum_os=11.0\` or a newer deployment target.
 
-Copy [dev.MODULE.bazel](https://github.com/mboworks/${PACKAGE_NAME}/blob/main/bazelmod/dev.MODULE.bazel) to your repository's root directory and add the following line to your MODULES.bazel file or paste the whole contents into it. It provides the dev-only Hedron compile-commands extractor (generates compile_commands.json for clangd) and depend_on_what_you_use.
-
-\`\`\`bzl
-include("//:dev.MODULE.bazel")
-\`\`\`
+The [development module](https://github.com/mboworks/${PACKAGE_NAME}/blob/${TAG}/bazelmod/dev.MODULE.bazel)
+is specific to mbo's checkout, including repository-local test fixtures. It is not required
+by consumers and is not a standalone module to copy into another project.
 EOF
 
 printf '\n'

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "total_bytes": 84530985,
+  "total_bytes": 79319129,
   "sections": {
     "root": {
       "files": 30,
@@ -8,7 +8,7 @@
     },
     "mbo": {
       "files": 388,
-      "bytes": 7756014
+      "bytes": 2376736
     },
     ".bcr": {
       "files": 4,
@@ -27,8 +27,8 @@
       "bytes": 7707
     },
     "coverage": {
-      "files": 5042,
-      "bytes": 71801086
+      "files": 5055,
+      "bytes": 71968508
     },
     "bazelmod": {
       "files": 4,

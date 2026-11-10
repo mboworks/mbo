@@ -39,20 +39,27 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertIn("      compiler: clang\n", coverage)
         self.assertIn(f"      llvm_version: {version}\n", coverage)
 
-    def test_registry_linux_uses_a_supported_native_compiler(self):
+    def test_registry_linux_uses_clang_with_matching_libcxx(self):
         presubmit = (ROOT / ".bcr/presubmit.yml").read_text()
         linux = presubmit.split("  verify_targets_linux:\n", 1)[1].split("  verify_targets_macos:\n", 1)[0]
         self.assertIn("    platform: ubuntu2404\n", linux)
-        self.assertIn("      CC: gcc-15\n", linux)
-        self.assertIn("      CXX: g++-15\n", linux)
-        self.assertIn("sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test", linux)
+        self.assertIn("      CC: clang-23\n", linux)
+        self.assertIn("      CXX: clang++-23\n", linux)
+        self.assertIn("      BAZEL_CXXOPTS: -stdlib=libc++\n", linux)
+        self.assertIn("      BAZEL_LINKOPTS: -stdlib=libc++\n", linux)
+        self.assertIn("      BAZEL_LINKLIBS: -lc++:-lm\n", linux)
+        self.assertIn("--fail --silent --show-error --location --retry 3", linux)
+        self.assertIn("signed-by=/usr/share/keyrings/apt.llvm.org.asc", linux)
+        self.assertIn("https://apt.llvm.org/noble/ llvm-toolchain-noble-23 main", linux)
         self.assertIn("sudo apt-get update -o Acquire::Retries=3", linux)
-        self.assertIn("sudo apt-get install --yes gcc-15 g++-15", linux)
+        self.assertIn("sudo apt-get install --yes clang-23 libc++-23-dev libc++abi-23-dev", linux)
+        self.assertNotIn("gcc-15", linux)
         self.assertIn("    - 9.2.0\n", presubmit)
         self.assertIn("    - 9.x\n", presubmit)
         macos = presubmit.split("  verify_targets_macos:\n", 1)[1]
         self.assertIn("    platform: macos_arm64\n", macos)
-        self.assertNotIn("gcc-15", macos)
+        self.assertNotIn("      CC:", macos)
+        self.assertNotIn("      CXX:", macos)
         for task in (linux, macos):
             with self.subTest(task=task):
                 self.assertIn('      - "--cxxopt=-std=c++23"', task)

@@ -1,6 +1,6 @@
 # 0.16.0
 
-- Select pinned Clang explicitly in the release build/test job and GCC 15 in Linux registry
+- Select pinned Clang explicitly in the release build/test job and Clang/libc++ 23 in Linux registry
   presubmits. Correct generated Bazel module and toolchain setup instructions and pin their links
   to the release tag.
 - Fix `NoDestruct<const T>` and bounded-array construction by directly initializing its union

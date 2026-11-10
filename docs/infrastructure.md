@@ -101,8 +101,10 @@ Bazel 9.2.0. Bazel 8's dependency-metadata patches and root-only compatibility o
 removed, so development and downstream builds resolve the same published dependency metadata.
 The registry presubmit supplies both macOS deployment-target flags at 11.0, matching native
 archive-consumer builds; dependencies do not inherit the root module's `.bazelrc` settings.
-Its Ubuntu 24.04 tasks install and explicitly select GCC/libstdc++ 15 rather than the image's
-unsupported default compiler. Both platforms exercise the same targets with Bazel 9.2 and 9.x.
+Its Ubuntu 24.04 tasks install Clang/libc++ 23 from the LLVM APT repository, scoped by `signed-by`,
+and explicitly select that compiler and standard library for compilation and linking rather than
+the image's unsupported defaults. macOS uses Apple Clang. Both platforms exercise the same targets
+with Bazel 9.2 and 9.x; GCC remains covered by main CI and independent archive-consumer jobs.
 
 Release coverage and the separate release build/test job both explicitly select the pinned
 hermetic LLVM toolchain. The reusable packaging workflow does not inherit the coverage runner's

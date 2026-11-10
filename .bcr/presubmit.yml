@@ -4,17 +4,26 @@ matrix:
     - 9.x
 tasks:
   verify_targets_linux:
-    name: Verify build targets with GCC 15
+    name: Verify build targets with Clang 23 and libc++ 23
     platform: ubuntu2404
     bazel: ${{ bazel }}
-    # The Ubuntu 24.04 image defaults to GCC 13, below mbo's C++23 baseline.
+    # Neither default compiler/library in Ubuntu 24.04 meets mbo's C++23 baseline.
     environment:
-      CC: gcc-15
-      CXX: g++-15
+      CC: clang-23
+      CXX: clang++-23
+      BAZEL_CXXOPTS: -stdlib=libc++
+      BAZEL_LINKOPTS: -stdlib=libc++
+      BAZEL_LINKLIBS: -lc++:-lm
     shell_commands:
-      - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+      - >-
+        sudo curl --fail --silent --show-error --location --retry 3
+        --output /usr/share/keyrings/apt.llvm.org.asc https://apt.llvm.org/llvm-snapshot.gpg.key
+      - >-
+        printf '%s\n'
+        'deb [signed-by=/usr/share/keyrings/apt.llvm.org.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-23 main'
+        | sudo tee /etc/apt/sources.list.d/apt.llvm.org.list
       - sudo apt-get update -o Acquire::Retries=3
-      - sudo apt-get install --yes gcc-15 g++-15
+      - sudo apt-get install --yes clang-23 libc++-23-dev libc++abi-23-dev
     build_flags:
       - "--cxxopt=-std=c++23"
       - "--host_cxxopt=-std=c++23"

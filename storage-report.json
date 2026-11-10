@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "total_bytes": 75316283,
+  "total_bytes": 75478702,
   "sections": {
     "root": {
       "files": 30,
@@ -27,8 +27,8 @@
       "bytes": 7707
     },
     "coverage": {
-      "files": 5022,
-      "bytes": 71470270
+      "files": 5029,
+      "bytes": 71632689
     },
     "bazelmod": {
       "files": 4,

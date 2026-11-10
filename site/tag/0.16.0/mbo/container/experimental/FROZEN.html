@@ -1,0 +1,839 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/FROZEN.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main>
+
+<h1 dir="auto" id="frozenmap-and-frozenset">FrozenMap and FrozenSet</h1>
+<p dir="auto"><code class="notranslate">mbo::container::experimental::FrozenMap</code> and <code class="notranslate">FrozenSet</code> are immutable, inline perfect<br>
+hash containers. They support both constexpr and runtime construction on MBO's C++23<br>
+baseline, and compile in C++26 mode. Their experimental API may change between releases.</p>
+<h2 dir="auto" id="measured-read-performance">Measured read performance</h2>
+<p dir="auto">The follow-up comparison uses MBO's existing constexpr <strong>mumbo, fambo, and dumbo</strong> hash<br>
+functors directly in FrozenMap/FrozenSet. All three use <code class="notranslate">mbo::hash::Hasher&lt;Algorithm&gt;</code><br>
+with seed 5,381. <strong>String-view keys now use fambo by default</strong>, through<br>
+<code class="notranslate">FrozenHash&lt;std::string_view&gt;</code>. The former FNV-1a loop and final mix have been removed.<br>
+Integral and enum defaults are unchanged. The retained comparison below predates that<br>
+replacement: its former-FNV rows are historical baselines, and its fambo rows measured an<br>
+explicitly supplied fambo hasher.</p>
+<h3 dir="auto" id="verification-of-the-new-default">Verification of the new default</h3>
+<p dir="auto">A separate run after the replacement compares the default with explicitly supplied fambo<br>
+in the same process. Mixed lookup in ns/query, median of nine repetitions on the same<br>
+Apple M5 Pro / Clang 22.1.8 configuration and 10-byte string fixture:</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Entries</th>
+<th>Layout</th>
+<th align="right">Map default</th>
+<th align="right">Map explicit fambo</th>
+<th align="right">Set default</th>
+<th align="right">Set explicit fambo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">8</td>
+<td>minimal</td>
+<td align="right">6.33</td>
+<td align="right">6.31</td>
+<td align="right">6.57</td>
+<td align="right">6.25</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td>sparse</td>
+<td align="right">5.92</td>
+<td align="right">6.04</td>
+<td align="right">5.95</td>
+<td align="right">5.91</td>
+</tr>
+<tr>
+<td align="right">64</td>
+<td>minimal</td>
+<td align="right">6.15</td>
+<td align="right">6.16</td>
+<td align="right">6.31</td>
+<td align="right">6.23</td>
+</tr>
+<tr>
+<td align="right">64</td>
+<td>sparse</td>
+<td align="right">5.98</td>
+<td align="right">6.14</td>
+<td align="right">6.02</td>
+<td align="right">6.01</td>
+</tr>
+<tr>
+<td align="right">256</td>
+<td>minimal</td>
+<td align="right">6.31</td>
+<td align="right">6.12</td>
+<td align="right">6.30</td>
+<td align="right">6.26</td>
+</tr>
+<tr>
+<td align="right">256</td>
+<td>sparse</td>
+<td align="right">5.95</td>
+<td align="right">5.80</td>
+<td align="right">6.04</td>
+<td align="right">6.17</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Hash alone: default <strong>1.75 ns/key</strong>, explicit fambo <strong>1.75 ns/key</strong>.</p>
+
+<p dir="auto">The default now delivers fambo's roughly 6 ns mixed lookups in these fixtures; no custom<br>
+hasher argument is needed. The policy test checks exact hash equality across empty strings,<br>
+byte edge cases, and length boundaries; timings provide the separate performance check.<br>
+This run contains 86 cases and 774 samples, including hit/miss queries and map <code class="notranslate">at</code>, with<br>
+0.05s minimum time, 0.01s warmup, and random interleaving. No case exceeded 10% CPU-time CV.</p>
+<p dir="auto">Retained <a href="measurements/2026-10-04-apple-m5-pro-fambo-default/summary.csv">CSV</a>,<br>
+<a href="measurements/2026-10-04-apple-m5-pro-fambo-default/read.json.xz">raw artifact</a>, and<br>
+<a href="measurements/2026-10-04-apple-m5-pro-fambo-default/provenance.json">provenance</a> record its<br>
+clean source commit and command. Use the benchmark-artifact runner below with component<br>
+<code class="notranslate">frozen-fambo-default</code>, minimum time <code class="notranslate">0.05s</code>, and filter<br>
+<code class="notranslate">^((Map|Set)/string/(8|64|256)/(minimal|sparse|minimal_fambo|sparse_fambo)/(find/(hit|miss|mixed)|at/hit)|Hash/string/(frozen|fambo))$</code><br>
+to repeat this verification. The run retains the same single-host, warm-corpus limitations<br>
+as the broader comparison below.</p>
+<h3 dir="auto" id="comparison-that-selected-fambo">Comparison that selected fambo</h3>
+<p dir="auto"><strong>Fambo largely closes the lookup gap in this fixture.</strong> At 64 keys, sparse FrozenMap<br>
+mixed lookup takes 5.97 ns with fambo versus 11.16 ns with the former FrozenHash: 47% less time,<br>
+or 1.87 times the throughput. Native STL/Abseil maps take 5.81 to 6.44 ns in the same run.<br>
+Mumbo is fastest among the tested sparse Frozen hashes at 8 entries; fambo leads at 64<br>
+and 256. These results motivate choosing fambo as the string default; they do not claim<br>
+that it wins every workload.</p>
+<p dir="auto">Apple M5 Pro, macOS arm64, Clang 22.1.8/libc++, <code class="notranslate">-c opt --config=clang --config=opt_apple_m5</code>,<br>
+2026-10-04. All values below are median CPU times from <strong>nine repetitions in the same<br>
+process</strong>; lower is better. The hash-choice table uses 64 borrowed 10-byte string keys, with<br>
+mixed queries alternating hits and misses. Map <code class="notranslate">at</code> measures successful queries only;<br>
+compare it with <code class="notranslate">find/hit</code> in the CSV when assessing its additional cost.</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Container</th>
+<th align="right">Map <code class="notranslate">find</code> mixed (ns/query)</th>
+<th align="right">Set <code class="notranslate">find</code> mixed (ns/query)</th>
+<th align="right">Map <code class="notranslate">at</code> hit (ns/query)</th>
+<th align="right">Map iteration (ns/element)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frozen sparse / former FNV</td>
+<td align="right">11.16</td>
+<td align="right">11.70</td>
+<td align="right">19.88</td>
+<td align="right">0.56</td>
+</tr>
+<tr>
+<td>Frozen sparse / mumbo</td>
+<td align="right">6.56</td>
+<td align="right">6.61</td>
+<td align="right">10.60</td>
+<td align="right">0.46</td>
+</tr>
+<tr>
+<td>Frozen sparse / fambo</td>
+<td align="right">5.97</td>
+<td align="right">6.18</td>
+<td align="right">10.18</td>
+<td align="right">0.46</td>
+</tr>
+<tr>
+<td>Frozen sparse / dumbo</td>
+<td align="right">6.91</td>
+<td align="right">7.13</td>
+<td align="right">11.08</td>
+<td align="right">0.46</td>
+</tr>
+<tr>
+<td>STL unordered / default</td>
+<td align="right">6.14</td>
+<td align="right">6.04</td>
+<td align="right">7.41</td>
+<td align="right">1.01</td>
+</tr>
+<tr>
+<td>Abseil flat / default</td>
+<td align="right">6.44</td>
+<td align="right">6.07</td>
+<td align="right">6.65</td>
+<td align="right">0.69</td>
+</tr>
+<tr>
+<td>Abseil node / default</td>
+<td align="right">5.81</td>
+<td align="right">6.66</td>
+<td align="right">6.85</td>
+<td align="right">0.73</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<p dir="auto">Checked <code class="notranslate">at</code> still has a cost worth investigating: with fambo it takes 10.18 ns versus<br>
+7.67 ns for FrozenMap <code class="notranslate">find/hit</code>; native STL/Abseil <code class="notranslate">at</code> takes 6.65 to 7.41 ns. Hashing<br>
+improvements do not explain every difference. Iteration does not hash keys; differences<br>
+between its Frozen rows reflect other factors such as generated code and measurement variation.</p>
+<h3 dir="auto" id="hash-cost-and-matching-hasher-controls">Hash cost and matching-hasher controls</h3>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Hash alone, 10-byte string</th>
+<th align="right">ns/key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Former FrozenHash (FNV-1a + mix)</td>
+<td align="right">4.61</td>
+</tr>
+<tr>
+<td>mumbo</td>
+<td align="right">2.10</td>
+</tr>
+<tr>
+<td>fambo</td>
+<td align="right">1.75</td>
+</tr>
+<tr>
+<td>dumbo</td>
+<td align="right">2.37</td>
+</tr>
+<tr>
+<td>libc++ default</td>
+<td align="right">1.57</td>
+</tr>
+<tr>
+<td>Abseil default</td>
+<td align="right">1.40</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">All containers below receive the <strong>same named hasher</strong>: mixed map lookup, 64 string keys, ns/query.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Supplied hash</th>
+<th align="right">Frozen minimal</th>
+<th align="right">Frozen sparse</th>
+<th align="right">STL unordered</th>
+<th align="right">Abseil flat</th>
+<th align="right">Abseil node</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Former FrozenHash</td>
+<td align="right">13.68</td>
+<td align="right">11.16</td>
+<td align="right">12.16</td>
+<td align="right">11.56</td>
+<td align="right">11.65</td>
+</tr>
+<tr>
+<td>mumbo</td>
+<td align="right">7.84</td>
+<td align="right">6.56</td>
+<td align="right">6.50</td>
+<td align="right">7.80</td>
+<td align="right">7.62</td>
+</tr>
+<tr>
+<td>fambo</td>
+<td align="right">6.40</td>
+<td align="right">5.97</td>
+<td align="right">5.91</td>
+<td align="right">6.35</td>
+<td align="right">6.19</td>
+</tr>
+<tr>
+<td>dumbo</td>
+<td align="right">7.19</td>
+<td align="right">6.91</td>
+<td align="right">7.04</td>
+<td align="right">8.21</td>
+<td align="right">7.52</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<h3 dir="auto" id="lookup-across-table-sizes">Lookup across table sizes</h3>
+<p dir="auto">Mixed string lookup in ns/query; the column number is the number of stored elements.</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Container</th>
+<th align="right">Map 8</th>
+<th align="right">Map 64</th>
+<th align="right">Map 256</th>
+<th align="right">Set 8</th>
+<th align="right">Set 64</th>
+<th align="right">Set 256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frozen sparse / former FNV</td>
+<td align="right">10.29</td>
+<td align="right">11.16</td>
+<td align="right">18.31</td>
+<td align="right">10.62</td>
+<td align="right">11.70</td>
+<td align="right">14.86</td>
+</tr>
+<tr>
+<td>Frozen sparse / mumbo</td>
+<td align="right">5.64</td>
+<td align="right">6.56</td>
+<td align="right">6.60</td>
+<td align="right">5.63</td>
+<td align="right">6.61</td>
+<td align="right">7.17</td>
+</tr>
+<tr>
+<td>Frozen sparse / fambo</td>
+<td align="right">5.98</td>
+<td align="right">5.97</td>
+<td align="right">6.12</td>
+<td align="right">6.09</td>
+<td align="right">6.18</td>
+<td align="right">6.32</td>
+</tr>
+<tr>
+<td>Frozen sparse / dumbo</td>
+<td align="right">6.78</td>
+<td align="right">6.91</td>
+<td align="right">6.92</td>
+<td align="right">6.72</td>
+<td align="right">7.13</td>
+<td align="right">7.06</td>
+</tr>
+<tr>
+<td>STL unordered / default</td>
+<td align="right">5.96</td>
+<td align="right">6.14</td>
+<td align="right">6.58</td>
+<td align="right">5.87</td>
+<td align="right">6.04</td>
+<td align="right">6.44</td>
+</tr>
+<tr>
+<td>Abseil flat / default</td>
+<td align="right">7.09</td>
+<td align="right">6.44</td>
+<td align="right">6.40</td>
+<td align="right">6.31</td>
+<td align="right">6.07</td>
+<td align="right">6.46</td>
+</tr>
+<tr>
+<td>Abseil node / default</td>
+<td align="right">6.64</td>
+<td align="right">5.81</td>
+<td align="right">6.43</td>
+<td align="right">5.91</td>
+<td align="right">6.66</td>
+<td align="right">5.88</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<p dir="auto">The run includes <strong>1,083 cases and 9,747 samples</strong>: all string read operations for linear,<br>
+Limited, native STL/Abseil, and eight Frozen layout/hash combinations at 8/64/256 entries,<br>
+plus hash-only and matching-hasher controls. The complete results also include the minimal<br>
+layouts, <code class="notranslate">contains</code>, <code class="notranslate">count</code>, <code class="notranslate">equal_range</code>, hit-only and miss-only queries, set iteration,<br>
+bucket counts, and construction work.</p>
+<p dir="auto">Twelve of the 1,083 cases have a CPU-time coefficient of variation above 10%; every cell<br>
+in the 64-key hash-choice table is below 5.3%. Closely spaced timings should not be treated as a<br>
+stable ranking across runs.</p>
+<p dir="auto">Download the <a href="measurements/2026-10-04-apple-m5-pro-mbo-hashes/summary.csv">complete CSV</a>,<br>
+<a href="measurements/2026-10-04-apple-m5-pro-mbo-hashes/read.json.xz">raw benchmark artifact</a>, and<br>
+<a href="measurements/2026-10-04-apple-m5-pro-mbo-hashes/provenance.json">checksums and build command</a>.<br>
+The artifact identifies the clean, committed source, compiler/library, host, controls, and<br>
+all raw repetitions. <code class="notranslate">python3 tools/frozen_read_report.py</code> regenerates the guide tables<br>
+and CSV summaries and checks the retained artifact's integrity.</p>
+<p dir="auto">This is one warm, cyclic, fixed-length corpus on one host, with one Abseil process seed.<br>
+The run uses 0.03s minimum time, 0.01s warmup, and randomized benchmark-case order; query<br>
+order is unchanged. Thread affinity and CPU-frequency metadata are unavailable on this<br>
+host. These measurements exclude construction timing and dynamic-allocation totals.<br>
+Changing a hash changes placement and may trigger a container's additional mixing; the<br>
+controls compare complete containers, not isolated index instructions. They do not establish<br>
+which hash wins for long strings, cold tables, other machines, or application workloads.</p>
+<p dir="auto">Reproduce the string study from its recorded source commit:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel build -c opt --config=clang --config=opt_apple_m5 \
+  //mbo/container/experimental:frozen_benchmark
+python3 tools/benchmark_artifact.py run \
+  --component frozen-mbo-hashes \
+  --target //mbo/container/experimental:frozen_benchmark \
+  --output /tmp/frozen-mbo-hashes.json \
+  --config clang --config opt_apple_m5 \
+  --repetitions 9 --minimum-time 0.03s --warmup-time 0.01 -- \
+  bazel-bin/mbo/container/experimental/frozen_benchmark \
+  <span class="pl-s"><span class="pl-pds">'</span>--benchmark_filter=^(Hash/string/|(Map|Set)/string/|Diagnostic/(Map|Set)/string/)<span class="pl-pds">'</span></span> \
+  --benchmark_context=build_config=opt_clang_opt_apple_m5</pre></div>
+<h2 dir="auto" id="original-frozenhash-study">Original FrozenHash study</h2>
+<p dir="auto"><strong>The former default string hash made Frozen lookup slower than STL and Abseil in this<br>
+fixture.</strong> Frozen's inline iteration is faster here. Constexpr construction and perfect<br>
+placement alone do not guarantee fast reads.</p>
+<p dir="auto">The table below uses 64 borrowed 10-byte string keys on an Apple M5 Pro, macOS arm64,<br>
+Clang 22.1.8 with libc++, optimized with <code class="notranslate">--config=opt_apple_m5</code>. Values are median CPU<br>
+times from three repetitions on 2026-10-04; lower is better. Mixed lookup alternates hits<br>
+and misses. Each container uses its default hash and load-factor policy. These are small,<br>
+warm tables with cyclic queries; the results do not predict arbitrary application workloads.</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Container</th>
+<th align="right">Map <code class="notranslate">find</code> mixed (ns/query)</th>
+<th align="right">Set <code class="notranslate">find</code> mixed (ns/query)</th>
+<th align="right">Map <code class="notranslate">at</code> hit (ns/query)</th>
+<th align="right">Map iteration (ns/element)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear scan</td>
+<td align="right">146.68</td>
+<td align="right">144.98</td>
+<td align="right">99.45</td>
+<td align="right">0.46</td>
+</tr>
+<tr>
+<td>Limited</td>
+<td align="right">27.92</td>
+<td align="right">27.57</td>
+<td align="right">27.48</td>
+<td align="right">0.46</td>
+</tr>
+<tr>
+<td>Frozen minimal</td>
+<td align="right">13.80</td>
+<td align="right">14.40</td>
+<td align="right">20.66</td>
+<td align="right">0.47</td>
+</tr>
+<tr>
+<td>Frozen sparse</td>
+<td align="right">10.73</td>
+<td align="right">11.30</td>
+<td align="right">20.97</td>
+<td align="right">0.56</td>
+</tr>
+<tr>
+<td>STL unordered</td>
+<td align="right">5.94</td>
+<td align="right">6.21</td>
+<td align="right">6.91</td>
+<td align="right">1.01</td>
+</tr>
+<tr>
+<td>Abseil flat</td>
+<td align="right">5.11</td>
+<td align="right">5.42</td>
+<td align="right">5.92</td>
+<td align="right">0.76</td>
+</tr>
+<tr>
+<td>Abseil node</td>
+<td align="right">5.78</td>
+<td align="right">6.74</td>
+<td align="right">6.84</td>
+<td align="right">0.71</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+
+<p dir="auto">The full study includes <strong>1,134 cases and 3,402 successful samples</strong>: maps and sets,<br>
+integer and string-view keys, 8/64/256 elements, and all read operations described below.<br>
+Download the <a href="measurements/2026-10-04-apple-m5-pro/read-summary.csv">complete CSV summary</a>,<br>
+<a href="measurements/2026-10-04-apple-m5-pro/read-raw.json.gz">raw repetitions</a>, and<br>
+<a href="measurements/2026-10-04-apple-m5-pro/provenance.json">commands and provenance</a>.<br>
+Seven cases had a CPU-time coefficient of variation above 10%; every cell shown above<br>
+was below 6%. Three repetitions are an initial local comparison, not a cross-machine<br>
+performance guarantee. Runtime construction and total allocated memory were not measured.</p>
+<h3 dir="auto" id="why-string-lookup-is-slow">Why string lookup is slow</h3>
+<p dir="auto">The original <code class="notranslate">FrozenHash&lt;std::string_view&gt;</code> performed byte-by-byte FNV-1a followed by a<br>
+final mix. Each byte depends on the previous multiply, making the string hash an expensive part<br>
+of these short lookups. This is an implementation choice, not a requirement of constexpr<br>
+construction or immutability. The perfect index still needs query hashing, dependent index<br>
+loads, and candidate equality, even though stored keys occupy distinct slots.</p>
+<p dir="auto">A separate diagnostic run measured hash calls alone and then supplied that original <code class="notranslate">FrozenHash</code> to<br>
+STL and Abseil. The following medians come from five repetitions in that same process,<br>
+with the same host, compiler, fixture, and build configuration:</p>
+
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Hash alone (ns/key)</th>
+<th align="right">Original <code class="notranslate">FrozenHash</code></th>
+<th align="right">libc++ <code class="notranslate">std::hash</code></th>
+<th align="right">Abseil default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10-byte string view</td>
+<td align="right">4.61</td>
+<td align="right">1.58</td>
+<td align="right">1.44</td>
+</tr>
+<tr>
+<td>Integer</td>
+<td align="right">0.71</td>
+<td align="right">0.60</td>
+<td align="right">0.54</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Map, 64 string keys</th>
+<th align="right">Default hasher (ns/query)</th>
+<th align="right">Supplied original <code class="notranslate">FrozenHash</code> (ns/query)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STL unordered</td>
+<td align="right">5.98</td>
+<td align="right">12.14</td>
+</tr>
+<tr>
+<td>Abseil flat</td>
+<td align="right">6.44</td>
+<td align="right">11.42</td>
+</tr>
+<tr>
+<td>Abseil node</td>
+<td align="right">6.57</td>
+<td align="right">11.46</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Sparse FrozenMap took <strong>11.12 ns/query</strong> with its original default <code class="notranslate">FrozenHash</code> in this same run.</p>
+
+<p dir="auto">Giving the other containers the same hash largely removes their lookup advantage in this<br>
+fixture. This motivated replacing the default string hash with fambo.<br>
+It does not isolate every indexing cost: changing a hasher also changes table placement,<br>
+and a container may apply additional mixing. Separate hash timings cannot simply be<br>
+subtracted from whole lookups. The <code class="notranslate">at</code> and minimal-layout costs also merit investigation;<br>
+these measurements do not attribute all read overhead to hashing.</p>
+<p dir="auto">The diagnostic <a href="measurements/2026-10-04-apple-m5-pro/hash-summary.csv">CSV summary</a> and<br>
+<a href="measurements/2026-10-04-apple-m5-pro/hash-raw.json.gz">raw repetitions</a> include integers,<br>
+sets, and both Frozen layouts too. There are 38 cases and 190 successful samples in this<br>
+run. Abseil's process-dependent hash seed and ordinary timing variation can change values<br>
+between the broad study and this diagnostic run; compare values within each run.</p>
+<p dir="auto">The retained source snapshots are patches against the base commit recorded in the<br>
+provenance: <a href="measurements/2026-10-04-apple-m5-pro/read-source.patch">read study</a> and<br>
+<a href="measurements/2026-10-04-apple-m5-pro/hash-source.patch">hash investigation</a>. Apply either<br>
+patch independently to reconstruct its measured, then-uncommitted source. Regenerate the guide<br>
+tables and CSV summaries from the checked raw data with<br>
+<code class="notranslate">python3 tools/frozen_read_report.py</code>. CSV statistics use nine significant digits for<br>
+reproducibility across Python versions; the raw JSON retains the original precision.</p>
+<h2 dir="auto" id="quick-start">Quick start</h2>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>array<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/experimental/frozen_map.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/experimental/frozen_set.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> <span class="pl-k">namespace</span> <span class="pl-en">std</span>::string_view_literals<span class="pl-k">;</span>
+<span class="pl-k">using</span> mbo::container::experimental::FrozenMap;
+<span class="pl-k">using</span> mbo::container::experimental::FrozenSet;
+
+<span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-c1">kEntries</span> = std::to_array&lt;std::pair&lt;std::string_view, <span class="pl-k">int</span>&gt;&gt;({
+    {<span class="pl-s"><span class="pl-pds">"</span>-name<span class="pl-pds">"</span></span>, <span class="pl-c1">1</span>}, {<span class="pl-s"><span class="pl-pds">"</span>-n<span class="pl-pds">"</span></span>, <span class="pl-c1">1</span>}, {<span class="pl-s"><span class="pl-pds">"</span>-type<span class="pl-pds">"</span></span>, <span class="pl-c1">2</span>},
+});
+<span class="pl-k">constexpr</span> FrozenMap <span class="pl-en">kOptions</span>(<span class="pl-c1">kEntries</span>);
+<span class="pl-k">constexpr</span> FrozenSet <span class="pl-en">kNames</span>(std::to_array&lt;std::string_view&gt;({<span class="pl-s"><span class="pl-pds">"</span>-name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>-n<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>-type<span class="pl-pds">"</span></span>}));
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kOptions</span>.at(<span class="pl-s"><span class="pl-pds">"</span>-n<span class="pl-pds">"</span></span>) == <span class="pl-c1">1</span>);
+<span class="pl-k">static_assert</span>(!<span class="pl-c1">kOptions</span>.lookup(<span class="pl-s"><span class="pl-pds">"</span>unknown<span class="pl-pds">"</span></span>));
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kNames</span>.contains(<span class="pl-s"><span class="pl-pds">"</span>-type<span class="pl-pds">"</span></span>));</pre></div>
+<p dir="auto">The examples and interface are exercised by <code class="notranslate">:frozen_test</code>. Use Bazel dependencies<br>
+<code class="notranslate">//mbo/container/experimental:frozen_map_cc</code> and <code class="notranslate">:frozen_set_cc</code> (with<br>
+<code class="notranslate">@mboworks_mbo</code> before the labels in another module). <code class="notranslate">:frozen_options_cc</code> exports options<br>
+and default hashes independently.</p>
+<h2 dir="auto" id="construction-and-ownership">Construction and ownership</h2>
+<p dir="auto">The template signatures follow the Limited containers:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">FrozenMap&lt;Key, Value, CapacityOrOptions, Hash = FrozenHash&lt;Key&gt;, KeyEqual = std::equal_to&lt;&gt;&gt;
+FrozenSet&lt;Key, CapacityOrOptions, Hash = FrozenHash&lt;Key&gt;, KeyEqual = std::equal_to&lt;&gt;&gt;</pre></div>
+<p dir="auto">An integer capacity selects default options. Alternatively pass a structural <code class="notranslate">FrozenOptions</code><br>
+value. Array deduction guides and <code class="notranslate">MakeFrozenMap</code>, <code class="notranslate">MakeFrozenSet</code>, <code class="notranslate">ToFrozenMap</code>, and<br>
+<code class="notranslate">ToFrozenSet</code> infer capacity and element types from <code class="notranslate">std::array</code>. Explicitly typed containers<br>
+also accept iterator/sentinel pairs, initializer lists, and <code class="notranslate">std::from_range</code> ranges. The<br>
+empty constructor supports every capacity. Hash and equality objects can carry constexpr<br>
+state and can be passed after the input. Input elements are copied into inline storage;<br>
+move iterators can transfer move-only elements. Keys and mapped values must be object types,<br>
+not reference types; a reference member could remain writable through a const iterator.<br>
+Elements need not be default constructible.</p>
+<p dir="auto">Both keys and mapped values are read-only after construction. Copy construction owns an<br>
+independent copy of all elements and the precomputed index. Move construction of a frozen<br>
+container copies its const storage and therefore requires copyable elements. Assignment is<br>
+deleted. Input iteration order is retained, with duplicate elements removed; this order is<br>
+not sorted. References and iterators remain valid for the owning container's lifetime.</p>
+<p dir="auto">A string-view key borrows its backing bytes, which must outlive the table. Use literals or<br>
+other static constexpr backing storage for static tables. Embedded NUL requires an explicit<br>
+length or the <code class="notranslate">sv</code> suffix; conversion from a C string stops at its first NUL. Hashing treats<br>
+characters as unsigned bytes and compares the full string view on lookup. There is no<br>
+case folding, normalization, or mode inference. Build separate tables from each mode's<br>
+actual spellings. Different alias spellings may map to the same value; the same spelling<br>
+may map to different values in independently constructed tables.</p>
+<p dir="auto">Duplicate set keys collapse. Duplicate map keys collapse when their mapped values compare<br>
+equal; conflicting values fail construction. If the mapped type lacks equality, any duplicate<br>
+key fails with a dedicated diagnostic. Equivalent keys retain the first spelling and value.<br>
+As with standard hash containers, key equality must be an equivalence relation and equal<br>
+keys must hash equally, including heterogeneous lookup keys.</p>
+<p dir="auto"><code class="notranslate">FrozenHash</code> supports integral and enum keys and <code class="notranslate">std::string_view</code>. Other key types use a<br>
+custom hash object or a specialization. Its string-view specialization delegates to<br>
+<code class="notranslate">mbo::hash::Hasher&lt;mbo::hash::fambo::Algorithm&gt;</code> with seed 5,381, including transparent<br>
+lookup; integral/enum keys retain their deterministic integer mix. Hash values and perfect<br>
+slot placement can change between library versions. Hash results are converted to <code class="notranslate">std::uint64_t</code>.<br>
+Custom operations must produce identical results at runtime and during constant evaluation;<br>
+portable reproducibility also requires compiler-independent custom operations.</p>
+<p dir="auto">MBO's <code class="notranslate">mumbo</code>, <code class="notranslate">fambo</code>, and <code class="notranslate">dumbo</code> can be used directly through their constexpr,<br>
+transparent <code class="notranslate">mbo::hash::Hasher</code> functors (include <code class="notranslate">mbo/hash/hash.h</code>, Bazel dependency<br>
+<code class="notranslate">//mbo/hash:hash_cc</code>). For example, using the entries from the quick start:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">using</span> Fambo = mbo::hash::Hasher&lt;mbo::hash::fambo::Algorithm&gt;;
+<span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-c1">kFamboOptions</span> = mbo::container::experimental::MakeFrozenMap(<span class="pl-c1">kEntries</span>, Fambo{});
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kFamboOptions</span>.at(<span class="pl-s"><span class="pl-pds">"</span>-n<span class="pl-pds">"</span></span>) == <span class="pl-c1">1</span>);</pre></div>
+<p dir="auto">These functors use MBO's default seed, 5,381, for all three algorithms, including dumbo.<br>
+They read words efficiently at runtime and produce the same hash during constant evaluation.<br>
+The integration tests exercise Frozen lookup with runtime-owned strings, embedded NUL/high<br>
+bytes, empty strings, and lengths across the short/bulk hash boundaries. Selecting a custom<br>
+hasher does not change the default <code class="notranslate">FrozenHash</code> used by other tables.</p>
+<h2 dir="auto" id="read-only-c26-interface">Read-only C++26 interface</h2>
+<p dir="auto">These containers provide the read-only unordered associative operations in the<br>
+<a href="https://eel.is/c++draft/unord.map.overview" rel="nofollow">C++ working draft</a>, with the following explicit<br>
+boundary. They are not full mutable standard containers. In particular, constexpr<br>
+construction does not imply immutability: freezing is a separate choice made by these types.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Area</th>
+<th>Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Types</td>
+<td><code class="notranslate">key_type</code>, <code class="notranslate">value_type</code>, <code class="notranslate">hasher</code>, <code class="notranslate">key_equal</code>, <code class="notranslate">size_type</code>, <code class="notranslate">difference_type</code>, <code class="notranslate">reference</code>, <code class="notranslate">const_reference</code>, <code class="notranslate">pointer</code>, <code class="notranslate">const_pointer</code>; maps also have <code class="notranslate">mapped_type</code></td>
+</tr>
+<tr>
+<td>Iterators</td>
+<td><code class="notranslate">iterator</code>, <code class="notranslate">const_iterator</code>, <code class="notranslate">local_iterator</code>, <code class="notranslate">const_local_iterator</code>; all are const forward iterators</td>
+</tr>
+<tr>
+<td>Iteration</td>
+<td><code class="notranslate">begin</code>, <code class="notranslate">end</code>, <code class="notranslate">cbegin</code>, <code class="notranslate">cend</code>, including bucket overloads</td>
+</tr>
+<tr>
+<td>Size</td>
+<td><code class="notranslate">empty</code>, <code class="notranslate">size</code>, <code class="notranslate">max_size</code>, <code class="notranslate">capacity</code></td>
+</tr>
+<tr>
+<td>Lookup</td>
+<td><code class="notranslate">find</code>, <code class="notranslate">contains</code>, <code class="notranslate">count</code>, <code class="notranslate">equal_range</code>, <code class="notranslate">index_of</code></td>
+</tr>
+<tr>
+<td>Optional access</td>
+<td><code class="notranslate">lookup</code> returns <code class="notranslate">mbo::types::OptionalRef&lt;const mapped_type&gt;</code> for maps and <code class="notranslate">OptionalRef&lt;const key_type&gt;</code> for sets</td>
+</tr>
+<tr>
+<td>Checked access</td>
+<td>Map <code class="notranslate">at</code>, and <code class="notranslate">at_index</code> on both containers</td>
+</tr>
+<tr>
+<td>Hash observers</td>
+<td><code class="notranslate">hash_function</code>, <code class="notranslate">key_eq</code>, <code class="notranslate">bucket</code>, <code class="notranslate">bucket_count</code>, <code class="notranslate">max_bucket_count</code>, <code class="notranslate">bucket_size</code>, <code class="notranslate">load_factor</code>, <code class="notranslate">max_load_factor</code></td>
+</tr>
+<tr>
+<td>MBO conveniences</td>
+<td><code class="notranslate">contains_all(range)</code>, <code class="notranslate">contains_any(range)</code>, <code class="notranslate">construction_work()</code></td>
+</tr>
+<tr>
+<td>Comparison</td>
+<td>Content-based <code class="notranslate">==</code> and <code class="notranslate">!=</code>, independent of insertion order and capacity</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Map <code class="notranslate">value_type</code> is <code class="notranslate">std::pair&lt;const Key, Value&gt;</code>; every exposed reference is const, including<br>
+the mapped value. Iterator aliases are identical to their const counterparts. There is no<br>
+allocator API, node handle, insertion, erasure, merge, inserting subscript, mutable load-factor<br>
+setter, reserve, rehash, or swap. There are no ordering observers or lower/upper bounds.<br>
+<code class="notranslate">lookup</code> uses MBO's optional-reference convention on the C++23 baseline rather than requiring<br>
+standard optional references. <code class="notranslate">find</code> returns <code class="notranslate">end()</code> on absence; <code class="notranslate">index_of</code> returns <code class="notranslate">npos</code>.<br>
+<code class="notranslate">at</code> and invalid index/bucket access use MBO's configured requirement policy, as Limited<br>
+containers do, rather than promising <code class="notranslate">std::out_of_range</code>.</p>
+<p dir="auto">Both <code class="notranslate">Hash::is_transparent</code> and <code class="notranslate">KeyEqual::is_transparent</code> enable heterogeneous overloads<br>
+when the operations accept that key. This includes <code class="notranslate">at</code>, <code class="notranslate">lookup</code>, <code class="notranslate">bucket</code>, and <code class="notranslate">index_of</code>.<br>
+The ordinary key overloads still allow normal implicit conversions. Forward iteration and<br>
+range algorithms work on const and non-const objects; modifying algorithms cannot write<br>
+through the iterators.</p>
+<p dir="auto">Each exposed bucket is one physical perfect-hash slot, containing zero or one element.<br>
+<code class="notranslate">max_load_factor()</code> is fixed at 1. An empty zero-capacity table has zero buckets and a zero<br>
+load factor; <code class="notranslate">bucket(key)</code> returns zero in that case, but no bucket index is valid for local<br>
+iteration. The sparse slot count is distinct from element capacity.</p>
+<h2 dir="auto" id="shared-implementation-and-construction-limits">Shared implementation and construction limits</h2>
+<p dir="auto"><code class="notranslate">FrozenMap</code> and <code class="notranslate">FrozenSet</code> share <code class="notranslate">frozen_internal::FrozenTable</code>, analogous to the<br>
+Limited containers' shared implementation. A separate <code class="notranslate">FrozenIndex</code> knows only hashes and<br>
+element positions. It can be reused by a future mutable sibling without inheriting from a<br>
+frozen public type. A possible mutable family is <code class="notranslate">StaticHashMap</code> / <code class="notranslate">StaticHashSet</code>; those<br>
+types are not implemented here. Mapped-value updates would preserve the index, while key<br>
+insertion could require rebuilding it.</p>
+<p dir="auto">Construction hashes keys once, detects duplicates and full-hash collisions, groups keys by<br>
+a first-level bucket, and places the largest groups first using bounded displacement search.<br>
+Singletons fill the remaining slots directly. It then verifies the actual occupied slot of<br>
+every registered key. Distinct full hashes are not sufficient proof of perfect placement.<br>
+An unknown key can reach an occupied slot, so lookup always checks candidate equality.<br>
+Lookup requires hashing the query and at most one full key comparison; string lookup is<br>
+linear in the query length, not constant in byte length.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Option</th>
+<th align="right">Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">capacity</code></td>
+<td align="right">0</td>
+<td>Maximum number of distinct elements; at most 4,096</td>
+</tr>
+<tr>
+<td><code class="notranslate">slots</code></td>
+<td align="right">0</td>
+<td>Zero selects <code class="notranslate">2 * capacity</code>; explicit counts are at most 65,536</td>
+</tr>
+<tr>
+<td><code class="notranslate">max_seed</code></td>
+<td align="right">256</td>
+<td>Attempts per multi-key bucket; at most 65,536</td>
+</tr>
+<tr>
+<td><code class="notranslate">max_work</code></td>
+<td align="right">65,536</td>
+<td>Shared entry/probe/placement-comparison budget; at most 1,048,576</td>
+</tr>
+<tr>
+<td><code class="notranslate">max_key_bytes</code></td>
+<td align="right">65,536</td>
+<td>Total input string-view bytes, including duplicate inputs</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Use <code class="notranslate">FrozenOptions{.capacity = N, .slots = N}</code> for a minimal table when all <code class="notranslate">N</code> entries<br>
+are unique. Smaller slot counts can hold fewer than capacity elements. Search failure has<br>
+no silent fallback: use more slots, more search budget, or a different hash. Distinct keys<br>
+with identical full hashes cannot be separated by this algorithm and are rejected.<br>
+Limits bound library work, not arbitrary user hash/equality execution or the compiler's<br>
+implementation-specific step accounting. Large inputs or enlarged limits can still need a<br>
+compiler with a larger constexpr budget. No compiler limits are raised by the tests.</p>
+<p dir="auto">Storage consists of optional inline element slots (so unused entries need no default<br>
+constructor), two arrays of 32-bit indices, hash/equality objects, size, and a work counter.<br>
+Construction uses bounded automatic scratch arrays. Static constexpr tables need no dynamic<br>
+initialization; lookup allocates no container memory. User-owned element types and custom<br>
+hash/equality functions retain responsibility for their own allocations and lifetimes.</p>
+<h2 dir="auto" id="validation-and-measurements">Validation and measurements</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> //...
+bazel <span class="pl-c1">test</span> --//mbo/config:require_throws=true \
+  //mbo/container/experimental:frozen_require_exceptions_test
+bazel build --config=clang-tidy //...
+./compile_commands-update.sh
+python3 mbo/container/experimental/frozen_compile_test.py
+bazel run -c opt --config=clang //mbo/container/experimental:frozen_benchmark -- \
+  --benchmark_min_time=0.1s --benchmark_repetitions=3 \
+  --benchmark_enable_random_interleaving=true \
+  --benchmark_out=/tmp/frozen-read.json --benchmark_out_format=json
+python3 mbo/container/experimental/frozen_measure.py --output /tmp/frozen-measure</pre></div>
+<p dir="auto">The compiler test first compiles a valid baseline, then verifies negative diagnostics,<br>
+sparse tables at maximum capacity within default constexpr limits, and C++26 interface<br>
+compilation. CI runs it after generating the compilation database; the<br>
+exception-policy coverage pass includes the construction and checked-lookup failures.<br>
+Ordinary tests cover byte strings, non-default-constructible types, all lookup operations,<br>
+transparent overload participation, minimal/sparse tables, aliases, independent vocabularies,<br>
+slot uniqueness, runtime/constexpr equivalence, and copies.</p>
+<p dir="auto">The read benchmark compares maps and sets, integer and string-view keys, and 8/64/256<br>
+elements across seven layouts: linear scans, Limited containers, minimal/sparse Frozen<br>
+containers, <code class="notranslate">std::unordered_map</code> / <code class="notranslate">std::unordered_set</code>, <code class="notranslate">absl::flat_hash_map</code> /<br>
+<code class="notranslate">absl::flat_hash_set</code>, and <code class="notranslate">absl::node_hash_map</code> / <code class="notranslate">absl::node_hash_set</code>.</p>
+<p dir="auto">There are 1,620 main comparison cases plus 39 hash diagnostics. Main-case names use<br>
+<code class="notranslate">Map|Set/int|string/size/layout/operation/workload</code>, with<br>
+layouts <code class="notranslate">linear</code>, <code class="notranslate">limited</code>, <code class="notranslate">minimal</code>, <code class="notranslate">sparse</code>, <code class="notranslate">std_unordered</code>, <code class="notranslate">absl_flat</code>, and<br>
+<code class="notranslate">absl_node</code>. Operations are <code class="notranslate">find</code>, <code class="notranslate">contains</code>, <code class="notranslate">count</code>, and <code class="notranslate">equal_range</code> on hits, misses,<br>
+and a 50/50 mixture; maps additionally have <code class="notranslate">at/hit</code>. <code class="notranslate">iterate</code> has no workload suffix:<br>
+one timed iteration traverses the entire table and consumes every key and mapped value.<br>
+Its latency is per traversal, while <code class="notranslate">items_per_second</code> counts visited elements. Point-read<br>
+latency is per query. Linear arrays emulate the associative operations; <code class="notranslate">at</code> includes a<br>
+missing-key check. Ordered <code class="notranslate">equal_range</code> can return an empty range at an insertion position,<br>
+while hash containers return end iterators; both are treated as misses.</p>
+<p dir="auto">The six additional string layouts are <code class="notranslate">minimal_mumbo</code>, <code class="notranslate">sparse_mumbo</code>, <code class="notranslate">minimal_fambo</code>,<br>
+<code class="notranslate">sparse_fambo</code>, <code class="notranslate">minimal_dumbo</code>, and <code class="notranslate">sparse_dumbo</code>. Each has the complete read-operation<br>
+matrix at 8/64/256 entries and retains constexpr construction with the ordinary construction<br>
+budgets. The unsuffixed <code class="notranslate">minimal</code> and <code class="notranslate">sparse</code> string layouts now also use fambo through<br>
+the default selector. <code class="notranslate">Hash/string/frozen</code> and controls ending in <code class="notranslate">_frozen_hash</code> likewise<br>
+refer to the current fambo-backed default; the <code class="notranslate">frozen_default</code> and <code class="notranslate">experiment</code> context<br>
+fields distinguish new runs from the retained FNV studies. The MBO algorithms hash byte strings, so integer cases retain their existing hashes.</p>
+<p dir="auto">Inline tables retain constexpr construction. STL and Abseil tables use their native default<br>
+hash/equality and load-factor policies, with <code class="notranslate">reserve(size)</code> followed by insertion before<br>
+timing. All operations access const tables, with setup shared across operations and<br>
+repetitions. A preflight check validates every hit, miss, mapped value, range boundary, and<br>
+iteration count before timing and warms the same corpus for every layout. Native hashers<br>
+mean these are whole-container comparisons, not measurements that isolate indexing from<br>
+hash cost. Query keys are visited cyclically; mixed queries alternate hits and misses.<br>
+String keys are borrowed 10-byte views. These are small, warm-table workloads, not random<br>
+large-working-set or variable-length-string measurements. Random interleaving changes<br>
+benchmark-case order, not query order or Abseil's process-dependent hash seed.</p>
+<p dir="auto">Counters include element counts, bucket counts and load factors where supported, and frozen<br>
+construction work. <code class="notranslate">object_bytes</code> is strictly <code class="notranslate">sizeof(container)</code>: it excludes borrowed key<br>
+bytes and all dynamic allocations, so it must not be used to compare total memory between<br>
+inline, STL, and Abseil containers. Allocation totals and runtime construction costs are not<br>
+measured here. For machine-specific measurements, add the matching tuning configuration<br>
+(<code class="notranslate">--config=opt_apple_m5</code> or <code class="notranslate">--config=opt_zen5</code>) and retain it with the command and results.<br>
+Use, for example, <code class="notranslate">--benchmark_filter='Map/string/64/.*/find/mixed$'</code> for a focused comparison.</p>
+<p dir="auto"><code class="notranslate">Hash/int|string/frozen|std|absl</code> measures hash calls alone. The 12<br>
+<code class="notranslate">Diagnostic/Map|Set/int|string/64/layout/find/mixed</code> cases supply <code class="notranslate">FrozenHash</code> to STL and<br>
+Abseil using layouts <code class="notranslate">std_frozen_hash</code>, <code class="notranslate">absl_flat_frozen_hash</code>, and <code class="notranslate">absl_node_frozen_hash</code>.<br>
+To reproduce the 38-case investigation, use<br>
+<code class="notranslate">--benchmark_filter='^(Hash/|Diagnostic/|(Map|Set)/(int|string)/64/(minimal|sparse|std_unordered|absl_flat|absl_node)/find/mixed$)'</code><br>
+with <code class="notranslate">--benchmark_min_time=0.1s --benchmark_repetitions=5</code> and random interleaving.<br>
+Use <code class="notranslate">--benchmark_filter='^(Map|Set)/'</code> to run only the main matrix.</p>
+<p dir="auto">The MBO alternatives add <code class="notranslate">Hash/string/mumbo|fambo|dumbo</code> and 18 controls using layout<br>
+prefixes <code class="notranslate">std_</code>, <code class="notranslate">absl_flat_</code>, and <code class="notranslate">absl_node_</code> followed by the algorithm name<br>
+(for example, <code class="notranslate">Diagnostic/Map/string/64/absl_flat_fambo/find/mixed</code>). They supply the same<br>
+named hasher to STL/Abseil. Select all 1,083 string cases with<br>
+<code class="notranslate">--benchmark_filter='^(Hash/string/|(Map|Set)/string/|Diagnostic/(Map|Set)/string/)'</code>.<br>
+The executable records compiler/library provenance for <code class="notranslate">tools/benchmark_artifact.py</code>.</p>
+<p dir="auto">The original FNV-based Clang 22.1.8 / macOS arm64 run of the 64-key string-map fixture required 437 work<br>
+units for the minimal index and 170 for the sparse index. Container sizes were 2,576 and<br>
+2,832 bytes respectively. This measured construction/storage tradeoff supports the sparse<br>
+default; it does not establish a universal winner. Compare with Limited containers too:<br>
+their inline storage can be considerably smaller. Startup measurements on this host were<br>
+noisy at millisecond scale and do not establish a startup improvement.</p>
+<p dir="auto">The separate measurement script uses the compilation database's actual Clang command and retains<br>
+raw time traces, section sizes, symbol listings, commands, and a JSON report. It compares<br>
+the original four inline layouts as standalone commands with identical query behavior; its<br>
+compile/startup probes do not include STL or Abseil containers. Compilation runs without an object<br>
+cache and includes trace instrumentation; <code class="notranslate">Total Evaluate*</code> events report constexpr work<br>
+and may overlap, so do not sum them. Object bytes include metadata; read-only section bytes<br>
+include relocated const data where reported by the object format. A symbol check records<br>
+dynamic initialization. Startup timings include process creation and warmed operating-system<br>
+caches, not cold disk startup. The script accepts <code class="notranslate">--size</code>, repetition counts, <code class="notranslate">--llvm-size</code>,<br>
+and <code class="notranslate">--llvm-nm</code> paths. These synthetic commands measure container cost, not XFF parser or<br>
+whole-application speedups. Select a layout using these costs together with lookup latency.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

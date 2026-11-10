@@ -1,0 +1,367 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>cmake/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="cmake-support">CMake support</h1>
+<p dir="auto">The CMake build provides one component target per <code class="notranslate">mbo/*</code> library, an overall library target,<br>
+individual binaries, and CTest registration for the existing C++ unit tests. Bazel remains the<br>
+primary build system. The root <code class="notranslate">CMakeLists.txt</code> includes the build definitions in this directory.</p>
+<h2 dir="auto" id="requirements-and-build">Requirements and build</h2>
+<ul dir="auto">
+<li>CMake 3.28 or newer.</li>
+<li>Python 3.10 or newer at configure time.</li>
+<li>C++23 with GCC 15 and matching libstdc++, Clang 22 and a supported standard library,<br>
+or the Apple Clang toolchain described in the root README.</li>
+<li>A Unix platform. CI verifies Ubuntu with GCC 15.</li>
+<li>Network access for dependencies, unless their sources or CMake targets are supplied locally.</li>
+</ul>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">CC=gcc-15 CXX=g++-15 cmake -S <span class="pl-c1">.</span> -B build-cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cmake --parallel 2
+ctest --test-dir build-cmake --output-on-failure --parallel 2</pre></div>
+<p dir="auto">MBO's compiled sources, tests, and binaries use <code class="notranslate">-Wall -Wextra -Wpedantic -Werror</code> and the<br>
+existing compiler-specific warning exceptions. Ordinary MBO compilation disables exceptions;<br>
+existing exception tests retain their target-specific compiler options. Warning options are<br>
+private to MBO compilation and do not change the parent application's warning policy.</p>
+<h2 dir="auto" id="library-targets">Library targets</h2>
+<p dir="auto">Link the overall <code class="notranslate">mbo</code> target through <code class="notranslate">mbo::mbo</code>, or select a component. Compiled components<br>
+are static libraries; components containing only headers are interface libraries. Each component<br>
+includes its subdirectories, including <code class="notranslate">mbo/container/experimental</code> and <code class="notranslate">mbo/file/ini</code>.<br>
+C++23, generated headers, include directories, and required link dependencies propagate to consumers.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">Library directory</th>
+<th align="left">Build target</th>
+<th align="left">Link target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">All libraries</td>
+<td align="left"><code class="notranslate">mbo</code></td>
+<td align="left"><code class="notranslate">mbo::mbo</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/config</code></td>
+<td align="left"><code class="notranslate">mbo_config</code></td>
+<td align="left"><code class="notranslate">mbo::config</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">mbo_container</code></td>
+<td align="left"><code class="notranslate">mbo::container</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/diff</code></td>
+<td align="left"><code class="notranslate">mbo_diff</code></td>
+<td align="left"><code class="notranslate">mbo::diff</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/digest</code></td>
+<td align="left"><code class="notranslate">mbo_digest</code></td>
+<td align="left"><code class="notranslate">mbo::digest</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/file</code></td>
+<td align="left"><code class="notranslate">mbo_file</code></td>
+<td align="left"><code class="notranslate">mbo::file</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/hash</code></td>
+<td align="left"><code class="notranslate">mbo_hash</code></td>
+<td align="left"><code class="notranslate">mbo::hash</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/json</code></td>
+<td align="left"><code class="notranslate">mbo_json</code></td>
+<td align="left"><code class="notranslate">mbo::json</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/log</code></td>
+<td align="left"><code class="notranslate">mbo_log</code></td>
+<td align="left"><code class="notranslate">mbo::log</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/memory</code></td>
+<td align="left"><code class="notranslate">mbo_memory</code></td>
+<td align="left"><code class="notranslate">mbo::memory</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/mope</code></td>
+<td align="left"><code class="notranslate">mbo_mope</code></td>
+<td align="left"><code class="notranslate">mbo::mope</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/status</code></td>
+<td align="left"><code class="notranslate">mbo_status</code></td>
+<td align="left"><code class="notranslate">mbo::status</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/strings</code></td>
+<td align="left"><code class="notranslate">mbo_strings</code></td>
+<td align="left"><code class="notranslate">mbo::strings</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/testing</code></td>
+<td align="left"><code class="notranslate">mbo_testing</code></td>
+<td align="left"><code class="notranslate">mbo::testing</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mbo/types</code></td>
+<td align="left"><code class="notranslate">mbo_types</code></td>
+<td align="left"><code class="notranslate">mbo::types</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<div class="highlight highlight-source-cmake" dir="auto"><pre class="notranslate"><span class="pl-c1">add_subdirectory</span>(<span class="pl-c1">path</span><span class="pl-s">/to/mbo</span>)
+<span class="pl-c1">add_executable</span>(<span class="pl-s">application</span> <span class="pl-s">main.cc</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-s">application</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">mbo::container</span> <span class="pl-s">mbo::strings</span>)
+<span class="pl-c">#<span class="pl-c"> Or: target_link_libraries(application PRIVATE mbo::mbo)</span></span></pre></div>
+<p dir="auto">Embedding through <code class="notranslate">FetchContent</code> also uses the root <code class="notranslate">CMakeLists.txt</code>. Tests and command-line<br>
+binaries default to off when MBO is a subproject. The <code class="notranslate">mbo/testing</code> component depends on GoogleTest<br>
+and compiles the existing <code class="notranslate">rules_cc</code> runfiles implementation. Linking <code class="notranslate">mbo::mbo</code> includes this component.</p>
+<h2 dir="auto" id="binary-targets">Binary targets</h2>
+<p dir="auto">Each <code class="notranslate">cc_binary</code> declared under <code class="notranslate">mbo/</code> has a CMake target named <code class="notranslate">mbo_bin_&lt;name&gt;</code> and an executable alias<br>
+<code class="notranslate">mbo::bin::&lt;name&gt;</code>. Executables are written to <code class="notranslate">bin/&lt;target&gt;/&lt;name&gt;</code> in the build tree.<br>
+Command-line programs and developer tools require <code class="notranslate">MBO_BUILD_BINARIES</code>; benchmarks require<br>
+<code class="notranslate">MBO_BUILD_BENCHMARKS</code> independently.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">Binary name</th>
+<th align="left">Source library</th>
+<th align="left">Option</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><code class="notranslate">arena_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/memory</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">arena_layout_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/memory</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">diff</code></td>
+<td align="left"><code class="notranslate">mbo/diff</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">diff_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/diff</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">digest</code></td>
+<td align="left"><code class="notranslate">mbo/digest</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">frozen_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container/experimental</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">frozen_probe</code></td>
+<td align="left"><code class="notranslate">mbo/container/experimental</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">glob</code></td>
+<td align="left"><code class="notranslate">mbo/file</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">hash_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/hash</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">hash_test_vectors_gen</code></td>
+<td align="left"><code class="notranslate">mbo/hash</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">hash_tool</code></td>
+<td align="left"><code class="notranslate">mbo/hash</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">limited_set_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">mope</code></td>
+<td align="left"><code class="notranslate">mbo/mope</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">ordered_lookup_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">segmented_deque_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">segmented_vector_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">segmented_vector_element_shape_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">segmented_vector_lifecycle_benchmark</code></td>
+<td align="left"><code class="notranslate">mbo/container</code></td>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">cmake -S <span class="pl-c1">.</span> -B build-cmake -DMBO_BUILD_BENCHMARKS=ON
+cmake --build build-cmake --target mbo_bin_glob mbo_bin_frozen_benchmark --parallel 2
+build-cmake/bin/mbo_bin_glob/glob --help</pre></div>
+<h2 dir="auto" id="configuration-options">Configuration options</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">Cache variable</th>
+<th align="left">Default</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><code class="notranslate">MBO_BUILD_BENCHMARKS</code></td>
+<td align="left"><code class="notranslate">OFF</code></td>
+<td align="left">Build all benchmark binaries; fetch Google Benchmark when needed.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_BUILD_BINARIES</code></td>
+<td align="left">Top-level: <code class="notranslate">ON</code>; embedded: <code class="notranslate">OFF</code></td>
+<td align="left">Build command-line programs and developer tools.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_BUILD_TESTING</code></td>
+<td align="left">Top-level: <code class="notranslate">ON</code>; embedded: <code class="notranslate">OFF</code></td>
+<td align="left">Build C++ unit tests and register CTest cases.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_ENABLE_EXCEPTIONS</code></td>
+<td align="left"><code class="notranslate">OFF</code></td>
+<td align="left">Enable compiler exceptions for MBO targets; explicit per-target Bazel options still apply.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_FETCH_DEPENDENCIES</code></td>
+<td align="left"><code class="notranslate">ON</code></td>
+<td align="left">Fetch pinned dependency sources when their targets are absent.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_GOOGLETEST_SOURCE_DIR</code></td>
+<td align="left">Fetched GoogleTest directory</td>
+<td align="left">GoogleTest sources providing the runfiles test's <code class="notranslate">LICENSE</code> fixture.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_HASH_MANGLE_SEED</code></td>
+<td align="left">Empty string</td>
+<td align="left">Printable ASCII seed selecting the hash mangle bucket.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_HASH_MANGLE_SEED_BUCKETS</code></td>
+<td align="left"><code class="notranslate">8</code></td>
+<td align="left">Bucket count; <code class="notranslate">0</code> disables mangling, <code class="notranslate">1</code> selects a fixed nonzero constant.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_LIMITED_ORDERED_MAX_UNROLL_CAPACITY</code></td>
+<td align="left"><code class="notranslate">16</code></td>
+<td align="left"><code class="notranslate">LimitedOrdered</code> unroll capacity, from <code class="notranslate">4</code> through <code class="notranslate">32</code>.</td>
+</tr>
+<tr>
+<td align="left"><code class="notranslate">MBO_REQUIRE_THROWS</code></td>
+<td align="left"><code class="notranslate">OFF</code></td>
+<td align="left">Throw on requirement violations when the translation unit enables exceptions.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Compiler exceptions are disabled by default for MBO targets, as in <code class="notranslate">.bazelrc</code>. Set<br>
+<code class="notranslate">MBO_ENABLE_EXCEPTIONS=ON</code> to use <code class="notranslate">-fexceptions</code> instead of <code class="notranslate">-fno-exceptions</code> when compiling them.<br>
+Exception-specific tests retain their explicit Bazel compiler options. Compiler flags remain<br>
+private to MBO targets; embedding applications select their own compiler exception policy.<br>
+<code class="notranslate">MBO_REQUIRE_THROWS</code> is independent: it enables throwing requirement checks only in translation<br>
+units that enable compiler exceptions. See the root <a href="../index.html#build-configuration">build configuration table</a><br>
+for each library setting's corresponding Bazel flag.</p>
+<p dir="auto">Use consistent requirement and hash options throughout a program. The generated headers are<br>
+written under <code class="notranslate">mbo-generated/</code> in the build tree. Their configuration template, hash arithmetic,<br>
+and hash header template come from the existing Bazel generators. The module version and dependency<br>
+versions come from <code class="notranslate">MODULE.bazel</code>; the xxHash test reference comes from <code class="notranslate">bazelmod/dev.MODULE.bazel</code>.</p>
+<h2 dir="auto" id="dependency-reuse">Dependency reuse</h2>
+<p dir="auto">Existing <code class="notranslate">GTest::gmock</code>, <code class="notranslate">absl::strings</code>, <code class="notranslate">re2::re2</code>, and <code class="notranslate">benchmark::benchmark</code> targets take<br>
+priority over fetching. Dependencies must provide the targets used by MBO; builds enabling tests<br>
+also need Abseil's test helpers, including <code class="notranslate">absl::hash_testing</code> and <code class="notranslate">absl::scoped_mock_log</code>.<br>
+GoogleTest must use <code class="notranslate">GTEST_HAS_ABSL=ON</code> for the existing logging tests' RE2 expressions.<br>
+Fetched GoogleTest targets enable that backend after Abseil and RE2 targets are available.</p>
+<p dir="auto">To reuse local sources while retaining the dependency build configuration, set<br>
+<code class="notranslate">FETCHCONTENT_SOURCE_DIR_ABSEIL</code>, <code class="notranslate">FETCHCONTENT_SOURCE_DIR_GOOGLETEST</code>,<br>
+<code class="notranslate">FETCHCONTENT_SOURCE_DIR_RE2</code>, and <code class="notranslate">FETCHCONTENT_SOURCE_DIR_RULES_CC</code>. Set<br>
+<code class="notranslate">FETCHCONTENT_SOURCE_DIR_BENCHMARK</code> for benchmarks and <code class="notranslate">FETCHCONTENT_SOURCE_DIR_XXHASH</code> for tests.</p>
+<p dir="auto">With <code class="notranslate">MBO_FETCH_DEPENDENCIES=OFF</code>, absent CMake targets are loaded through <code class="notranslate">find_package(... CONFIG)</code>.<br>
+Supply <code class="notranslate">FETCHCONTENT_SOURCE_DIR_RULES_CC</code> in every configuration and <code class="notranslate">FETCHCONTENT_SOURCE_DIR_XXHASH</code><br>
+when tests are enabled. Tests using an externally provided GoogleTest package also require<br>
+<code class="notranslate">MBO_GOOGLETEST_SOURCE_DIR</code> for the runfiles fixture.</p>
+<h2 dir="auto" id="compiler-caching">Compiler caching</h2>
+<p dir="auto">CMake's <a href="https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_LAUNCHER.html" rel="nofollow">compiler launchers</a><br>
+support <a href="https://ccache.dev/manual/latest.html" rel="nofollow">ccache</a> without an MBO-specific build option.<br>
+Install ccache and set the launchers when configuring a fresh build tree:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">cmake -S <span class="pl-c1">.</span> -B build-cmake -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+cmake --build build-cmake --parallel
+ccache --show-stats</pre></div>
+<p dir="auto">The GCC CI job enables both launchers for its default, exception/configuration, and consumer<br>
+builds. It checks actual cache hits after a clean rebuild and reports the initial-build statistics<br>
+separately from the verification and alternate-build counters. Only ccache's compiled outputs are<br>
+cached; build trees and downloaded dependencies are excluded. PRs restore compatible main caches;<br>
+only successful main jobs save a new generation. The cache is bounded to 500 MB and identifies the<br>
+compiler by content. See <a href="../docs/infrastructure.html#build-caches-and-ci">infrastructure cache policy</a><br>
+for upload bounds, retirement, and measurements.</p>
+<h2 dir="auto" id="updating-the-build-automatically">Updating the build automatically</h2>
+<p dir="auto"><code class="notranslate">generate.py</code> runs automatically during CMake configuration. It writes <code class="notranslate">targets.cmake</code>,<br>
+<code class="notranslate">versions.cmake</code>, and the generated configuration/hash headers into <code class="notranslate">mbo-generated/</code> in the<br>
+build tree. These generated files are not committed. No separate CMake source list or dependency<br>
+version list needs updating when a supported Bazel C++ declaration changes.</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> Configure or regenerate after editing a BUILD.bazel file or MODULE.bazel.</span>
+cmake -S <span class="pl-c1">.</span> -B build-cmake
+<span class="pl-c"><span class="pl-c">#</span> A build also reconfigures when tracked generator inputs change.</span>
+cmake --build build-cmake --parallel 2
+<span class="pl-c"><span class="pl-c">#</span> Verify the adapter independently of CMake or Bazel.</span>
+python3 cmake/generate_test.py</pre></div>
+<p dir="auto"><code class="notranslate">python3 cmake/generate.py --help</code> lists the standalone generator's options. CMake passes its compiler<br>
+and configuration options automatically. Add adapter support when introducing an expression,<br>
+dependency, compiler option, or link option that the adapter rejects.</p>
+<h2 dir="auto" id="validation-and-scope">Validation and scope</h2>
+<p dir="auto">The GCC CI job builds all components and binaries, runs CTest, checks requirement exceptions<br>
+with disabled hash mangling, and builds the separate <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/cmake/tests/CMakeLists.txt"><code class="notranslate">tests/</code></a> consumer.<br>
+Unit tests retain their Bazel source lists, dependencies, compiler options, and compatibility selects.<br>
+CTest supplies a fresh temporary directory for each test invocation and a runfiles tree for the<br>
+existing data tests. Repeated runs reuse the build tree without retaining temporary test data.</p>
+<p dir="auto"><code class="notranslate">generate.py</code> parses the existing <code class="notranslate">cc_library</code>, <code class="notranslate">cc_binary</code>, and <code class="notranslate">cc_test</code> declarations. It fails<br>
+on unsupported expressions or dependencies. Edits to those definitions trigger CMake regeneration.<br>
+The adapter's tests check component and binary coverage, compiler and policy selects, dependency<br>
+translation, and canonical hash header generation.</p>
+<p dir="auto">CMake does not provide installation/package-export rules, Bazel/Starlark tests, shell integration<br>
+tests, fuzz targets, generated-source freshness checks, coverage, or sanitizer configurations.<br>
+The committed generated C++ sources remain the build inputs. Bazel continues to verify their<br>
+freshness and the additional test families.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

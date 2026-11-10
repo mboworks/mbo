@@ -1,0 +1,353 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/strings/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbostrings"><code class="notranslate">mbo/strings</code></h1>
+<p dir="auto"><code class="notranslate">mbo::strings</code> provides string containment, indentation removal, integer formatting, configurable<br>
+quoted-string parsing, splitting, and prefix, suffix, and comment removal. It also defines compact<br>
+string identifiers for representing string entries without storing the text in each identifier.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::strings</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/contains.h">contains.h</a></td>
+<td><code class="notranslate">//mbo/strings:contains_cc</code></td>
+<td><code class="notranslate">Contains</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/indent.h">indent.h</a></td>
+<td><code class="notranslate">//mbo/strings:indent_cc</code></td>
+<td><code class="notranslate">DropIndent</code>, <code class="notranslate">DropIndentAndSplit</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/numbers.h">numbers.h</a></td>
+<td><code class="notranslate">//mbo/strings:numbers_cc</code></td>
+<td><code class="notranslate">BigNumber</code>, <code class="notranslate">BigNumberLen</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/parse.h">parse.h</a></td>
+<td><code class="notranslate">//mbo/strings:parse_cc</code></td>
+<td><code class="notranslate">ParseOptions</code>, <code class="notranslate">ParseString</code>, <code class="notranslate">ParseStringList</code>, <code class="notranslate">PopChar</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/split.h">split.h</a></td>
+<td><code class="notranslate">//mbo/strings:split_cc</code></td>
+<td><code class="notranslate">AtLast</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/strip.h">strip.h</a></td>
+<td><code class="notranslate">//mbo/strings:strip_cc</code></td>
+<td>Prefix/suffix and comment removal</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_id.h">string_id.h</a></td>
+<td><code class="notranslate">//mbo/strings:string_id_cc</code></td>
+<td><code class="notranslate">StringId</code>, <code class="notranslate">StringIdRepresentation</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="containment-and-numeric-formatting">Containment and numeric formatting</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Contains(haystack, string_view)</code></td>
+<td>C++23 <code class="notranslate">string_view::contains</code>; empty needle always matches</td>
+</tr>
+<tr>
+<td><code class="notranslate">Contains(haystack, char)</code></td>
+<td>Search for one character, including an embedded NUL</td>
+</tr>
+<tr>
+<td><code class="notranslate">BigNumber(value)</code></td>
+<td>Decimal integral formatting with apostrophes between groups of three digits</td>
+</tr>
+<tr>
+<td><code class="notranslate">BigNumberLen(value)</code></td>
+<td>Length of the grouped decimal representation, including a minus sign; integral types up to eight bytes</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">Contains</code>: <code class="notranslate">constexpr</code>, <code class="notranslate">noexcept</code>, case-sensitive.</li>
+<li><code class="notranslate">BigNumber</code>: returns an owning <code class="notranslate">std::string</code>; no locale-dependent grouping.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/contains.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/numbers.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">static_assert</span>(mbo::strings::Contains(<span class="pl-s"><span class="pl-pds">"</span>alpha<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>ph<span class="pl-pds">"</span></span>));
+<span class="pl-k">static_assert</span>(mbo::strings::Contains(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>));
+
+<span class="pl-k">const</span> std::string grouped = mbo::strings::BigNumber(<span class="pl-c1">1'234'567</span>);  <span class="pl-c"><span class="pl-c">//</span> "1'234'567"</span>
+<span class="pl-k">const</span> <span class="pl-k">unsigned</span> width = mbo::strings::BigNumberLen(-<span class="pl-c1">1'234</span>);       <span class="pl-c"><span class="pl-c">//</span> 6</span></pre></div>
+<h2 dir="auto" id="indentation">Indentation</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Result</th>
+<th>Ownership</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">DropIndent(text)</code></td>
+<td>De-indented text joined with newlines</td>
+<td>Owning <code class="notranslate">std::string</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">DropIndentAndSplit(text)</code></td>
+<td>De-indented lines</td>
+<td><code class="notranslate">std::vector&lt;std::string_view&gt;</code> borrowing the input</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Leading newline: removed before determining indentation.</li>
+<li>Indentation source: first remaining line after a leading newline; otherwise the second line.</li>
+<li>Removed prefix: exact leading sequence of spaces and tabs from that line.</li>
+<li>Subsequent lines: remove that prefix only when present; no minimum-indent calculation.</li>
+<li>Whitespace-only final line: cleared.</li>
+<li><code class="notranslate">DropIndent("")</code> and <code class="notranslate">DropIndent("\n")</code>: return their input unchanged.</li>
+<li>Input backing storage: must outlive views returned by <code class="notranslate">DropIndentAndSplit</code>.</li>
+</ul>
+<h2 dir="auto" id="quoted-string-parsing">Quoted-string parsing</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Result</th>
+<th>Input handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ParseString(options, data)</code></td>
+<td><code class="notranslate">absl::StatusOr&lt;std::string&gt;</code></td>
+<td>Consume a prefix of <code class="notranslate">std::string_view&amp; data</code>; leave a stopping delimiter unconsumed</td>
+</tr>
+<tr>
+<td><code class="notranslate">ParseStringList(options, data)</code></td>
+<td><code class="notranslate">absl::StatusOr&lt;std::vector&lt;std::string&gt;&gt;</code></td>
+<td>Consume list items and separator characters; retain an encountered stop character</td>
+</tr>
+<tr>
+<td><code class="notranslate">PopChar(data)</code></td>
+<td>First character</td>
+<td>Require nonempty input and remove one character</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th><code class="notranslate">ParseOptions</code> field</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">stop_at_any_of</code></td>
+<td>Empty</td>
+<td>Stop at any listed unquoted character</td>
+</tr>
+<tr>
+<td><code class="notranslate">stop_at_str</code></td>
+<td>Empty</td>
+<td>Stop <code class="notranslate">ParseString</code> at an unquoted occurrence of the sequence</td>
+</tr>
+<tr>
+<td><code class="notranslate">split_at_any_of</code></td>
+<td>Empty</td>
+<td>Split list items; stop a single-string parse; list default is comma</td>
+</tr>
+<tr>
+<td><code class="notranslate">enable_double_quotes</code></td>
+<td><code class="notranslate">true</code></td>
+<td>Interpret double quotes</td>
+</tr>
+<tr>
+<td><code class="notranslate">enable_single_quotes</code></td>
+<td><code class="notranslate">true</code></td>
+<td>Interpret single quotes</td>
+</tr>
+<tr>
+<td><code class="notranslate">remove_quotes</code></td>
+<td><code class="notranslate">true</code></td>
+<td>Remove interpreted quote delimiters</td>
+</tr>
+<tr>
+<td><code class="notranslate">allow_unquoted</code></td>
+<td><code class="notranslate">true</code></td>
+<td>Accept unquoted text; false stops at the first unquoted non-quote character</td>
+</tr>
+<tr>
+<td><code class="notranslate">custom_escapes</code></td>
+<td><code class="notranslate">(){}[]&lt;&gt;,;&amp;</code></td>
+<td>Backslash followed by a listed character produces that character</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Escapes: simple C++ escapes, byte-valued octal/hexadecimal escapes, and configured custom escapes.</li>
+<li>Numeric forms: octal digits, <code class="notranslate">\o{...}</code>, <code class="notranslate">\x...</code>, <code class="notranslate">\x{...}</code>.</li>
+<li>Unicode and named-character escapes: <code class="notranslate">Unimplemented</code> status.</li>
+<li>Invalid escape or unterminated quote: <code class="notranslate">InvalidArgument</code> status.</li>
+<li>Whitespace: preserved unless explicitly configured as a separator/stop or inside later stripping.</li>
+<li>Empty list input: empty vector; leading, adjacent, and trailing separators preserve empty items.</li>
+<li>Parsing errors: input may already have been consumed; no rollback guarantee.</li>
+<li><code class="notranslate">ParseOptions</code> string fields: borrowed views.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>vector<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/statusor.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/parse.h<span class="pl-pds">"</span></span>
+
+absl::StatusOr&lt;std::vector&lt;std::string&gt;&gt; <span class="pl-en">ParseNames</span>() {
+  std::string_view input = <span class="pl-s"><span class="pl-pds">R"(</span>"alpha,beta",gamma;tail<span class="pl-pds">)"</span></span>;
+  <span class="pl-k">return</span> <span class="pl-c1">mbo::strings::ParseStringList</span>({.<span class="pl-smi">stop_at_any_of</span> = <span class="pl-s"><span class="pl-pds">"</span>;<span class="pl-pds">"</span></span>}, input);
+  <span class="pl-c"><span class="pl-c">//</span> Values: {"alpha,beta", "gamma"}; remaining input: ";tail".</span>
+}</pre></div>
+<h2 dir="auto" id="splitting-at-the-final-separator">Splitting at the final separator</h2>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/strings/str_split.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/split.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">const</span> std::pair&lt;std::string, std::string&gt; parts = absl::StrSplit(<span class="pl-s"><span class="pl-pds">"</span>archive.tar.gz<span class="pl-pds">"</span></span>, mbo::strings::AtLast(<span class="pl-s"><span class="pl-pds">'</span>.<span class="pl-pds">'</span></span>));
+<span class="pl-c"><span class="pl-c">//</span> parts.first == "archive.tar"; parts.second == "gz".</span></pre></div>
+<ul dir="auto">
+<li><code class="notranslate">AtLast(char)</code>: delimiter adapter for <code class="notranslate">absl::StrSplit</code>; at most two parts.</li>
+<li>Result ownership: determined by the destination type selected for <code class="notranslate">absl::StrSplit</code>.</li>
+</ul>
+<h2 dir="auto" id="prefixes-suffixes-and-comments">Prefixes, suffixes, and comments</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ConsumePrefix(string&amp;, prefix)</code></td>
+<td>Remove a matching prefix; return whether it matched</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConsumeSuffix(string&amp;, suffix)</code></td>
+<td>Remove a matching suffix; return whether it matched</td>
+</tr>
+<tr>
+<td><code class="notranslate">StripPrefix(string&amp;&amp;, prefix)</code></td>
+<td>Return the string with a matching prefix removed</td>
+</tr>
+<tr>
+<td><code class="notranslate">StripSuffix(string&amp;&amp;, suffix)</code></td>
+<td>Return the string with a matching suffix removed</td>
+</tr>
+<tr>
+<td><code class="notranslate">StripLineComments(line, args)</code></td>
+<td>Return the prefix before the first literal comment marker as a borrowed view</td>
+</tr>
+<tr>
+<td><code class="notranslate">StripComments(input, args)</code></td>
+<td>Apply literal comment removal per line; return owning text</td>
+</tr>
+<tr>
+<td><code class="notranslate">StripParsedLineComments(line, args)</code></td>
+<td>Parse quotes/escapes and stop markers; return <code class="notranslate">StatusOr&lt;std::string&gt;</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">StripParsedComments(input, args)</code></td>
+<td>Apply parsed comment removal per line; return <code class="notranslate">StatusOr&lt;std::string&gt;</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">StripCommentArgs</code>: <code class="notranslate">comment_start</code>, <code class="notranslate">strip_trailing_whitespace = true</code>.</li>
+<li>Literal stripping: no quote awareness; trailing ASCII whitespace removed only when a marker occurs.</li>
+<li><code class="notranslate">StripParsedCommentArgs</code>: <code class="notranslate">ParseOptions parse</code>, <code class="notranslate">strip_trailing_whitespace = true</code>.</li>
+<li>Parsed stripping: <code class="notranslate">parse.stop_at_any_of</code> and <code class="notranslate">parse.split_at_any_of</code> select comment characters;<br>
+quote removal and escape decoding follow <code class="notranslate">parse</code>.</li>
+<li>Parsed stripping failures: <code class="notranslate">InvalidArgument</code> status.</li>
+</ul>
+<h2 dir="auto" id="string-identifiers">String identifiers</h2>
+<ul dir="auto">
+<li><code class="notranslate">StringId&lt;Representation = std::uint64_t&gt;</code>: alias of <code class="notranslate">mbo::types::ConstStrongId</code> with a string ID tag.</li>
+<li>Supported representations: signed and unsigned integral types other than <code class="notranslate">bool</code>.</li>
+<li><code class="notranslate">StringIdU32&lt;Tag&gt;</code> and <code class="notranslate">StringIdU64&lt;Tag&gt;</code>: explicitly sized unsigned aliases; <code class="notranslate">StringInternerSet&lt;&gt;</code><br>
+defaults to <code class="notranslate">StringIdU32&lt;&gt;</code>, independently of the standalone <code class="notranslate">StringId&lt;&gt;</code> default.</li>
+<li><code class="notranslate">IsStringId&lt;Type, Tag&gt;</code>, <code class="notranslate">IsStringIdU32&lt;Type, Tag&gt;</code>, and <code class="notranslate">IsStringIdU64&lt;Type, Tag&gt;</code> inspect an<br>
+unqualified candidate ID type. The width-specific concepts require the matching unsigned<br>
+representation. Omit <code class="notranslate">Tag</code> for the default string tag, or use <code class="notranslate">void</code> to accept any tag.</li>
+<li>Zero: valid; maximum representation value: <code class="notranslate">invalid_value</code>.</li>
+<li>Default state: invalid.</li>
+<li>Construction: explicit representation value or checked <code class="notranslate">try_from_ordinal(integer)</code>.</li>
+<li>Observation: <code class="notranslate">value()</code>, <code class="notranslate">is_valid()</code>; comparisons and standard/Abseil hashing.</li>
+<li>Copy/move construction and move assignment: supported; copy assignment and arithmetic: disabled.</li>
+<li>Identifier only: no string storage, lookup table, or association between an ID and text.</li>
+<li>Underlying contract: <a href="../types/README.html">mbo/types</a>.</li>
+</ul>
+<h2 dir="auto" id="string-interning">String interning</h2>
+<p dir="auto"><code class="notranslate">StringInternerSet&lt;&gt;</code> owns stable copies of strings and assigns zero-based dense<br>
+<code class="notranslate">StringIdU32&lt;&gt;</code> identifiers. <code class="notranslate">StringInternerMap&lt;Id, Value&gt;</code> adds mapped values without changing<br>
+the string-to-ID index. Both are append-only, non-copyable, and non-movable.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/string_interner.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> Id = mbo::strings::StringIdU32&lt;&gt;;
+mbo::strings::StringInternerSet&lt;&gt; strings;
+<span class="pl-k">const</span> <span class="pl-k">auto</span> first = strings.insert(<span class="pl-s"><span class="pl-pds">"</span>apple<span class="pl-pds">"</span></span>);  <span class="pl-c"><span class="pl-c">//</span> expected&lt;pair&lt;Id, bool&gt;, StringInternerError&gt;</span>
+<span class="pl-k">const</span> <span class="pl-k">auto</span> again = strings.insert(<span class="pl-s"><span class="pl-pds">"</span>apple<span class="pl-pds">"</span></span>);  <span class="pl-c"><span class="pl-c">//</span> same ID, inserted flag false</span>
+<span class="pl-k">const</span> <span class="pl-k">auto</span> text = strings.get_string(Id{<span class="pl-c1">0</span>}); <span class="pl-c"><span class="pl-c">//</span> optional&lt;string_view&gt;, "apple"</span>
+
+mbo::strings::StringInternerMap&lt;Id, <span class="pl-k">int</span>&gt; counts;
+<span class="pl-k">const</span> <span class="pl-k">auto</span> inserted = counts.try_emplace(<span class="pl-s"><span class="pl-pds">"</span>apple<span class="pl-pds">"</span></span>, <span class="pl-c1">42</span>);
+counts.at(Id{<span class="pl-c1">0</span>}) += <span class="pl-c1">1</span>;                <span class="pl-c"><span class="pl-c">//</span> requires an existing ID; never inserts</span></pre></div>
+<p dir="auto">Insertion reports exhaustion through the selected error policy. Default <code class="notranslate">get(id)</code> returns an<br>
+<code class="notranslate">OptionalRef</code> to the key or complete key/value pair; <code class="notranslate">find</code> and <code class="notranslate">rfind</code> return an optional ID.<br>
+Set keys and map keys are immutable. Mapped values remain mutable through non-const map access.</p>
+<p dir="auto">A child accepts a const parent pointer and captures its current visible prefix. Later parent<br>
+insertions are invisible to that child; existing mapped values are shared rather than copied.<br>
+Every ancestor must outlive its descendants. No interner tracks children or provides reset/erase.</p>
+<p dir="auto">Result, lookup, index, and exception behavior compose through <code class="notranslate">StringInternerPolicyHolder</code>.<br>
+The default omits exception rollback even in an exception-enabled translation unit. Select<br>
+<code class="notranslate">StringInternerExceptionSafePolicy</code> if mapped-value construction can throw. An options-supplied<br>
+index must be empty, though it may already have reserved capacity and a stateful hasher.</p>
+<p dir="auto">See the <a href="STRING_INTERNING.html">API and ownership contract</a> for policies, custom containers,<br>
+complexity, allocation limits, and parent semantics, and the<br>
+<a href="STRING_INTERNER_BENCHMARKS.html">benchmark guide</a> for measured configuration comparisons.<br>
+The examples are exercised by <code class="notranslate">//mbo/strings:string_interner_readme_test</code>.</p>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/strings:all</pre></div>
+<ul dir="auto">
+<li>Header-specific <code class="notranslate">*_test.cc</code> files: examples and boundary cases.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/parse_fuzz_test.cc">parse_fuzz_test.cc</a>: parser fuzz cases.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

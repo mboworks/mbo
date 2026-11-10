@@ -1,0 +1,708 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/memory/measurements/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbomemory-measurements">mbo/memory measurements</h1>
+<p dir="auto">This directory contains the raw, attributable evidence used to select and tune <code class="notranslate">mbo::memory::Arena</code>.<br>
+Artifacts use the repository's <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/tools/benchmark_artifact.py"><code class="notranslate">benchmark_artifact.py</code></a><br>
+runner and the statistical precautions established by<br>
+<a href="../../hash/measurements/README.html"><code class="notranslate">mbo/hash/measurements</code></a>.</p>
+<p dir="auto">Arena results are not publication decoration. They decide block growth, descriptor layout,<br>
+retention, and default source choices. Every performance-sensitive representation or default needs<br>
+comparable JSON from the Apple M5 Pro and AMD Zen 5 reference machines before that choice is<br>
+finalized. Correctness/API work can merge with an explicit evidence gap and follow-up when it does<br>
+not lock in an unmeasured tuning choice. Accordingly, <code class="notranslate">ArenaOptions{}</code> selects no policy and is<br>
+invalid; each <code class="notranslate">Arena</code> specialization supplies explicit options until the complete reference-machine<br>
+evidence supports a named or default policy.</p>
+<h2 dir="auto" id="layout">Layout</h2>
+<pre lang="text" class="notranslate"><code class="notranslate">mbo/memory/measurements/
+  README.md
+  data/
+    &lt;machine&gt;_&lt;compiler&gt;_&lt;git-sha&gt;_arena.json
+</code></pre>
+<p dir="auto">Files under <code class="notranslate">data/</code> are immutable JSON envelopes produced by<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/tools/benchmark_artifact.py"><code class="notranslate">tools/benchmark_artifact.py</code></a>. The envelope contains the<br>
+unaltered Google Benchmark context and rows plus source, host, toolchain, command, timing, load, and<br>
+protocol provenance. Do not hand-edit results or replace raw repetitions with a Markdown summary.</p>
+<p dir="auto">The production-path target is <code class="notranslate">//mbo/memory:arena_benchmark</code>. The benchmark-only<br>
+<code class="notranslate">//mbo/memory:arena_layout_benchmark</code> target compares candidates that must not become API merely to<br>
+make an experiment possible. Its first experiment compares fixed, 1.5x, 2x, and 4x block growth<br>
+under identical retained and fresh mixed string-like workloads. Every 257th request is a dedicated<br>
+64 KiB oversized allocation, so the result also detects accidental distortion of normal growth.<br>
+Listed early-block sizes and retention alternatives are added as separate candidate implementations<br>
+before the layout proof is considered complete.</p>
+<p dir="auto">The same proof target compares candidate string-record representations independently from hashing:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Candidate</th>
+<th>Descriptor</th>
+<th>Address stability</th>
+<th>Intended use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pointer</td>
+<td>pointer plus 32-bit size</td>
+<td>Stable through growing Arena</td>
+<td>General growing interner</td>
+</tr>
+<tr>
+<td>Pointer SoA</td>
+<td>separate pointer and size arrays</td>
+<td>Stable through growing Arena</td>
+<td>General growing interner</td>
+</tr>
+<tr>
+<td>Contiguous offset fixed</td>
+<td>32-bit offset plus 32-bit size</td>
+<td>Stable only with fixed/pre-reserved content storage</td>
+<td>Fixed-capacity specialization</td>
+</tr>
+<tr>
+<td>Segmented offset</td>
+<td>segment, offset, and size</td>
+<td>Stable while segments remain allocated</td>
+<td>General growing interner</td>
+</tr>
+<tr>
+<td>Contiguous inline fixed</td>
+<td>offset plus inline size/content</td>
+<td>Stable only with fixed/pre-reserved content storage</td>
+<td>Fixed-capacity specialization</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Insertion and sequential/permuted dense-ID lookup are measured separately. Fixed-capacity<br>
+candidates are named as such in every benchmark row: pre-reserving exact corpus space must never be<br>
+mistaken for a growing container guarantee. Pointer storage uses a growing Arena rather than an<br>
+unfair maximum-size first block. The stable segmented-offset candidate includes its extra segment<br>
+lookup and all segment/descriptor reserved bytes.</p>
+<p dir="auto">Post-burst retention is measured as a distinct lifecycle rather than inferred from steady-state<br>
+allocation. Each candidate first processes the full workload, including oversized requests, and<br>
+then repeatedly processes a smaller ordinary-string workload. The candidates retain the complete<br>
+burst-shaped Arena chain with <code class="notranslate">Reset</code>, release every block to new/delete, release through a<br>
+best-fit cache limited to 2 MiB and blocks no larger than 256 KiB, or release through an 8 MiB cache<br>
+that can retain every normal block.</p>
+<p dir="auto">The cache candidates reconstruct a compact chain from the smallest suitable retained blocks.<br>
+Reported retained and peak bytes include cache metadata as well as backing blocks, and retained<br>
+block count is reported separately. This experiment determines whether intelligent reuse belongs<br>
+in a block source or Arena option; it does not expose the benchmark cache as production API.</p>
+<h2 dir="auto" id="reference-commands">Reference commands</h2>
+<p dir="auto">Run from a clean checkout of the exact implementation commit after dependencies have already been<br>
+downloaded and built. The output filename is descriptive only; metadata inside the file is<br>
+authoritative.</p>
+<p dir="auto">Apple M5 Pro:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">python3 tools/benchmark_artifact.py run \
+  --component Arena \
+  --target //mbo/memory:arena_benchmark \
+  --output mbo/memory/measurements/data/macos-arm64-apple-m5-pro_clang-22_<span class="pl-k">&lt;</span>sha<span class="pl-k">&gt;</span>_arena.json \
+  --config clang \
+  --config opt_apple_m5 \
+  --baseline-commit <span class="pl-k">&lt;</span>parent-sha<span class="pl-k">&gt;</span> \
+  -- bazel run //mbo/memory:arena_benchmark --config=clang --config=opt_apple_m5 -c opt --</pre></div>
+<p dir="auto">AMD Zen 5:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">python3 tools/benchmark_artifact.py run \
+  --component Arena \
+  --target //mbo/memory:arena_benchmark \
+  --output mbo/memory/measurements/data/linux-x86-64-amd-ryzen-9-9950x_clang-22_<span class="pl-k">&lt;</span>sha<span class="pl-k">&gt;</span>_arena.json \
+  --config clang \
+  --config opt_zen5 \
+  --baseline-commit <span class="pl-k">&lt;</span>parent-sha<span class="pl-k">&gt;</span> \
+  -- bazel run //mbo/memory:arena_benchmark --config=clang --config=opt_zen5 -c opt --</pre></div>
+<p dir="auto">Use nine repetitions, random interleaving, a nonzero warmup, and a sufficient minimum sample time.<br>
+Record the exact controls in the artifact. The initial report uses a 0.01-second warmup and<br>
+0.005-second minimum, matching the other initial-host component reports; every raw sample and its<br>
+observed range remain available for noise review. A one-repetition smoke run is never measurement<br>
+evidence.</p>
+<p dir="auto">Validate every artifact:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">python3 tools/benchmark_artifact.py validate mbo/memory/measurements/data/<span class="pl-k">*</span>.json</pre></div>
+<h2 dir="auto" id="required-experiment-matrix">Required experiment matrix</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Required cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocation size</td>
+<td>8, 16, 32, 64, 256, 1,024, and 4,096 bytes plus mixed string-like distributions</td>
+</tr>
+<tr>
+<td>Alignment</td>
+<td>8, 16, 64, 256, <code class="notranslate">max_align_t</code>, and unsupported alignment failure</td>
+</tr>
+<tr>
+<td>Source</td>
+<td>New/delete, standard allocator adapter, PMR adapter, fixed external, and inline</td>
+</tr>
+<tr>
+<td>Growth</td>
+<td>Fixed, repeated, listed, geometric, and dedicated oversized blocks</td>
+</tr>
+<tr>
+<td>Lifecycle</td>
+<td>Fresh allocation, retained allocation, reset, release, and reuse</td>
+</tr>
+<tr>
+<td>Representation</td>
+<td>Intrusive block headers and every serious pointer/offset alternative</td>
+</tr>
+<tr>
+<td>Baseline</td>
+<td>Direct new/delete and <code class="notranslate">std::pmr::monotonic_buffer_resource</code></td>
+</tr>
+<tr>
+<td>Failure</td>
+<td>Source exhaustion, maximum alignment, arithmetic limit, and hard/try APIs</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Used/reserved bytes, blocks, padding, fragmentation, and peak memory</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="review-method">Review method</h2>
+<p dir="auto">Compare matched benchmark names from one randomly interleaved run. Retain all repetitions. Headline<br>
+summaries use the mean of the fastest three of nine samples, matching the hash methodology, while<br>
+also reporting the full minimum, median, and maximum. The immutable raw repetitions remain<br>
+available for computing the mean, standard deviation, coefficient of variation, or another<br>
+documented statistic without rerunning or silently changing the measurement.</p>
+<p dir="auto">A candidate is selected only after inspecting latency distributions and memory cost together.<br>
+Faster allocation does not excuse materially worse fragmentation or an incomplete failure/lifetime<br>
+contract. A regression or noisy result remains in the JSON and is explained in the pull request; it<br>
+is never removed merely because it complicates the conclusion.</p>
+<h2 dir="auto" id="evidence-status">Evidence status</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Machine</th>
+<th>Compiler</th>
+<th>Implementation SHA</th>
+<th>Baseline SHA</th>
+<th>Artifact</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apple M5 Pro</td>
+<td>Clang 22</td>
+<td><code class="notranslate">c913ba9ae</code>, <code class="notranslate">673d95295</code>, <code class="notranslate">8a82b50cb</code></td>
+<td><code class="notranslate">797b31c24</code></td>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-layouts.json"><code class="notranslate">layouts</code></a>, <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/data/macos-arm64-apple-m5-pro_clang-22_673d95295_arena-retention.json"><code class="notranslate">retention</code></a>, <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/data/macos-arm64-apple-m5-pro_clang-22_8a82b50cb_arena-pointer-records.json"><code class="notranslate">pointer records</code></a></td>
+<td>valid</td>
+</tr>
+<tr>
+<td>AMD Zen 5</td>
+<td>Clang 22</td>
+<td>pending</td>
+<td>pending</td>
+<td>pending</td>
+<td>pending</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">This table is updated only from validated JSON. The JSON remains the source of truth.</p>
+<h2 dir="auto" id="apple-m5-pro-results">Apple M5 Pro results</h2>
+<p dir="auto">The primary artifact contains 22 benchmark families with exactly nine raw repetitions per family.<br>
+It records a clean <code class="notranslate">c913ba9ae</code> tree, Apple M5 Pro, Clang 22.1.8, C++20, Bazel 9.2.0, random<br>
+interleaving, one-second warmup and minimum time, a 333.58-second run, and load averages<br>
+1.70/1.65/2.39. Times below are CPU nanoseconds per 16,384-operation workload. <code class="notranslate">Fast 3</code> is the mean<br>
+of the three fastest raw repetitions; standard deviation and CV use all nine.</p>
+<p dir="auto">That C++20 language mode is historical provenance, not the current C++23 build contract. New runs<br>
+must report and validate their actual compiler, <code class="notranslate">__cplusplus</code>, requested language mode, standard<br>
+library, platform version details, and Bazel release. The schema-v1 validator continues to accept<br>
+the immutable historical artifacts above.</p>
+<h3 dir="auto" id="growth">Growth</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Lifecycle</th>
+<th>Growth</th>
+<th align="right">Fast 3</th>
+<th align="right">Median</th>
+<th align="right">Mean</th>
+<th align="right">Stddev</th>
+<th align="right">CV</th>
+<th align="right">Blocks</th>
+<th align="right">Reserved</th>
+<th align="right">Waste</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fresh</td>
+<td>Fixed 4 KiB</td>
+<td align="right">119832</td>
+<td align="right">127135</td>
+<td align="right">126416.8</td>
+<td align="right">6335.1</td>
+<td align="right">5.01%</td>
+<td align="right">452</td>
+<td align="right">5726081</td>
+<td align="right">164466</td>
+</tr>
+<tr>
+<td>Fresh</td>
+<td>1.5x</td>
+<td align="right">75754</td>
+<td align="right">76577</td>
+<td align="right">77022.6</td>
+<td align="right">1366.6</td>
+<td align="right">1.77%</td>
+<td align="right">20</td>
+<td align="right">6708794</td>
+<td align="right">1147179</td>
+</tr>
+<tr>
+<td>Fresh</td>
+<td>2x</td>
+<td align="right">76168</td>
+<td align="right">77252</td>
+<td align="right">77181.5</td>
+<td align="right">895.4</td>
+<td align="right">1.16%</td>
+<td align="right">15</td>
+<td align="right">6418558</td>
+<td align="right">856943</td>
+</tr>
+<tr>
+<td>Fresh</td>
+<td>4x</td>
+<td align="right">63842</td>
+<td align="right">72436</td>
+<td align="right">69822.4</td>
+<td align="right">4785.1</td>
+<td align="right">6.85%</td>
+<td align="right">10</td>
+<td align="right">6639616</td>
+<td align="right">1078001</td>
+</tr>
+<tr>
+<td>Fresh</td>
+<td>Listed</td>
+<td align="right">59949</td>
+<td align="right">60930</td>
+<td align="right">62186.9</td>
+<td align="right">3272.1</td>
+<td align="right">5.26%</td>
+<td align="right">15</td>
+<td align="right">5984634</td>
+<td align="right">423019</td>
+</tr>
+<tr>
+<td>Retained</td>
+<td>Fixed 4 KiB</td>
+<td align="right">46860</td>
+<td align="right">47053</td>
+<td align="right">47111.7</td>
+<td align="right">252.6</td>
+<td align="right">0.54%</td>
+<td align="right">452</td>
+<td align="right">5726081</td>
+<td align="right">164466</td>
+</tr>
+<tr>
+<td>Retained</td>
+<td>1.5x</td>
+<td align="right">41178</td>
+<td align="right">41208</td>
+<td align="right">41219.1</td>
+<td align="right">42.5</td>
+<td align="right">0.10%</td>
+<td align="right">20</td>
+<td align="right">6708794</td>
+<td align="right">1147179</td>
+</tr>
+<tr>
+<td>Retained</td>
+<td>2x</td>
+<td align="right">41142</td>
+<td align="right">41176</td>
+<td align="right">41214.2</td>
+<td align="right">89.5</td>
+<td align="right">0.22%</td>
+<td align="right">15</td>
+<td align="right">6418558</td>
+<td align="right">856943</td>
+</tr>
+<tr>
+<td>Retained</td>
+<td>4x</td>
+<td align="right">41104</td>
+<td align="right">41269</td>
+<td align="right">41388.9</td>
+<td align="right">446.8</td>
+<td align="right">1.08%</td>
+<td align="right">10</td>
+<td align="right">6639616</td>
+<td align="right">1078001</td>
+</tr>
+<tr>
+<td>Retained</td>
+<td>Listed</td>
+<td align="right">38546</td>
+<td align="right">38794</td>
+<td align="right">38729.9</td>
+<td align="right">150.2</td>
+<td align="right">0.39%</td>
+<td align="right">15</td>
+<td align="right">5984634</td>
+<td align="right">423019</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">On this machine the listed sequence is the only candidate that wins both lifecycle timings while<br>
+remaining near the low-memory frontier. Compared with fixed 4 KiB blocks it reserves 258,553 more<br>
+bytes, but removes 437 block acquisitions and improves the fastest-three fresh and retained times<br>
+by 50.0% and 17.7%. The choice remains provisional until the Zen 5 artifact agrees or explains a<br>
+different tradeoff.</p>
+<h3 dir="auto" id="string-record-layouts">String-record layouts</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Layout</th>
+<th align="right">Fast 3</th>
+<th align="right">Median</th>
+<th align="right">Mean</th>
+<th align="right">Stddev</th>
+<th align="right">CV</th>
+<th align="right">Reserved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insert</td>
+<td>Pointer</td>
+<td align="right">154401</td>
+<td align="right">160142</td>
+<td align="right">160011.8</td>
+<td align="right">5245.5</td>
+<td align="right">3.28%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td>Contiguous offset fixed</td>
+<td align="right">181020</td>
+<td align="right">185917</td>
+<td align="right">185313.8</td>
+<td align="right">3963.3</td>
+<td align="right">2.14%</td>
+<td align="right">1568768</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td>Segment offset</td>
+<td align="right">143980</td>
+<td align="right">168371</td>
+<td align="right">170980.8</td>
+<td align="right">26462.0</td>
+<td align="right">15.48%</td>
+<td align="right">1704192</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td>Contiguous inline fixed</td>
+<td align="right">203771</td>
+<td align="right">206732</td>
+<td align="right">207492.9</td>
+<td align="right">3277.9</td>
+<td align="right">1.58%</td>
+<td align="right">1568768</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Pointer</td>
+<td align="right">8689</td>
+<td align="right">8709</td>
+<td align="right">8705.4</td>
+<td align="right">14.5</td>
+<td align="right">0.17%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Contiguous offset fixed</td>
+<td align="right">6122</td>
+<td align="right">6167</td>
+<td align="right">6160.3</td>
+<td align="right">32.7</td>
+<td align="right">0.53%</td>
+<td align="right">1568768</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Segment offset</td>
+<td align="right">13303</td>
+<td align="right">13312</td>
+<td align="right">13327.3</td>
+<td align="right">47.0</td>
+<td align="right">0.35%</td>
+<td align="right">1704192</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Contiguous inline fixed</td>
+<td align="right">13485</td>
+<td align="right">13846</td>
+<td align="right">13774.7</td>
+<td align="right">262.0</td>
+<td align="right">1.90%</td>
+<td align="right">1568768</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Pointer</td>
+<td align="right">12566</td>
+<td align="right">12619</td>
+<td align="right">12601.6</td>
+<td align="right">37.9</td>
+<td align="right">0.30%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Contiguous offset fixed</td>
+<td align="right">7752</td>
+<td align="right">7768</td>
+<td align="right">7765.0</td>
+<td align="right">13.6</td>
+<td align="right">0.18%</td>
+<td align="right">1568768</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Segment offset</td>
+<td align="right">16247</td>
+<td align="right">16262</td>
+<td align="right">16267.2</td>
+<td align="right">25.0</td>
+<td align="right">0.15%</td>
+<td align="right">1704192</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Contiguous inline fixed</td>
+<td align="right">17298</td>
+<td align="right">17409</td>
+<td align="right">17619.0</td>
+<td align="right">415.9</td>
+<td align="right">2.36%</td>
+<td align="right">1568768</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The exact-reservation contiguous offset layout is the fastest and smallest, but it is evidence only<br>
+for a fixed-capacity specialization: growing its content vector would invalidate previously<br>
+returned views. Among general growing layouts, pointer records use 589,568 more reserved bytes than<br>
+segmented offsets but improve fastest-three sequential and permuted lookup by 34.7% and 22.7%.</p>
+<p dir="auto">The broad run's segmented-offset insertion samples were noisy. A second validated artifact,<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/data/macos-arm64-apple-m5-pro_clang-22_c913ba9ae_arena-record-insertion.json"><code class="notranslate">arena-record-insertion.json</code></a>,<br>
+isolated pointer and segmented-offset insertion under the same full protocol. Its all-nine means<br>
+were 159,287 ns and 161,820 ns, with CVs of 6.68% and 10.56%. That confirms insertion is too close<br>
+and variable to select the representation; lookup and memory are the present discriminators. No<br>
+final record-layout decision is made before Zen 5 measurement and integration with the actual index.</p>
+<p dir="auto">A third validated artifact isolates array-of-structures pointer records from a structure-of-arrays<br>
+alternative. It records a clean <code class="notranslate">8a82b50cb</code> tree and the same compiler and benchmark controls. The<br>
+run ended at elevated load averages of 2.90/8.77/7.94, so its raw samples and variability are<br>
+reported explicitly. The lookup CVs remain below 0.82%, and every operation shows a much larger<br>
+penalty than the run-to-run variation.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Layout</th>
+<th align="right">Fast 3</th>
+<th align="right">Median</th>
+<th align="right">Mean</th>
+<th align="right">Stddev</th>
+<th align="right">CV</th>
+<th align="right">Reserved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insert</td>
+<td>Pointer AoS</td>
+<td align="right">153123</td>
+<td align="right">156572</td>
+<td align="right">155993.5</td>
+<td align="right">3045.6</td>
+<td align="right">1.95%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td>Pointer SoA</td>
+<td align="right">183193</td>
+<td align="right">187831</td>
+<td align="right">187219.2</td>
+<td align="right">4773.6</td>
+<td align="right">2.55%</td>
+<td align="right">2228224</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Pointer AoS</td>
+<td align="right">8681</td>
+<td align="right">8684</td>
+<td align="right">8684.9</td>
+<td align="right">4.5</td>
+<td align="right">0.05%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Lookup sequential</td>
+<td>Pointer SoA</td>
+<td align="right">10437</td>
+<td align="right">10463</td>
+<td align="right">10480.2</td>
+<td align="right">59.3</td>
+<td align="right">0.57%</td>
+<td align="right">2228224</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Pointer AoS</td>
+<td align="right">12590</td>
+<td align="right">12596</td>
+<td align="right">12600.4</td>
+<td align="right">13.1</td>
+<td align="right">0.10%</td>
+<td align="right">2293760</td>
+</tr>
+<tr>
+<td>Lookup permuted</td>
+<td>Pointer SoA</td>
+<td align="right">15357</td>
+<td align="right">15564</td>
+<td align="right">15515.6</td>
+<td align="right">125.7</td>
+<td align="right">0.81%</td>
+<td align="right">2228224</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">SoA removes the four bytes of padding in each 16-byte pointer record, saving exactly 65,536 bytes<br>
+or 2.86% of total reserved storage. In exchange it makes fastest-three insertion 19.6% slower,<br>
+sequential lookup 20.2% slower, and permuted lookup 22.0% slower. The memory saving is insufficient<br>
+to justify three allocations and split-field access as the general default. AoS pointer records<br>
+remain the provisional growing-layout candidate, subject to Zen 5 confirmation and measurement<br>
+inside the complete interner.</p>
+<h3 dir="auto" id="post-burst-retention">Post-burst retention</h3>
+<p dir="auto">The retention artifact records a clean <code class="notranslate">673d95295</code> tree and the same toolchain and controls as the<br>
+layout artifact. It contains four families with nine raw repetitions each and ran for 72.77 seconds.<br>
+The recorded load averages were 3.54/4.52/4.61. Cache-family CV remains below 0.35%; release-all is<br>
+explicitly retained despite its higher 5.73% CV.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th align="right">Fast 3</th>
+<th align="right">Median</th>
+<th align="right">Mean</th>
+<th align="right">Stddev</th>
+<th align="right">CV</th>
+<th align="right">Peak bytes</th>
+<th align="right">Retained bytes</th>
+<th align="right">Blocks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retain complete chain</td>
+<td align="right">10210</td>
+<td align="right">10262</td>
+<td align="right">10263.6</td>
+<td align="right">62.9</td>
+<td align="right">0.61%</td>
+<td align="right">6418558</td>
+<td align="right">6418558</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td>Release all</td>
+<td align="right">10655</td>
+<td align="right">11275</td>
+<td align="right">11341.0</td>
+<td align="right">649.7</td>
+<td align="right">5.73%</td>
+<td align="right">520192</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>Cache small blocks</td>
+<td align="right">7686</td>
+<td align="right">7696</td>
+<td align="right">7706.5</td>
+<td align="right">26.5</td>
+<td align="right">0.34%</td>
+<td align="right">652926</td>
+<td align="right">652926</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td>Cache all within budget</td>
+<td align="right">7722</td>
+<td align="right">7746</td>
+<td align="right">7744.8</td>
+<td align="right">18.7</td>
+<td align="right">0.24%</td>
+<td align="right">6420094</td>
+<td align="right">6420094</td>
+<td align="right">15</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The bounded small-block cache improves fastest-three time by 24.7% relative to retaining the full<br>
+burst-shaped chain and by 27.9% relative to releasing everything. It is within 0.5% of caching the<br>
+full chain while retaining only 10.2% as many bytes. This supports reusable blocks living in an<br>
+intelligently bounded source rather than unconditional Arena retention. The exact 2 MiB/256 KiB<br>
+limits are not selected defaults: this workload naturally retained only 652,926 bytes, and Zen 5<br>
+plus additional burst shapes must establish useful thresholds.</p>
+<h2 dir="auto" id="historical-apple-clang-21-report">Historical Apple Clang 21 report</h2>
+<p dir="auto">An earlier Apple M5 Pro run is retained in the original JSON and charts below. Its <code class="notranslate">Arena/Allocate</code><br>
+benchmark names refer to the explicit configuration in that historical executable;<br>
+<code class="notranslate">ArenaOptions{}</code> is invalid in the current API. This single-machine run is diagnostic evidence,<br>
+not a selected default or a cross-architecture recommendation.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Machine</th>
+<th>Compiler</th>
+<th>Implementation SHA</th>
+<th>Artifact</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apple M5 Pro</td>
+<td>Apple Clang 21</td>
+<td><code class="notranslate">704c3bcb1</code></td>
+<td><code class="notranslate">macos-arm64-apple-m5-pro_clang-21_arena.json</code></td>
+<td>validated historical run</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The charts normalize a 1,024-allocation batch to CPU nanoseconds per allocation. Bars show the<br>
+median of nine randomly interleaved observations; whiskers show the observed minimum and maximum.</p>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/arena-allocate-64-align16.svg"><img src="../../../assets/bbd746d9c186606553c244c28f7738a3d974e032d01d453213a3b461c3feaccc.svg" alt="Historical retained 64-byte allocation" style="max-width: 100%;"></a></p>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/arena-allocate-64-align256.svg"><img src="../../../assets/a40a1972e24a2aac758745890bd772029ec752f6955b39df12460c739b812f74.svg" alt="Historical retained 64-byte allocation with 256-byte alignment" style="max-width: 100%;"></a></p>
+<p dir="auto"><a target="_blank" rel="noopener noreferrer" href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/measurements/arena-fresh-lifecycle-64-align16.svg"><img src="../../../assets/6115ad3a112236f2c50afc6ed0a3bd7986ffb42ff11310ae59aed56d6201d0b0.svg" alt="Historical fresh 64-byte allocation lifecycle" style="max-width: 100%;"></a></p>
+<p dir="auto">In that workload, region allocation and lifecycle were faster than the measured PMR monotonic and<br>
+direct new/delete baselines. The raw artifact carries padding and reserved-byte counters. Later<br>
+Clang 22 reports above provide the current Apple-host evidence; AMD Zen 5 remains pending.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

@@ -1,0 +1,48 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/internal/HAMT_NODE_VALUE.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="hamt-node-payload-ownership">HAMT node payload ownership</h1>
+<p dir="auto">These implementation details live in <code class="notranslate">mbo::container::experimental::hamt::hamt_internal</code>.<br>
+They are not a supported public interface.</p>
+<p dir="auto"><code class="notranslate">HamtNodeValue&lt;Value, Source&gt;</code> owns a separately allocated, shared payload. Copying<br>
+the handle preserves the value's address rather than copying the stored value.<br>
+The allocation control block retains its source domain, so a payload can safely<br>
+outlive the original container and its domain handle. Externally borrowed storage<br>
+must still outlive that domain. Moves leave valid empty handles.<br>
+Payload construction occurs in place: a value need not be copyable or movable<br>
+for handles to share it. Mutable copy-on-write access is available only when the<br>
+value itself supports nothrow copying; handle copying does not grant that ability.</p>
+<p dir="auto"><code class="notranslate">TryCreate</code> requires nothrow value construction and returns <code class="notranslate">std::nullopt</code> for an<br>
+empty domain, exhaustion, or invalid returned storage. Rejected storage is returned<br>
+to its source with unchanged allocation metadata. The last owner destroys the value<br>
+and returns its allocation before releasing the source domain. Unexpected source<br>
+exceptions terminate through the <code class="notranslate">noexcept</code> interface; they are not caught.</p>
+<p dir="auto"><code class="notranslate">get</code> exposes a const value pointer. <code class="notranslate">try_get_mutable</code> requires nothrow copying and<br>
+detaches a shared payload before returning a mutable pointer. Allocation failure<br>
+returns an empty optional without changing ownership or values. An empty handle<br>
+successfully returns a null pointer; unique access neither allocates nor relocates.<br>
+Node-map mutable access must perform this payload-level copy-on-write independently<br>
+of packed-node ownership; tree uniqueness alone does not establish payload uniqueness.<br>
+<code class="notranslate">get_unique_mutable</code> provides nonallocating mutable access to an already unique<br>
+payload, returning null for shared or empty handles. It does not copy or detach.<br>
+Mutable traversal must prepare both tree and payload ownership before using it;<br>
+publishing a new snapshot invalidates permission to edit a previously returned pointer.<br>
+<code class="notranslate">HamtNodeIterator&lt;Traversal, true&gt;</code> projects this access into mutable references.<br>
+Its caller must prepare unique ownership of every traversed payload before exposing<br>
+the range; iterator dereference never performs lazy detachment. Default node<br>
+iteration continues to expose const references even over a mutable traversal.<br>
+Do not mutate an earlier reference after publishing a snapshot.<br>
+<code class="notranslate">is_unique</code> observes ownership releases<br>
+with an acquire load but does not permit concurrent mutation or unsynchronized retain.<br>
+All container and source operations require external synchronization.</p>
+<p dir="auto">Each allocation has its own reference count and domain handle. <code class="notranslate">HamtNodeMap</code> and<br>
+<code class="notranslate">HamtNodeSet</code> use these payloads for stable addresses and snapshot sharing. Their<br>
+memory and execution cost must still be measured after complete-stack validation;<br>
+this is not yet a benchmark-selected layout.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

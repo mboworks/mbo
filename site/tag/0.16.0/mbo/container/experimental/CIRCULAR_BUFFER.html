@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/CIRCULAR_BUFFER.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="experimental-circular-buffer">Experimental circular buffer</h1>
+<p dir="auto"><code class="notranslate">CircularBuffer&lt;T, Allocator&gt;</code> is a public experimental, growable circular buffer in<br>
+<code class="notranslate">mbo::container::experimental</code>. Include <code class="notranslate">mbo/container/experimental/circular_buffer.h</code> and depend on<br>
+<code class="notranslate">@mboworks_mbo//mbo/container/experimental:circular_buffer_cc</code>. It owns ordinary values, including<br>
+move-only and over-aligned types, with allocator-controlled storage and explicit object lifetimes.</p>
+<p dir="auto">The experimental directory and namespace are part of its name. Its interface and representation<br>
+may change between releases without a compatibility alias or deprecation period. <code class="notranslate">SegmentedDeque</code><br>
+uses it for live segment pointers; that implementation detail remains replaceable independently of<br>
+the public deque contract. See the <a href="../README.html#experimental-circularbuffer">container guide</a> for<br>
+usage and storage comparisons.</p>
+<h2 dir="auto" id="representation">Representation</h2>
+<p dir="auto">The buffer stores an allocator, an allocation pointer, a power-of-two capacity, and unsigned<br>
+<code class="notranslate">begin_</code> and <code class="notranslate">end_</code> indices. Only the logical interval <code class="notranslate">[begin_, end_)</code> contains live objects.<br>
+Unsigned arithmetic deliberately wraps, including when pushing onto the front of a fresh buffer:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">size = end_ - begin_;
+physical_slot = (begin_ + logical_index) &amp; (capacity() - <span class="pl-c1">1</span>);</pre></div>
+<p dir="auto">Capacity is zero or a power of two. <code class="notranslate">max_size()</code> rounds down the smaller of the allocator's limit<br>
+and <code class="notranslate">PTRDIFF_MAX</code> to a power of two. Consequently the live interval always has an unambiguous<br>
+unsigned length and iterator distances fit <code class="notranslate">difference_type</code>. A full buffer has <code class="notranslate">size() == capacity()</code>; an empty buffer has <code class="notranslate">begin_ == end_</code>. No slot is sacrificed to distinguish the two.<br>
+The zero-capacity state is both empty and full: its next insertion needs an allocation.</p>
+<p dir="auto">Capacity is stored in a private <code class="notranslate">Capacity</code> value type. It defaults to zero; its explicit integer<br>
+constructor uses <code class="notranslate">MBO_CONFIG_REQUIRE</code> to enforce zero or a power of two. The underlying integer<br>
+is private, so buffer operations can only replace it with another validated value. Copies and swaps<br>
+preserve the invariant. Validation happens before allocation; the new capacity is installed only<br>
+after allocation succeeds. The check remains enabled in optimized builds and follows the configured<br>
+fatal or throwing requirement policy. <code class="notranslate">Slot</code> relies on this invariant without repeating the check<br>
+on element access. Zero-capacity storage has no valid slot.</p>
+<p dir="auto"><code class="notranslate">push_front</code> constructs at <code class="notranslate">begin_ - 1</code> and then decrements <code class="notranslate">begin_</code>; <code class="notranslate">push_back</code> constructs at<br>
+<code class="notranslate">end_</code> and then increments <code class="notranslate">end_</code>. Pops immediately destroy the removed object and advance the<br>
+corresponding boundary. Freed slots are reusable from either end without moving other values.<br>
+Full-buffer insertion grows geometrically and preserves every existing value; it never overwrites<br>
+the oldest value. Growth constructs a replacement allocation in logical order and releases the old<br>
+one. <code class="notranslate">reserve</code> creates storage, not elements. <code class="notranslate">clear</code> retains storage; <code class="notranslate">shrink_to_fit</code> reduces it to<br>
+the smallest power of two that fits the live sequence, or releases it when empty.</p>
+<h2 dir="auto" id="interface-and-complexity">Interface and complexity</h2>
+<p dir="auto">The STL-style interface includes:</p>
+<ul dir="auto">
+<li>container, allocator, reference, pointer, size and difference aliases;</li>
+<li>default, allocator, count, value, iterator/sentinel, initializer-list, copy and move constructors;</li>
+<li>copy, move and initializer-list assignment, <code class="notranslate">assign</code>, and <code class="notranslate">assign_range</code>;</li>
+<li><code class="notranslate">empty</code>, <code class="notranslate">full</code>, <code class="notranslate">size</code>, <code class="notranslate">capacity</code>, <code class="notranslate">max_size</code>, and <code class="notranslate">get_allocator</code>;</li>
+<li><code class="notranslate">operator[]</code>, <code class="notranslate">at</code>, <code class="notranslate">front</code>, and <code class="notranslate">back</code>;</li>
+<li><code class="notranslate">iterator</code>, <code class="notranslate">const_iterator</code>, <code class="notranslate">reverse_iterator</code>, and <code class="notranslate">const_reverse_iterator</code>, with the<br>
+<code class="notranslate">begin</code>/<code class="notranslate">end</code>, <code class="notranslate">cbegin</code>/<code class="notranslate">cend</code>, <code class="notranslate">rbegin</code>/<code class="notranslate">rend</code>, and <code class="notranslate">crbegin</code>/<code class="notranslate">crend</code> accessors;</li>
+<li><code class="notranslate">emplace_front</code>, <code class="notranslate">emplace_back</code>, <code class="notranslate">push_front</code>, <code class="notranslate">push_back</code>, <code class="notranslate">pop_front</code>, and <code class="notranslate">pop_back</code>;</li>
+<li><code class="notranslate">pop_front_value</code> and <code class="notranslate">pop_back_value</code> for removing and returning an endpoint value;</li>
+<li>positional <code class="notranslate">emplace</code>, <code class="notranslate">insert</code>, <code class="notranslate">insert_range</code>, <code class="notranslate">erase</code>, <code class="notranslate">append_range</code>, and <code class="notranslate">prepend_range</code>;</li>
+<li><code class="notranslate">resize</code>, <code class="notranslate">reserve</code>, <code class="notranslate">shrink_to_fit</code>, <code class="notranslate">clear</code>, <code class="notranslate">swap</code>, equality and lexicographic ordering.</li>
+</ul>
+<p dir="auto">Indexing, iterator arithmetic, accessors, and endpoint removal take constant time. Endpoint<br>
+insertion takes amortized constant time; growing the allocation takes linear time. Iterators model<br>
+<code class="notranslate">std::random_access_iterator</code>, including mutable-to-const conversion and mixed const comparison.<br>
+The range is not contiguous, so there is no <code class="notranslate">data()</code> accessor.</p>
+<p dir="auto">Middle insertion and bulk insertion stage incoming values before constructing a replacement ring.<br>
+They take linear time and may allocate even when the current capacity would suffice. This keeps<br>
+self-referential arguments, overlapping ranges, and single-pass input ranges well-defined.<br>
+Middle erasure shifts the suffix by assignment, then destroys the vacated elements. Prefix erasure<br>
+only pops the front. Erasure requires move-assignable or copy-assignable elements. Immovable values<br>
+can be emplaced into reserved storage, but relocating a nonempty buffer of them is rejected.</p>
+<h3 dir="auto" id="value-returning-pops">Value-returning pops</h3>
+<p dir="auto"><code class="notranslate">pop_front_value()</code> and <code class="notranslate">pop_back_value()</code> follow<br>
+<a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3182r1.html" rel="nofollow">P3182R1: Add container pop methods that return the popped value</a>.<br>
+They require a nonempty buffer and a move-constructible element type. Each initializes its return<br>
+object from <code class="notranslate">std::move</code> of the endpoint, then removes that element. Removal waits until return<br>
+construction succeeds, including when optional return-value elision is disabled. A throwing move<br>
+leaves size and element lifetimes intact, though it may change the source value; there is no<br>
+automatic copy fallback for a potentially throwing move.</p>
+<p dir="auto">These operations retain capacity and take constant container work plus the element construction<br>
+and destruction cost. They are <code class="notranslate">constexpr</code>, and <code class="notranslate">noexcept</code> when both move construction and the<br>
+configured requirement policy are nonthrowing. Empty calls use <code class="notranslate">MBO_CONFIG_REQUIRE</code>, like the<br>
+existing pops. A later failure assigning the returned value in caller code cannot undo removal.</p>
+<h2 dir="auto" id="invalidation-ownership-and-failure">Invalidation, ownership and failure</h2>
+<p dir="auto">Buffer iterators contain their owner and logical position. Treat every successful structural<br>
+modification, including swap or move, as invalidating them. Existing element references and pointers<br>
+survive endpoint insertion without growth and endpoint removal of other values. Growth, shrinking<br>
+the allocation, middle insertion, bulk insertion, and assignment relocate or replace elements.<br>
+Middle erasure invalidates references from the erased position onward. A no-op <code class="notranslate">reserve</code> does not<br>
+invalidate anything. These rules concern the circular buffer; the deque's public element iterators<br>
+retain their independently documented stability.</p>
+<p dir="auto">Allocator traits control construction, destruction, allocation, deallocation and copy/move/swap<br>
+propagation. Copies retain capacity, including empty reservations. Moves transfer storage when<br>
+allocators permit it, and otherwise relocate values into the destination allocator's storage.<br>
+Swapping unequal nonpropagating allocators is a rejected precondition. Pointer values do not confer<br>
+ownership of their pointees. A PMR allocator can use caller-owned arena storage; that storage and<br>
+resource must outlive the buffer. No internal synchronization is provided.</p>
+<p dir="auto">Checked access and invalid-operation preconditions use <code class="notranslate">MBO_CONFIG_REQUIRE</code>: fatal by default,<br>
+or <code class="notranslate">std::runtime_error</code> with exceptions enabled and <code class="notranslate">--//mbo/config:require_throws=true</code>.<br>
+<code class="notranslate">operator[]</code>, iterator dereference and iterator arithmetic require valid positions, as with STL<br>
+containers. Comparisons and subtraction require iterators from the same buffer.</p>
+<p dir="auto">With exceptions enabled, partial replacements destroy their constructed objects and release their<br>
+allocation. Failed endpoint construction does not publish an additional live element. Relocation<br>
+uses <code class="notranslate">std::move_if_noexcept</code>: copying preserves existing values on failure; a throwing move-only<br>
+type, a constructor consuming an aliased rvalue, or an allocator that throws after earlier values<br>
+have been moved can leave existing values moved-from. Ownership and the live interval remain valid.<br>
+Failed resize destroys its appended values, though successful capacity growth can remain. Erasure<br>
+with throwing assignment provides the basic guarantee. Input already consumed from a single-pass<br>
+range cannot be restored. The default build remains exception-free.</p>
+<p dir="auto">All operations are <code class="notranslate">constexpr</code> where their element and allocator operations permit it. Tests cover<br>
+constant evaluation, all iterator families, wraparound, growth, reserved queue reuse, allocator<br>
+propagation, PMR, element lifetimes, allocation/construction failure, deque integration, and mixed<br>
+operations checked against <code class="notranslate">std::deque</code>.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

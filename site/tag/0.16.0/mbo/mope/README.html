@@ -1,0 +1,297 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/mope/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbomope"><code class="notranslate">mbo/mope</code></h1>
+<p dir="auto"><code class="notranslate">mbo::mope</code> expands text templates using named values, repeated sections, ranges, and lists.<br>
+It provides a C++ template API, hierarchical data loading from INI files, a command-line generator,<br>
+and Bazel rules for generating files and checking their output against golden files.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::mope</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-rules-and-targets">Headers, rules, and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Source</th>
+<th>Bazel target</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/mope.h">mope.h</a></td>
+<td><code class="notranslate">//mbo/mope:mope_cc</code></td>
+<td><code class="notranslate">Template</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/ini.h">ini.h</a></td>
+<td><code class="notranslate">//mbo/mope:ini_cc</code></td>
+<td><code class="notranslate">ReadIniToTemplate</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/mope_main.cc">mope_main.cc</a></td>
+<td><code class="notranslate">//mbo/mope</code></td>
+<td><code class="notranslate">mope</code> executable</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/mope.bzl">mope.bzl</a></td>
+<td><code class="notranslate">//mbo/mope:mope_bzl</code></td>
+<td><code class="notranslate">mope</code> rule and <code class="notranslate">mope_test</code> macro</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="template-api">Template API</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Return</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Template::IsValidName(name)</code></td>
+<td><code class="notranslate">bool</code></td>
+<td>Accept <code class="notranslate">[_a-zA-Z]\w*</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">SetValue(name, value, allow_update = false)</code></td>
+<td><code class="notranslate">absl::Status</code></td>
+<td>Store a string value; duplicate names fail unless an existing string may be updated</td>
+</tr>
+<tr>
+<td><code class="notranslate">AddSection(name)</code></td>
+<td><code class="notranslate">absl::StatusOr&lt;Template*&gt;</code></td>
+<td>Append a dictionary under the section name</td>
+</tr>
+<tr>
+<td><code class="notranslate">Expand(output)</code></td>
+<td><code class="notranslate">absl::Status</code></td>
+<td>Expand template text in the supplied <code class="notranslate">std::string&amp;</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">Expand(output, context_data)</code></td>
+<td><code class="notranslate">absl::Status</code></td>
+<td>Expand with additional name/value context supplied as a <code class="notranslate">ConvertingScan</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Values and section names: owned by <code class="notranslate">Template</code>.</li>
+<li>Same name with a different stored type: error; <code class="notranslate">allow_update</code> does not change types.</li>
+<li>Repeated <code class="notranslate">AddSection(name)</code>: append another occurrence, rather than retrieving an existing one.</li>
+<li>Returned section pointers: borrow section storage; adding further occurrences can invalidate them.</li>
+<li>Expansion: modifies the output in place; an error can leave partial changes.</li>
+<li>Unknown value tag: retained unchanged.</li>
+<li>Unknown section: removed with its contents.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/statusor.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/mope/mope.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/status/status_macros.h<span class="pl-pds">"</span></span>
+
+absl::StatusOr&lt;std::string&gt; <span class="pl-en">RenderItems</span>() {
+  mbo::mope::Template data;
+  <span class="pl-c1">MBO_ASSIGN_OR_RETURN</span>(<span class="pl-k">auto</span>* first, data.<span class="pl-c1">AddSection</span>(<span class="pl-s"><span class="pl-pds">"</span>item<span class="pl-pds">"</span></span>));
+  <span class="pl-c1">MBO_RETURN_IF_ERROR</span>(first-&gt;<span class="pl-c1">SetValue</span>(<span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>alpha<span class="pl-pds">"</span></span>));
+  <span class="pl-c1">MBO_ASSIGN_OR_RETURN</span>(<span class="pl-k">auto</span>* second, data.<span class="pl-c1">AddSection</span>(<span class="pl-s"><span class="pl-pds">"</span>item<span class="pl-pds">"</span></span>));
+  <span class="pl-c1">MBO_RETURN_IF_ERROR</span>(second-&gt;<span class="pl-c1">SetValue</span>(<span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>beta<span class="pl-pds">"</span></span>));
+  std::string output = <span class="pl-s"><span class="pl-pds">R"(</span>{{#item:', '}}{{name}}{{/item}}<span class="pl-pds">)"</span></span>;
+  <span class="pl-c1">MBO_RETURN_IF_ERROR</span>(data.<span class="pl-c1">Expand</span>(output));
+  <span class="pl-k">return</span> output;  <span class="pl-c"><span class="pl-c">//</span> "alpha, beta"</span>
+}</pre></div>
+<h2 dir="auto" id="template-syntax">Template syntax</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Form</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">{{name}}</code></td>
+<td>Substitute a string value or active range/list value</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#section}}...{{/section}}</code></td>
+<td>Expand once per section dictionary</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#section:', '}}...{{/section}}</code></td>
+<td>Join section expansions with the quoted separator</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#comment=}}...{{/comment}}</code></td>
+<td>Remove the whole section</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#i=start;end}}...{{/i}}</code></td>
+<td>Inclusive integer range with step one</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#i=start;end;step;join}}...{{/i}}</code></td>
+<td>Inclusive range with explicit step and separator</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{#item=[a,b,c];join}}...{{/item}}</code></td>
+<td>List expansion; <code class="notranslate">{{item}}</code> is the current value</td>
+</tr>
+<tr>
+<td><code class="notranslate">{{name=value}}</code></td>
+<td>Set or update an expansion-context value; emit no text for the control tag</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Range start/end/step: integer literals or references to numeric values; zero step is invalid.</li>
+<li>Positive step: stop after the upper endpoint; negative step: stop below the lower endpoint.</li>
+<li>Range/list join: quoted string or value reference.</li>
+<li>Section join: quoted text.</li>
+<li>List elements: quote and byte-escape handling from <a href="../strings/README.html#quoted-string-parsing">ParseStringList</a>.</li>
+<li>Control values: available during expansion; cannot override values stored directly in the template.</li>
+<li>Standalone section/control tags: surrounding indentation and an adjacent line ending are removed.</li>
+</ul>
+<pre lang="text" class="notranslate"><code class="notranslate">{{#i=1;5;2;','}}{{i}}{{/i}}
+{{#item=['a,b',c];' / '}}{{item}}{{/item}}
+</code></pre>
+<pre lang="text" class="notranslate"><code class="notranslate">1,3,5
+a,b / c
+</code></pre>
+<h2 dir="auto" id="ini-data">INI data</h2>
+<ul dir="auto">
+<li>Function: <code class="notranslate">ReadIniToTemplate(filename, root_template)</code>.</li>
+<li>Compatibility alias: <code class="notranslate">ReadIniToTemlate(filename, root_template)</code>.</li>
+<li>Return type: <code class="notranslate">absl::Status</code>.</li>
+<li>Section hierarchy: <code class="notranslate">.</code> separates nesting levels.</li>
+<li>Repeated occurrences: suffix a level with distinct <code class="notranslate">:identifier</code> values.</li>
+<li>Key/value entries: stored in the corresponding template dictionary.</li>
+<li>INI parser: <a href="../file/README.html#ini-files">mbo/file/ini</a>.</li>
+</ul>
+<div class="highlight highlight-source-ini" dir="auto"><pre class="notranslate"><span class="pl-en">[person]</span>
+<span class="pl-k">name</span>=Alice
+<span class="pl-en">[person.contact]</span>
+<span class="pl-k">phone</span>=1234
+<span class="pl-en">[person.contact:second]</span>
+<span class="pl-k">phone</span>=5678
+<span class="pl-en">[person:second]</span>
+<span class="pl-k">name</span>=Bob</pre></div>
+<h2 dir="auto" id="command-line">Command line</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel run --config=clang //mbo/mope -- \
+  --template=example.mope --generate=example.txt --ini=example.ini
+
+bazel run --config=clang //mbo/mope -- \
+  --template=example.mope --ini= --set=name=alpha</pre></div>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">--template</code></td>
+<td>Empty; required</td>
+<td>Input template path</td>
+</tr>
+<tr>
+<td><code class="notranslate">--generate</code></td>
+<td><code class="notranslate">-</code></td>
+<td>Output path; empty or <code class="notranslate">-</code> writes stdout</td>
+</tr>
+<tr>
+<td><code class="notranslate">--ini</code></td>
+<td><code class="notranslate">-</code></td>
+<td>INI input; empty disables INI loading</td>
+</tr>
+<tr>
+<td><code class="notranslate">--set</code></td>
+<td>Empty list</td>
+<td>Comma-separated assignments</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">--set=name=value</code>: root template value.</li>
+<li><code class="notranslate">--set=section:name=value</code>: value in a newly added section.</li>
+<li><code class="notranslate">--set=outer:inner:name=value</code>: nested sections.</li>
+<li><code class="notranslate">--set=:name=value</code>: global expansion context.</li>
+<li><code class="notranslate">--set=section:enable</code>: create a section with an empty <code class="notranslate">enable</code> value.</li>
+<li>Exit code: zero on success; one on usage or processing failure.</li>
+</ul>
+<h2 dir="auto" id="bazel-generation">Bazel generation</h2>
+<div class="highlight highlight-source-python" dir="auto"><pre class="notranslate"><span class="pl-en">load</span>(<span class="pl-s">"@mboworks_mbo//mbo/mope:mope.bzl"</span>, <span class="pl-s">"mope"</span>, <span class="pl-s">"mope_test"</span>)
+
+<span class="pl-en">mope</span>(
+    <span class="pl-s1">name</span> <span class="pl-c1">=</span> <span class="pl-s">"generated_header"</span>,
+    <span class="pl-s1">srcs</span> <span class="pl-c1">=</span> [<span class="pl-s">"example.h.mope"</span>],
+    <span class="pl-s1">outs</span> <span class="pl-c1">=</span> [<span class="pl-s">"example.h"</span>],
+    <span class="pl-s1">data</span> <span class="pl-c1">=</span> [<span class="pl-s">"example.h.ini"</span>],
+    <span class="pl-s1">clang_format</span> <span class="pl-c1">=</span> <span class="pl-c1">True</span>,
+)
+
+<span class="pl-en">mope_test</span>(
+    <span class="pl-s1">name</span> <span class="pl-c1">=</span> <span class="pl-s">"example_test"</span>,
+    <span class="pl-s1">srcs</span> <span class="pl-c1">=</span> [<span class="pl-s">"example.mope"</span>],
+    <span class="pl-s1">outs</span> <span class="pl-c1">=</span> [<span class="pl-s">"example.golden"</span>],
+)</pre></div>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Rule behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">srcs</code></td>
+<td><code class="notranslate">.mope</code> or <code class="notranslate">.tpl</code> templates</td>
+</tr>
+<tr>
+<td><code class="notranslate">outs</code></td>
+<td>Matching outputs; compare names after removing template suffixes and optional <code class="notranslate">.gen</code>/<code class="notranslate">.golden</code> output suffixes</td>
+</tr>
+<tr>
+<td><code class="notranslate">data</code></td>
+<td>INI inputs; match an INI basename to the corresponding template basename</td>
+</tr>
+<tr>
+<td><code class="notranslate">args</code></td>
+<td>Additional CLI arguments</td>
+</tr>
+<tr>
+<td><code class="notranslate">clang_format</code></td>
+<td>Format generated output; default <code class="notranslate">False</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">sort_includes</code></td>
+<td>Include sorting for formatting actions; default <code class="notranslate">True</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">mope_test</code> name: must end in <code class="notranslate">_test</code> or <code class="notranslate">_tests</code>.</li>
+<li><code class="notranslate">mope_test</code>: generate <code class="notranslate">.gen</code> files and compare each against its supplied golden with <code class="notranslate">diff_test</code>.</li>
+<li>Formatter selection: <code class="notranslate">--//mbo/mope:clang_format</code>; empty selects the configured hermetic formatter;<br>
+an absolute executable path overrides it; <code class="notranslate">clang-format-auto</code> enables discovery.</li>
+<li>Failed formatter discovery: copy generated output without formatting and emit a warning.</li>
+</ul>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/mope/...</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/mope_test.cc">mope_test.cc</a>: library behavior and error cases.</li>
+<li><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/tests">tests</a>: template, INI, and golden fixtures.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/mope/tests/args/BUILD.bazel">CLI argument tests</a>: section and global context assignments.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

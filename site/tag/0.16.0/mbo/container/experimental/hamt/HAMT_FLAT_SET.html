@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_FLAT_SET.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="persistent-flat-hamt-set">Persistent flat HAMT set</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<p dir="auto"><code class="notranslate">HamtFlatSet&lt;Key, Hash, Equal, Options, Source&gt;</code> stores immutable keys directly in<br>
+packed nodes. Snapshot copies retain the root and allocation domain, not every key.<br>
+The core currently requires nothrow key copy/move construction and nothrow const<br>
+hash/equality invocation. Throwing user operations are not caught or silently adapted.</p>
+<p dir="auto">Persistent <code class="notranslate">insert</code> and <code class="notranslate">erase</code> return <code class="notranslate">(new_set, changed)</code>, leaving the original<br>
+untouched. Their <code class="notranslate">try_</code> counterparts return a variant containing that pair or<br>
+<code class="notranslate">HamtError</code>; maximum-size and allocation exhaustion are distinct errors. Ordinary<br>
+operations terminate on those failures. <code class="notranslate">try_create</code> returns an optional set and<br>
+accepts constructor arguments for the owned source; ordinary construction requires<br>
+a nothrow default-constructible source and terminates if domain allocation fails.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">mbo::container::experimental::hamt::HamtFlatSet&lt;<span class="pl-k">int</span>&gt; empty;
+<span class="pl-k">auto</span> [one, inserted] = empty.insert(<span class="pl-c1">1</span>);
+<span class="pl-k">auto</span> edit = one.transient();
+<span class="pl-k">auto</span> [position, added] = edit.insert(<span class="pl-c1">2</span>);
+<span class="pl-k">auto</span> two = std::move(edit).persistent();
+<span class="pl-c"><span class="pl-c">//</span> empty is empty; one contains 1; two contains 1 and 2.</span>
+<span class="pl-c"><span class="pl-c">//</span> edit is now empty and remains reusable.</span></pre></div>
+<p dir="auto">The nested <code class="notranslate">transient_type</code> is move-only. Insertion returns <code class="notranslate">(iterator, inserted)</code>;<br>
+erasure returns a count. Its <code class="notranslate">try_</code> operations return those values or <code class="notranslate">HamtError</code>.<br>
+Only a consuming rvalue <code class="notranslate">persistent()</code> conversion is offered. All iterator values<br>
+are const keys. Iteration is structural rather than insertion order; active iterator<br>
+equality includes container identity even when snapshots share their entire root.<br>
+Mutation invalidates the mutated container's iterators; unchanged snapshots retain<br>
+their values and iterators. External synchronization is required.</p>
+<p dir="auto">The ordinary owned-domain factory adds one nothrow global allocation even for an inline block<br>
+source. <code class="notranslate">TryCreateIn(control_source, hash, equal, source_args...)</code> instead constructs that domain in<br>
+caller-provided block storage. The control source and every resource borrowed by the node source<br>
+must outlive the set and all snapshots sharing its domain. This makes a fully caller-provisioned<br>
+configuration possible when both sources report recoverable exhaustion; control-domain and node<br>
+budgets remain independent.<br>
+<code class="notranslate">try_clone_to&lt;OtherSource&gt;(source_constructor_args...)</code> returns an optional set of<br>
+the destination-source specialization, owning independently copied nodes and its<br>
+new source domain. It preserves hash/equality state. The const-lvalue overload<br>
+preserves the original; the rvalue overload consumes only on success and leaves<br>
+the original empty and reusable. Domain or node allocation failure preserves the<br>
+original and returns an empty optional. External storage borrowed by a source still<br>
+requires its own lifetime guarantee.<br>
+The transient's rvalue clone overload returns a persistent destination set and<br>
+also preserves the transient on failure.</p>
+<p dir="auto">Transient structural operations reuse uniquely owned nodes where the representation permits and<br>
+fall back to persistent path copying for shared paths. Separate node set/map variants provide<br>
+stable payload addresses, while flat variants keep payloads inside packed topology blocks. An<br>
+<code class="notranslate">ArenaBlockSource</code> can supply multiple simultaneously live node blocks from a caller-owned arena<br>
+and recycle blocks released during failed mutations, so repeated bounded failure does not silently<br>
+consume the provisioned budget. The container still requires external synchronization; immutable<br>
+snapshots and atomic node reference counts do not by themselves publish roots or reclaim snapshots<br>
+for concurrent readers. Benchmarks and final performance-backed defaults remain outstanding.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

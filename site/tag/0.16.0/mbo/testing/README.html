@@ -1,0 +1,272 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/testing/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbotesting"><code class="notranslate">mbo/testing</code></h1>
+<p dir="auto"><code class="notranslate">mbo::testing</code> provides GoogleTest and GoogleMock helpers for testing text, containers, and Abseil<br>
+statuses. It includes text comparisons with unified diffs, membership and transformation matchers,<br>
+status assertion macros, and Bazel test runfile lookup.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::testing</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/matchers.h">matchers.h</a></td>
+<td><code class="notranslate">//mbo/testing:matchers_cc</code></td>
+<td>Text, membership, capacity, and transformation matchers</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/status.h">status.h</a></td>
+<td><code class="notranslate">//mbo/testing:status_cc</code></td>
+<td>Status matchers and assertion macros</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/runfiles_dir.h">runfiles_dir.h</a></td>
+<td><code class="notranslate">//mbo/testing:runfiles_dir_cc</code></td>
+<td>Runfile resolution; Bazel <code class="notranslate">testonly</code> target</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="general-matchers">General matchers</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Matcher</th>
+<th>Accepted subject</th>
+<th>Match condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">IsNullopt()</code></td>
+<td>Optional-like value</td>
+<td>Equal to <code class="notranslate">std::nullopt</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">CapacityIs(value_or_matcher)</code></td>
+<td>Container with <code class="notranslate">capacity()</code></td>
+<td>Capacity matches</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsElementOf(container)</code></td>
+<td>Equality-comparable value</td>
+<td>Equal to at least one element</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsKeyOf(map)</code></td>
+<td>Equality-comparable key</td>
+<td>Equal to at least one map key</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsValueOf(map)</code></td>
+<td>Equality-comparable value</td>
+<td>Equal to at least one mapped value</td>
+</tr>
+<tr>
+<td><code class="notranslate">WhenTransformedBy(function, matcher)</code></td>
+<td>Container</td>
+<td>Transformed elements match as a <code class="notranslate">std::vector</code>, in iteration order</td>
+</tr>
+<tr>
+<td><code class="notranslate">EqualsText(expected)</code></td>
+<td>Text convertible to <code class="notranslate">std::string_view</code></td>
+<td>Exact text equality; unified diff on failure</td>
+</tr>
+<tr>
+<td><code class="notranslate">WithDropIndent(EqualsText(expected))</code></td>
+<td>Text convertible to <code class="notranslate">std::string_view</code></td>
+<td>Expected text processed by <code class="notranslate">DropIndent</code>; actual text unchanged</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">IsElementOf</code>: stores the container by value; initializer-list overload copies into a vector.</li>
+<li><code class="notranslate">IsKeyOf</code> and <code class="notranslate">IsValueOf</code>: copy the selected keys or mapped values into vectors.</li>
+<li>Heterogeneous membership: direct equality comparison, with component-wise fallback for <code class="notranslate">std::pair</code>.</li>
+<li><code class="notranslate">WhenTransformedBy</code>: stores references to its transformer and matcher; referenced objects must<br>
+remain alive through matching. Temporary arguments are valid for an immediate <code class="notranslate">EXPECT_THAT</code>.</li>
+<li><code class="notranslate">EqualsText</code>: owns the expected text.</li>
+<li>Indentation rules: <a href="../strings/README.html#indentation">mbo/strings</a>.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>vector<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>gmock/gmock.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>gtest/gtest.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/testing/matchers.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> mbo::testing::EqualsText;
+<span class="pl-k">using</span> mbo::testing::IsElementOf;
+<span class="pl-k">using</span> mbo::testing::WhenTransformedBy;
+<span class="pl-k">using</span> mbo::testing::WithDropIndent;
+<span class="pl-k">using</span> ::testing::ElementsAre;
+
+<span class="pl-k">struct</span> <span class="pl-en">TextTest</span> : ::testing::Test {};
+
+<span class="pl-c1">TEST_F</span>(TextTest, TextAndMembership) {
+  <span class="pl-k">const</span> std::string actual = <span class="pl-s"><span class="pl-pds">"</span>alpha<span class="pl-cce">\n</span>beta<span class="pl-cce">\n</span><span class="pl-pds">"</span></span>;
+  <span class="pl-c1">EXPECT_THAT</span>(actual, <span class="pl-c1">WithDropIndent</span>(<span class="pl-c1">EqualsText</span>(<span class="pl-s"><span class="pl-pds">R"(</span></span>
+<span class="pl-s">    alpha</span>
+<span class="pl-s">    beta</span>
+<span class="pl-s">  <span class="pl-pds">)"</span></span>)));
+  <span class="pl-k">const</span> std::vector&lt;std::string&gt; allowed{<span class="pl-s"><span class="pl-pds">"</span>alpha<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>beta<span class="pl-pds">"</span></span>};
+  <span class="pl-c1">EXPECT_THAT</span>(<span class="pl-s"><span class="pl-pds">"</span>alpha<span class="pl-pds">"</span></span>, <span class="pl-c1">IsElementOf</span>(allowed));
+  <span class="pl-c1">EXPECT_THAT</span>(allowed, <span class="pl-c1">WhenTransformedBy</span>([](<span class="pl-k">const</span> std::string&amp; value) { <span class="pl-k">return</span> value.<span class="pl-c1">size</span>(); }, <span class="pl-c1">ElementsAre</span>(<span class="pl-c1">5</span>, <span class="pl-c1">4</span>)));
+}</pre></div>
+<h2 dir="auto" id="status-matchers">Status matchers</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Matcher</th>
+<th>Match condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">IsOk()</code></td>
+<td><code class="notranslate">Status</code> or <code class="notranslate">StatusOr&lt;T&gt;</code> is OK</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsOkAndHolds(matcher)</code></td>
+<td><code class="notranslate">StatusOr&lt;T&gt;</code> is OK and its value matches</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusIs(code_or_matcher)</code></td>
+<td>Status code matches</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusIs(code_or_matcher, message_matcher)</code></td>
+<td>Code and message match; message ignored for matching OK status</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusHasPayload()</code></td>
+<td>Non-OK status has at least one payload</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusHasPayload(type_url)</code></td>
+<td>Non-OK status has that payload URL</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusHasPayload(type_url, matcher)</code></td>
+<td>Payload content, converted to <code class="notranslate">std::string</code>, matches</td>
+</tr>
+<tr>
+<td><code class="notranslate">StatusPayloads(matcher)</code></td>
+<td>Complete URL-to-string payload map matches as <code class="notranslate">absl::btree_map&lt;std::string, std::string&gt;</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Status-bearing subjects: extracted through <a href="../status/README.html#status-extraction">GetStatus</a>.</li>
+<li><code class="notranslate">StatusPayloads</code>: OK statuses match an empty payload map.</li>
+<li>Payload matching: checks content and URLs without changing the status.</li>
+</ul>
+<h2 dir="auto" id="assertion-macros">Assertion macros</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Macro</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MBO_EXPECT_OK(expression)</code></td>
+<td>Nonfatal OK assertion</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_ASSERT_OK(expression)</code></td>
+<td>Fatal OK assertion</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_ASSERT_OK_AND_ASSIGN(target, expression)</code></td>
+<td>Assert OK, then move the value into a variable or declaration</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_ASSERT_OK_AND_MOVE_TO(expression, ...)</code></td>
+<td>Assert OK, then move into a declaration supporting commas and structured bindings</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Short aliases: <code class="notranslate">EXPECT_OK</code>, <code class="notranslate">ASSERT_OK</code>, <code class="notranslate">ASSERT_OK_AND_ASSIGN</code>, when not already defined.</li>
+<li>Assignment macros: one expression evaluation; new declarations remain in the enclosing scope.</li>
+<li>Assignment macros: multiple statements; use braces around conditional or loop bodies.</li>
+<li>Temporary names: based on <code class="notranslate">__LINE__</code>; one assignment macro per source line.</li>
+<li>Fatal assertion macros: GoogleTest fatal-assertion restrictions apply to the enclosing function.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/statusor.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>gmock/gmock.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>gtest/gtest.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/testing/status.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> mbo::testing::IsOkAndHolds;
+<span class="pl-k">using</span> ::testing::Eq;
+<span class="pl-k">using</span> ::testing::Lt;
+
+<span class="pl-k">struct</span> <span class="pl-en">StatusTest</span> : ::testing::Test {};
+
+<span class="pl-c1">TEST_F</span>(StatusTest, BindsReturnedValues) {
+  <span class="pl-k">const</span> absl::StatusOr&lt;<span class="pl-k">int</span>&gt; result = <span class="pl-c1">42</span>;
+  <span class="pl-c1">EXPECT_THAT</span>(result, <span class="pl-c1">IsOkAndHolds</span>(<span class="pl-c1">42</span>));
+  <span class="pl-c1">MBO_ASSERT_OK_AND_ASSIGN</span>(<span class="pl-k">const</span> <span class="pl-k">int</span> value, result);
+  <span class="pl-c1">EXPECT_THAT</span>(value, <span class="pl-c1">Eq</span>(<span class="pl-c1">42</span>));
+  <span class="pl-k">const</span> absl::StatusOr&lt;std::pair&lt;<span class="pl-k">int</span>, <span class="pl-k">int</span>&gt;&gt; bounds = std::pair{<span class="pl-c1">2</span>, <span class="pl-c1">5</span>};
+  <span class="pl-c1">MBO_ASSERT_OK_AND_MOVE_TO</span>(bounds, <span class="pl-k">const</span> <span class="pl-k">auto</span> [first, last]);
+  <span class="pl-c1">EXPECT_THAT</span>(first, <span class="pl-c1">Lt</span>(last));
+}</pre></div>
+<h2 dir="auto" id="runfiles">Runfiles</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">RunfilesDir(source)</code></td>
+<td><code class="notranslate">absl::StatusOr&lt;std::string&gt;</code> containing a resolved runfile path</td>
+</tr>
+<tr>
+<td><code class="notranslate">RunfilesDir(workspace, source_rel)</code></td>
+<td>Resolve a workspace-relative runfile path</td>
+</tr>
+<tr>
+<td><code class="notranslate">RunfilesDirOrDie(...)</code></td>
+<td>Same overloads; fatal check on resolution error</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Single-argument forms: plain path, <code class="notranslate">//package:file</code>, or <code class="notranslate">@repository//package:file</code>.</li>
+<li>Label conversion: replace the first <code class="notranslate">:</code> after <code class="notranslate">//</code> with <code class="notranslate">/</code>.</li>
+<li>Test environment: <code class="notranslate">TEST_WORKSPACE</code>, <code class="notranslate">TEST_SRCDIR</code>, and Bazel runfiles metadata.</li>
+<li>External repository names: resolved through <code class="notranslate">_repo_mapping</code> when required.</li>
+<li>Inputs: declare files in the test target's <code class="notranslate">data</code> attribute.</li>
+<li>Resolution is not a file-content read or a guarantee that the returned file exists.</li>
+</ul>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/testing:all</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/matchers_test.cc">matchers_test.cc</a>, <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/status_test.cc">status_test.cc</a>,<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/testing/runfiles_dir_test.cc">runfiles_dir_test.cc</a>.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

@@ -1,0 +1,89 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>docs/release-website.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main>
+
+<h1 dir="auto" id="release-website">Release website</h1>
+<p dir="auto">Release notes use <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/.github/release-notes.md.template"><code class="notranslate">.github/release-notes.md.template</code></a>, rendered by<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/tools/release_notes.sh"><code class="notranslate">tools/release_notes.sh TAG</code></a>, to link to that tag's versioned website and related<br>
+release resources. The existing changelog and installation notes remain included.</p>
+<p dir="auto">The <a href="https://mboworks.github.io/mbo/" rel="nofollow">website</a> forwards to the latest published<br>
+stable release at <code class="notranslate">site/tag/&lt;tag&gt;/</code>, preserving the exact Git tag name.<br>
+Each release keeps its converted HTML, images, and configured files. Retrying<br>
+publication leaves an existing snapshot unchanged; a different commit cannot<br>
+replace it. Older versions remain directly accessible.</p>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/release-site.json"><code class="notranslate">release-site.json</code></a> defines the layout. Source names are<br>
+relative to the repository root; destinations are relative to that release's<br>
+site directory. For example:</p>
+<div class="highlight highlight-source-json" dir="auto"><pre class="notranslate">{
+  <span class="pl-ent">"pages"</span>: {
+    <span class="pl-ent">"README.md"</span>: <span class="pl-s"><span class="pl-pds">"</span>index.html<span class="pl-pds">"</span></span>,
+    <span class="pl-ent">"docs/guide.md"</span>: <span class="pl-s"><span class="pl-pds">"</span>guide/index.html<span class="pl-pds">"</span></span>
+  },
+  <span class="pl-ent">"files"</span>: {
+    <span class="pl-ent">"schema/example.json"</span>: <span class="pl-s"><span class="pl-pds">"</span>schema/v1.json<span class="pl-pds">"</span></span>
+  },
+  <span class="pl-ent">"links"</span>: [
+    {
+      <span class="pl-ent">"label"</span>: <span class="pl-s"><span class="pl-pds">"</span>Release<span class="pl-pds">"</span></span>,
+      <span class="pl-ent">"href"</span>: <span class="pl-s"><span class="pl-pds">"</span>https://github.com/{owner}/{repo}/releases/tag/{tag}<span class="pl-pds">"</span></span>
+    }
+  ]
+}</pre></div>
+<p dir="auto">Use existing source files in the actual configuration. <code class="notranslate">pages</code> converts Markdown;<br>
+optional <code class="notranslate">files</code> copies other files unchanged. <code class="notranslate">README.md</code> must map to <code class="notranslate">index.html</code>.<br>
+The generated <code class="notranslate">documents.html</code>, <code class="notranslate">release.json</code>, <code class="notranslate">release-site.json</code>, and <code class="notranslate">assets/</code><br>
+paths are reserved. Destination paths cannot have hidden components (names starting<br>
+with a dot), because the Pages artifact uploader excludes them. Hidden source<br>
+paths remain valid; for example, <code class="notranslate">.github/workflows/README.md</code> maps to<br>
+<code class="notranslate">workflows/index.html</code>.<br>
+Navigation links support <code class="notranslate">{owner}</code>, <code class="notranslate">{repo}</code>, <code class="notranslate">{tag}</code>, <code class="notranslate">{version}</code>, and <code class="notranslate">{commit}</code>.<br>
+<code class="notranslate">{version}</code> omits a leading <code class="notranslate">v</code> for compatibility with coverage report paths.<br>
+By default, the configuration and content come from the release tag. Every linked<br>
+local Markdown page (including directory README links) must have a <code class="notranslate">pages</code> mapping.<br>
+Publication fails for an omitted mapping, a missing generated file, or a broken<br>
+anchor within the snapshot. Links to configured pages follow their destination<br>
+mappings; other local source links use the exact release commit. Embedded images are copied, including remote badges. Markdown<br>
+conversion uses the <a href="https://docs.github.com/en/rest/markdown/markdown">GitHub Markdown API</a><br>
+at publication time; browsing the result requires no Markdown renderer or CDN.</p>
+<p dir="auto">After the Release workflow succeeds, <code class="notranslate">Publish release site</code> retains the snapshot<br>
+on <code class="notranslate">coverage-pages</code> and deploys the complete Pages tree. Coverage and site<br>
+publication share a concurrency group to preserve both trees. GitHub's latest<br>
+stable release selects the root redirect; backfilling an older release does not<br>
+make it latest. The workflow can also be dispatched with a published tag to retry<br>
+publication. Enable GitHub Pages with<br>
+<strong>GitHub Actions</strong> as its source, and set the repository's About website to<br>
+<code class="notranslate">https://mboworks.github.io/mbo/</code>.</p>
+<h2 dir="auto" id="backfill-a-historical-release">Backfill a historical release</h2>
+<p dir="auto">No new release or tag change is needed. Manually dispatch <code class="notranslate">Publish release site</code><br>
+with <code class="notranslate">tag</code> set to the historical release and <code class="notranslate">config_path</code> set to a tracked JSON<br>
+file on <code class="notranslate">main</code>. For <code class="notranslate">0.15.0</code>, use the current <code class="notranslate">release-site.json</code>:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">gh workflow run pages.yml --repo mboworks/mbo --ref main \
+  -f tag=0.15.0 -f config_path=release-site.json</pre></div>
+<p dir="auto">The override changes only the publication layout; all Markdown and copied files<br>
+still come from the selected tag. A configuration can serve multiple historical<br>
+tags when its sources exist in each tag. For a different historical layout, add<br>
+another configuration on <code class="notranslate">main</code> and select its repository-relative path. Missing<br>
+sources or links fail publication instead of falling back to newer content.<br>
+Automatic release publication continues to use the configuration from the tag.</p>
+<p dir="auto">Each new snapshot retains the exact configuration as <code class="notranslate">release-site.json</code> and<br>
+records its SHA-256, whether it came from the tag or an override, and the source<br>
+commit in <code class="notranslate">release.json</code>. Retrying a published tag does not replace its HTML or<br>
+configuration, even if the selected override has changed since publication.</p>
+<p dir="auto">To verify a backfill locally without deploying, check out the historical tag in<br>
+<code class="notranslate">/tmp/mbo-0.15.0</code> and run from the current publisher checkout:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">python3 tools/release_site.py /tmp/mbo-0.15.0 /tmp/mbo-site-preview \
+  --repository mboworks/mbo --tag 0.15.0 --latest 0.15.0 \
+  --config release-site.json</pre></div>
+<p dir="auto">Local regression tests: <code class="notranslate">python3 -m unittest discover -s tools -p release_site_test.py</code>.<br>
+CI also converts the configured documentation and checks the generated links in<br>
+a disposable runner directory. It never commits, retains, or deploys that preview.</p>
+<p dir="auto">Release coverage links select <code class="notranslate">https://mboworks.github.io/mbo/coverage/tag/&lt;version&gt;/</code>,<br>
+matching the coverage publisher rather than the moving main-branch report.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

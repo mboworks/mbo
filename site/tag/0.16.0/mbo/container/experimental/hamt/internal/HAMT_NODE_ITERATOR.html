@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/internal/HAMT_NODE_ITERATOR.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="node-value-iterator-adapter">Node-value iterator adapter</h1>
+<p dir="auto">These implementation details live in <code class="notranslate">mbo::container::experimental::hamt::hamt_internal</code>.<br>
+They are not a supported public interface.</p>
+<p dir="auto"><code class="notranslate">HamtNodeIterator&lt;Iterator, Mutable&gt;</code> projects a forward iterator over payload<br>
+handles into a forward iterator over their values. Const dereference uses the<br>
+handle's <code class="notranslate">get</code> pointer; mutable dereference uses nonallocating unique access after<br>
+the owning transient has prepared all node and payload ownership. The underlying<br>
+HAMT iterator retains responsibility for traversal and range identity. No extra<br>
+traversal, allocation, or ownership is added during iteration.</p>
+<p dir="auto">Copies traverse independently. End comparison delegates to the underlying iterator.<br>
+Value-initialized adapters initialize their underlying iterator rather than leaving<br>
+raw pointer iterator state uninitialized. Dereferencing end or an empty payload is<br>
+invalid. The underlying range and payloads must remain alive throughout use.</p>
+<p dir="auto">The adapter requires nonthrowing iterator construction, copying, movement,<br>
+destruction, increment, and equality. Mutable adapters convert to const adapters,<br>
+never conversely. <code class="notranslate">HamtNodeMap::transient_type</code> performs the required ownership<br>
+preparation before returning mutable iterators; dereference cannot fail or detach<br>
+lazily. This helper does not change pointer-invalidation contracts.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

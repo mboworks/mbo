@@ -1,0 +1,712 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/strings/STRING_INTERNING.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="string-interning-api-and-design">String interning API and design</h1>
+<p dir="auto">The checked-in <a href="STRING_INTERNER_BENCHMARKS.html">benchmark harness and measurement instructions</a><br>
+cover the current implementation and its supported configuration choices.</p>
+<p dir="auto">This document describes the public <code class="notranslate">mbo::strings</code> interner API and its ownership, failure, and<br>
+parent-lifetime contracts. The allocation experiments, diagnostics proposals, and measurement<br>
+sections identify future work; they do not promise additional implemented operations.</p>
+<h2 dir="auto" id="goals">Goals</h2>
+<p dir="auto">The interner accepts strings as <code class="notranslate">std::string_view</code>, owns one stable copy of each interned string,<br>
+and assigns compact dense identifiers. It supports fast lookup in both directions:</p>
+<ul dir="auto">
+<li>string to identifier, without constructing a <code class="notranslate">std::string</code> merely for lookup;</li>
+<li>identifier to <code class="notranslate">std::string_view</code>, with the returned view owned by the interner;</li>
+<li>snapshot parent/child interning, allowing related domains to share a stable prefix while adding<br>
+independent local strings;</li>
+<li>configurable hashing, indexing, and character storage, including arena-backed and bounded<br>
+allocation-free configurations;</li>
+<li>a reusable <code class="notranslate">SegmentedVector</code> built from fixed-capacity segments for append-oriented stable<br>
+storage, including but not limited to the interner's dense ID table.</li>
+</ul>
+<p dir="auto">The design should make the efficient configuration easy while allowing users to choose different<br>
+container guarantees. Standard unordered containers, Abseil hash containers, and an mbo-provided<br>
+index can be used when they satisfy the public container concepts.</p>
+<p dir="auto"><code class="notranslate">SegmentedVector</code> and <code class="notranslate">Arena</code> are independent production components and prerequisites for the<br>
+interner's default composition. Their public contracts remain separate from this design, as do<br>
+concrete character-storage and string-container adapters.</p>
+<h2 dir="auto" id="core-model">Core model</h2>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/internal/string_interner_base.h"><code class="notranslate">strings_internal::StringInternerBase</code></a> implements shared<br>
+insertion, lookup, parent snapshots, and iteration for both key-only and key/value indexes.<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner.h"><code class="notranslate">StringInternerSet</code> and <code class="notranslate">StringInternerMap</code></a> are thin public wrappers that<br>
+provide string-set and string-to-value semantics. Public headers are focused by responsibility:</p>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner.h"><code class="notranslate">string_interner.h</code></a>: wrappers and their public operations;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner_types.h"><code class="notranslate">string_interner_types.h</code></a>: ID, index, storage, and entry concepts;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner_traits.h"><code class="notranslate">string_interner_traits.h</code></a>: key extraction and address-stability traits;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner_policies.h"><code class="notranslate">string_interner_policies.h</code></a>: result, lookup, index, and exception policies;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner_error.h"><code class="notranslate">string_interner_error.h</code></a>: exhaustion enum and status conversions;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_id.h"><code class="notranslate">string_id.h</code></a>: dense strong-ID aliases and concepts;</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/arena_string_storage.h"><code class="notranslate">arena_string_storage.h</code></a>: append-only byte ownership.</li>
+</ul>
+<p dir="auto">The base has a<br>
+private Bazel target, following the <code class="notranslate">LimitedOrdered</code> layout. The ID type comes first. The map<br>
+requires its mapped value type second; the remaining parameters are hash, string container,<br>
+character storage, dense entry sequence, and policy holder:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">StringInternerSet&lt;&gt; strings;  <span class="pl-c"><span class="pl-c">//</span> StringIdU32, flat string-to-ID index, arena bytes</span>
+StringInternerMap&lt;StringIdU32&lt;&gt;, <span class="pl-k">int</span>&gt; counts;
+<span class="pl-k">auto</span> inserted = counts.insert(<span class="pl-s"><span class="pl-pds">"</span>apple<span class="pl-pds">"</span></span>, <span class="pl-c1">42</span>);  <span class="pl-c"><span class="pl-c">//</span> ID zero, value 42</span>
+<span class="pl-k">if</span> (inserted) {
+  <span class="pl-k">auto</span> entry = counts.<span class="pl-c1">get</span>(inserted-&gt;<span class="pl-smi">first</span>);  <span class="pl-c"><span class="pl-c">//</span> OptionalRef to ("apple", 42)</span>
+  counts.<span class="pl-c1">at</span>(inserted-&gt;<span class="pl-smi">first</span>) += <span class="pl-c1">1</span>;
+}
+StringInternerMap&lt;std::<span class="pl-c1">uint64_t</span>, std::string&gt; descriptions;
+StringInternerSet&lt;StringIdU32&lt;&gt;, std::hash&lt;std::string_view&gt;&gt; custom_hash;
+
+<span class="pl-k">using</span> OwnedMap = std::map&lt;std::string, StringIdU32&lt;&gt;, std::less&lt;&gt;&gt;;
+StringInternerMap&lt;StringIdU32&lt;&gt;, <span class="pl-k">int</span>, <span class="pl-k">void</span>, OwnedMap&gt; owned_counts;
+<span class="pl-k">using</span> OwnedSet = std::set&lt;std::string, std::less&lt;&gt;&gt;;
+StringInternerSet&lt;StringIdU32&lt;&gt;, <span class="pl-k">void</span>, OwnedSet&gt; owned_set;</pre></div>
+<p dir="auto">Both wrappers expose string keys: <code class="notranslate">key_type</code> is the index's normalized key type, either<br>
+<code class="notranslate">std::string_view</code> or <code class="notranslate">std::string</code>. IDs are separate handles. Ordinary set iteration returns<br>
+<code class="notranslate">const key_type&amp;</code>; ordinary map iteration returns a reference to a string/value pair. Neither<br>
+iteration nor ID access hashes a string or searches for its ID.</p>
+<p dir="auto">The base is parameterized by <code class="notranslate">element_type</code>, analogous to <code class="notranslate">LimitedOrdered</code>. Its shared lookup,<br>
+parent traversal, and iterators operate on elements. For sets, <code class="notranslate">element_type</code> is <code class="notranslate">const key_type</code>.<br>
+For maps, <code class="notranslate">mapped_type</code> is the caller's <code class="notranslate">Value</code>, and <code class="notranslate">element_type</code> is<br>
+<code class="notranslate">std::pair&lt;const std::string_view, Value&gt;</code> for view keys or<br>
+<code class="notranslate">std::pair&lt;const std::string&amp;, Value&gt;</code> for owning keys. A view is stored directly without another<br>
+indirection; an owning key is referenced without copying its string. Keys stay immutable, including<br>
+the view descriptor: reassigning it would make the element disagree with the index. <code class="notranslate">value_type</code><br>
+is <code class="notranslate">element_type</code> with any top-level const removed.</p>
+<p dir="auto">Non-const map iteration yields <code class="notranslate">element_type&amp;</code>, while const iteration yields<br>
+<code class="notranslate">const element_type&amp;</code>. <code class="notranslate">get(id)</code> returns <code class="notranslate">mbo::types::OptionalRef&lt;element_type&gt;</code> from a mutable map<br>
+and <code class="notranslate">mbo::types::OptionalRef&lt;const element_type&gt;</code> from a const map or a set. Missing IDs return<br>
+an empty reference. <code class="notranslate">get_string(id)</code> provides an optional string view in either wrapper.<br>
+<code class="notranslate">at(id)</code> and <code class="notranslate">operator[](id)</code> return mapped-value references with the same constness. Both require<br>
+an existing ID, never insert, and use <code class="notranslate">MBO_CONFIG_REQUIRE</code> for an invalid ID. There are no string<br>
+overloads of these accessors; <code class="notranslate">find(key)</code> and <code class="notranslate">rfind(key)</code> explicitly obtain an ID from a string.</p>
+<p dir="auto">Both wrappers default to <code class="notranslate">absl::flat_hash_map&lt;std::string_view, Id, Hash&gt;</code> as their index. Map<br>
+values live in the dense element sequence, independently of this string-to-ID index.<br>
+<code class="notranslate">insert(key, value)</code> adds a map element; <code class="notranslate">try_emplace(key, args...)</code> constructs its value in place,<br>
+including immovable types. Duplicate insertion keeps the existing value and does not consume<br>
+the supplied value or construct a replacement, including for inherited entries.<br>
+Public callers choose <code class="notranslate">StringInternerSet</code> or <code class="notranslate">StringInternerMap</code> directly; there is no<br>
+<code class="notranslate">StringInterner</code> alias.</p>
+<p dir="auto">Custom indexes use ordinary associative-container operations: <code class="notranslate">find</code>, <code class="notranslate">end</code>, <code class="notranslate">empty</code>, and <code class="notranslate">emplace</code>.<br>
+They also support iterator-based <code class="notranslate">erase</code> to discard an unpublished index entry if a mapped-value<br>
+constructor throws; successful entries are never erased. Standard <code class="notranslate">std::map</code>,<br>
+<code class="notranslate">std::unordered_map</code>, <code class="notranslate">std::set</code>, <code class="notranslate">std::unordered_set</code>, and Abseil maps or sets can serve as either<br>
+wrapper's index. The <code class="notranslate">Hash</code> parameter selects the default index's hasher; an explicitly supplied<br>
+container selects its own hash or comparison type.</p>
+<p dir="auto"><code class="notranslate">StringInternerContainerTraits&lt;Container&gt;</code> distinguishes key/value maps from key-only sets by the<br>
+presence of <code class="notranslate">mapped_type</code>. Its key accessor selects a map entry's <code class="notranslate">first</code> member or a set entry<br>
+itself. <code class="notranslate">StringInternerKey&lt;Container&gt;</code> extracts the key type and removes its top-level <code class="notranslate">const</code><br>
+qualification. <code class="notranslate">StringInternerStringContainer</code> validates string keys and lookup independently of<br>
+any mapped value. Stored keys must remain const through mutable iterators, as they do in standard<br>
+maps and sets; const-qualified key-type aliases are also accepted.</p>
+<p dir="auto"><code class="notranslate">StringInternerIdIndex&lt;Container, Id&gt;</code> checks insertion for both wrappers. Map-like indexes map<br>
+keys to IDs and use <code class="notranslate">emplace(key, id)</code>; key-only indexes use <code class="notranslate">emplace(key)</code>. Key-only indexes<br>
+recover IDs by scanning local dense elements within the captured cutoff. The default string-to-ID<br>
+index avoids that scan. ID lookup always selects a dense element directly, without an index lookup.<br>
+String lookup accepts <code class="notranslate">std::string_view</code> without constructing an owning string. Owning standard<br>
+containers therefore need heterogeneous lookup, such as <code class="notranslate">std::less&lt;&gt;</code> or a transparent hash and<br>
+equality pair.</p>
+<p dir="auto">The key type selects ownership, enforced by template constraints. A <code class="notranslate">std::string_view</code> key requires<br>
+separate <code class="notranslate">Storage</code>, which defaults to <code class="notranslate">ArenaStringStorage&lt;&gt;</code>; <code class="notranslate">Storage = void</code> is rejected. A<br>
+<code class="notranslate">std::string</code> key owns its bytes and requires <code class="notranslate">Storage = void</code>; supplying separate storage is<br>
+rejected. These rules also apply to const-qualified keys and to both maps and sets.</p>
+<p dir="auto">Owning containers must preserve key addresses during insertion, including for short strings.<br>
+Flat-hash, C++23 flat-associative, and unknown custom containers are rejected at compile time for<br>
+owning keys because growth may move their keys. Flat containers with <code class="notranslate">std::string_view</code> keys remain<br>
+supported because separate storage owns the characters. Standard node containers and Abseil<br>
+<code class="notranslate">node_hash_map</code> / <code class="notranslate">node_hash_set</code> are explicitly recognized as stable. Other custom indexes must specialize<br>
+<code class="notranslate">mbo::strings::kHasStableKeyAddresses&lt;CustomIndex&gt;</code> to <code class="notranslate">true</code> before interner use, and only when<br>
+they provide the same lifetime guarantee. The trait is declared in <code class="notranslate">string_interner_traits.h</code> and<br>
+defaults to <code class="notranslate">false</code>; no member marker is required or inspected on the container.<br>
+<code class="notranslate">LimitedMap</code> and <code class="notranslate">LimitedSet</code> currently relocate elements during insertion and therefore do not meet<br>
+this requirement for owning keys, even when their capacity is fixed.<br>
+Dense entries default to <code class="notranslate">SegmentedVector</code>, which preserves element<br>
+addresses during growth. A view set stores string views; an owning set stores pointers to const<br>
+strings. A map stores optional elements so it can reserve an unpublished slot without constructing<br>
+a mapped value. Custom entry containers must store that corresponding entry type and support<br>
+bidirectional iteration, <code class="notranslate">size()</code>, default <code class="notranslate">emplace_back()</code>, and mutable <code class="notranslate">back()</code>. A fallible<br>
+<code class="notranslate">try_emplace_back()</code> is used when available.</p>
+<p dir="auto">The interner constructor accepts only a parent pointer, or an <code class="notranslate">options_type</code> containing a parent<br>
+and a fully constructed empty index. A populated index is a configured requirement failure at<br>
+construction: its entries have no corresponding dense IDs. Empty indexes may already have reserved<br>
+capacity or stateful hash/comparison objects. This avoids forwarding arbitrary arguments to the selected<br>
+container. For example, a stateful default-index hasher can be supplied as<br>
+<code class="notranslate">StringInternerSet&lt;Id, MyHash&gt; strings({.container = {0, MyHash{seed}}})</code>. Both wrappers inherit<br>
+these constructors and the base's parent-prefix behavior. Hashing and allocating operations retain<br>
+the selected container's exception behavior; string lookup is not forced through a <code class="notranslate">noexcept</code><br>
+adapter.<br>
+ID lookup is <code class="notranslate">noexcept</code>. The default <code class="notranslate">StringInternerExceptionFreePolicy</code> omits mapped-publication<br>
+rollback even when the translation unit enables exceptions; mapped-value construction must not<br>
+throw in that mode. Select <code class="notranslate">StringInternerExceptionSafePolicy</code> for potentially throwing mapped<br>
+construction. It restores the unpublished index entry through iterator erasure or an index-policy<br>
+transaction; character bytes and the reserved dense slot are retained for the next attempt.</p>
+<p dir="auto">By default, <code class="notranslate">insert</code> returns <code class="notranslate">std::expected&lt;std::pair&lt;Id, bool&gt;, StringInternerError&gt;</code>. Success contains the ID<br>
+and whether this call inserted a new string; a duplicate returns its existing ID and <code class="notranslate">false</code>.<br>
+Failure contains an enum identifying the exhausted component. Returning either result does not<br>
+format or allocate an error message. Fully bounded configurations must also supply backends that<br>
+do not allocate; the result type alone does not make the default, growing containers allocation-free.</p>
+<p dir="auto">Status-based callers can select <code class="notranslate">StringInternerErrorStatusPolicy</code> or explicitly use<br>
+<code class="notranslate">ToStatusOr(interner.insert(key))</code>. <code class="notranslate">ToStatusCode(error)</code> provides the enum mapping:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>StringInternerError</th>
+<th>absl::StatusCode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">kIdExhausted</code></td>
+<td><code class="notranslate">kOutOfRange</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kCharacterStorageExhausted</code></td>
+<td><code class="notranslate">kResourceExhausted</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kEntryStorageExhausted</code></td>
+<td><code class="notranslate">kResourceExhausted</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kIndexExhausted</code></td>
+<td><code class="notranslate">kResourceExhausted</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Converted errors have empty messages and no payloads. Callers that need the exact exhausted<br>
+storage component inspect the enum before conversion; all three storage errors share a status<br>
+code. Neither result representation is claimed to be faster without measurements.</p>
+<p dir="auto">Character storage only needs <code class="notranslate">try_store</code>; it is append-only from the interner's perspective. If<br>
+indexing fails after a copy, those bytes may remain allocated until destruction. The interner does<br>
+not reclaim them or publish an ID for them. An <code class="notranslate">emplace</code> result with <code class="notranslate">second == false</code> for a missing<br>
+key reports index exhaustion, allowing bounded indexes to reject insertion. The interner stores an<br>
+element referring to the canonical key after successful indexing.</p>
+<p dir="auto">Both ownership modes reserve at most one unpublished dense entry and reuse it after a failed<br>
+attempt. <code class="notranslate">size()</code>, iteration, and ID lookup include only successfully published entries. Entry<br>
+containers need append and a writable <code class="notranslate">back()</code>; neither entry removal nor character-storage<br>
+rollback is required. Reserving the entry before storing bytes also ensures entry exhaustion cannot<br>
+consume character capacity. Owning mode has no separate character-storage object or runtime<br>
+ownership branch. The entry sequence is destroyed before the string container, and any separate<br>
+character storage is destroyed last.</p>
+<p dir="auto">The interner implements captured parent cutoffs, forward/reverse lookup, whole-chain bidirectional<br>
+iteration yielding string views for sets or key/value pairs for maps, and append-only insertion<br>
+that publishes an ID only after<br>
+indexing succeeds. Declared empty parents retain their identity; a zero local starting ID does not<br>
+imply a null parent. Internal ordinals use unsigned <code class="notranslate">size_type</code>; negative signed IDs are rejected<br>
+before conversion or ancestor traversal. Ancestor cutoffs can be passed directly during lookup<br>
+because each parent's local starting ID is at most its child's.</p>
+<p dir="auto">Extended bounded-allocation configurations and performance tuning remain outstanding. Both<br>
+<code class="notranslate">find</code> and <code class="notranslate">rfind</code> currently walk iteratively from local entries toward ancestors, respecting each<br>
+captured cutoff. They have identical results under the uniqueness invariant. No interner parent<br>
+traversal uses recursion.</p>
+<p dir="auto">The initial <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/arena_string_storage.h"><code class="notranslate">ArenaStringStorage</code></a> adapter implements byte<br>
+ownership independently of the index. <code class="notranslate">try_store</code> copies exactly the view length,<br>
+including embedded NUL bytes, without adding a terminator. Empty strings need no<br>
+allocation. Exhaustion returns an empty optional; the interner uses the adapter only<br>
+for append-only storage and keeps successful views until destruction. The adapter<br>
+is neither copyable nor movable and requires external synchronization. Its arena<br>
+type is configurable. Unexpected arena exceptions terminate through the adapter's<br>
+<code class="notranslate">noexcept</code> boundary; it does not convert exceptions into allocation-failure results.<br>
+This is an initial implementation, not a benchmark-selected storage strategy.</p>
+<p dir="auto">An interner consists conceptually of three facilities:</p>
+<ol dir="auto">
+<li>stable character storage that owns the bytes behind returned <code class="notranslate">std::string_view</code> values;</li>
+<li>an ordered table mapping dense identifiers to elements (keys or key/value pairs);</li>
+<li>a heterogeneous string index mapping content to identifiers.</li>
+</ol>
+<p dir="auto">The character storage and index can be separate or combined in an owning container. An arena can<br>
+eliminate per-string character allocations, but it does not make a node-based hash table<br>
+allocation-free. A fully bounded interner must bound and supply storage for both the character data<br>
+and every index/table allocation.</p>
+<p dir="auto">The ordered ID-to-element table naturally wants <code class="notranslate">SegmentedVector</code>, an append-oriented container made<br>
+from fixed-capacity segments. It must provide stable element addresses and efficient indexing by<br>
+dense position. Developing this reusable container is an explicit goal of the project, not merely<br>
+a private interner implementation detail. Its API should nevertheless be driven by demonstrated<br>
+requirements and measured behavior rather than speculative generality.</p>
+<p dir="auto">The byte arena has different packing and lifetime needs and should not automatically share the<br>
+<code class="notranslate">SegmentedVector</code> abstraction.</p>
+<h3 dir="auto" id="relationship-between-segmentedvector-and-an-arena">Relationship between <code class="notranslate">SegmentedVector</code> and an arena</h3>
+<p dir="auto"><code class="notranslate">SegmentedVector</code> and a segmented arena both acquire backing blocks through <code class="notranslate">BlockSource</code>, but<br>
+they do not share a chain representation and provide different contracts:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Property</th>
+<th><code class="notranslate">SegmentedVector&lt;T&gt;</code></th>
+<th>Segmented arena</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocation unit</td>
+<td>A fixed number of <code class="notranslate">T</code> element slots</td>
+<td>Requested bytes plus alignment</td>
+</tr>
+<tr>
+<td>Type knowledge</td>
+<td>Knows <code class="notranslate">T</code>, <code class="notranslate">sizeof(T)</code>, and <code class="notranslate">alignof(T)</code></td>
+<td>Treats allocations as untyped</td>
+</tr>
+<tr>
+<td>Object lifetime</td>
+<td>Constructs and destroys individual elements</td>
+<td>Usually releases a region at once</td>
+</tr>
+<tr>
+<td>Addressing</td>
+<td>Dense element index</td>
+<td>Pointer or arena-specific handle</td>
+</tr>
+<tr>
+<td>Contiguous guarantee</td>
+<td>None; segment views are random-access</td>
+<td>Within one allocation only</td>
+</tr>
+<tr>
+<td>Primary operation</td>
+<td>Append/emplace an element and index it later</td>
+<td>Allocate an aligned range of bytes</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The current <code class="notranslate">SegmentedVector</code> uses one compile-time power-of-two <code class="notranslate">segment_size</code>, shift/mask index<br>
+mapping, a hard <code class="notranslate">segment_capacity</code>, and an initial <code class="notranslate">segment_reservation</code>. Those options keep every<br>
+segment uniform while making bounded capacity and directory-allocation behavior explicit. Segment<br>
+size and reservation remain measurement choices because they trade directory size and allocation<br>
+frequency against tail waste and cache behavior. Additional growth-policy surface is added only if<br>
+a measured workload requires it.</p>
+<h3 dir="auto" id="identity-and-equality">Identity and equality</h3>
+<p dir="auto">Strings are equal by byte content and length. Input view address and the source object's lifetime<br>
+do not participate in identity. Hash collisions must be resolved by equality; a hash value alone is<br>
+not a string identifier.</p>
+<p dir="auto">The empty string is a normal internable value. Returned views remain valid until the owning<br>
+interner is destroyed; the design must state explicitly whether move, swap, or reset can invalidate<br>
+them.</p>
+<h3 dir="auto" id="identifiers">Identifiers</h3>
+<p dir="auto">Identifiers are dense and monotonically assigned within the visible identifier space.<br>
+They are not hash values. The selected hash function may therefore produce every value in its<br>
+range, including zero, independently of the ID representation's invalid sentinel.</p>
+<p dir="auto">IDs are zero-based. The first inserted string receives ID zero and every new ID is <code class="notranslate">size()</code> before<br>
+insertion. Zero is a valid ID, including for an empty string when that is the first value inserted.<br>
+For <code class="notranslate">StringId</code>, the largest underlying representation value is reserved as <code class="notranslate">invalid_value</code>, making<br>
+a default-constructed ID explicitly invalid without sacrificing zero-based dense assignment.</p>
+<p dir="auto">The interner accepts either a plain non-boolean integral ID or <code class="notranslate">StringId</code> with a signed or unsigned<br>
+integral representation. Signed types permit application-defined negative, pre-known values while<br>
+the interner continues assigning its dense local range from zero. <code class="notranslate">StringId</code> prevents accidental<br>
+arithmetic and reserves its maximum representation value as invalid; a plain integral uses every<br>
+nonnegative representable value. ID exhaustion is detected before mutating storage or the index.<br>
+The default ID type is <code class="notranslate">StringId&lt;std::uint32_t&gt;</code>.</p>
+<p dir="auto">ID width and hash width are independent. A 64-bit hash selects an index path whose stored payload<br>
+may be a 32-bit ID; no hash-to-ID conversion occurs. The index consumes the hasher's useful output<br>
+bits for routing and collision detection, while the ID remains only the value associated with the<br>
+string. A 64-to-32 reduction such as <code class="notranslate">mbo::hash::Hash64To32</code> is used only when a selected index<br>
+explicitly requires a 32-bit hash. Native 32-bit hashing and reduction from a 64-bit hash must be<br>
+benchmarked for such an index rather than coupled to <code class="notranslate">StringId</code>.</p>
+<p dir="auto">Possible representation-specific reasons to use 32 bits include packing a 32-bit hash or<br>
+fingerprint with a 32-bit ID in one 64-bit word, satisfying an index backend whose hash interface is<br>
+32-bit, or targeting a 32-bit platform. These are measured backend optimizations, not semantic<br>
+coupling. They must not truncate the default hash merely because the default ID is <code class="notranslate">std::uint32_t</code>.</p>
+<p dir="auto"><code class="notranslate">size()</code> is the number of identifiers visible from an interner, including its captured ancestors.</p>
+<p dir="auto">The initial <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_id.h"><code class="notranslate">StringId</code></a> helper constrains<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/strong_id.h"><code class="notranslate">mbo::types::ConstStrongId</code></a> to non-boolean integral representations. It<br>
+provides explicit underlying-value access, ordering, constexpr checked ordinal<br>
+conversion via <code class="notranslate">try_from_ordinal</code>, an <code class="notranslate">invalid_value</code> sentinel, and <code class="notranslate">is_valid()</code>, but deliberately<br>
+does not expose arithmetic or mutation operations. The largest underlying value is<br>
+reserved, so an unsigned 8-bit ID supports 255 entries with valid IDs <code class="notranslate">0..254</code>; a signed 8-bit<br>
+representation supports 127 dense entries with IDs <code class="notranslate">0..126</code>. Exhaustion returns an empty optional.<br>
+Hash width remains independent. Direct construction assumes an already representable<br>
+underlying value; constructing <code class="notranslate">invalid_value</code> deliberately produces an invalid ID. Use checked<br>
+conversion when assigning from a wider count. This helper does not establish membership in any<br>
+particular interner or chain.<br>
+<code class="notranslate">local_size()</code> is the number added directly to that interner.</p>
+<p dir="auto">Looking up an invalid, negative, or non-visible identifier with <code class="notranslate">get</code> returns an empty policy-selected<br>
+reference result. <code class="notranslate">get_string</code> returns an empty <code class="notranslate">std::optional&lt;std::string_view&gt;</code>. Negative known IDs<br>
+remain available to application code but are not registered entries in this interner. <code class="notranslate">at</code> and<br>
+<code class="notranslate">operator[]</code> enforce membership through configured requirement failures.</p>
+<h2 dir="auto" id="snapshot-parentchild-semantics">Snapshot parent/child semantics</h2>
+<p dir="auto">A child captures a non-owning parent reference and the parent's visible size at the exact time the<br>
+child is created. The parent does not track its children. The child can see only the prefix that<br>
+existed at that captured cutoff, plus its own local entries.</p>
+<p dir="auto">Consequently:</p>
+<ul dir="auto">
+<li>a string visible through the captured parent prefix retains and returns its parent ID;</li>
+<li>additions to the parent after child creation are invisible to the child;</li>
+<li>if the same new string is later added independently to parent and child, it may have different<br>
+IDs in the two interners;</li>
+<li>subsequent child lookup must return its local ID and must not discover the parent's post-cutoff<br>
+ID;</li>
+<li>a child cannot outlive its parent, and no descendant can outlive any ancestor on which it<br>
+depends.</li>
+</ul>
+<p dir="auto">For maps, captured entries share their mapped values rather than copying them. Changes through<br>
+a parent, child, or sibling are visible to every interner that sees that ID. The snapshot fixes<br>
+membership and ID ownership, not a historical copy of mapped values. Both maps and sets accept a<br>
+pointer to a const parent; a mutable pointer converts naturally. The stored parent link is a const<br>
+pointer to const, and <code class="notranslate">parent()</code> is a const member returning only a const parent pointer. That link<br>
+does not permit structural mutation of the parent. Mutable map views still share existing mapped<br>
+values with mutable ancestors; const lookup exposes only const references.</p>
+<p dir="auto">The ordinary parent constructor should require the exact same interner specialization. Mixing<br>
+hashers, indexes, or storage policies casually would make invariants and performance surprising.<br>
+Heterogeneous parent specializations are deferred because no concrete workload has demonstrated<br>
+their value. Same-specialization chains may be arbitrarily deep subject to ordinary resource and<br>
+iteration/resource limits; cascading chains require only a<br>
+parent reference plus the captured cutoff at each level.</p>
+<p dir="auto">Both <code class="notranslate">find</code> and <code class="notranslate">rfind</code> perform content lookup over the same captured view. The current<br>
+implementation checks local entries before ancestors in both functions; callers should not use<br>
+these names to infer opposite hash-callback evaluation orders.</p>
+<p dir="auto">Both functions produce the same result under the uniqueness invariant. A child cannot insert a<br>
+duplicate of a string visible at its cutoff, while a parent's later insertion is outside the<br>
+child's captured prefix. Divergent branches may independently assign different IDs, but no one<br>
+interner can see both branch-local entries. Search direction is therefore a performance and API<br>
+choice, not duplicate precedence, unless the design deliberately introduces an operation that can<br>
+bypass interning and append duplicates.</p>
+<p dir="auto">Insertion has one operation, <code class="notranslate">insert(...)</code>. It reuses the ID of any string visible through the<br>
+captured parent prefix or local entries; otherwise, it adds the string to the current interner.<br>
+It never inserts into a parent. The result reports the ID and whether a new local entry was added.<br>
+Duplicate lookup currently checks the current interner before its ancestors. That traversal order<br>
+is an implementation detail; callers do not choose an insertion direction.</p>
+<h3 dir="auto" id="immutability-and-iteration">Immutability and iteration</h3>
+<p dir="auto">Interned strings can never be changed or deleted. An interner is append-only, and every interner's<br>
+visible IDs form the contiguous interval <code class="notranslate">[0, size())</code>, regardless of how many parent snapshots<br>
+provide that prefix. Local storage begins at the captured parent cutoff, but <code class="notranslate">begin()</code> does not mean<br>
+local begin: it denotes the first ID in the topmost visible parent.</p>
+<p dir="auto">Consequently, <code class="notranslate">begin()</code> represents ID zero and <code class="notranslate">end()</code> represents ID <code class="notranslate">size()</code>. Standard reverse<br>
+iterators derive from the same half-open interval, making <code class="notranslate">rbegin()</code> start with <code class="notranslate">size() - 1</code> when<br>
+non-empty and making <code class="notranslate">rbegin() == rend()</code> when empty. No special reverse-iteration sentinel is<br>
+needed beyond the usual iterator representation.</p>
+<p dir="auto">An iterator must retain interner identity as well as position. Numeric IDs alone are insufficient<br>
+for iterator equality because different snapshot branches can assign the same local ID to different<br>
+strings. Appending preserves string views and ordinal iterators; as with other growing containers,<br>
+an iterator that previously represented <code class="notranslate">end()</code> need not become the new end. References to map<br>
+pairs and mapped values follow the dense entry container's invalidation rules. The default<br>
+<code class="notranslate">SegmentedVector</code> preserves them even when the flat string index grows. A custom <code class="notranslate">std::vector</code><br>
+entry sequence can invalidate them on reallocation.</p>
+<p dir="auto">Dereferencing a set iterator yields a const string key reference; a map iterator yields a<br>
+string/value pair reference. Both support <code class="notranslate">operator-&gt;</code>. Mutable map iterators allow changes to the<br>
+mapped value; const iterators make the entire pair const. Mutable iterators convert to const<br>
+iterators, and the two kinds compare directly. <code class="notranslate">cbegin</code>, <code class="notranslate">cend</code>, <code class="notranslate">crbegin</code>, and <code class="notranslate">crend</code> always<br>
+provide const access.</p>
+<p dir="auto">An iterator's <code class="notranslate">id()</code> exposes its current dense position as <code class="notranslate">id_type</code> without hashing or searching.<br>
+It has the same dereferenceable-iterator precondition as <code class="notranslate">operator*</code>. This supports occasional<br>
+<code class="notranslate">(id, string)</code> or <code class="notranslate">(id, string, value)</code> access without larger ordinary iteration results:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">for</span> (<span class="pl-k">auto</span> position = counts.begin(); position != counts.end(); ++position) {
+  <span class="pl-k">const</span> <span class="pl-k">auto</span> id = position.<span class="pl-c1">id</span>();
+  <span class="pl-k">const</span> <span class="pl-k">auto</span>&amp; [key, value] = *position;
+  <span class="pl-c"><span class="pl-c">//</span> Use id, key, and value together only where needed.</span>
+}</pre></div>
+<p dir="auto">IDs remain element ordinals; arena byte offsets would make the public representation and<br>
+capacity depend on variable-length storage.</p>
+<h3 dir="auto" id="object-and-view-lifetime">Object and view lifetime</h3>
+<p dir="auto">StringInterner is non-copyable and non-movable. It provides neither move construction nor move<br>
+assignment, and it cannot be swapped. This anchors every parent reference and avoids a heap control<br>
+block, child registry, relocation tracking, or other overhead solely to make object movement safe.</p>
+<p dir="auto">There is no <code class="notranslate">clear</code> or <code class="notranslate">reset</code>: the interner is append-only until destruction. Destruction<br>
+invalidates every view, reference, and iterator it produced and remains forbidden while any child exists. The<br>
+child-before-parent destruction requirement is a documented lifetime precondition because the<br>
+parent intentionally does not pay to track children.</p>
+<h2 dir="auto" id="customization">Customization</h2>
+<p dir="auto">One allocator-shaped abstraction is insufficient because customization covers more than acquiring<br>
+raw memory. The public design should permit separate policies or compatible implementations for:</p>
+<ul dir="auto">
+<li>the hash function and transparent equality;</li>
+<li>the string-to-ID index;</li>
+<li>stable character storage;</li>
+<li>the ID-to-element sequence;</li>
+<li>the identifier representation and possibly the failure policy.</li>
+</ul>
+<p dir="auto">Each extension point must have a narrow behavioral contract enforced by a C++ concept. Multiple<br>
+interfaces are acceptable where ownership, block acquisition, indexing, and typed element storage<br>
+have genuinely different requirements. They must compose without requiring inheritance or one<br>
+particular memory-resource model.</p>
+<p dir="auto">The constraints must describe behavior rather than require a particular STL spelling. In<br>
+particular, heterogeneous lookup by <code class="notranslate">std::string_view</code> is essential: using a container that<br>
+constructs an owning <code class="notranslate">std::string</code> for every lookup defeats a central goal. PMR resources and arenas<br>
+are adapters where they meet the relevant concepts, not fundamental requirements imposed on every<br>
+configuration.</p>
+<p dir="auto">An mbo default should provide excellent performance and stable views. Compatibility adapters can<br>
+make <code class="notranslate">std::unordered_map</code> and Abseil flat/node hash containers usable where their invalidation and<br>
+allocation guarantees fit the selected storage arrangement.</p>
+<p dir="auto">The independent <a href="../container/HASH_TRIES.html">HART/HAMT study</a> selects HAMT as a general container<br>
+implementation target while retaining HART only as a documented concurrency-oriented research<br>
+option. A persistent HAMT may align with parent/child snapshots through structural sharing, but it<br>
+is neither the default nor a prerequisite until measurements justify it.</p>
+<p dir="auto">The index is not the interner's iteration storage. Public StringInterner iterators traverse the<br>
+dense ID-to-element sequence, and lookup results are converted from an index entry to that dense<br>
+position. No iterator from <code class="notranslate">std::unordered_map</code>, an Abseil container, HAMT, or another selected index<br>
+escapes the interner. The index therefore need not provide stable iterators; stable strings and<br>
+public interner iterators come from character storage and the dense sequence respectively.</p>
+<h3 dir="auto" id="owning-string-insertion">Owning-string insertion</h3>
+<p dir="auto">An owning string container is an alternative to a borrowing index with separate arena storage.<br>
+Both use <code class="notranslate">insert(std::string_view)</code>; the owning container copies into its own storage and returns<br>
+the canonical view, while an arena backend copies into the separate arena. The choice affects<br>
+allocation strategy, per-entry storage, and locality; benchmarks must compare complete backend<br>
+configurations before selecting a performance default.</p>
+<p dir="auto">An overload accepting an rvalue <code class="notranslate">std::string</code> remains a possible capability of a selected backend:</p>
+<ul dir="auto">
+<li>an owning-string backend may adopt the moved string's allocation where it can preserve the<br>
+character address;</li>
+<li>an arena backend copies the bytes into arena storage, even when its input is an rvalue;</li>
+<li>a bounded backend succeeds only when its supplied capacity can hold the bytes and index entry.</li>
+</ul>
+<p dir="auto">Small-string optimization means moving a <code class="notranslate">std::string</code> does not universally transfer a stable heap<br>
+allocation. An owning-string backend must choose a representation whose later growth or relocation<br>
+cannot invalidate views into short strings. A container that moves its stored string objects during<br>
+growth cannot satisfy the owning contract unless it separately guarantees stable character storage.</p>
+<h3 dir="auto" id="embedded-nul-bytes">Embedded NUL bytes</h3>
+<p dir="auto">The natural <code class="notranslate">std::string_view</code> contract compares and hashes the complete explicit length, so an<br>
+embedded NUL byte is ordinary content rather than a terminator. This is the correctness default and<br>
+avoids silently changing <code class="notranslate">string_view</code> semantics into C-string semantics.</p>
+<p dir="auto">The benchmark suite must nevertheless measure whether full embedded-NUL support causes any relevant<br>
+micro-performance cost. A compile-time no-embedded-NUL option is justified only if disabling support<br>
+produces a material measured improvement. Such a mode must state an explicit precondition rejecting<br>
+inputs containing NUL; it must never silently truncate them.</p>
+<h3 dir="auto" id="thread-safety">Thread safety</h3>
+<p dir="auto">Thread safety uses external synchronization, consistent with other mbo containers. Concurrent const<br>
+lookup is permitted only while no thread mutates that interner or any relevant ancestor. No frozen<br>
+representation is planned unless it later provides a measured optimization or enforces a necessary<br>
+lifetime guarantee.</p>
+<h2 dir="auto" id="allocation-models">Allocation models</h2>
+<p dir="auto">At least three configurations should be investigated and benchmarked:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Character storage</th>
+<th>Index/table storage</th>
+<th>Exhaustion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>General-purpose</td>
+<td>Growing segmented arena</td>
+<td>Growing containers</td>
+<td>Allocation failure policy</td>
+</tr>
+<tr>
+<td>Caller-supplied arena</td>
+<td>Provided memory resource</td>
+<td>Same or separate resource</td>
+<td>Resource/failure policy</td>
+</tr>
+<tr>
+<td>Fully bounded</td>
+<td>Fixed caller-owned storage</td>
+<td>Fixed-capacity structures</td>
+<td>Explicit, non-destructive</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">A segmented arena is attractive because it drastically reduces allocation count while keeping<br>
+previously returned views stable as the interner grows. A single growing contiguous byte vector is<br>
+not acceptable unless relocation is impossible, because it would invalidate every stored view.</p>
+<p dir="auto">The arena is a separately benchmarked project component. At least two representations must be<br>
+compared for interned strings:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Representation</th>
+<th>Arena payload</th>
+<th>Dense ID metadata</th>
+<th>Principal tradeoff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Separate descriptors</td>
+<td>Packed character bytes</td>
+<td><code class="notranslate">(size, pointer)</code> or offset</td>
+<td>Direct lookup; larger metadata</td>
+</tr>
+<tr>
+<td>Inline records</td>
+<td>Consecutive <code class="notranslate">(size, data)</code></td>
+<td>Offset or record index</td>
+<td>Better locality; variable-size scan</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Inline <code class="notranslate">(size, data)</code> records remove a content pointer from the record itself, but variable record<br>
+sizes prevent direct O(1) dense-ID lookup unless another offset table is maintained. Relative<br>
+offsets may be narrower than pointers and make arena segments more relocatable. Measurements must<br>
+include lookup latency, insertion throughput, bytes per string, alignment loss, and cache behavior.</p>
+<p dir="auto">The fully bounded mode must perform no hidden allocation. Exhaustion can arise independently from<br>
+character capacity, entry capacity, index capacity, or identifier range. A failed insertion<br>
+publishes no ID or index entry and leaves previously published strings unchanged. Append-only<br>
+character storage may retain bytes from a failed attempt; the unpublished dense slot is reused by<br>
+the next attempt. Capacity reclamation is a backend choice, not an interner requirement.</p>
+<p dir="auto">The lightweight error enum distinguishes <code class="notranslate">kIdExhausted</code>, <code class="notranslate">kCharacterStorageExhausted</code>,<br>
+<code class="notranslate">kEntryStorageExhausted</code>, and <code class="notranslate">kIndexExhausted</code>. Allocation and block-source failures reported by a<br>
+backend map to the storage component whose capacity could not grow; ordinary container exceptions<br>
+retain their existing behavior.</p>
+<p dir="auto">For exception-enabled consumers, <code class="notranslate">StringInternerExceptionSafePolicy</code> removes an unpublished<br>
+index entry if mapped construction throws. The default rollback uses <code class="notranslate">erase(iterator)</code>. An index<br>
+policy may instead provide <code class="notranslate">BeginInsertion(container)</code>, returning a guard whose destructor restores<br>
+the prior index without throwing or allocating unless its non-throwing <code class="notranslate">Commit()</code> was called.<br>
+This hook runs only for exception-safe publication; exception-free publication creates no guard.<br>
+Character storage and the reserved dense slot retain their append-only behavior in either case.</p>
+<h3 dir="auto" id="failure-apis">Failure APIs</h3>
+<p dir="auto"><code class="notranslate">StringInternerPolicyHolder&lt;Error, Lookup, Index, Exception&gt;</code> composes independent policies.<br>
+The defaults are <code class="notranslate">StringInternerErrorStlPolicy</code>, <code class="notranslate">StringInternerLookupMboPolicy</code>,<br>
+<code class="notranslate">StringInternerIndexStlPolicy</code>, and <code class="notranslate">StringInternerExceptionFreePolicy</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Error policy</th>
+<th>Insertion result</th>
+<th>Failure information</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">StringInternerErrorStlPolicy</code></td>
+<td><code class="notranslate">std::expected&lt;std::pair&lt;Id, bool&gt;, StringInternerError&gt;</code></td>
+<td>Exact exhausted component</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringInternerErrorStatusPolicy</code></td>
+<td><code class="notranslate">absl::StatusOr&lt;std::pair&lt;Id, bool&gt;&gt;</code></td>
+<td>Status code, empty message</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringInternerErrorOptionalPolicy</code></td>
+<td><code class="notranslate">std::optional&lt;std::pair&lt;Id, bool&gt;&gt;</code></td>
+<td>Absence only</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Every successful insertion result contains the ID and whether a new local entry was published.<br>
+<code class="notranslate">StringInternerLookupMboPolicy</code> uses <code class="notranslate">OptionalRef&lt;T&gt;</code>; <code class="notranslate">StringInternerLookupStlPolicy</code> uses<br>
+<code class="notranslate">std::optional&lt;std::reference_wrapper&lt;T&gt;&gt;</code>. These policies select <code class="notranslate">get</code>'s mutable/const reference<br>
+results. <code class="notranslate">find</code>/<code class="notranslate">rfind</code> always return <code class="notranslate">std::optional&lt;id_type&gt;</code>; <code class="notranslate">get_string</code> always returns<br>
+<code class="notranslate">std::optional&lt;std::string_view&gt;</code>. Neither operation returns a copied mapped value.</p>
+<p dir="auto">An index policy provides <code class="notranslate">Prepare</code>, <code class="notranslate">Find</code>, and <code class="notranslate">Insert</code>; its prepared representation may retain<br>
+a hash or backend-specific probe state. The STL policy forwards to ordinary container operations;<br>
+it does not promise a single hash calculation across duplicate lookup and insertion. Fallible<br>
+index policies can return an expected iterator/bool pair with a <code class="notranslate">StringInternerError</code>. HAMT<br>
+adapters and their policy live in the experimental HAMT package, not the generic interner.</p>
+<p dir="auto">Exception-free and exception-safe publication are independent of result representation and compiler<br>
+exception mode. Selecting status or optional results does not catch arbitrary allocation, hashing,<br>
+or user-operation exceptions. No invalid-ID sentinel or throwing insertion-result adapter is provided.</p>
+<h2 dir="auto" id="operations">Operations</h2>
+<p dir="auto">Both wrappers return their policy's <code class="notranslate">insertion_result</code> from insertion.<br>
+<code class="notranslate">find(key)</code> and <code class="notranslate">rfind(key)</code> return <code class="notranslate">std::optional&lt;Id&gt;</code> with equivalent captured-view semantics.<br>
+Iteration follows dense ID order in either wrapper.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-c"><span class="pl-c">//</span> StringInternerSet</span>
+insertion_result <span class="pl-en">insert</span>(std::string_view key);
+const_lookup_result <span class="pl-en">get</span>(id_type id) <span class="pl-k">const</span>;
+
+<span class="pl-c"><span class="pl-c">//</span> StringInternerMap: mapped_type is the caller-supplied Value.</span>
+insertion_result <span class="pl-en">insert</span>(std::string_view key, <span class="pl-k">auto</span>&amp;&amp; value);
+insertion_result <span class="pl-en">try_emplace</span>(std::string_view key, <span class="pl-k">auto</span>&amp;&amp;... args);
+lookup_result <span class="pl-en">get</span>(id_type id);
+const_lookup_result <span class="pl-en">get</span>(id_type id) <span class="pl-k">const</span>;
+mapped_type&amp; <span class="pl-en">at</span>(id_type id);
+<span class="pl-k">const</span> mapped_type&amp; <span class="pl-en">at</span>(id_type id) <span class="pl-k">const</span>;
+mapped_type&amp; <span class="pl-k">operator</span>[](id_type id);
+<span class="pl-k">const</span> mapped_type&amp; <span class="pl-k">operator</span>[](id_type id) <span class="pl-k">const</span>;
+
+<span class="pl-c"><span class="pl-c">//</span> Both wrappers</span>
+std::optional&lt;std::string_view&gt; <span class="pl-en">get_string</span>(id_type id) <span class="pl-k">const</span>;
+std::optional&lt;id_type&gt; <span class="pl-en">find</span>(std::string_view key) <span class="pl-k">const</span>;
+std::optional&lt;id_type&gt; <span class="pl-en">rfind</span>(std::string_view key) <span class="pl-k">const</span>;
+size_type <span class="pl-en">size</span>() <span class="pl-k">const</span>;
+size_type <span class="pl-en">local_size</span>() <span class="pl-k">const</span>;
+size_type <span class="pl-en">capacity</span>() <span class="pl-k">const</span>;
+size_type <span class="pl-en">local_capacity</span>() <span class="pl-k">const</span>;
+size_type <span class="pl-en">first_local_id</span>() <span class="pl-k">const</span>;
+<span class="pl-k">bool</span> <span class="pl-en">empty</span>() <span class="pl-k">const</span>;</pre></div>
+<p dir="auto">Map lookup returns an optional reference to the complete key/value entry, preserving the map's<br>
+constness. No lookup copies or default-constructs the mapped value. Insertion into an existing<br>
+entry preserves the prior value. Assignment through <code class="notranslate">at(id)</code>, <code class="notranslate">operator[](id)</code>, a mutable lookup<br>
+result, or a mutable iterator changes the existing mapped value without changing its key or ID.</p>
+<p dir="auto"><code class="notranslate">parent()</code> is const and returns a pointer to the const shared base specialization, never a mutable<br>
+parent. <code class="notranslate">capacity()</code> is the captured parent<br>
+prefix plus <code class="notranslate">local_capacity()</code>. These count dense entry slots only, not index buckets or character<br>
+bytes, and do not promise allocation-free insertion. For entry containers without <code class="notranslate">capacity()</code>,<br>
+local capacity is reported as local size.</p>
+<h3 dir="auto" id="complexity-and-custom-entry-storage">Complexity and custom entry storage</h3>
+<p dir="auto">With the default ID-bearing hash index, string lookup is expected constant time per visited<br>
+interner, plus key hashing/comparison costs. An ordered index instead adds logarithmic lookup;<br>
+a key-only index must scan dense entries to recover its ID. Parent traversal is linear in depth.<br>
+Direct ID lookup and iterator dereference traverse only the necessary parent links, then select<br>
+the local dense position. <code class="notranslate">SegmentedVector</code>, <code class="notranslate">std::vector</code>, and <code class="notranslate">std::deque</code> provide constant-time<br>
+local selection; <code class="notranslate">std::list</code> selection is linear in the local ordinal, so full iteration over a<br>
+list-backed interner can be quadratic. Ordinary appends do not move the default segmented entries;<br>
+custom entry containers retain their own reference-invalidation rules.</p>
+<p dir="auto">All configurations compare complete byte strings after hash routing; trusting hash uniqueness<br>
+without key equality is not an available mode. Preparing/reusing more index state and alternative<br>
+representations remain measured optimization work, not a different correctness contract.</p>
+<h2 dir="auto" id="serialization">Serialization</h2>
+<p dir="auto">No dedicated serialization format or API is planned initially. Dense iteration already lets a<br>
+caller serialize strings in ID order; reinserting that sequence reconstructs the same dense IDs<br>
+without coupling the public contract to an index or arena representation.</p>
+<h2 dir="auto" id="correctness-invariants">Correctness invariants</h2>
+<ul dir="auto">
+<li>Every visible valid ID maps to exactly one byte string.</li>
+<li>Every visible byte string maps to exactly one ID within one interner view.</li>
+<li>Re-interning a visible string returns its existing visible ID and does not allocate.</li>
+<li>New local IDs form a contiguous suffix after the captured parent cutoff.</li>
+<li>Parent insertion after child creation cannot change the child's string-to-ID mapping; mapped<br>
+values of visible entries remain shared.</li>
+<li>Hash collisions never merge unequal strings.</li>
+<li>Successful insertion leaves all previously returned views valid.</li>
+<li>Failed insertion leaves published IDs, lookups, and iteration unchanged; backing storage may<br>
+retain allocations made during the attempt.</li>
+<li>Destruction order is parent after all children; the API should make misuse difficult and document<br>
+that this remains a lifetime precondition if static enforcement is impractical.</li>
+</ul>
+<h2 dir="auto" id="measurements-required">Measurements required</h2>
+<p dir="auto">Benchmarks should cover:</p>
+<ul dir="auto">
+<li>repeated hits and unique inserts across short, medium, and long strings, including the empty<br>
+string and small-string-optimized inputs;</li>
+<li>high and low duplication ratios;</li>
+<li>root, shallow-child, and deep-chain lookups, separating local and ancestor hits;</li>
+<li>adversarial and ordinary hash collisions;</li>
+<li>allocation count, allocated bytes, resident memory, and fragmentation;</li>
+<li>arena segment sizes and bounded-capacity exhaustion;</li>
+<li>fixed power-of-two ID-table segment sizes, lookup cost, and wasted tail capacity;</li>
+<li>zero, partial, and full directory reservation under bounded and growing workloads;</li>
+<li>indexed, forward, reverse, segment-view, and iterator-arithmetic traversal;</li>
+<li>separate <code class="notranslate">(size, pointer/offset)</code> descriptors versus inline <code class="notranslate">(size, content)</code> arena records;</li>
+<li>standard, Abseil, and mbo-provided index implementations;</li>
+<li>8-, 16-, 32-, and 64-bit ID representations where practical;</li>
+<li>32- and 64-bit index hash outputs where supported, including native 32-bit hashing versus<br>
+<code class="notranslate">Hash64To32</code> reduction when an index requires 32 bits;</li>
+<li>sentinel, optional, status, expected, and throwing adapters where supported;</li>
+<li><code class="notranslate">std::string_view</code> insertion, moved-string adoption, and moved-string-to-arena copying;</li>
+<li>embedded-NUL support versus a checked or preconditioned no-NUL specialization;</li>
+<li>lookup and insertion latency distributions, not only throughput averages.</li>
+</ul>
+<h3 dir="auto" id="diagnostic-support">Diagnostic support</h3>
+<p dir="auto">The finished library should provide a deliberately opt-in diagnostic configuration suitable for<br>
+understanding production string populations and tuning the selected representation. It should be<br>
+able to report string-size histograms, hit depth and search direction, parent-versus-local hits,<br>
+hash collisions, table occupancy and probe or trie depth, payload/descriptor/index memory,<br>
+alignment padding, unused capacity, and peak memory.</p>
+<p dir="auto">This is a quality requirement, not permission to tax the ordinary container. Disabled diagnostics<br>
+must add no object fields, counter updates, branches, locks, or atomics. Instrumentation may use a<br>
+separate specialization, observer, or benchmark wrapper after measurements determine the least<br>
+intrusive design. Clearly valuable diagnostics should be implemented even if they are not needed<br>
+by the first internal caller.</p>
+<h2 dir="auto" id="benchmark-selections">Benchmark selections</h2>
+<p dir="auto">The version-one semantic contract has no remaining open questions. Measurements still select:</p>
+<ul dir="auto">
+<li>whether implementation experience demonstrates a useful common abstraction above the existing<br>
+<code class="notranslate">BlockSource</code> boundary without coupling arena and <code class="notranslate">SegmentedVector</code> ownership models;</li>
+<li>native pointers versus segment-relative offsets for arena descriptors, including the best useful<br>
+offset width;</li>
+<li>which owning-string and separate-storage backend configurations win for each workload.</li>
+</ul>
+<h2 dir="auto" id="language-baseline">Language baseline</h2>
+<p dir="auto">The repository targets C++23 with its supported GCC and Clang toolchains. The implementation may<br>
+use C++23 facilities such as <code class="notranslate">std::expected</code>, static call/index operators, <code class="notranslate">if consteval</code>, and the<br>
+relaxed constexpr rules where they materially simplify the code or API. Their availability is not<br>
+by itself a reason to expose a facility or add an abstraction: selected uses still require focused<br>
+tests on the supported compiler matrix and a concrete readability, correctness, or generated-code<br>
+benefit.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

@@ -1,0 +1,1243 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/types/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbotypes"><code class="notranslate">mbo/types</code></h1>
+<p dir="auto"><code class="notranslate">mbo::types</code> is a type and concept support library. It provides type traits and concepts,<br>
+compile-time type selection and search, tuple and aggregate utilities, value and reference wrappers,<br>
+and strong identifiers.</p>
+<p dir="auto">The library also provides the very powerful and customizable <code class="notranslate">Extend</code> framework that builds on the<br>
+support. It uses a CRTP approach to equip any C++ aggregates with comparison, hashing, construction<br>
+helpers, and configurable text output.</p>
+<p dir="auto">The library targets C++23, GCC 15+, and Clang 22+.</p>
+<h2 dir="auto" id="type-traits-concepts-and-compile-time-support">Type traits, concepts, and compile-time support</h2>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::types</code>, except <code class="notranslate">mbo::StringOrView</code>. Extenders live in<br>
+<code class="notranslate">mbo::types::extender</code> and are also available through <code class="notranslate">mbo::extender</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/BUILD.bazel">BUILD.bazel</a>.</li>
+<li>Each public header below has a target named <code class="notranslate">//mbo/types:&lt;header-stem&gt;_cc</code>; for example,<br>
+<code class="notranslate">tstring.h</code> uses <code class="notranslate">//mbo/types:tstring_cc</code>.</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Facilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/cases.h">cases.h</a></td>
+<td>Conditional type selection with <code class="notranslate">Cases</code>, <code class="notranslate">IfThen</code>, and <code class="notranslate">IfElse</code>; condition lookup with <code class="notranslate">CaseIndex</code>.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/template_search.h">template_search.h</a></td>
+<td>Compile-time predicate searches over integer ranges.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/traits.h">traits.h</a></td>
+<td>Type classification, constructibility, aggregate decomposition, container capabilities, and comparison concepts.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/tuple.h">tuple.h</a></td>
+<td>Tuple recognition and type-list composition with <code class="notranslate">TupleCat</code> and <code class="notranslate">TupleAdd</code>.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/tuple_extras.h">tuple_extras.h</a></td>
+<td>Aggregate-to-tuple views, decomposition concepts, and field construction checks.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/variant.h">variant.h</a></td>
+<td>Variant recognition, alternative membership, and overloaded visitors.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="type-traits-and-concepts">Type traits and concepts</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API family in <code class="notranslate">traits.h</code></th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ConstructibleFrom&lt;T, Args...&gt;</code></td>
+<td>Construction check with an additional in-place construction check when <code class="notranslate">std::constructible_from</code> fails.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConstructibleInto&lt;From, Into&gt;</code></td>
+<td>Reversed parameter order for constraining arguments with <code class="notranslate">ConstructibleInto&lt;T&gt; auto&amp;&amp;</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">DecomposeCountV&lt;T&gt;</code>, <code class="notranslate">NotDecomposableV</code></td>
+<td>Structured-binding field count and the sentinel for unsupported decomposition.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsAggregate</code>, <code class="notranslate">IsDecomposable</code>, <code class="notranslate">IsEmptyType</code></td>
+<td>Aggregate, nonempty structured-binding, and empty-type classification.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsArithmetic</code>, <code class="notranslate">IsFloatingPoint</code>, <code class="notranslate">IsIntegral</code>, <code class="notranslate">IsScalar</code></td>
+<td>Standard numeric/scalar classifications; reference types do not satisfy them.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsBracesConstructibleV&lt;T, Args...&gt;</code></td>
+<td>Check construction with braces.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsCharArray</code>, <code class="notranslate">IsInitializerList</code>, <code class="notranslate">NotInitializerList</code>, <code class="notranslate">NotIsCharArray</code></td>
+<td>Initializer-list and character-array/pointer classification.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsConstructibleWithEmptyBaseAndArgs</code></td>
+<td>Check aggregate initialization with an empty base followed by field arguments.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsOptional</code>, <code class="notranslate">IsPair</code>, <code class="notranslate">IsPairFirstStr</code>, <code class="notranslate">IsReferenceWrapper</code>, <code class="notranslate">IsVector</code></td>
+<td>Recognize the corresponding standard types; <code class="notranslate">IsPairFirstStr</code> additionally requires a string-view-convertible first element.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsSameAsAnyOf</code>, <code class="notranslate">NotSameAsAnyOf</code></td>
+<td>Test inclusion in or exclusion from a list of exact types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsSameAsAnyOfRaw</code>, <code class="notranslate">IsSameAsRaw</code>, <code class="notranslate">NotSameAsAnyOfRaw</code></td>
+<td>Compare types after removing cv-qualification and references.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsSmartPtr</code>, <code class="notranslate">IsSmartPtrImpl</code></td>
+<td>Recognize <code class="notranslate">shared_ptr</code>, default-deleter <code class="notranslate">unique_ptr</code>, and <code class="notranslate">weak_ptr</code>; extend through <code class="notranslate">IsSmartPtrImpl</code> specializations.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ThreeWayComparableTo&lt;L, R, Cat&gt;</code></td>
+<td>Check <code class="notranslate">L &lt;=&gt; R</code> against a comparison category without requiring a common reference or the reverse expression.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">Raw</code> type comparisons normalize cv/ref qualifiers; exact-type concepts such as <code class="notranslate">IsPair</code> and<br>
+<code class="notranslate">IsOptional</code> require callers to normalize their input when necessary.</li>
+<li><code class="notranslate">IsCharArray</code> applies <code class="notranslate">std::decay_t</code>; both character arrays and <code class="notranslate">char*</code>/<code class="notranslate">const char*</code> satisfy it.</li>
+<li><code class="notranslate">IsDecomposable</code> requires a nonempty decomposition. <code class="notranslate">CanCreateTuple</code> in <code class="notranslate">tuple_extras.h</code> also<br>
+accepts empty aggregates.</li>
+<li>Aggregates whose field count needs explicit disambiguation can provide<br>
+<code class="notranslate">friend consteval std::size_t MboTypesDecomposeCount(const T*)</code>; the returned count must match the<br>
+actual structured binding.</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Container/iterator API in <code class="notranslate">traits.h</code></th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ContainerConstIteratorValueType</code>, <code class="notranslate">ForwardIteratorValueType</code></td>
+<td>Obtain element types from iterators.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerCopyConvertible&lt;In, Out, Func&gt;</code></td>
+<td>Check supported traversal and insertion, optionally after transforming input elements with <code class="notranslate">Func</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerHasEmplace</code>, <code class="notranslate">ContainerHasEmplaceBack</code>, <code class="notranslate">ContainerHasInsert</code>, <code class="notranslate">ContainerHasPushBack</code></td>
+<td>Detect supported insertion forms for a value type.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerHasForwardIterator</code>, <code class="notranslate">ContainerHasInputIterator</code></td>
+<td>Iterator-category checks with matching mutable/const endpoints.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerIsForwardIteratable</code></td>
+<td><code class="notranslate">IsForwardIteratable</code> plus consistent signed <code class="notranslate">difference_type</code>, <code class="notranslate">cbegin()</code>, <code class="notranslate">cend()</code>, <code class="notranslate">empty()</code>, and <code class="notranslate">size()</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">GetDifferenceType</code>, <code class="notranslate">HasDifferenceType</code>, <code class="notranslate">HasValueType</code></td>
+<td>Detect aliases; <code class="notranslate">GetDifferenceType</code> falls back to <code class="notranslate">std::ptrdiff_t</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsForwardIteratable</code></td>
+<td>Forward iterators, matching reference aliases, and mutable/const <code class="notranslate">begin()</code> and <code class="notranslate">end()</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsStringKeyedContainer</code></td>
+<td>Forward-iterable container of pairs with string-view-convertible keys.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="conditional-types-and-predicate-searches">Conditional types and predicate searches</h3>
+<ul dir="auto">
+<li><code class="notranslate">Cases&lt;IfThen&lt;condition, T&gt;..., IfElse&lt;Default&gt;&gt;</code>: the first matching type; <code class="notranslate">void</code> when no case<br>
+matches and no default is supplied.</li>
+<li><code class="notranslate">IfElse&lt;T&gt;</code>: always true; place it last.</li>
+<li><code class="notranslate">IfTrueThenVoid</code> and <code class="notranslate">IfFalseThenVoid</code>: unconditional <code class="notranslate">void</code> fallback and skipped-case helpers.</li>
+<li><code class="notranslate">CaseIndex&lt;conditions...&gt;</code>: one-based index of the first true condition; zero if none matches.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>concepts<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>cstddef<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>type_traits<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/cases.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/template_search.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> Selected = mbo::types::
+    Cases&lt;mbo::types::IfThen&lt;<span class="pl-c1">false</span>, <span class="pl-k">int</span>&gt;, mbo::types::IfThen&lt;<span class="pl-c1">true</span>, std::string_view&gt;, mbo::types::IfElse&lt;<span class="pl-k">void</span>&gt;&gt;;
+<span class="pl-k">static_assert</span>(std::same_as&lt;Selected, std::string_view&gt;);
+<span class="pl-k">static_assert</span>(mbo::types::CaseIndex&lt;<span class="pl-c1">false</span>, <span class="pl-c1">true</span>, <span class="pl-c1">true</span>&gt; == <span class="pl-c1">2</span>);
+
+<span class="pl-k">template</span>&lt;std::<span class="pl-c1">size_t</span> N&gt;
+<span class="pl-k">struct</span> <span class="pl-en">Fits</span> : std::bool_constant&lt;(N &lt;= <span class="pl-c1">8</span>)&gt; {};
+
+<span class="pl-k">static_assert</span>(mbo::types::BinarySearchV&lt;Fits, <span class="pl-c1">0</span>, <span class="pl-c1">16</span>&gt; == <span class="pl-c1">8</span>);</pre></div>
+<p dir="auto">All searches take <code class="notranslate">&lt;Predicate, Start, End, NotFound = End&gt;</code>, search the half-open range<br>
+<code class="notranslate">[Start, End)</code>, and expose both <code class="notranslate">Search::value</code> and the corresponding <code class="notranslate">SearchV</code> constant.<br>
+<code class="notranslate">Predicate&lt;N&gt;</code> supplies a boolean constant <code class="notranslate">value</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Search</th>
+<th>Result and predicate requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">BinarySearch</code></td>
+<td>Highest true index for a predicate that is true before its boundary and false afterward.</td>
+</tr>
+<tr>
+<td><code class="notranslate">LinearSearch</code></td>
+<td>First true index; no monotonicity requirement.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MaxSearch</code></td>
+<td>Last index in the initial consecutive true run; returns <code class="notranslate">NotFound</code> if <code class="notranslate">Start</code> is false.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ReverseSearch</code></td>
+<td>Last true index; no monotonicity requirement.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="tuple-types-and-variant-visitors">Tuple types and variant visitors</h3>
+<ul dir="auto">
+<li><code class="notranslate">IsTuple&lt;T&gt;</code> and <code class="notranslate">IsVariant&lt;T&gt;</code>: recognize exact <code class="notranslate">std::tuple</code> and <code class="notranslate">std::variant</code> specializations.</li>
+<li><code class="notranslate">TupleCat&lt;T, U&gt;</code>: concatenate two tuple type lists.</li>
+<li><code class="notranslate">TupleAdd&lt;T, U&gt;</code>: append one type; a tuple supplied as <code class="notranslate">U</code> remains a nested tuple element.</li>
+<li><code class="notranslate">IsVariantMemberType&lt;Variant, T&gt;</code>: check whether <code class="notranslate">T</code> is an alternative.</li>
+<li><code class="notranslate">Overloaded{callables...}</code>: combine call operators for <code class="notranslate">std::visit</code>.</li>
+<li><code class="notranslate">TupleFieldsConstructible&lt;Fields, Args&gt;</code>: equal-length tuple types whose corresponding fields<br>
+can each be constructed from the supplied argument type.</li>
+<li><code class="notranslate">CanCreateTuple</code>, <code class="notranslate">StructToTuple</code>, <code class="notranslate">HasUnionMember</code>, and <code class="notranslate">HasVariantMember</code>: aggregate support<br>
+described under <a href="#structural-reflection-and-tuples">structural reflection and tuples</a>.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>concepts<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>tuple<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>variant<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/tuple.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/variant.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> Fields = mbo::types::TupleAdd&lt;std::tuple&lt;<span class="pl-k">int</span>&gt;, std::string&gt;;
+<span class="pl-k">static_assert</span>(std::same_as&lt;Fields, std::tuple&lt;<span class="pl-k">int</span>, std::string&gt;&gt;);
+<span class="pl-k">using</span> Value = std::variant&lt;<span class="pl-k">int</span>, std::string&gt;;
+<span class="pl-k">static_assert</span>(mbo::types::IsVariantMemberType&lt;Value, std::string&gt;);
+
+std::string <span class="pl-en">Describe</span>(<span class="pl-k">const</span> Value&amp; value) {
+  <span class="pl-k">return</span> <span class="pl-c1">std::visit</span>(
+      mbo::types::Overloaded{
+          [](<span class="pl-k">int</span> number) { <span class="pl-k">return</span> <span class="pl-c1">std::to_string</span>(number); },
+          [](<span class="pl-k">const</span> std::string&amp; text) { <span class="pl-k">return</span> text; },
+      },
+      value);
+}</pre></div>
+<h2 dir="auto" id="value-utilities">Value utilities</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Main API</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/compare.h">compare.h</a></td>
+<td><code class="notranslate">CompareLess</code>, numeric comparison helpers</td>
+<td>Boolean and three-way comparisons, including mixed numeric types.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/container_proxy.h">container_proxy.h</a></td>
+<td><code class="notranslate">ContainerProxy</code></td>
+<td>Container access through an owning wrapper or holder.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/no_destruct.h">no_destruct.h</a></td>
+<td><code class="notranslate">NoDestruct</code></td>
+<td>In-place construction without running the contained destructor.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/opaque.h">opaque.h</a></td>
+<td><code class="notranslate">OpaqueContainer</code>, <code class="notranslate">OpaquePtr</code>, <code class="notranslate">OpaqueValue</code></td>
+<td>Heap ownership with ADL construction/destruction hooks.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/optional_data_or_ref.h">optional_data_or_ref.h</a></td>
+<td><code class="notranslate">OptionalDataOrConstRef</code>, <code class="notranslate">OptionalDataOrRef</code></td>
+<td>Empty, owned-value, or borrowed-reference storage.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/optional_ref.h">optional_ref.h</a></td>
+<td><code class="notranslate">OptionalRef</code></td>
+<td>Optional non-owning reference with write-through assignment and explicit rebinding.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/ref_wrap.h">ref_wrap.h</a></td>
+<td><code class="notranslate">RefWrap</code></td>
+<td>Required non-owning reference with explicit pointer-style access.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/required.h">required.h</a></td>
+<td><code class="notranslate">Required</code></td>
+<td>Always-engaged storage that can reconstruct non-assignable values.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/string_or_view.h">string_or_view.h</a></td>
+<td><code class="notranslate">mbo::StringOrView</code></td>
+<td>Read-only text with owning and borrowed alternatives.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/strong_id.h">strong_id.h</a></td>
+<td><code class="notranslate">ConstStrongId</code></td>
+<td>Nominal signed or unsigned identifiers with an invalid sentinel.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/strong_ordinal.h">strong_ordinal.h</a></td>
+<td><code class="notranslate">ConstStrongOrdinal</code>, <code class="notranslate">StrongOrdinal</code></td>
+<td>Nominal integral ordinals with checked arithmetic.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/tstring.h">tstring.h</a></td>
+<td><code class="notranslate">operator""_ts</code>, <code class="notranslate">tstring</code></td>
+<td>String contents encoded in the type; one-byte objects with static character storage.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/typed_view.h">typed_view.h</a></td>
+<td><code class="notranslate">TypedView</code></td>
+<td>Range-view adapter with container-style element aliases.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="tstringh-one-byte-typed-strings"><code class="notranslate">tstring.h</code>: one-byte typed strings</h3>
+<p dir="auto"><code class="notranslate">tstring&lt;'p', 'o', 'r', 't'&gt;</code> represents the text <code class="notranslate">"port"</code> in its template arguments.<br>
+The <code class="notranslate">_ts</code> literal constructs that type directly from a string literal.</p>
+<ul dir="auto">
+<li>Object layout: no non-static data members; <code class="notranslate">sizeof("port"_ts) == 1</code>, independently of text length.</li>
+<li>Character storage: a static <code class="notranslate">constexpr std::array&lt;char, size() + 1&gt;</code> per specialization, including<br>
+a trailing zero. The one-byte object size excludes this shared storage.</li>
+<li>Type identity: identical character sequences produce the same type; different sequences produce<br>
+different types, even when their lengths match.</li>
+<li>Lifetime: <code class="notranslate">str()</code> views and <code class="notranslate">c_str()</code> pointers refer to static storage and outlive temporary<br>
+<code class="notranslate">tstring</code> objects.</li>
+<li>Construction: import <code class="notranslate">mbo::types::operator""_ts</code>, then use <code class="notranslate">"text"_ts</code>. The literal uses standard<br>
+class non-type template arguments.</li>
+<li>Mutation: none. Concatenation and template substring operations produce new string types.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>concepts<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/tstring.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> mbo::types::<span class="pl-k">operator</span><span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>_ts;
+<span class="pl-k">using</span> Port = <span class="pl-k">decltype</span>(<span class="pl-s"><span class="pl-pds">"</span>port<span class="pl-pds">"</span></span>_ts);
+
+<span class="pl-k">static_assert</span>(std::same_as&lt;Port, mbo::types::tstring&lt;<span class="pl-s"><span class="pl-pds">'</span>p<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>o<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>r<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>t<span class="pl-pds">'</span></span>&gt;&gt;);
+<span class="pl-k">static_assert</span>(!std::same_as&lt;Port, <span class="pl-k">decltype</span>(<span class="pl-s"><span class="pl-pds">"</span>host<span class="pl-pds">"</span></span>_ts)&gt;);
+<span class="pl-k">static_assert</span>(<span class="pl-k">sizeof</span>(Port) == <span class="pl-c1">1</span>);
+
+<span class="pl-k">inline</span> <span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-c1">kKey</span> = <span class="pl-s"><span class="pl-pds">"</span>http.<span class="pl-pds">"</span></span>_ts + <span class="pl-s"><span class="pl-pds">"</span>port<span class="pl-pds">"</span></span>_ts;
+<span class="pl-k">static_assert</span>(<span class="pl-k">sizeof</span>(<span class="pl-c1">kKey</span>) == <span class="pl-c1">1</span>);
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kKey</span>.size() == <span class="pl-c1">9</span>);
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kKey</span>.substr&lt;<span class="pl-c1">5</span>&gt;() == <span class="pl-s"><span class="pl-pds">"</span>port<span class="pl-pds">"</span></span>_ts);
+<span class="pl-k">static_assert</span>(<span class="pl-c1">kKey</span>.find(<span class="pl-s"><span class="pl-pds">"</span>port<span class="pl-pds">"</span></span>_ts) == <span class="pl-c1">5</span>);
+<span class="pl-k">static_assert</span>(<span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-cce">\0</span>b<span class="pl-pds">"</span></span>_ts.size() == <span class="pl-c1">3</span>);
+<span class="pl-k">inline</span> <span class="pl-k">constexpr</span> std::string_view <span class="pl-c1">kText</span> = <span class="pl-c1">kKey</span>.str();
+
+<span class="pl-k">template</span>&lt;<span class="pl-k">auto</span> Key&gt;
+<span class="pl-k">struct</span> <span class="pl-en">NamedInt</span> {
+  <span class="pl-k">static</span> <span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-c1">kName</span> = Key;
+  <span class="pl-k">int</span> value;
+};
+
+<span class="pl-k">using</span> PortSetting = NamedInt&lt;<span class="pl-s"><span class="pl-pds">"</span>port<span class="pl-pds">"</span></span>_ts&gt;;
+<span class="pl-k">using</span> HostSetting = NamedInt&lt;<span class="pl-s"><span class="pl-pds">"</span>host<span class="pl-pds">"</span></span>_ts&gt;;
+<span class="pl-k">static_assert</span>(!std::same_as&lt;PortSetting, HostSetting&gt;);
+<span class="pl-k">inline</span> <span class="pl-k">constexpr</span> PortSetting <span class="pl-c1">kPort</span>{<span class="pl-c1">8'080</span>};</pre></div>
+<p dir="auto"><code class="notranslate">NamedInt</code> stores only its <code class="notranslate">int</code> member; its key is a template argument and a static member.<br>
+The key can also select an overload, specialize a template, or name a custom extender.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">back()</code>, <code class="notranslate">front()</code></td>
+<td>Character references; require a nonempty string.</td>
+</tr>
+<tr>
+<td><code class="notranslate">begin()</code>/<code class="notranslate">end()</code>, <code class="notranslate">cbegin()</code>/<code class="notranslate">cend()</code>, reverse variants</td>
+<td>Read-only iteration over the characters.</td>
+</tr>
+<tr>
+<td><code class="notranslate">c_str()</code></td>
+<td>Pointer to the zero-terminated static character array.</td>
+</tr>
+<tr>
+<td><code class="notranslate">compare(view)</code></td>
+<td>Lexicographic comparison against a <code class="notranslate">std::string_view</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">contains</code>, <code class="notranslate">ends_with</code>, <code class="notranslate">find</code>, <code class="notranslate">rfind</code>, <code class="notranslate">starts_with</code></td>
+<td>Search with a <code class="notranslate">tstring</code> operand; <code class="notranslate">find</code> and <code class="notranslate">rfind</code> return <code class="notranslate">npos</code> when absent.</td>
+</tr>
+<tr>
+<td><code class="notranslate">empty()</code>, <code class="notranslate">length()</code>, <code class="notranslate">max_size()</code>, <code class="notranslate">size()</code></td>
+<td>Compile-time size queries; embedded zero characters count toward length.</td>
+</tr>
+<tr>
+<td><code class="notranslate">find_first_of</code>, <code class="notranslate">find_last_of</code></td>
+<td>Search by a character or a <code class="notranslate">std::string_view</code> character set, with an optional start position.</td>
+</tr>
+<tr>
+<td><code class="notranslate">Hash()</code>, <code class="notranslate">StringHash()</code></td>
+<td><code class="notranslate">Hash()</code>: distinct typed hash; <code class="notranslate">StringHash()</code>: MBO string hash. Both support constant evaluation.</td>
+</tr>
+<tr>
+<td><code class="notranslate">is(other)</code></td>
+<td>Exact <code class="notranslate">tstring</code> type-identity test.</td>
+</tr>
+<tr>
+<td><code class="notranslate">operator std::string_view</code></td>
+<td>Explicit conversion to a view of the characters.</td>
+</tr>
+<tr>
+<td><code class="notranslate">operator+</code></td>
+<td>Concatenate two <code class="notranslate">tstring</code> values into a new <code class="notranslate">tstring</code> type.</td>
+</tr>
+<tr>
+<td><code class="notranslate">operator&lt;&lt;</code></td>
+<td>Stream the text.</td>
+</tr>
+<tr>
+<td><code class="notranslate">operator==</code>, <code class="notranslate">operator&lt;=&gt;</code></td>
+<td>Equality and lexicographic comparison; support string-view-compatible operands.</td>
+</tr>
+<tr>
+<td><code class="notranslate">str()</code></td>
+<td>View of all characters, excluding the added terminator.</td>
+</tr>
+<tr>
+<td><code class="notranslate">substr(pos, count)</code></td>
+<td><code class="notranslate">std::string_view</code> result; supports runtime positions.</td>
+</tr>
+<tr>
+<td><code class="notranslate">substr&lt;Pos, Count&gt;()</code></td>
+<td>New <code class="notranslate">tstring</code> type; count defaults to <code class="notranslate">npos</code> and is clamped to the remaining length.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Accessors are static <code class="notranslate">constexpr</code>; <code class="notranslate">Port::str()</code> and <code class="notranslate">Port{}.str()</code> access the same storage.</li>
+<li>Both substring forms return an empty result when <code class="notranslate">pos &gt;= size()</code>.</li>
+<li><code class="notranslate">_ts</code> retains embedded zero characters; C-string consumers of <code class="notranslate">c_str()</code> stop at the first zero.</li>
+<li><code class="notranslate">make_tstring&lt;array&gt;()</code>: construct from a suitable static character array; stops at the first zero.<br>
+<code class="notranslate">MBO_MAKE_TSTRING(array)</code> derives the length from the array extent. Prefer <code class="notranslate">_ts</code> for literals.</li>
+<li>Hash integration: <code class="notranslate">AbslHashValue</code> and a <code class="notranslate">std::hash&lt;const tstring&lt;...&gt;&gt;</code> specialization. For a<br>
+<code class="notranslate">constexpr auto kName = "name"_ts</code>, use <code class="notranslate">std::hash&lt;decltype(kName)&gt;</code>. Typed hashes do not promise<br>
+compatibility with string/string-view hashes, and their numeric values are not a stable format.</li>
+</ul>
+<h3 dir="auto" id="string_or_viewh-owned-or-borrowed-text"><code class="notranslate">string_or_view.h</code>: owned or borrowed text</h3>
+<ul dir="auto">
+<li>Type name: <code class="notranslate">mbo::StringOrView</code>.</li>
+<li><code class="notranslate">str()</code> returns an owning <code class="notranslate">std::string</code>. Lvalue calls copy the text;<br>
+<code class="notranslate">std::move(value).str()</code> transfers an owned string or copies a borrowed view.<br>
+The consumed object remains valid and can be assigned another value.</li>
+<li><code class="notranslate">std::string</code> input: own the string; lvalues are copied and rvalues are moved.</li>
+<li><code class="notranslate">std::string_view</code> or character-array input: borrow the storage. Array construction uses <code class="notranslate">N - 1</code><br>
+characters. The referenced character storage must outlive the wrapper and its copies.</li>
+<li>Runtime C-string pointers: explicitly choose <code class="notranslate">std::string</code> for ownership or <code class="notranslate">std::string_view</code><br>
+for borrowing.</li>
+<li><code class="notranslate">owns_string()</code>: inspect the active alternative. Copying preserves ownership/borrowing mode.</li>
+<li><code class="notranslate">view()</code> and implicit <code class="notranslate">std::string_view</code> conversion: read the current text.</li>
+<li>Read API: iterators, element access, size queries, <code class="notranslate">copy</code>, <code class="notranslate">substr</code>/<code class="notranslate">subview</code>, comparisons,<br>
+prefix/suffix/containment checks, and the <code class="notranslate">find</code>/<code class="notranslate">rfind</code>/character-set search families.</li>
+<li><code class="notranslate">substr()</code> and <code class="notranslate">subview()</code> return borrowed views, including when the wrapper owns the source.</li>
+<li>Formatting and hashing: stream output, Abseil stringification/hashing, <code class="notranslate">std::hash</code>, and<br>
+<code class="notranslate">std::formatter</code> when the standard library provides formatting. Comparisons and hashes use text<br>
+contents, independently of ownership.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/string_or_view.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">TextOwnership</span>() {
+  std::string source = <span class="pl-s"><span class="pl-pds">"</span>borrowed<span class="pl-pds">"</span></span>;
+  mbo::StringOrView borrowed{<span class="pl-c1">std::string_view</span>(source)};
+  mbo::StringOrView owned{<span class="pl-c1">std::string</span>(<span class="pl-s"><span class="pl-pds">"</span>owned<span class="pl-pds">"</span></span>)};
+  mbo::StringOrView literal{<span class="pl-s"><span class="pl-pds">"</span>static text<span class="pl-pds">"</span></span>};
+  std::string <span class="pl-smi">copy</span>(borrowed.<span class="pl-c1">view</span>());
+  owned = <span class="pl-c1">std::move</span>(copy);
+  (<span class="pl-k">void</span>)literal;
+}</pre></div>
+<h3 dir="auto" id="ref_wraph-required-references"><code class="notranslate">ref_wrap.h</code>: required references</h3>
+<ul dir="auto">
+<li><code class="notranslate">RefWrap&lt;T&gt;</code>: non-owning wrapper constructed from an existing <code class="notranslate">T&amp;</code>; no default/empty state.</li>
+<li>Assignment from a <code class="notranslate">T&amp;</code> or another wrapper: rebind. Assignment through <code class="notranslate">*ref</code> or <code class="notranslate">ref.get()</code>:<br>
+modify the referenced value.</li>
+<li>Access: <code class="notranslate">get()</code>, <code class="notranslate">*</code>, <code class="notranslate">-&gt;</code>, and implicit reference conversion. A const wrapper exposes const access.</li>
+<li>Referent lifetime: must exceed the wrapper's use; wrapping a reference does not extend lifetime.</li>
+<li>Pointer arithmetic and indexing: disabled.</li>
+<li>Three-way comparison, Abseil hashing, and Abseil stringification operate on referenced values.</li>
+</ul>
+<h3 dir="auto" id="optional_refh-optional-references"><code class="notranslate">optional_ref.h</code>: optional references</h3>
+<ul dir="auto">
+<li><code class="notranslate">OptionalRef&lt;T&gt;</code>: default construction or <code class="notranslate">std::nullopt</code> creates an empty reference.</li>
+<li>Construction from <code class="notranslate">T&amp;</code>: borrow the object. Copy/move construction copies the reference;<br>
+wrapper-to-wrapper assignment is deleted.</li>
+<li>Value assignment: write through an engaged reference. <code class="notranslate">set_ref(value)</code>: explicitly rebind.<br>
+<code class="notranslate">reset()</code>: disengage without changing or destroying the referent.</li>
+<li><code class="notranslate">has_value()</code>/explicit <code class="notranslate">bool</code>: engagement. <code class="notranslate">value()</code>, <code class="notranslate">*</code>, and <code class="notranslate">-&gt;</code>: access; require engagement.</li>
+<li>Checked access honors <code class="notranslate">mbo::config::kRequireThrows</code>; it is <code class="notranslate">noexcept</code> only when requirements<br>
+use fatal logging. Write-through assignment also accounts for the referent's assignment exceptions.</li>
+<li><code class="notranslate">OptionalRef&lt;const T&gt;</code>: borrow a const object. Referents must outlive all uses of the wrapper.</li>
+<li>Comparisons: value-based, with empty references ordered before engaged references.</li>
+<li>Abseil hashing includes engagement and value; Abseil stringification emits <code class="notranslate">std::nullopt</code> for empty.</li>
+<li><code class="notranslate">IsOptionalRef&lt;T&gt;</code>: recognize this wrapper.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/optional_ref.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/ref_wrap.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">ReferenceAssignment</span>() {
+  <span class="pl-k">int</span> first = <span class="pl-c1">1</span>;
+  <span class="pl-k">int</span> second = <span class="pl-c1">2</span>;
+  mbo::types::RefWrap&lt;<span class="pl-k">int</span>&gt; <span class="pl-c1">required</span>(first);
+  required = second;  <span class="pl-c"><span class="pl-c">//</span> Rebind to second.</span>
+  *required = <span class="pl-c1">3</span>;      <span class="pl-c"><span class="pl-c">//</span> Write second.</span>
+  mbo::types::OptionalRef&lt;<span class="pl-k">int</span>&gt; <span class="pl-c1">optional</span>(first);
+  optional = <span class="pl-c1">4</span>;              <span class="pl-c"><span class="pl-c">//</span> Write first.</span>
+  optional.<span class="pl-c1">set_ref</span>(second);  <span class="pl-c"><span class="pl-c">//</span> Rebind to second.</span>
+  optional.<span class="pl-c1">reset</span>();          <span class="pl-c"><span class="pl-c">//</span> Leave second unchanged.</span>
+}</pre></div>
+<h3 dir="auto" id="optional_data_or_refh-optional-ownership"><code class="notranslate">optional_data_or_ref.h</code>: optional ownership</h3>
+<p dir="auto"><code class="notranslate">OptionalDataOrRef&lt;T, RefT = T&gt;</code> holds one of three states: empty, an owned <code class="notranslate">T</code>, or a borrowed<br>
+<code class="notranslate">RefT&amp;</code>. <code class="notranslate">T</code> and <code class="notranslate">RefT</code> must name the same underlying type after removing cv/ref qualifiers and<br>
+must not themselves be references. <code class="notranslate">OptionalDataOrConstRef&lt;T&gt;</code> selects <code class="notranslate">RefT = const T</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Construction from a compatible lvalue</td>
+<td>Borrow the object.</td>
+</tr>
+<tr>
+<td>Construction from <code class="notranslate">T&amp;&amp;</code></td>
+<td>Own a moved-in value.</td>
+</tr>
+<tr>
+<td>Default construction, <code class="notranslate">std::nullopt</code></td>
+<td>Empty state.</td>
+</tr>
+<tr>
+<td><code class="notranslate">as_data(args...)</code></td>
+<td>Keep an owned value, copy a borrowed value into owned storage, or construct an empty wrapper's value from the arguments.</td>
+</tr>
+<tr>
+<td><code class="notranslate">emplace(args...)</code></td>
+<td>Own a value constructed from the arguments.</td>
+</tr>
+<tr>
+<td><code class="notranslate">get()</code></td>
+<td>Current value or a static default value for suitable <code class="notranslate">T</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">get(defaults)</code></td>
+<td>Current value or the supplied fallback, by const reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">has_value()</code>, explicit <code class="notranslate">bool</code></td>
+<td>True for either owned or borrowed storage.</td>
+</tr>
+<tr>
+<td><code class="notranslate">HoldsData()</code>, <code class="notranslate">HoldsNullopt()</code>, <code class="notranslate">HoldsReference()</code></td>
+<td>Distinguish the three storage states.</td>
+</tr>
+<tr>
+<td><code class="notranslate">reset()</code></td>
+<td>Empty the wrapper; destroy any previously owned value.</td>
+</tr>
+<tr>
+<td><code class="notranslate">set_ref(value)</code></td>
+<td>Replace the current state with a borrowed reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">value()</code>, <code class="notranslate">*</code>, <code class="notranslate">-&gt;</code></td>
+<td>Access the current value; require engagement.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Copying owned storage copies <code class="notranslate">T</code>; copying borrowed storage preserves the reference.</li>
+<li>Moving owned storage moves <code class="notranslate">T</code> and empties the source; moving borrowed storage preserves the<br>
+reference in both wrappers.</li>
+<li>Rvalue value assignment creates owned storage. Supported lvalue value assignment writes through<br>
+an engaged value or constructs owned storage if empty. Use <code class="notranslate">set_ref()</code> to request rebinding.</li>
+<li>Failed replacement construction leaves the wrapper empty when exceptions are enabled.</li>
+<li>Checked access through <code class="notranslate">value()</code>, <code class="notranslate">*</code>, and <code class="notranslate">-&gt;</code> honors <code class="notranslate">mbo::config::kRequireThrows</code>; it is<br>
+<code class="notranslate">noexcept</code> only when requirements use fatal logging.</li>
+<li>Borrowed values and <code class="notranslate">get(defaults)</code> fallbacks must remain alive while their returned references<br>
+are used. Do not retain a fallback reference obtained from a temporary argument.</li>
+<li>Comparison and Abseil hashing use engagement and value, independently of ownership mode.</li>
+<li>Abseil stringification supports engaged values and <code class="notranslate">std::nullopt</code>.</li>
+<li><code class="notranslate">IsOptionalDataOrRef&lt;T&gt;</code> recognizes both mutable-reference and const-reference forms.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/optional_data_or_ref.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">OptionalOwnership</span>() {
+  std::string source = <span class="pl-s"><span class="pl-pds">"</span>original<span class="pl-pds">"</span></span>;
+  mbo::types::OptionalDataOrRef&lt;std::string&gt; <span class="pl-c1">text</span>(source);
+  text.<span class="pl-c1">value</span>() += <span class="pl-s"><span class="pl-pds">"</span> borrowed<span class="pl-pds">"</span></span>;  <span class="pl-c"><span class="pl-c">//</span> Modifies source.</span>
+  text.<span class="pl-c1">as_data</span>() += <span class="pl-s"><span class="pl-pds">"</span> owned<span class="pl-pds">"</span></span>;   <span class="pl-c"><span class="pl-c">//</span> Copies first; further changes affect owned data.</span>
+  text.<span class="pl-c1">reset</span>();
+  text.<span class="pl-c1">emplace</span>(<span class="pl-s"><span class="pl-pds">"</span>replacement<span class="pl-pds">"</span></span>);
+}</pre></div>
+<h3 dir="auto" id="requiredh-reconstructible-values"><code class="notranslate">required.h</code>: reconstructible values</h3>
+<ul dir="auto">
+<li><code class="notranslate">Required&lt;T&gt;</code> stores a <code class="notranslate">T</code> directly with no empty state or engagement flag.</li>
+<li>Purpose: replace values whose type supports construction but not assignment, including records<br>
+with const members.</li>
+<li>Construction: from a value, a convertible argument, or <code class="notranslate">std::in_place</code> plus constructor arguments.<br>
+Default construction follows <code class="notranslate">T</code>'s default construction.</li>
+<li><code class="notranslate">emplace(args...)</code>: first construct a replacement, then destroy the old value and move the<br>
+replacement into place. Requires nothrow move construction of <code class="notranslate">T</code>.</li>
+<li>If replacement construction throws, the current value remains alive and unchanged.</li>
+<li>Access: <code class="notranslate">get()</code>, <code class="notranslate">*</code>, <code class="notranslate">-&gt;</code>, and implicit reference conversion.</li>
+<li>Three-way comparison, Abseil hashing, and Abseil stringification use the stored value.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/required.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">struct</span> <span class="pl-en">Record</span> {
+  <span class="pl-k">const</span> <span class="pl-k">int</span> number;
+};
+
+<span class="pl-k">void</span> <span class="pl-en">ReplaceRecord</span>() {
+  mbo::types::Required&lt;Record&gt; <span class="pl-c1">record</span>(std::in_place, <span class="pl-c1">7</span>);
+  record.<span class="pl-c1">emplace</span>(<span class="pl-c1">8</span>);  <span class="pl-c"><span class="pl-c">//</span> Reconstructs Record; no Record assignment operator needed.</span>
+}</pre></div>
+<h3 dir="auto" id="no_destructh-suppressed-destruction"><code class="notranslate">no_destruct.h</code>: suppressed destruction</h3>
+<ul dir="auto">
+<li><code class="notranslate">NoDestruct&lt;T&gt;</code> constructs <code class="notranslate">T</code> in internal storage and deliberately never calls <code class="notranslate">T</code>'s destructor.</li>
+<li>Intended use: static values that must remain available during program shutdown.</li>
+<li>Construction: default, value, forwarded constructor arguments, or an initializer list.</li>
+<li>Copying and moving: disabled. Access: mutable/const <code class="notranslate">Get()</code>, <code class="notranslate">*</code>, and <code class="notranslate">-&gt;</code>.</li>
+<li>Const-qualified <code class="notranslate">T</code> is supported and remains const even through a mutable wrapper. Construction<br>
+directly initializes the union member; it does not cast away const or require placement new.</li>
+<li>Bounded built-in arrays support value initialization with no arguments and element-wise<br>
+construction with forwarded arguments, for example <code class="notranslate">NoDestruct&lt;const int[3]&gt;(1, 2, 3)</code>.</li>
+<li>Constant evaluation: supported when construction of <code class="notranslate">T</code> and all its members permits it.</li>
+<li>Abseil hashing and stringification use the contained value.</li>
+<li>Destruction suppression does not extend the wrapper's storage lifetime. Use static storage for<br>
+objects that must survive until process termination; dynamically acquired resources in <code class="notranslate">T</code> are<br>
+not released by this wrapper.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/no_destruct.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">const</span> std::string&amp; <span class="pl-en">DefaultName</span>() {
+  <span class="pl-k">static</span> <span class="pl-k">const</span> mbo::types::NoDestruct&lt;std::string&gt; <span class="pl-c1">name</span>(<span class="pl-s"><span class="pl-pds">"</span>anonymous<span class="pl-pds">"</span></span>);
+  <span class="pl-k">return</span> *name;
+}</pre></div>
+<h3 dir="auto" id="opaqueh-opaque-ownership"><code class="notranslate">opaque.h</code>: opaque ownership</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Ownership and access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">IsOpaquePtr&lt;T&gt;</code>, <code class="notranslate">IsOpaqueValue&lt;T&gt;</code></td>
+<td>Recognize the pointer and value wrappers.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MakeOpaquePtr&lt;T&gt;(args...)</code></td>
+<td>Construct <code class="notranslate">T</code> through the ADL maker hook and return its owning pointer.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_TYPES_OPAQUE_HOOKS(T)</code></td>
+<td>Define inline ADL maker/deleter hooks after the complete type definition.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OpaqueContainer&lt;C&gt;</code></td>
+<td><code class="notranslate">ContainerProxy</code> over <code class="notranslate">OpaqueValue&lt;C&gt;</code> for direct container operations.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OpaquePtr&lt;T&gt;</code></td>
+<td><code class="notranslate">std::unique_ptr</code> with an ADL deleter; nullable, move-only, and usable with a forward-declared <code class="notranslate">T</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OpaqueValue&lt;T&gt;</code></td>
+<td>Heap-owned value; construction allocates <code class="notranslate">T</code>, copying deep-copies when <code class="notranslate">T</code> is copy-constructible, moving transfers ownership.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Place hooks in the type's associated namespace and make them available where creation and<br>
+destruction are instantiated. Forward declaration alone does not supply the hooks.</li>
+<li><code class="notranslate">OpaqueValue</code> exposes mutable/const <code class="notranslate">*</code> and <code class="notranslate">-&gt;</code>, value-based three-way comparison, Abseil<br>
+hashing, and <code class="notranslate">std::hash</code> when supported by <code class="notranslate">T</code>.</li>
+<li>A newly constructed <code class="notranslate">OpaqueValue</code> owns a value. Moving transfers its pointer and leaves the source<br>
+without a pointee; restore ownership before dereferencing, comparing, hashing, or copying it.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/opaque.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">namespace</span> <span class="pl-en">application</span> {
+<span class="pl-k">struct</span> <span class="pl-en">Payload</span>;
+<span class="pl-k">using</span> PayloadPtr = mbo::types::OpaquePtr&lt;Payload&gt;;
+
+<span class="pl-k">struct</span> <span class="pl-en">Payload</span> {
+  std::string text;
+};
+<span class="pl-en">MBO_TYPES_OPAQUE_HOOKS</span>(Payload)
+
+PayloadPtr <span class="pl-en">MakePayload</span>() {
+  <span class="pl-k">return</span> mbo::types::MakeOpaquePtr&lt;Payload&gt;(<span class="pl-s"><span class="pl-pds">"</span>example<span class="pl-pds">"</span></span>);
+}
+}  <span class="pl-c"><span class="pl-c">//</span> namespace application</span></pre></div>
+<h3 dir="auto" id="container_proxyh-forwarding-container-access"><code class="notranslate">container_proxy.h</code>: forwarding container access</h3>
+<ul dir="auto">
+<li><code class="notranslate">ContainerProxy&lt;Holder, Container, GetMutable, GetConst&gt;</code> inherits the holder and accesses its<br>
+container through two member-function pointers.</li>
+<li>Required accessor signatures: <code class="notranslate">Container&amp; ()</code> and <code class="notranslate">const Container&amp; () const</code>.</li>
+<li>Default accessors: mutable and const <code class="notranslate">Holder::operator*</code>. Supply named accessors when the holder<br>
+lacks those exact signatures; <code class="notranslate">std::unique_ptr</code> does not match the mutable default signature.</li>
+<li>Exposes <code class="notranslate">size_type</code> and <code class="notranslate">value_type</code>, iteration, size/capacity queries, supported reserve/resize,<br>
+element access, endpoint insertion/removal, and supported value-returning endpoint pops.</li>
+<li><code class="notranslate">operator[]</code> delegates to the underlying <code class="notranslate">at()</code>; its bounds behavior follows that function.</li>
+<li><code class="notranslate">pop_front_value()</code>/<code class="notranslate">pop_back_value()</code> are available only when the container provides them, and<br>
+forward its return value and exception specification.</li>
+<li>Each forwarded member has its own constraints. The proxy is not a complete STL container<br>
+interface; for example, <code class="notranslate">clear()</code> currently requires a const-callable underlying <code class="notranslate">clear()</code>.</li>
+<li>Container lifetime and ownership follow the holder. A pointer-backed holder must contain a<br>
+usable container before any forwarded operation.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>vector<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/container_proxy.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">struct</span> <span class="pl-en">Values</span> {
+  std::vector&lt;<span class="pl-k">int</span>&gt; data;
+
+  std::vector&lt;<span class="pl-k">int</span>&gt;&amp; <span class="pl-en">GetData</span>() { <span class="pl-k">return</span> data; }
+
+  <span class="pl-k">const</span> std::vector&lt;<span class="pl-k">int</span>&gt;&amp; <span class="pl-en">GetData</span>() <span class="pl-k">const</span> { <span class="pl-k">return</span> data; }
+};
+
+<span class="pl-k">using</span> ValueProxy = mbo::types::ContainerProxy&lt;Values, std::vector&lt;<span class="pl-k">int</span>&gt;, &amp;Values::GetData, &amp;Values::GetData&gt;;
+
+<span class="pl-k">void</span> <span class="pl-en">UseProxy</span>() {
+  ValueProxy values;
+  values.<span class="pl-c1">push_back</span>(<span class="pl-c1">7</span>);
+  values.<span class="pl-c1">at</span>(<span class="pl-c1">0</span>) = <span class="pl-c1">8</span>;
+}</pre></div>
+<h3 dir="auto" id="typed_viewh-views-with-element-aliases"><code class="notranslate">typed_view.h</code>: views with element aliases</h3>
+<ul dir="auto">
+<li><code class="notranslate">TypedView&lt;View&gt;</code> stores a moved-in view and provides <code class="notranslate">value_type</code>, <code class="notranslate">reference</code>, and<br>
+<code class="notranslate">difference_type</code>; this supports consumers such as GoogleTest container matchers.</li>
+<li>Construction: pass a view rvalue, or move an existing view; no default construction.</li>
+<li><code class="notranslate">begin()</code> and <code class="notranslate">end()</code> are const; the underlying view must be const-iterable. Views such as<br>
+<code class="notranslate">filter_view</code> and <code class="notranslate">drop_while_view</code> do not satisfy this requirement.</li>
+<li>Inherits the applicable <code class="notranslate">std::ranges::view_interface</code> operations, including size/index/front<br>
+access when the wrapped range supports them.</li>
+<li>Ownership of elements follows the underlying view. Wrapping <code class="notranslate">std::views::all(lvalue)</code> continues<br>
+to borrow the original range.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>ranges<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>vector<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/typed_view.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">UseTypedView</span>() {
+  <span class="pl-k">const</span> std::vector&lt;<span class="pl-k">int</span>&gt; values{<span class="pl-c1">1</span>, <span class="pl-c1">2</span>, <span class="pl-c1">3</span>};
+  <span class="pl-k">auto</span> doubled = <span class="pl-c1">mbo::types::TypedView</span>(<span class="pl-c1">std::views::transform</span>(values, [](<span class="pl-k">int</span> value) { <span class="pl-k">return</span> value * <span class="pl-c1">2</span>; }));
+  <span class="pl-k">for</span> (<span class="pl-k">int</span> value : doubled) {
+    (<span class="pl-k">void</span>)value;
+  }
+}</pre></div>
+<h3 dir="auto" id="compareh-comparison-policies"><code class="notranslate">compare.h</code>: comparison policies</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">CompareArithmetic(lhs, rhs)</code></td>
+<td>Strong ordering for arithmetic values, including floating point.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareFloat(lhs, rhs)</code></td>
+<td>Strong ordering: NaNs compare equivalent to each other and greater than non-NaNs; signed zeros compare equivalent.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareIntegral(lhs, rhs)</code></td>
+<td>Strong ordering for integral values, with signed/unsigned boundary handling.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareLess&lt;T&gt;</code></td>
+<td>Transparent comparator (<code class="notranslate">is_transparent = void</code>): <code class="notranslate">operator()</code> returns less-than and <code class="notranslate">Compare()</code> returns the three-way result. Heterogeneous operands must be three-way comparable with <code class="notranslate">T</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareScalar(lhs, rhs)</code></td>
+<td>Scalar comparison, including same-type pointers when their comparison is supported.</td>
+</tr>
+<tr>
+<td><code class="notranslate">IsCompareLess&lt;T&gt;</code>, <code class="notranslate">IsStdLess&lt;T&gt;</code></td>
+<td>Recognize the respective comparator types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">WeakToStrong(order)</code></td>
+<td>Preserve the less/equivalent/greater result in <code class="notranslate">std::strong_ordering</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Mixed floating/integral comparisons convert to <code class="notranslate">long double</code>; precision follows that type.</li>
+<li>In the non-floating mixed-type path, a <code class="notranslate">bool</code> operand causes both operands to be compared as<br>
+booleans. For example, <code class="notranslate">CompareIntegral(true, 2)</code> reports equivalent.</li>
+<li>These numeric helpers do not make every pair of scalar types comparable; pointer/numeric and<br>
+unrelated pointer combinations still require valid underlying operations.</li>
+</ul>
+<h3 dir="auto" id="strong_ordinalh-and-strong_idh-nominal-integral-types"><code class="notranslate">strong_ordinal.h</code> and <code class="notranslate">strong_id.h</code>: nominal integral types</h3>
+<p dir="auto">A tag separates application domains that share an integer representation. Construction is explicit;<br>
+<code class="notranslate">value()</code> retrieves the representation. The wrappers provide same-domain comparison, <code class="notranslate">std::hash</code>,<br>
+and Abseil hashing.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Default and mutation policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ConstStrongId&lt;Tag, Rep = std::uint32_t, Invalid = max&gt;</code></td>
+<td>Invalid default; signed or unsigned non-boolean integral representation; no arithmetic or copy assignment; move assignment remains available.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConstStrongOrdinal&lt;Tag, Rep&gt;</code></td>
+<td>Zero default; all representation values are valid. No setters or copy assignment; move assignment remains available.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StrongOrdinal&lt;Tag, Rep&gt;</code></td>
+<td>Mutable ordinal with setters, assignment, compound arithmetic, and increment/decrement.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Ordinal representations: integral types other than <code class="notranslate">bool</code>; specify <code class="notranslate">Rep</code> explicitly.</li>
+<li><code class="notranslate">try_from_ordinal(value)</code>: <code class="notranslate">std::optional</code> result; reject values outside the representation range.<br>
+The ID form also rejects its invalid sentinel.</li>
+<li>Ordinal <code class="notranslate">try_add</code>/<code class="notranslate">try_subtract</code>: optional new value. Mutable <code class="notranslate">try_set</code>, <code class="notranslate">try_add_assign</code>,<br>
+<code class="notranslate">try_subtract_assign</code>, <code class="notranslate">try_increment</code>, and <code class="notranslate">try_decrement</code>: boolean success and no change on failure.</li>
+<li>Arithmetic offsets must be nonnegative. Overflow, underflow, and negative offsets fail the<br>
+checked operation even when the representation is signed.</li>
+<li>Ordinary <code class="notranslate">+</code>, <code class="notranslate">-</code>, mutable <code class="notranslate">set</code>/assignment, compound arithmetic, and increment/decrement enforce<br>
+the same rules through <a href="../config/README.html#requirement-failures">configured requirement failures</a>.</li>
+<li><code class="notranslate">ConstStrongId::is_valid()</code>: compare against <code class="notranslate">invalid_value</code>. Direct construction can represent the<br>
+invalid sentinel; use <code class="notranslate">try_from_ordinal</code> when it must be rejected.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>cstdint<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/strong_id.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/strong_ordinal.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">struct</span> <span class="pl-en">RowTag</span>;
+<span class="pl-k">struct</span> <span class="pl-en">UserTag</span>;
+<span class="pl-k">using</span> Row = mbo::types::StrongOrdinal&lt;RowTag, std::<span class="pl-c1">uint32_t</span>&gt;;
+<span class="pl-k">using</span> UserId = mbo::types::ConstStrongId&lt;UserTag&gt;;
+
+<span class="pl-k">static_assert</span>(Row{}.value() == <span class="pl-c1">0</span>);
+<span class="pl-k">static_assert</span>(!UserId{}.is_valid());
+<span class="pl-k">static_assert</span>(!UserId::try_from_ordinal(-<span class="pl-c1">1</span>).has_value());
+<span class="pl-k">static_assert</span>(UserId::try_from_ordinal(<span class="pl-c1">42</span>)-&gt;<span class="pl-en">value</span>() == 42);
+<span class="pl-k">static_assert</span>(Row(<span class="pl-c1">5</span>).try_add(<span class="pl-c1">2</span>)-&gt;<span class="pl-en">value</span>() == 7);
+
+<span class="pl-k">void</span> <span class="pl-en">AdvanceRow</span>() {
+  Row <span class="pl-smi">row</span>(<span class="pl-c1">5</span>);
+  row += <span class="pl-c1">2</span>;
+  ++row;
+}</pre></div>
+<h2 dir="auto" id="enriching-aggregates-with-extend">Enriching aggregates with <code class="notranslate">Extend</code></h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Entry point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/extend.h">extend.h</a></td>
+<td><code class="notranslate">Extend</code>, <code class="notranslate">ExtendNoDefault</code>, <code class="notranslate">ExtendNoPrint</code>, and the extenders exported through <code class="notranslate">extender.h</code>.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/stringify.h">stringify.h</a></td>
+<td>Recursive stringification, output modes, and field policies.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/types/stringify_ostream.h">stringify_ostream.h</a></td>
+<td>Stream adapter for opted-in aggregates and global stream-format settings.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The <strong><code class="notranslate">Extend</code> framework</strong> equips C++ aggregates with comparison, Abseil and standard hashing,<br>
+tuple access, construction helpers, and configurable text output through a single CRTP base.<br>
+Declare the fields once; <code class="notranslate">Extend</code> derives these operations from the aggregate itself and follows<br>
+changes to its fields. It preserves aggregate initialization, and its default extenders add no<br>
+data members or virtual dispatch.</p>
+<p dir="auto"><strong>Reusable, composable extenders</strong> let applications define a behavior once and apply it across<br>
+their record types. Use the defaults, select individual behaviors, or combine them with custom<br>
+extenders whose dependencies are checked at compile time. The shared <code class="notranslate">Stringify</code> layer provides<br>
+recursive formatting, automatic field names where supported, and per-field naming, filtering,<br>
+conversion, and redaction.</p>
+<p dir="auto">The separate <a href="REFLECTION.html">reflection implementation note</a> explains how automatic field-name<br>
+discovery works, its compiler-specific limitations, and how mbo compares with other reflection<br>
+libraries.</p>
+<p dir="auto">Derive an aggregate from <code class="notranslate">mbo::types::Extend&lt;T&gt;</code> to install the common CRTP extenders with one<br>
+declaration:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>iostream<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/extend.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">struct</span> <span class="pl-en">Name</span> : mbo::types::Extend&lt;Name&gt; {
+  std::string first;
+  std::string last;
+};
+
+Name name{
+    .<span class="pl-smi">first</span> = {<span class="pl-s"><span class="pl-pds">"</span>Ada<span class="pl-pds">"</span></span>},
+    .<span class="pl-smi">last</span> = {<span class="pl-s"><span class="pl-pds">"</span>Lovelace<span class="pl-pds">"</span></span>},
+};
+std::cout &lt;&lt; name &lt;&lt; <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\n</span><span class="pl-pds">'</span></span>;</pre></div>
+<p dir="auto">That one base gives <code class="notranslate">Name</code> comparison, Abseil and standard hashing, Abseil stringification, stream<br>
+output, <code class="notranslate">ToString()</code>, <code class="notranslate">ToJsonString()</code>, and construction helpers. These implementations remain in<br>
+sync with the aggregate's declared fields instead of duplicating the field list across hand-written<br>
+operators. When field-name reflection supports the aggregate, output can use <code class="notranslate">first</code> and <code class="notranslate">last</code>;<br>
+otherwise it remains positional or uses configured names or numeric fallbacks.</p>
+<p dir="auto"><code class="notranslate">Extend</code> preserves aggregate initialization, including designated initializers for the declared<br>
+fields. It adds neither data members nor virtual dispatch. The empty CRTP base is initialized<br>
+implicitly in the example above. Named construction helpers also accept field arguments or tuples:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>tuple<span class="pl-pds">&gt;</span></span>
+
+<span class="pl-k">auto</span> name = Name::ConstructFromArgs(<span class="pl-s"><span class="pl-pds">"</span>Grace<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Hopper<span class="pl-pds">"</span></span>);
+<span class="pl-k">auto</span> other = Name::ConstructFromTuple(std::tuple{<span class="pl-s"><span class="pl-pds">"</span>Barbara<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Liskov<span class="pl-pds">"</span></span>});
+<span class="pl-k">auto</span> converted = Name::ConstructFromConversions(std::string_view{<span class="pl-s"><span class="pl-pds">"</span>Margaret<span class="pl-pds">"</span></span>}, std::string_view{<span class="pl-s"><span class="pl-pds">"</span>Hamilton<span class="pl-pds">"</span></span>});</pre></div>
+<h2 dir="auto" id="extender-sets">Extender sets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Base</th>
+<th>Installed behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Extend&lt;T, Extra...&gt;</code></td>
+<td>Default behavior plus any custom extenders.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ExtendNoDefault&lt;T, Extender...&gt;</code></td>
+<td>Only the explicitly selected extenders.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ExtendNoPrint&lt;T, Extra...&gt;</code></td>
+<td>Comparison, hashing, and Abseil stringification, without <code class="notranslate">ToString()</code> or <code class="notranslate">operator&lt;&lt;</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Extender</th>
+<th>Installed behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">extender::AbslHashable</code></td>
+<td><code class="notranslate">AbslHashValue</code>; extended types also receive <code class="notranslate">std::hash</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::AbslStringify</code></td>
+<td>Abseil formatting backed by <code class="notranslate">Stringify</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Comparable</code></td>
+<td><code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">==</code>, and <code class="notranslate">&lt;</code>, with the remaining relational operators supplied by C++.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Default</code></td>
+<td><code class="notranslate">AbslHashable</code>, <code class="notranslate">AbslStringify</code>, <code class="notranslate">Comparable</code>, <code class="notranslate">Printable</code>, and <code class="notranslate">Streamable</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::NoPrint</code></td>
+<td><code class="notranslate">AbslHashable</code>, <code class="notranslate">AbslStringify</code>, and <code class="notranslate">Comparable</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Printable</code></td>
+<td><code class="notranslate">ToJsonString()</code> and <code class="notranslate">ToString()</code>; requires <code class="notranslate">AbslStringify</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">extender::Streamable</code></td>
+<td><code class="notranslate">operator&lt;&lt;</code>; requires <code class="notranslate">AbslStringify</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Use <code class="notranslate">ExtendNoDefault</code> when a type must expose only a narrow operation set. Use <code class="notranslate">ExtendNoPrint</code> when<br>
+the comparison and hashing semantics are useful but text output has a hand-written implementation.<br>
+Additional extenders can be defined with <code class="notranslate">MakeExtender</code>; dependencies between extenders are checked<br>
+while the CRTP chain is assembled.</p>
+<p dir="auto"><code class="notranslate">extender::Comparable</code> compares fields in declaration order through the aggregate's tuple view. It<br>
+defines <code class="notranslate">&lt;=&gt;</code>, <code class="notranslate">==</code>, and <code class="notranslate">&lt;</code> for two values of the extended type; C++ rewriting supplies <code class="notranslate">!=</code>, <code class="notranslate">&lt;=</code>,<br>
+<code class="notranslate">&gt;</code>, and <code class="notranslate">&gt;=</code>. Member templates also compare an extended value with another decomposable aggregate<br>
+or a compatible <code class="notranslate">std::tuple</code>. Field types must provide the operations needed by the requested<br>
+comparison.</p>
+<h2 dir="auto" id="structural-reflection-and-tuples">Structural reflection and tuples</h2>
+<p dir="auto">The structural layer determines an aggregate's field count and maps its structured binding to a<br>
+tuple of references. It is independent of whether source field names are available.</p>
+<ul dir="auto">
+<li><code class="notranslate">CanCreateTuple&lt;T&gt;</code>: eligible structured-binding aggregates and empty aggregates.</li>
+<li><code class="notranslate">StructToTuple(value)</code>: tuple of field references; an empty tuple for an empty aggregate.</li>
+<li><code class="notranslate">HasUnionMember&lt;T&gt;</code> and <code class="notranslate">HasVariantMember&lt;T&gt;</code>: inspect reflected tuple element types for union<br>
+and <code class="notranslate">std::variant</code> members, respectively. These shapes affect constant-evaluated field-name<br>
+discovery; see <a href="REFLECTION.html">REFLECTION.md</a>.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/tuple_extras.h<span class="pl-pds">"</span></span>
+
+Name name = Name::ConstructFromArgs(<span class="pl-s"><span class="pl-pds">"</span>Katherine<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Johnson<span class="pl-pds">"</span></span>);
+<span class="pl-k">auto</span> fields = mbo::types::StructToTuple(name);
+std::get&lt;<span class="pl-c1">1</span>&gt;(fields) = <span class="pl-s"><span class="pl-pds">"</span>Coleman Goble Johnson<span class="pl-pds">"</span></span>;</pre></div>
+<p dir="auto"><code class="notranslate">StructToTuple</code> preserves reference and cv-qualification appropriate to its argument. The tuple is<br>
+a view of the aggregate, not a detached value. <code class="notranslate">Extend</code> uses the same representation for generated<br>
+comparison and hashing, so those operations follow field declaration order.</p>
+<p dir="auto">The decomposition machinery supports aggregates only up to its generated maximum arity. Anonymous<br>
+structs or unions are not supported as members of an extended type. Other difficult shapes can be<br>
+structurally decomposable even when automatic names are unavailable; callers should not treat<br>
+tuple support and name support as the same capability.</p>
+<h2 dir="auto" id="field-names">Field names</h2>
+<p dir="auto">Automatic names are best-effort metadata because C++23 has no standard field-name reflection:</p>
+<ul dir="auto">
+<li>GCC 14+ extracts constexpr names from field-address expressions and compiler signatures.</li>
+<li>Clang 22+ uses <code class="notranslate">__builtin_dump_struct</code>; eligible types are constexpr, with a runtime path for<br>
+additional types.</li>
+<li>unsupported compilers and unsupported field shapes retain positional traversal;</li>
+<li>explicit application names always remain available and can override compiler names.</li>
+</ul>
+<p dir="auto">The detailed matrix for unions, bit-fields, reference members, constexpr evaluation, and external<br>
+implementations lives in <a href="REFLECTION.html">REFLECTION.md</a>.</p>
+<h2 dir="auto" id="stringification">Stringification</h2>
+<p dir="auto">The <code class="notranslate">Stringify</code> constructor requires complete default options and checks them through<br>
+<code class="notranslate">MBO_CONFIG_REQUIRE</code>. Its <code class="notranslate">noexcept</code> contract follows <code class="notranslate">mbo::config::kRequireThrows</code>; incomplete<br>
+defaults throw under the enabled exception policy. The named factories validate their built-in<br>
+options at compile time and remain <code class="notranslate">noexcept</code>.</p>
+<p dir="auto"><code class="notranslate">Stringify</code> recursively handles supported aggregates, strings, characters, pointers, optionals,<br>
+variants, tuples, and containers. Ready-made modes provide default, compact or pretty C++, and<br>
+compact, line-oriented, or pretty JSON-like output:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/types/stringify.h<span class="pl-pds">"</span></span>
+
+std::string cpp = mbo::types::Stringify::AsCpp().ToString(name);
+std::string pretty = mbo::types::Stringify::AsCppPretty().ToString(name);
+std::string json = mbo::types::Stringify::AsJson().ToString(name);</pre></div>
+<p dir="auto">JSON modes need keys. They use automatic or explicit field names when available and numeric keys as<br>
+a fallback. <code class="notranslate">ToJsonString()</code> is a convenience supplied by <code class="notranslate">extender::Printable</code>.</p>
+<p dir="auto">Formatting is controlled by sparse <code class="notranslate">StringifyOptions</code>. Its groups cover syntax, field inclusion,<br>
+key selection and renaming, value escaping and replacement, container and string limits, and<br>
+special handling for string-keyed pair containers. Outer and nested values can have different<br>
+policies through <code class="notranslate">StringifyFieldOptions</code>; <code class="notranslate">StringifyRootOptions</code> independently controls the root.</p>
+<h3 dir="auto" id="custom-names-and-field-policy">Custom names and field policy</h3>
+<p dir="auto">The simplest stable schema supplies names explicitly:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">struct</span> <span class="pl-en">Credentials</span> : mbo::types::Extend&lt;Credentials&gt; {
+  std::string user;
+  std::string secret;
+
+  <span class="pl-k">friend</span> <span class="pl-k">constexpr</span> <span class="pl-k">auto</span> <span class="pl-en">MboTypesStringifyFieldNames</span>(<span class="pl-k">const</span> Credentials&amp;) {
+    <span class="pl-k">return</span> std::array&lt;std::string_view, <span class="pl-c1">2</span>&gt;{<span class="pl-s"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>secret<span class="pl-pds">"</span></span>};
+  }
+};</pre></div>
+<p dir="auto">For per-field behavior, define <code class="notranslate">MboTypesStringifyOptions</code>. It receives the object plus<br>
+<code class="notranslate">StringifyFieldInfo</code>, including the field index, discovered name, and inherited options. Policy can<br>
+therefore depend on the type, field, surrounding context, or runtime object state.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Extension point</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MboTypesStringifyConvert</code></td>
+<td>Convert a field using its owner, index, and value before rendering.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDisable</code></td>
+<td>Prevent automatic recursive rendering for a type.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyDoNotPrintFieldNames</code></td>
+<td>Suppress compiler-provided names while retaining traversal.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyFieldNames</code></td>
+<td>Supply the complete stable name sequence or replace compiler names.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyOptions</code></td>
+<td>Choose formatting and policy for each object and field.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifySupport</code></td>
+<td>Opt a non-extended aggregate into <code class="notranslate">Stringify</code> traversal.</td>
+</tr>
+<tr>
+<td><code class="notranslate">MboTypesStringifyValueAccess</code></td>
+<td>Present a wrapper as a different underlying value.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::FieldControl</code></td>
+<td>Suppress fields, null pointers, empty optionals, or disabled values.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::KeyOverrides</code></td>
+<td>Rename a field statically or through a callback.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyOptions::ValueOverrides</code></td>
+<td>Replace or redact string and non-string values.</td>
+</tr>
+<tr>
+<td><code class="notranslate">StringifyWithFieldNames</code></td>
+<td>Adapt a name sequence into field options, optionally verifying discovered names.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Automatic source identifiers are convenient diagnostics, but explicit names are preferable for a<br>
+stable external schema. Formatting JSON-like text does not make <code class="notranslate">Stringify</code> a validating serializer;<br>
+use a serialization library when schema evolution, parsing, or protocol guarantees are required.</p>
+<h3 dir="auto" id="stream-formatting">Stream formatting</h3>
+<ul dir="auto">
+<li><code class="notranslate">stringify_ostream.h</code> adds a global stream insertion operator for types satisfying<br>
+<code class="notranslate">HasMboTypesStringifySupport</code>, including aggregates declaring<br>
+<code class="notranslate">using MboTypesStringifySupport = void</code>.</li>
+<li><code class="notranslate">SetStringifyOstreamOutputMode(mode)</code> and <code class="notranslate">SetStringifyOstreamOptions(options)</code> configure the<br>
+adapter globally, across streams. Configuration access is thread-safe; another thread can change<br>
+it between a setter call and a subsequent output operation.</li>
+<li><code class="notranslate">SetStringifyOstreamOptions</code> accepts an options lvalue; its rvalue overload is deleted.</li>
+<li>The adapter is separate from <code class="notranslate">extender::Streamable</code>. For output with a particular formatting policy,<br>
+use a <code class="notranslate">Stringify</code> instance's <code class="notranslate">Stream(out, value)</code> or <code class="notranslate">ToString(value)</code> directly.<br>
+The package also provides utilities that do not depend on <code class="notranslate">Extend</code>:</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Utility</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">StringOrView</code></td>
+<td>Read-only text that either owns a string or borrows a string view.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OptionalRef</code></td>
+<td>Optional non-owning reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OptionalDataOrRef</code></td>
+<td>Optional value that can own data or borrow a reference.</td>
+</tr>
+<tr>
+<td><code class="notranslate">Required</code></td>
+<td>Always-engaged value wrapper with configurable requirement failure behavior.</td>
+</tr>
+<tr>
+<td><code class="notranslate">NoDestruct</code></td>
+<td>Static-lifetime storage that deliberately does not invoke the contained destructor.</td>
+</tr>
+<tr>
+<td><code class="notranslate">OpaquePtr</code> / <code class="notranslate">OpaqueValue</code></td>
+<td>Ownership wrappers suitable for forward-declared implementation types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ContainerProxy</code></td>
+<td>Container access forwarding, including supported value-returning endpoint pops.</td>
+</tr>
+<tr>
+<td><code class="notranslate">RefWrap</code></td>
+<td>Reference wrapper with <code class="notranslate">*</code> and <code class="notranslate">-&gt;</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">TypedView</code></td>
+<td>View wrapper that supplies container-style type aliases.</td>
+</tr>
+<tr>
+<td><code class="notranslate">CompareArithmetic</code> and family</td>
+<td>Strong/weak comparison helpers for mixed arithmetic and scalar types.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConstStrongOrdinal</code> / <code class="notranslate">StrongOrdinal</code></td>
+<td>Zero-defaulted nominal integral ordinals with checked representation-bound arithmetic.</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConstStrongId</code></td>
+<td>Invalid-defaulted integral strong ID with no arithmetic API.</td>
+</tr>
+<tr>
+<td><code class="notranslate">tstring</code></td>
+<td>Compile-time string-literal type used by the extender machinery and other templates.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The repository's root <a href="../../index.html">README</a> lists the complete header and Bazel target inventory.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

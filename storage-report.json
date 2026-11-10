@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "total_bytes": 75647099,
+  "total_bytes": 84530985,
   "sections": {
     "root": {
       "files": 30,
@@ -8,7 +8,7 @@
     },
     "mbo": {
       "files": 388,
-      "bytes": 2376736
+      "bytes": 7756014
     },
     ".bcr": {
       "files": 4,
@@ -43,8 +43,8 @@
       "bytes": 93700
     },
     "site": {
-      "files": 39,
-      "bytes": 1104307
+      "files": 134,
+      "bytes": 4608915
     }
   },
   "coverage_detail_days": 7,

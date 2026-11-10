@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_COLLISIONS.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="hamt-collision-storage">HAMT collision storage</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<p dir="auto">These internal helpers handle terminal collision buckets for the general HAMT map/set family.<br>
+They are not specialized to strings. A bucket compares the stored full hash before applying key<br>
+equality; a hash-path fragment alone is not sufficient to establish equality. Equal keys must<br>
+produce equal full hashes.</p>
+<h2 dir="auto" id="flat-collision-buckets">Flat collision buckets</h2>
+<p dir="auto"><code class="notranslate">container_internal::HamtFlatCollisionBucket</code> accepts value, key-extractor, equality, options,<br>
+full-hash, entry, and storage types. Its default storage is <code class="notranslate">SegmentedVector</code>.</p>
+<ul dir="auto">
+<li><code class="notranslate">find(hash, key)</code> supports heterogeneous keys and returns an iterator or <code class="notranslate">end()</code>.</li>
+<li><code class="notranslate">try_insert(hash, value)</code> returns an entry pointer, an inserted flag, and an optional <code class="notranslate">HamtError</code>.<br>
+Duplicates succeed without insertion, including when the bucket is full.</li>
+<li>Exceeding <code class="notranslate">HamtOptions::maximum_size</code> reports <code class="notranslate">kMaxSizeExceeded</code>; exhausted storage reports<br>
+<code class="notranslate">kAllocationExhausted</code>. Neither failure adds an entry.</li>
+<li><code class="notranslate">erase(hash, key)</code> replaces the erased slot with the final entry and pops that final entry.<br>
+References to the erased entry and the former final entry are invalidated. Other entries are<br>
+untouched; iteration order is not insertion order after erasure.</li>
+<li>Default segmented storage preserves existing entry addresses during append. Custom storage<br>
+determines its own append stability and must support the operations used by the helper.</li>
+</ul>
+<p dir="auto">Key extraction and equality are invoked through const references, without copying callable state.<br>
+Their invoked operations must be non-throwing. This is a compile-time contract, not an exception<br>
+recovery mechanism: do not label a callable <code class="notranslate">noexcept</code> unless it really cannot throw. Moving a<br>
+stored value during insertion, and moving an entry during erasure, must also be non-throwing.<br>
+Allocation exhaustion is a separate recoverable outcome, not a thrown exception.</p>
+<p dir="auto">Buckets require external synchronization. The helper performs no atomic publication or reclamation.</p>
+<h2 dir="auto" id="validation">Validation</h2>
+<p dir="auto">Run <code class="notranslate">bazel test //...</code> for the normal suite. On macOS, run the hermetic Clang sanitizer suite with<br>
+<code class="notranslate">bazel test --config=clang --config=asan --config=asan-macos //...</code>.<br>
+The additional macOS config selects Apple's linker and archive-based linkage: LLVM 22's Darwin<br>
+lld aborts a minimal <code class="notranslate">std::bad_alloc</code> throw/catch program when ASan and UBSan are combined.<br>
+Both sanitizers and the exception-enabled allocator/PMR tests remain enabled. CI selects this<br>
+config for macOS Clang sanitizer jobs; Linux retains lld.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

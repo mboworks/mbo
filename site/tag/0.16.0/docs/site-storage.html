@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>docs/site-storage.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="published-site-storage">Published site storage</h1>
+<p dir="auto">Coverage, release documentation, and shared assets use one complete-site storage budget.<br>
+<code class="notranslate">storage-report.json</code> records byte totals and file counts by top-level directory. Publication warns<br>
+at <strong>200 MB</strong> so growth can be reviewed early. The final payload guard is <strong>9 GB</strong>, allowing some TAR<br>
+packaging headroom below the uploader's absolute limit. GitHub's documented supported published-site<br>
+limit remains <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits">1 GB</a>;<br>
+the emergency guard is not a supported operating budget.</p>
+<p dir="auto">This adopts the coverage storage design from<br>
+<a href="https://github.com/mboworks/xff/pull/955" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/xff/pull/955/hovercard">xff PR #955</a>, merged as<br>
+<code class="notranslate">91064c283fa90445db48ec598e4e052fb9d37261</code>.</p>
+<h2 dir="auto" id="retention-and-representation">Retention and representation</h2>
+<ul dir="auto">
+<li>Coverage summaries, category totals, patch results, policy thresholds, original run metadata,<br>
+and pre/post-merge attribution are retained indefinitely. No report-count limit evicts history.</li>
+<li>Detailed source, function, and branch pages expire <strong>seven days</strong> after the report's original<br>
+completion timestamp. Replays do not renew that timestamp. Undated legacy reports have no<br>
+recent-detail window. Their summaries and metadata remain available.</li>
+<li>Older LCOV-only directories without structured summaries or metadata are preserved intact.<br>
+They cannot enter the retention scheme until their aggregate data and identity can be recovered;<br>
+the migration does not invent either or discard the only historical report. Their bytes still<br>
+count toward the site budget.</li>
+<li>Recent details use compressed manifests and shared source-page bases. Changed pages store edits<br>
+against one base; there are no dependency chains through earlier reports. The viewer generates<br>
+source line numbers from the ordered lines so inserting a line does not duplicate subsequent<br>
+numbered markup. Collection removes only detail archives and bases without a retained reference.</li>
+<li>Summary JSON is gzip-compressed without changing its original bytes. Report landing pages keep<br>
+their URLs and load compressed HTML through a shared loader. Old LCOV source URLs route through<br>
+the site's 404 document to the viewer, preserving report identity and line anchors. Expired<br>
+details explain the policy and link their aggregate report.</li>
+<li>The browser uses built-in <code class="notranslate">DecompressionStream</code>; packed views require JavaScript. Raw<br>
+<code class="notranslate">coverage-summary.json.gz</code> and uncompressed <code class="notranslate">coverage-meta.json</code> remain downloadable without it.</li>
+<li>Release documentation, benchmark data, coverage thresholds, and measurement identities are not<br>
+changed by compaction.</li>
+</ul>
+<h2 dir="auto" id="publication">Publication</h2>
+<p dir="auto">Both coverage and release-site publishers compact the retained <code class="notranslate">coverage-pages</code> tree <strong>before<br>
+committing</strong>. Each then stages the complete site, installs deployment-only artwork, compacts again,<br>
+and measures the final payload before upload. Every publisher uses the existing serialized queue.<br>
+Successful coverage jobs are recognized under both the direct <code class="notranslate">coverage</code> and reusable<br>
+<code class="notranslate">coverage / test</code> job names; unrelated successful jobs cannot authorize coverage ingestion.</p>
+<p dir="auto">Publication checkouts fetch only the current retained snapshot. The coverage source checkout keeps<br>
+commit ancestry with <code class="notranslate">blob:none</code> filtering, and release restoration explicitly fetches only the<br>
+shallow publication branch. Compaction does not rewrite Git history: earlier committed source<br>
+details remain in old commits. Deployed bytes, Git object storage, Actions artifacts, and build<br>
+caches are separate budgets.</p>
+<h2 dir="auto" id="validation-and-future-growth">Validation and future growth</h2>
+<p dir="auto">Python tests cover summary bytes, metadata, expiry boundaries, shared-base collection, missing<br>
+bases, replay behavior, repeated compaction, complete-site size accounting, and both publishers.<br>
+Chromium tests exercise packed summary tables, compressed JSON, source navigation, CSS, line<br>
+anchors, old deep links, expired reports, and the download fallback without JavaScript:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">python3 -m unittest discover -s tools -p <span class="pl-s"><span class="pl-pds">'</span>*_test.py<span class="pl-pds">'</span></span>
+<span class="pl-c1">cd</span> tools/coverage_web
+npm ci
+npx playwright install chromium
+npm <span class="pl-c1">test</span></pre></div>
+<p dir="auto">The same browser suite runs in the required release-site CI job. To use an installed Chromium<br>
+browser locally, set <code class="notranslate">CHROME_PATH</code> to its executable when running <code class="notranslate">npm test</code>.</p>
+<p dir="auto">At 200 MB, inspect the section totals and consider shared data-driven summary tables and a more<br>
+compact source representation. Preserve aggregate measurements and provenance. Moving historical<br>
+data to other storage or rewriting publication Git history requires a separate decision.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

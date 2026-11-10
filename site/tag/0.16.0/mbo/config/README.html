@@ -1,0 +1,167 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/config/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mboconfig"><code class="notranslate">mbo/config</code></h1>
+<p dir="auto"><code class="notranslate">mbo::config</code> provides C++ feature checks, generated build settings, and requirement macros shared<br>
+by MBO libraries. It connects Bazel configuration to C++ constants and controls failure behavior<br>
+for requirement checks.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::config</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>Visibility</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/config.h">config.h</a></td>
+<td><code class="notranslate">//mbo/config:config_cc</code></td>
+<td><code class="notranslate">//mbo</code> subpackages</td>
+<td>Feature checks, generated constants, <code class="notranslate">MBO_CONFIG_TRIVIAL_ABI</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/require.h">require.h</a></td>
+<td><code class="notranslate">//mbo/config:require_cc</code></td>
+<td>Repository subpackages</td>
+<td><code class="notranslate">MBO_CONFIG_REQUIRE</code>, <code class="notranslate">MBO_CONFIG_REQUIRE_DEBUG</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="build-settings">Build settings</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Bazel flag</th>
+<th>Default</th>
+<th>C++ constant</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">--//mbo/config:limited_ordered_max_unroll_capacity=N</code></td>
+<td><code class="notranslate">16</code></td>
+<td><code class="notranslate">kUnrollMaxCapacityDefault</code></td>
+<td>Default maximum unrolled capacity for <code class="notranslate">LimitedOrdered</code>, <code class="notranslate">LimitedMap</code>, and <code class="notranslate">LimitedSet</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">--//mbo/config:require_throws=true</code></td>
+<td><code class="notranslate">false</code></td>
+<td><code class="notranslate">kRequireThrows</code></td>
+<td>Selects throwing requirement failures when C++ exceptions are enabled</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Dependency-qualified flags: <code class="notranslate">--@mboworks_mbo//mbo/config:require_throws=true</code> and<br>
+<code class="notranslate">--@mboworks_mbo//mbo/config:limited_ordered_max_unroll_capacity=N</code>.</li>
+<li><code class="notranslate">config_gen.h</code>: generated from <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/internal/config.h.in">internal/config.h.in</a> by<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/internal/config.bzl">internal/config.bzl</a>; included through <code class="notranslate">config.h</code>.</li>
+<li>Missing generated header: template defaults, with a compiler warning unless <code class="notranslate">IS_CLANGD</code> is defined.</li>
+<li><code class="notranslate">kExceptionsEnabled</code> reflects whether the current translation unit was compiled with C++ exception support.</li>
+<li>Exceptions disabled: <code class="notranslate">kRequireThrows == false</code>, regardless of the Bazel flag.</li>
+<li>Repository compilation default: <code class="notranslate">-fno-exceptions</code>.</li>
+<li>Related container options: <a href="../container/README.html">container guide</a>.</li>
+</ul>
+<h2 dir="auto" id="requirement-failures">Requirement failures</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Macro</th>
+<th>Condition true</th>
+<th>Condition false</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MBO_CONFIG_REQUIRE(condition, message)</code></td>
+<td>Continue</td>
+<td><code class="notranslate">std::runtime_error</code> when <code class="notranslate">kRequireThrows</code> is true; otherwise Abseil fatal logging</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_CONFIG_REQUIRE_DEBUG(condition, message)</code></td>
+<td>Continue</td>
+<td>Same requirement check without <code class="notranslate">NDEBUG</code>; disabled with <code class="notranslate">NDEBUG</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">message</code>: string literal compatible with the throwing macro expansion.</li>
+<li>Exception message: source file, line, condition text, and supplied message.</li>
+<li>Fatal-logging form: supports additional <code class="notranslate">&lt;&lt;</code> output.</li>
+<li>Exception configuration: requires both compiler exception support and <code class="notranslate">require_throws=true</code>.</li>
+<li>A requirement failure inside a <code class="notranslate">noexcept</code> function still terminates if it throws.</li>
+<li>Call-site form: standalone statement inside braces; the macros contain conditional statements.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/config/require.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">int</span> <span class="pl-en">Divide</span>(<span class="pl-k">int</span> numerator, <span class="pl-k">int</span> denominator) {
+  <span class="pl-c1">MBO_CONFIG_REQUIRE</span>(denominator != <span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">"</span>Denominator must be nonzero<span class="pl-pds">"</span></span>);
+  <span class="pl-k">return</span> numerator / denominator;
+}</pre></div>
+<h2 dir="auto" id="required-language-and-library-features">Required language and library features</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Feature-test macro</th>
+<th>Minimum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">__cplusplus</code></td>
+<td><code class="notranslate">202302L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_constexpr</code></td>
+<td><code class="notranslate">202211L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_if_consteval</code></td>
+<td><code class="notranslate">202106L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_lib_expected</code></td>
+<td><code class="notranslate">202211L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_lib_containers_ranges</code></td>
+<td><code class="notranslate">202202L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_lib_string_contains</code></td>
+<td><code class="notranslate">202011L</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">__cpp_lib_byteswap</code></td>
+<td><code class="notranslate">202110L</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Unsupported feature level: compilation error from <code class="notranslate">config.h</code>.</li>
+<li><code class="notranslate">MBO_CONFIG_TRIVIAL_ABI</code>: <code class="notranslate">[[clang::trivial_abi]]</code> when supported by Clang; empty otherwise.</li>
+</ul>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/config:all
+bazel <span class="pl-c1">test</span> --config=clang --//mbo/config:require_throws=true \
+  //mbo/json:json_require_exceptions_test</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/config_test.cc">config_test.cc</a>: configuration constants.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/config/require_test.cc">require_test.cc</a>: requirement macros.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/json/json_require_exceptions_test.cc">JSON exception tests</a>: exception-enabled consumer target.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

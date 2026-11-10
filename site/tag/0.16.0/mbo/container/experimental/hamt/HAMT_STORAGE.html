@@ -1,0 +1,339 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_STORAGE.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="packed-hamt-storage">Packed HAMT storage</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<p dir="auto">The public Bazel set targets are <code class="notranslate">//mbo/container/experimental/hamt:hamt_flat_set_cc</code> and<br>
+<code class="notranslate">//mbo/container/experimental/hamt:hamt_node_set_cc</code>, matching the public map targets. A separate-package integration<br>
+test verifies these exports and exercises persistent/transient membership and diagnostics.</p>
+<p dir="auto">Internal trees offer on-demand <code class="notranslate">structural_diagnostics()</code>: reachable node and entry counts,<br>
+terminal collision counts and largest bucket, maximum depth (root depth zero), and node block<br>
+bytes reported by the creating source. Traversal allocates nothing and adds no mutation or lookup<br>
+counters. Shared nodes count toward each inspected snapshot, not exclusive ownership. Node payload<br>
+allocations, control blocks, and retained free storage are not included in node block bytes.<br>
+As with other tree access, callers must externally synchronize inspection with mutation.</p>
+<p dir="auto"><code class="notranslate">visit_node_diagnostics(visitor)</code> emits value records in root-first depth-first order containing<br>
+depth, entry and child occupancy, collision status, and source-reported block bytes. This permits<br>
+caller-owned depth, occupancy and collision-size histograms without storing counters in the tree.<br>
+The callback must be non-throwing and must not mutate the inspected tree. No node handles escape<br>
+through these records. Empty trees emit no records; traversal itself allocates nothing.</p>
+<p dir="auto"><code class="notranslate">entry_allocation_bytes</code> additionally counts separately allocated node-value payload blocks,<br>
+including their ownership headers and source-reported spare capacity. Flat inline entries have<br>
+zero separate payload-block bytes. Like node blocks, shared payload blocks are reported for each<br>
+snapshot that reaches them; these figures are not exclusive memory ownership. Arbitrary dynamic<br>
+memory owned internally by user keys or mapped values is not introspected.</p>
+<p dir="auto">Erasing one of two leaf entries now propagates the remaining entry directly through single-child<br>
+ancestors. Singleton compaction therefore needs only the final root allocation, instead of<br>
+allocating and immediately destroying temporary singleton nodes at each level. Exhaustion of that<br>
+final allocation leaves the original tree and all snapshots unchanged.</p>
+<p dir="auto">Owned-tree erasure also reuses unique parent child-link slots after constructing a replacement<br>
+child. Descendant mutation is disabled where singleton propagation could require a subsequent<br>
+allocation, preserving rollback if compaction fails. Resized leaves and bitmap layout changes<br>
+still require allocation; standalone immutable erasure keeps its non-mutating default.</p>
+<p dir="auto">Owned-tree insertion can replace child links in unique ancestors after the new child has been<br>
+successfully constructed. It still allocates resized entry blocks, but avoids copying unchanged<br>
+unique ancestors. Mutation permission is propagated only through a wholly unique prefix; a shared<br>
+ancestor disables mutation below it, preserving snapshots even if a later allocation fails. The<br>
+standalone immutable insertion primitive retains its original non-mutating default.</p>
+<p dir="auto">Entry replacement on a wholly unique root-to-entry path now updates the existing entry slot<br>
+without node allocation, including terminal collision nodes. Shared paths still detach before<br>
+replacement so snapshots retain their values. The replacement is copied before destroying the old<br>
+entry, and exact self-replacement is a no-op with successful replacement semantics. This does not<br>
+yet make structural insertion or erasure allocation-free.</p>
+<p dir="auto"><code class="notranslate">HamtSourceDomain::TryCreateIn(control_source, node_source_args...)</code> can place the shared control<br>
+block and its stable node-source object in caller-supplied block storage. Control exhaustion returns<br>
+<code class="notranslate">std::nullopt</code> before constructing the node source. Copies retain the same block, and the last handle<br>
+destroys the node source before releasing the control block through its original allocator. The<br>
+control source is borrowed and must outlive all snapshots. The ordinary factory continues to use<br>
+the global heap. All four public map/set storage variants expose <code class="notranslate">try_create_in(control_source, hash, equal, node_source_args...)</code>, keeping control and node allocation budgets separately<br>
+configurable without multiplying container implementations.</p>
+<p dir="auto">Node-map mutable payload access, updates, and independent cloning require nothrow-copyable<br>
+entries: detaching shared payloads must preserve the original snapshot. Public constraints expose<br>
+this requirement to generic capability checks. Move-only payloads still support persistent rvalue<br>
+insertion, shared snapshots, lookup, and structural erasure. Snapshot copying shares ownership<br>
+handles; it does not copy payloads. Use const transient access for read-only move-only payloads.</p>
+<p dir="auto">These internal building blocks support general HAMT containers; they are not public map/set APIs.</p>
+<p dir="auto"><code class="notranslate">HamtPackedNodeLayout&lt;Header, Entry, Child&gt;::TryMake</code> computes aligned offsets and allocation<br>
+requirements, rejecting invalid counts and arithmetic overflow before allocation.</p>
+<p dir="auto"><code class="notranslate">HamtPackedNodeBlock&lt;Header, Entry, Child, Source&gt;</code> borrows a <code class="notranslate">BlockSource</code> that must outlive it.<br>
+It owns one block containing a header and dense entry/child arrays. Copy and move are disabled.<br>
+<code class="notranslate">TryInitialize</code> returns false for an already initialized block, an invalid layout, exhaustion,<br>
+or unusable source storage. Rejected allocations are returned to the source unchanged.<br>
+<code class="notranslate">clear()</code> destroys child objects, entries, and the header, then returns the original allocation<br>
+metadata to the source. It is idempotent and also runs during destruction.</p>
+<p dir="auto">Header access requires initialization. Empty blocks expose empty spans; initialized spans and<br>
+header references remain valid until <code class="notranslate">clear()</code> or destruction. Stored child pointers do not<br>
+implicitly acquire ownership of pointed-to nodes.</p>
+<p dir="auto">Copies used during initialization and all stored-object destructors must be non-throwing.<br>
+Initialization is <code class="notranslate">noexcept</code>: a source must report recoverable exhaustion through its result;<br>
+an unexpected exception escaping the source terminates rather than providing rollback.<br>
+Declaring an operation <code class="notranslate">noexcept</code> does not make a throwing implementation recoverable.<br>
+The source and block require external synchronization.</p>
+<h2 dir="auto" id="shared-nodes">Shared nodes</h2>
+<p dir="auto"><code class="notranslate">HamtSharedNode&lt;FragmentBits, Entry&gt;::TryCreate</code> creates a packed node with one owned reference.<br>
+Entry and child counts must match the bitmap index; occupied child slots require non-null nodes.<br>
+Each child acquires an additional reference only after allocation succeeds. Failure returns<br>
+<code class="notranslate">std::nullopt</code>, without consuming borrowed inputs or changing child reference counts.</p>
+<p dir="auto"><code class="notranslate">Retain</code> acquires one additional reference; every owned reference must be balanced by one<br>
+<code class="notranslate">Release</code>. Null retain/release operations are harmless. The final release destroys entries and<br>
+releases each owned child reference recursively, returning the original allocation metadata.<br>
+The source must outlive every node and must be the same source used for the node and descendants.<br>
+Nodes must be created through <code class="notranslate">TryCreate</code>, not as standalone stack objects.</p>
+<p dir="auto">Entry copies and destruction must be non-throwing. Unexpected source exceptions terminate under<br>
+the allocation method's <code class="notranslate">noexcept</code> contract. Atomic reference counting protects reference updates,<br>
+not mutation of entries, topology, publication, or source access. Callers must already hold a live<br>
+reference before retaining; using a released node or releasing an unowned reference is invalid.<br>
+The reference count is 32-bit. Retaining at its maximum terminates without wrapping<br>
+the count; this is a fatal ownership-capacity violation, not recoverable allocation<br>
+failure. The checked increment also rejects zero rather than resurrecting ownership.<br>
+That check does not make retaining a freed node valid: the caller must already hold<br>
+a live reference, and accessing freed reference-count storage is undefined behavior.<br>
+Higher-level persistent operations retain immutable nodes; direct mutable spans are internal<br>
+construction machinery and must not modify nodes shared by snapshots.</p>
+<h2 dir="auto" id="hash-paths">Hash paths</h2>
+<p dir="auto"><code class="notranslate">HamtHashPath&lt;Hash, FragmentBits&gt;</code> consumes an unsigned hash from its least-significant fragment<br>
+upward. Fragment widths 4–7 are supported for later benchmark comparison, not a performance<br>
+recommendation. A final partial fragment has zero bits beyond the hash width. <code class="notranslate">Fragment(level)</code><br>
+requires <code class="notranslate">level &lt; kLevels</code>.</p>
+<p dir="auto"><code class="notranslate">FindHamtMergePath</code> identifies a shared suffix of path levels and the first divergent fragments,<br>
+or reports a full-hash collision. <code class="notranslate">common_levels</code> counts levels from the supplied <code class="notranslate">start_level</code>,<br>
+not from the root. The caller must have established equal fragments before <code class="notranslate">start_level</code>, and<br>
+<code class="notranslate">start_level &lt;= kLevels</code>; an exhausted path is valid. Both helpers are constexpr and allocate<br>
+no storage. Full-hash collisions still require key equality; shared fragments never establish<br>
+key equality by themselves.</p>
+<h2 dir="auto" id="full-hash-collision-nodes">Full-hash collision nodes</h2>
+<p dir="auto"><code class="notranslate">HamtSharedNode::TryCreateCollision</code> creates a non-empty dense entry array with no indexed<br>
+children. Collision entry counts are independent of the bitmap slot count. The caller must<br>
+establish that every entry has the same complete hash; this storage layer neither extracts<br>
+hashes nor deduplicates keys. The collision flag distinguishes this representation even for<br>
+a singleton bucket. Ordinary nodes still require matching bitmap counts and non-null children.</p>
+<p dir="auto">Normal and collision construction share allocation validation, object construction, and exact<br>
+source-metadata reclamation. Empty collision input, invalid layout, exhaustion, or unusable<br>
+source storage returns <code class="notranslate">std::nullopt</code>. Owned references and lifetime rules are unchanged.</p>
+<h2 dir="auto" id="borrowed-lookup">Borrowed lookup</h2>
+<p dir="auto"><code class="notranslate">FindHamtEntry</code> follows one bitmap hash path, scanning only terminal full-hash collision buckets.<br>
+It returns a borrowed <code class="notranslate">const Entry*</code>, or null for an empty tree or absent key. Complete hashes<br>
+are compared before key extraction/equality. Hash extraction, key extraction, and equality<br>
+use const callable references without copying state; their invoked operations must be non-throwing.<br>
+Heterogeneous keys are accepted when the equality callable supports the corresponding types.<br>
+The tree must remain valid and alive throughout lookup and subsequent use of the returned pointer.<br>
+Lookup acquires no ownership and performs no allocation or synchronization.</p>
+<h2 dir="auto" id="persistent-entry-insertion">Persistent entry insertion</h2>
+<p dir="auto"><code class="notranslate">HamtSharedNode::TryInsertEntry</code> copies a normal node while inserting one dense entry and<br>
+retaining its existing children. The caller supplies the new bitmap and insertion rank, preserving<br>
+all old slots and adding exactly one data slot. This primitive does not perform key deduplication<br>
+or hash routing. Collision nodes use separate operations.</p>
+<p dir="auto">The entry argument may reference an original entry: the old node stays untouched, and a successful<br>
+result owns an independent packed entry array with one node reference. Invalid counts/rank or<br>
+allocation failure returns <code class="notranslate">std::nullopt</code>, preserving the original and its child reference counts.<br>
+The caller must balance the returned reference and keep borrowed inputs alive through the call.<br>
+Non-throwing copies/destruction are required; no exception rollback mechanism is introduced.</p>
+<h2 dir="auto" id="persistent-child-insertion">Persistent child insertion</h2>
+<p dir="auto"><code class="notranslate">TryInsertChild</code> copies a normal node, preserving its entries and adding one child at the<br>
+supplied dense rank. The caller preserves all old slots and adds exactly one node slot in the<br>
+result bitmap. The child must be non-null and alive throughout the call; it may already be<br>
+referenced by the original. Successful construction retains every resulting child reference.</p>
+<p dir="auto">Invalid counts/rank, a null child, or allocation failure returns <code class="notranslate">std::nullopt</code> without changing<br>
+the original or retaining the proposed child. The result owns one node reference. Releasing<br>
+the original cannot invalidate children retained by the result; the source must outlive both.</p>
+<h2 dir="auto" id="persistent-child-replacement">Persistent child replacement</h2>
+<p dir="auto"><code class="notranslate">TryReplaceChild</code> copies a normal node while replacing one dense child position. Its bitmap<br>
+and entries remain unchanged. The replacement must be non-null and alive throughout the call;<br>
+replacing a child with itself is valid. The result retains all of its children, including the<br>
+replacement, and owns one node reference. The original remains untouched.</p>
+<p dir="auto">A collision node, invalid position, null replacement, or allocation failure returns<br>
+<code class="notranslate">std::nullopt</code> without changing child reference counts. Releasing the old node does not<br>
+invalidate the replacement snapshot. Non-throwing entry copies and destruction remain required.</p>
+<h2 dir="auto" id="persistent-entry-and-child-erasure">Persistent entry and child erasure</h2>
+<p dir="auto"><code class="notranslate">TryEraseEntry</code> and <code class="notranslate">TryEraseChild</code> copy a normal node, omitting the entry or child at the<br>
+supplied dense position. The caller supplies the resulting bitmap, preserving all other slots<br>
+and removing exactly the selected data or node slot. These storage primitives validate payload<br>
+counts and positions; they do not validate the caller's hash routing or normalize the full tree.<br>
+Collision nodes require separate mutation operations.</p>
+<p dir="auto">Entry erasure retains every original child in the new node. Child erasure retains only the<br>
+remaining children; the removed child remains owned by the original node. Neither operation<br>
+changes the original entries, topology, or reference counts on failure. Success returns one<br>
+owned reference, including when removal produces an empty normal node.</p>
+<p dir="auto">Collision input, an empty relevant payload, inconsistent counts, an invalid position, or<br>
+allocation failure returns <code class="notranslate">std::nullopt</code>. Inputs remain borrowed throughout the operation.<br>
+The source must outlive all resulting nodes; entry copies and destruction must be non-throwing.<br>
+These primitives do not mutate existing snapshots and require external synchronization under<br>
+the shared-node contract above.</p>
+<h2 dir="auto" id="persistent-collision-mutation">Persistent collision mutation</h2>
+<p dir="auto"><code class="notranslate">TryInsertCollisionEntry</code> copies a collision node while inserting an entry at a dense position<br>
+in <code class="notranslate">[0, size]</code>. The caller establishes that its complete hash matches the bucket and its key<br>
+is absent. The entry may alias an original entry; copying does not modify the original node.</p>
+<p dir="auto"><code class="notranslate">TryEraseCollisionEntry</code> copies a collision bucket while removing one dense position. A two-entry<br>
+bucket may become a singleton collision node. Removing the final entry is a tree-level operation:<br>
+this primitive rejects it instead of allocating an empty collision bucket.</p>
+<p dir="auto">Both methods return one owned reference on success. Normal-node input, an invalid position,<br>
+singleton erasure, or allocation failure returns <code class="notranslate">std::nullopt</code>. Original contents and ownership<br>
+remain unchanged. Collision operations reuse the normal-node entry-copy helpers and preserve<br>
+the same non-throwing copy, source lifetime, and external synchronization requirements.</p>
+<h2 dir="auto" id="persistent-entry-replacement">Persistent entry replacement</h2>
+<p dir="auto"><code class="notranslate">TryReplaceEntry</code> copies a normal or collision node while replacing one dense entry. The<br>
+caller must preserve the entry's routing hash and container key uniqueness: this primitive<br>
+does not reindex a changed key. Map operations normally use it to replace the mapped value<br>
+while keeping the key unchanged.</p>
+<p dir="auto">Successful replacement preserves the bitmap, collision representation, and child topology,<br>
+retains the resulting children, and returns one owned node reference. Replacement input may<br>
+alias an original entry. Releasing the original does not invalidate the replacement snapshot.<br>
+An invalid position or allocation failure returns <code class="notranslate">std::nullopt</code> without changing the original<br>
+or child references. Non-throwing entry copying and the shared-node lifetime contract apply.</p>
+<h2 dir="auto" id="branch-construction">Branch construction</h2>
+<p dir="auto"><code class="notranslate">TryBuildHamtBranch</code> joins two entries beneath a supplied hash-path level. The caller establishes<br>
+equal preceding fragments and distinct keys; full-hash equality alone does not establish key<br>
+equality. Different hashes produce a dense two-entry divergence node ordered by fragment, with<br>
+one parent node for every common level. Equal complete hashes produce a terminal collision node.</p>
+<p dir="auto">The starting level may equal the exhausted path boundary only for equal complete hashes. An<br>
+invalid level or allocation failure returns <code class="notranslate">std::nullopt</code>. Partial branches are released before<br>
+failure returns, so every successful temporary allocation is reclaimed. Success returns one<br>
+owned node reference. Entries are borrowed and copied without throwing; the source must outlive<br>
+the returned branch and satisfy the shared-node ownership contract.</p>
+<h2 dir="auto" id="persistent-tree-insertion">Persistent tree insertion</h2>
+<p dir="auto"><code class="notranslate">TryInsertHamtEntry</code> inserts into a borrowed root and returns an owned root plus an <code class="notranslate">inserted</code><br>
+flag. A null input root is an empty tree. A duplicate key returns a retained reference to the<br>
+unchanged root with <code class="notranslate">inserted == false</code>; callers must release that reference too.</p>
+<p dir="auto">New keys copy only the affected path, promote occupied data slots into branches when needed,<br>
+and extend equal-full-hash collision buckets. A different hash splits a collision bucket<br>
+into a branch rather than mixing hashes inside the bucket. Unaffected descendants are shared.<br>
+Allocation failure returns <code class="notranslate">std::nullopt</code>, reclaiming temporary nodes without changing the<br>
+original snapshots. The supplied hash and key must describe the supplied entry, and equivalent<br>
+keys must have equal hashes. Hash/key extraction, equality, and entry copies must be non-throwing.<br>
+These are internal primitives; public map/set variants establish the container-level contracts.</p>
+<h2 dir="auto" id="persistent-tree-erasure">Persistent tree erasure</h2>
+<p dir="auto"><code class="notranslate">TryEraseHamtEntry</code> removes a key from a borrowed root and returns an owned root plus an <code class="notranslate">erased</code><br>
+flag. A successful removal of the final entry returns a null root with <code class="notranslate">erased == true</code>, not<br>
+an allocation failure. Missing keys return a retained reference to the unchanged root with<br>
+<code class="notranslate">erased == false</code>; null input is already empty.</p>
+<p dir="auto">Erasure copies the affected path, removes empty children, and propagates singleton entries<br>
+back into data slots. Two-entry collision buckets become ordinary singleton entries; larger<br>
+buckets remain collision nodes. Existing snapshots remain unchanged. <code class="notranslate">std::nullopt</code> reports<br>
+allocation failure, with temporary nodes reclaimed and original ownership preserved.</p>
+<p dir="auto">Singleton propagation requires both non-throwing entry copying and moving. Hash/key extraction<br>
+and equality must also be non-throwing. Equivalent keys require equal hashes. The source and<br>
+all borrowed inputs follow the shared-node lifetime and external synchronization contracts.</p>
+<h2 dir="auto" id="borrowed-forward-iteration">Borrowed forward iteration</h2>
+<p dir="auto"><code class="notranslate">HamtIterator</code> is a multipass forward iterator exposing only <code class="notranslate">const Entry&amp;</code> and <code class="notranslate">const Entry*</code>.<br>
+It visits dense entries before descendants, including every entry in collision buckets. This<br>
+is structural traversal order, not insertion order or key order. Its fixed frame stack covers<br>
+the complete hash width for fragment sizes 4 through 7 without traversal allocations.</p>
+<p dir="auto">Iterators borrow the entire snapshot: keep its root and block source alive throughout iteration.<br>
+Copying an iterator does not retain its root. Changing another snapshot does not change the<br>
+borrowed tree, but releasing the last owner invalidates its iterators and entry references.<br>
+Synchronization remains external.</p>
+<p dir="auto">Active iterator equality includes root identity, so two snapshots sharing an entry do not<br>
+accidentally compare equal. Exhausted, null-root, empty-root, and default-constructed iterators<br>
+all represent the common end value. Dereference and increment require a non-end iterator.</p>
+<p dir="auto"><code class="notranslate">HamtIterator::At(root, hash, target)</code> positions an iterator at the exact borrowed entry address<br>
+using the hash path, rather than scanning the complete range. Only a terminal collision bucket<br>
+requires a linear scan. Advancing this iterator visits precisely the same suffix as ordinary<br>
+iteration from that entry. A missing route, null input, or address mismatch returns end.<br>
+The caller supplies the target's correct hash; <code class="notranslate">At</code> performs neither key lookup nor ownership<br>
+acquisition. It has the same snapshot lifetime and external synchronization requirements.</p>
+<h2 dir="auto" id="explicit-allocation-domain-cloning">Explicit allocation-domain cloning</h2>
+<p dir="auto"><code class="notranslate">TryCloneHamtTree(destination, original)</code> copies entries, collision buckets, routing bitmaps,<br>
+and descendants into the destination block source. No original node is retained. The returned<br>
+root owns one reference and must be released exclusively through the destination source, which<br>
+must outlive it. The original tree may be released independently after cloning succeeds.</p>
+<p dir="auto">Null input returns an engaged optional containing a null root without allocating. Exhaustion<br>
+returns <code class="notranslate">std::nullopt</code> after releasing every partial destination copy; original ownership remains<br>
+unchanged. Entry copies and destruction must be non-throwing, and synchronization is external.<br>
+Child staging uses bounded stack storage rather than another allocator. Repeated source child<br>
+references are copied independently; this primitive does not preserve graph aliasing or perform<br>
+cross-domain structural sharing. Public <code class="notranslate">clone_to(source)</code> wrappers also preserve hash/equality<br>
+state and container-level metadata; those responsibilities are not handled by this node primitive.</p>
+<h2 dir="auto" id="persistent-value-replacement">Persistent value replacement</h2>
+<p dir="auto"><code class="notranslate">TryReplaceHamtEntry</code> finds an existing key and copies only its affected path, replacing the<br>
+stored entry without changing the original snapshot. The replacement must preserve the key<br>
+and full hash; public map wrappers enforce immutable keys while replacing mapped values.<br>
+Collision siblings and unaffected branches remain unchanged.</p>
+<p dir="auto">Success returns an owned root and <code class="notranslate">replaced == true</code>. A missing key returns a retained original<br>
+root and <code class="notranslate">replaced == false</code>, without allocating; a null root is a successful missing-key result.<br>
+<code class="notranslate">std::nullopt</code> means allocation failure, with temporary nodes reclaimed and original ownership<br>
+unchanged. Release successful roots through their original block source. Copies, destruction,<br>
+hash/key extraction, and equality must be non-throwing; access remains externally synchronized.</p>
+<h2 dir="auto" id="snapshot-root-ownership">Snapshot root ownership</h2>
+<p dir="auto"><code class="notranslate">HamtRootOwner</code> owns one root reference and borrows the block source responsible for that<br>
+entire tree. The source must outlive every owner and copy. Construction and <code class="notranslate">reset</code> adopt an<br>
+already-owned reference; passing a borrowed <code class="notranslate">get()</code> result without retaining it is invalid.<br>
+Copies retain the root without copying entries or allocating. Moves transfer the reference and<br>
+leave a valid empty owner that still knows its source. Copy/move assignment and swapping carry<br>
+the root and its source together, releasing previous roots through their original source.</p>
+<p dir="auto">Destruction and <code class="notranslate">reset()</code> release ownership. <code class="notranslate">release()</code> transfers the owned reference to the<br>
+caller without destroying it; the caller must subsequently release it through the matching<br>
+source. <code class="notranslate">get()</code> borrows, never retains. The helper neither owns the source nor adds source<br>
+metadata to individual nodes; public allocation-domain wrappers must supply source lifetime.<br>
+All ownership operations are non-throwing and require external synchronization for shared owner<br>
+objects. This internal helper does not grant mutable access to a public persistent container.</p>
+<h2 dir="auto" id="shared-container-core">Shared container core</h2>
+<p dir="auto"><code class="notranslate">HamtTree</code> combines root ownership with constant-time visible size, compile-time maximum size,<br>
+stateful hash/key-extraction/equality objects, heterogeneous lookup, and borrowed const iteration.<br>
+Map-shaped entries and set-shaped entries use the same implementation through key extraction.<br>
+Copies retain snapshots without allocating. Moves leave valid empty trees with the same callable<br>
+state; swaps and assignments preserve the pairing of roots, callables, and allocation sources.<br>
+The core supplies its container address as iterator range identity, distinguishing even containers<br>
+that share an entire root. This reuses the iterator's existing identity slot without increasing its<br>
+size. Standalone primitive iterators retain root identity when no container identity is supplied.</p>
+<p dir="auto"><code class="notranslate">try_insert</code>, <code class="notranslate">try_replace</code>, and <code class="notranslate">try_erase</code> return a mutation flag plus an optional <code class="notranslate">HamtError</code>.<br>
+Duplicate insertion is successful even at maximum size and does not replace an existing value.<br>
+Maximum-size and allocation exhaustion leave the value unchanged. Missing replacement/erasure<br>
+is successful without mutation. Structural insertion and erasure still use path copying;<br>
+the transient mapped-editing primitive below additionally supports uniquely owned in-place updates.</p>
+<p dir="auto"><code class="notranslate">try_clone_to</code> deep-copies into another source while preserving size and callable state. Empty<br>
+clones succeed without allocation. The source is borrowed; public wrappers provide allocation-domain<br>
+lifetime and immutable-key enforcement. Entries require non-throwing copying, movement, and<br>
+destruction. Callable invocation is constrained for the actual lookup type; callable copies,<br>
+moves, swaps, and destruction are non-throwing. These internal requirements are not a claim that<br>
+all public storage variants have identical element constraints or invalidation guarantees.</p>
+<h2 dir="auto" id="transient-mapped-editing">Transient mapped editing</h2>
+<p dir="auto"><code class="notranslate">TryUpdateHamtEntry</code> and the core's <code class="notranslate">try_update</code> accept a non-throwing editor that preserves<br>
+the key and full hash and returns <code class="notranslate">void</code>. Throwing or result-returning editors are rejected by<br>
+constraints, rather than translating exceptions or silently discarding error results.<br>
+They are internal transient operations, not mutable persistent APIs.<br>
+Every node on the path must be uniquely owned before editing in place: leaf uniqueness alone<br>
+is insufficient when an ancestor is shared. A unique path can be edited without allocating,<br>
+even with an exhausted block source. Collision updates locate the entry's dense position from<br>
+the existing lookup result rather than scanning the bucket twice.</p>
+<p dir="auto">A shared path copies the entry, edits the temporary, and publishes a copied path only after<br>
+allocation succeeds. Failure leaves all container values unchanged. External editor side effects<br>
+are not rolled back; missing keys do not invoke the editor. Editors must not reenter operations<br>
+on the tree. Node-storage wrappers must additionally establish unique element-payload ownership;<br>
+unique tree nodes alone do not establish uniqueness of separately shared payloads.<br>
+Consuming transient-to-persistent conversion and structural transient insertion/erasure remain<br>
+separate container operations.</p>
+<h2 dir="auto" id="mutable-iteration-preparation">Mutable iteration preparation</h2>
+<p dir="auto">The iterator implementation also supplies a mutable instantiation, sharing the<br>
+same fixed-stack traversal rather than introducing a second traversal algorithm.<br>
+It requires exclusive ownership of every node. <code class="notranslate">TryMutableBegin</code> first checks that<br>
+ownership; shared trees are cloned before returning mutable references, and failed<br>
+cloning preserves the original. Iterator copies remain multipass and advancement<br>
+does not allocate or change the tree. Empty and already unique trees need no clone.<br>
+An unknown ownership state requires a linear scan in the node count. A successful<br>
+proof is cached, so repeated preparation on the same unshared tree does not rescan<br>
+its nodes. Snapshot copying invalidates the source and destination proofs; moves<br>
+and swaps transfer the proof with its tree. Internal adoption starts unknown.<br>
+Successful structural mutations preserve a proven unique tree because newly<br>
+allocated nodes are private and superseded roots are released before return.<br>
+Copying a logically const snapshot updates this cache and therefore also requires<br>
+external synchronization. This does not add concurrent snapshot-copy support.<br>
+The cache proves node ownership only, not separately shared element payloads.<br>
+Node-map mutable preparation must additionally detach those payloads.<br>
+Performance decisions remain provisional until the complete matrix is measured.<br>
+Detachment invalidates prior references<br>
+and iterators from the modified container, but not those from unchanged snapshots.<br>
+Public flat/node maps integrate mutable iterators with the same preparation contract.</p>
+<p dir="auto"><code class="notranslate">TryMutableFind</code> uses the same whole-tree preparation for found keys so that<br>
+advancing a returned iterator cannot expose shared descendants. Missing keys<br>
+return end without detachment or allocation, even when storage is exhausted.<br>
+Found-key preparation reports allocation exhaustion without changing values.<br>
+Mutable iterators convert to const iterators, never the reverse, and comparisons<br>
+across these roles preserve container identity and the common end value.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

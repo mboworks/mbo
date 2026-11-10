@@ -1,0 +1,289 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/strings/INTERNING_IMPLEMENTATION.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="interning-implementation-and-measurement-plan">Interning implementation and measurement plan</h1>
+<p dir="auto">This document defines the implementation dependency graph for <code class="notranslate">Arena</code>, <code class="notranslate">SegmentedVector</code>, HAMT,<br>
+and <code class="notranslate">StringInterner</code>. The semantic contracts live in the component design documents. This plan<br>
+controls how implementations, experiments, measurements, and pull requests turn those contracts<br>
+into production code.</p>
+<p dir="auto">Performance-sensitive representation or default choices are not finalized until their relevant<br>
+optimized benchmarks have been measured on both reference machines:</p>
+<ul dir="auto">
+<li>Apple M5 Pro, macOS arm64, with the repository's supported Clang toolchain;</li>
+<li>AMD Ryzen 9 9950X (Zen 5), Linux x86-64, with the repository's supported Clang toolchain and GCC<br>
+where compiler-sensitive code generation is plausible.</li>
+</ul>
+<p dir="auto">Measurement chooses representations; it does not weaken correctness, lifetime, stability,<br>
+exhaustion, or API guarantees already settled by the design documents.</p>
+<p dir="auto">A correctness- and API-focused implementation may merge with explicitly diagnostic or incomplete<br>
+performance evidence when it does not lock in an unmeasured public tuning choice. Its pull-request<br>
+description must state the evidence gap and the follow-up that will close it. This permits the core<br>
+container dependency chain to land without presenting one-machine data as a cross-platform result.</p>
+<h2 dir="auto" id="dependency-graph">Dependency graph</h2>
+<pre lang="text" class="notranslate"><code class="notranslate">design and measurement contract
+             |
+             v
+shared benchmark artifact tooling
+             |
+             v
+      block-source concept
+             |
+             +----------------------+----------------------+
+             |                      |                      |
+             v                      v                      v
+  SegmentedVector         Arena and layouts      HAMT experiments
+             |                                             |
+             v                                             v
+ sequence layout/ranges                             production HAMT
+             |                      |                      |
+             +----------------------+----------------------+
+                                    |
+                                    v
+                              StringInterner
+                                    |
+                                    v
+                        repository-wide CI collection
+</code></pre>
+<p dir="auto"><code class="notranslate">StringInterner</code> depends on <code class="notranslate">Arena</code> and <code class="notranslate">SegmentedVector</code>. It depends on HAMT only if HAMT wins the<br>
+index benchmarks. HAMT remains a general container deliverable even if another index wins for the<br>
+interner.</p>
+<h2 dir="auto" id="pull-request-dependency-sequence">Pull-request dependency sequence</h2>
+<p dir="auto">Pull-request descriptions must identify their actual parent and include the required <code class="notranslate">## AG;DR</code><br>
+detail section. Branch names and pull-request topology may change as reviewable units are split; the<br>
+durable dependencies are:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Order</th>
+<th>Deliverable</th>
+<th>Required predecessor</th>
+<th>Merge evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">0</td>
+<td>Contracts and measurement requirements</td>
+<td><code class="notranslate">main</code></td>
+<td>Documentation validation</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td>Shared JSON runner, schema, and validation tooling</td>
+<td><code class="notranslate">main</code></td>
+<td>Self-tests and example schema validation</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>BlockSource and production <code class="notranslate">SegmentedVector</code></td>
+<td>Shared benchmark tooling</td>
+<td>Correctness/API tests; performance gaps stated explicitly</td>
+</tr>
+<tr>
+<td align="right">2a</td>
+<td>Fixed-segment access, reservation, and lifecycle proofs</td>
+<td>Production <code class="notranslate">SegmentedVector</code></td>
+<td>Comparative JSON; selected changes only</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>Raw byte <code class="notranslate">Arena</code> and Arena layout proofs</td>
+<td>BlockSource and benchmark tooling</td>
+<td>Correctness tests plus evidence for selected defaults</td>
+</tr>
+<tr>
+<td align="right">4a</td>
+<td>HAMT fragment, bitmap, collision, and ownership proofs</td>
+<td>Stable allocation/container foundations</td>
+<td>Comparative JSON; selected changes only</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>Selected persistent and transient HAMT</td>
+<td>Relevant HAMT proofs</td>
+<td>M5 Pro and Zen 5 HAMT JSON for selected layout choices</td>
+</tr>
+<tr>
+<td align="right">5</td>
+<td>Arena-backed cascading <code class="notranslate">StringInterner</code></td>
+<td>Arena, SegmentedVector, selected index</td>
+<td>M5 Pro and Zen 5 end-to-end interner JSON</td>
+</tr>
+<tr>
+<td align="right">6</td>
+<td>Optimized CI benchmark artifact collection</td>
+<td>Production components</td>
+<td>Artifact schema and collection integration tests</td>
+</tr>
+<tr>
+<td align="right">7</td>
+<td>Artifact-store ingestion, comparisons, and chart inputs</td>
+<td>CI benchmark collection</td>
+<td>Fixture history, regression tests, generated charts</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Proof branches are disposable experimental histories. Their source is not part of the production<br>
+stack unless a measured winner is deliberately implemented or selected into the corresponding<br>
+production branch. Their JSON results remain reviewable evidence.</p>
+<p dir="auto">The production stack may be split further when a reviewable unit becomes too large, but a split<br>
+must preserve this dependency order and add its own tests and benchmark coverage. Two-machine<br>
+evidence is mandatory before a split finalizes a performance-sensitive representation or default;<br>
+an earlier correctness/API split records incomplete evidence and its concrete follow-up instead.</p>
+<h2 dir="auto" id="measurement-artifact-contract">Measurement artifact contract</h2>
+<p dir="auto">Every benchmark invocation writes raw Google Benchmark JSON. A checked-in measurement JSON file<br>
+contains or accompanies the following metadata without relying on its filename:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema</td>
+<td>Stable schema name and integer version</td>
+</tr>
+<tr>
+<td>Component</td>
+<td>Arena, SegmentedVector, HAMT, or StringInterner</td>
+</tr>
+<tr>
+<td>Git identity</td>
+<td>Full commit SHA, dirty state, branch, and repository</td>
+</tr>
+<tr>
+<td>Source relation</td>
+<td>Candidate/options name and baseline or parent SHA</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>OS, architecture, CPU model, physical/logical core counts, and memory</td>
+</tr>
+<tr>
+<td>Toolchain</td>
+<td>Compiler family/full version, C++ baseline, Bazel version, and build flags</td>
+</tr>
+<tr>
+<td>Build</td>
+<td>Optimized Bazel configuration and target</td>
+</tr>
+<tr>
+<td>Timing</td>
+<td>UTC start/end, duration, load average, and benchmark time source</td>
+</tr>
+<tr>
+<td>Benchmark controls</td>
+<td>Repetitions, minimum time, warmup, random interleaving, and filters</td>
+</tr>
+<tr>
+<td>Result</td>
+<td>Unmodified Google Benchmark context and benchmark rows</td>
+</tr>
+<tr>
+<td>Provenance</td>
+<td>Runner version and exact command</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Raw observations are immutable. Derived summaries and charts are regenerated from them. A later<br>
+artifact store may retain the same JSON outside Git, but ingestion must preserve content hashes and<br>
+the schema so results remain comparable across pull requests and time.</p>
+<h3 dir="auto" id="default-measurement-protocol">Default measurement protocol</h3>
+<ul dir="auto">
+<li>Build with Bazel optimized mode and the reference machine-specific optimization configuration.</li>
+<li>Download and build dependencies before timing; benchmark measurements never include network or<br>
+repository-fetch latency.</li>
+<li>Use nine repetitions with Google Benchmark random interleaving.</li>
+<li>Use a nonzero warmup and sufficient minimum time for stable samples.</li>
+<li>Record every repetition, aggregate statistics, and benchmark counters in JSON.</li>
+<li>Keep the machine otherwise idle and record load so noisy runs can be rejected rather than hidden.</li>
+<li>Measure a candidate and its baseline in one interleaved invocation where possible.</li>
+<li>Repeat the complete suite when code, compiler, flags, benchmark inputs, or machine configuration<br>
+changes; never combine incomparable samples silently.</li>
+<li>Preserve failed or surprising measurements with an explicit validity field and explanation.</li>
+</ul>
+<p dir="auto">The runner validates required context before accepting a JSON file. Human-written Markdown tables<br>
+may summarize results, but they never replace the raw JSON evidence.</p>
+<h2 dir="auto" id="component-measurement-scope">Component measurement scope</h2>
+<h3 dir="auto" id="arena">Arena</h3>
+<ul dir="auto">
+<li>successful fast-path latency by size and alignment;</li>
+<li>exhaustion and <code class="notranslate">TryAllocate</code> failure latency;</li>
+<li>fixed, repeated, listed, geometric, and oversized block growth;</li>
+<li>standard allocator, PMR, caller-owned fixed, and growing sources;</li>
+<li>reset, release, block reuse, and retention;</li>
+<li>requested bytes, used bytes, reserved bytes, blocks, padding, and fragmentation;</li>
+<li>pointer descriptors, segment-relative offsets, and inline records under representative string<br>
+size distributions.</li>
+</ul>
+<h3 dir="auto" id="segmentedvector">SegmentedVector</h3>
+<ul dir="auto">
+<li>append, <code class="notranslate">try_emplace_back</code>, unchecked append, pop, and <code class="notranslate">pop_back_value</code>;</li>
+<li>indexed, forward, reverse, segment-view, and iterator-arithmetic access across segment boundaries;</li>
+<li>fixed power-of-two segment sizes and shift/mask mapping;</li>
+<li>zero, partial, and full directory reservation, including growth-boundary allocation costs;</li>
+<li>retained-tail, <code class="notranslate">clear</code>, burst pop/regrow, <code class="notranslate">trim_capacity</code>, and <code class="notranslate">release</code> lifecycles;</li>
+<li>trivial, movable, non-trivial, small, large, and over-aligned element types;</li>
+<li>comparison with <code class="notranslate">std::vector</code> and <code class="notranslate">std::deque</code> for matching measured operations.</li>
+</ul>
+<h3 dir="auto" id="hamt">HAMT</h3>
+<ul dir="auto">
+<li>successful and unsuccessful heterogeneous lookup, insertion, update, and erasure;</li>
+<li>persistent path-copy mutation and transient in-place mutation;</li>
+<li>transient-to-persistent conversion and branch creation;</li>
+<li>4-, 5-, 6-, and 7-bit fragments;</li>
+<li>CHAMP and credible bitmap/node alternatives;</li>
+<li>stored versus recomputed hashes and full-hash collision layouts;</li>
+<li>node and flat layouts;</li>
+<li>atomic, non-atomic, domain, arena, and generation ownership candidates;</li>
+<li>iterator strategies, traversal, memory per entry, allocation count, cache misses, and branch<br>
+behavior;</li>
+<li>comparison with standard unordered containers, Abseil flat/node containers, and suitable trie<br>
+implementations.</li>
+</ul>
+<h3 dir="auto" id="stringinterner">StringInterner</h3>
+<ul dir="auto">
+<li>hits and misses in forward and reverse directions across root, shallow, and deep chains;</li>
+<li>unique insertion and duplicate insertion for short, medium, long, empty, and embedded-NUL strings;</li>
+<li>string-size and duplication distributions representative of mbo, xff, and proto;</li>
+<li>character storage, dense sequence, and index costs both separately and end to end;</li>
+<li>default 32-bit IDs plus relevant 8-, 16-, and 64-bit configurations;</li>
+<li>32- and 64-bit hash paths without coupling hash width to ID width;</li>
+<li>standard, Abseil, and HAMT index candidates;</li>
+<li>bounded exhaustion for ID, character, entry, and index storage;</li>
+<li>allocation count, collisions, chain depth, memory breakdown, fragmentation, and peak memory;</li>
+<li>diagnostics-enabled overhead and proof of zero production overhead when disabled.</li>
+</ul>
+<h2 dir="auto" id="per-pr-merge-gate">Per-PR merge gate</h2>
+<p dir="auto">An implementation pull request is not merge-ready until all of the following are true:</p>
+<ol dir="auto">
+<li>The implementation and user-visible options match the relevant design contract.</li>
+<li>Unit, constexpr, bounded-capacity, failure, sanitizer, and documentation tests pass.</li>
+<li>Benchmarks cover every representation or option selected by that pull request.</li>
+<li>A pull request that finalizes a performance-sensitive representation or default includes raw,<br>
+schema-valid JSON from the M5 Pro and Zen 5 machines. An earlier correctness/API pull request<br>
+identifies its diagnostic evidence, missing reference-machine evidence, and follow-up instead.</li>
+<li>The pull-request description identifies the compared commit SHAs and summarizes statistically<br>
+meaningful results without discarding regressions.</li>
+<li>The selected implementation is not materially worse on an important workload without a stated,<br>
+reviewed tradeoff supported by the complete measurements.</li>
+<li>The branch is synchronized with its current base and its authoritative CI run is green.</li>
+</ol>
+<h2 dir="auto" id="later-ci-and-artifact-history">Later CI and artifact history</h2>
+<p dir="auto">The initial implementation PRs establish benchmark targets and portable JSON production. A later<br>
+CI PR runs every registered benchmark test in optimized configurations, uploads the raw artifacts,<br>
+and emits a manifest even when a benchmark fails. Artifact-store ingestion is deliberately a<br>
+separate layer: it verifies schema and hashes, indexes results by commit/PR/machine/toolchain, and<br>
+supports baseline comparison and chart generation without changing benchmark execution.</p>
+<p dir="auto">The storage provider and retention policy remain deployment choices. The repository-facing<br>
+contract is provider-neutral JSON plus a manifest, so adopting Artifactory or another store does not<br>
+couple benchmark code to one service.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

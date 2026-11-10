@@ -1,0 +1,425 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/strings/STRING_INTERNER_BENCHMARKS.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="stringinterner-performance">StringInterner performance</h1>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/string_interner_benchmark.cc"><code class="notranslate">string_interner_benchmark.cc</code></a> measures the current interner,<br>
+its supported backend configurations, and index and character-storage costs separately. The same<br>
+source builds with and without compiler exception support, allowing comparison of the interner's<br>
+exception policy independently of the surrounding build.</p>
+<h2 dir="auto" id="build-and-run">Build and run</h2>
+<p dir="auto">On the Apple M5 Pro reference machine:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel build -c opt --config=clang --config=opt_apple_m5 \
+  //mbo/strings:string_interner_benchmark \
+  //mbo/strings:string_interner_exceptions_benchmark
+
+python3 tools/benchmark_artifact.py run \
+  --component StringInterner \
+  --target //mbo/strings:string_interner_benchmark \
+  --config opt --config clang --config opt_apple_m5 \
+  --output /private/tmp/string-interner.json \
+  -- bazel-out/darwin_arm64-opt/bin/mbo/strings/string_interner_benchmark \
+  --benchmark_display_aggregates_only=true
+
+python3 tools/benchmark_artifact.py validate /private/tmp/string-interner.json</pre></div>
+<p dir="auto">Use <code class="notranslate">--config=opt_zen5</code> instead of <code class="notranslate">--config=opt_apple_m5</code> on Zen 5, and use the executable path<br>
+printed by Bazel for that platform. The artifact runner captures the source revision and dirty<br>
+state, host, compiler, standard library, flags, timing controls, and every raw repetition. Its<br>
+defaults are nine randomly interleaved repetitions, one second minimum measurement, and one second<br>
+warmup. Use <code class="notranslate">--benchmark_filter</code> to select related families for a shorter run.</p>
+<p dir="auto">The exception-enabled executable is <code class="notranslate">string_interner_exceptions_benchmark</code>. Filter it with<br>
+<code class="notranslate">--benchmark_filter='^Map/(Build|SafeBuild|Duplicate|SafeDuplicate)/'</code> to compare publication rollback<br>
+policies in one translation unit. The normal executable makes the corresponding comparison with<br>
+compiler exceptions disabled. Dependencies retain their normal repository build flags.</p>
+<p dir="auto">Run the executable smoke test with:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> //mbo/strings:string_interner_benchmark_test</pre></div>
+<p dir="auto">It runs representative families once, checks each registered configuration's insertion,<br>
+duplicate, lookup, and ID-access semantics before timing, and compiles iteration of non-copyable<br>
+mapped values. It verifies execution rather than asserting machine-dependent latency.</p>
+<h2 dir="auto" id="workloads-and-interpretation">Workloads and interpretation</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th>Measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Build</code></td>
+<td>Construction, shuffled unique insertion, and destruction</td>
+</tr>
+<tr>
+<td><code class="notranslate">BuildReserved</code></td>
+<td>Same lifecycle, including up-front index reservation</td>
+</tr>
+<tr>
+<td><code class="notranslate">Hit</code> / <code class="notranslate">Miss</code></td>
+<td>Shuffled string lookup after population</td>
+</tr>
+<tr>
+<td><code class="notranslate">Duplicate</code></td>
+<td>Insertion of existing strings after population</td>
+</tr>
+<tr>
+<td><code class="notranslate">Unique</code></td>
+<td>New strings inserted into an existing population; setup/destruction excluded</td>
+</tr>
+<tr>
+<td><code class="notranslate">Get</code></td>
+<td>Shuffled ID-to-element access</td>
+</tr>
+<tr>
+<td><code class="notranslate">GetString</code></td>
+<td>Shuffled ID-to-string access</td>
+</tr>
+<tr>
+<td><code class="notranslate">Iterate</code></td>
+<td>Sequential reference traversal; observes element addresses without copying</td>
+</tr>
+<tr>
+<td><code class="notranslate">Map</code></td>
+<td>Mapped values, non-copyable reference traversal, and publication rollback</td>
+</tr>
+<tr>
+<td><code class="notranslate">Parent</code></td>
+<td>Root hits, local hits, and misses across parent depth and per-layer population</td>
+</tr>
+<tr>
+<td><code class="notranslate">Storage</code></td>
+<td>Character-storage construction, copies, and destruction without an index</td>
+</tr>
+<tr>
+<td><code class="notranslate">Hash</code></td>
+<td>Hashing input views without storage or indexing</td>
+</tr>
+<tr>
+<td><code class="notranslate">Error</code></td>
+<td>Recoverable character-storage exhaustion and dense-ID exhaustion</td>
+</tr>
+<tr>
+<td><code class="notranslate">Counts</code></td>
+<td>Hash/equality invocations per operation; instrumented, not a latency baseline</td>
+</tr>
+<tr>
+<td><code class="notranslate">Layout</code></td>
+<td>ABI sizes of result types, dense entries, index slots, and the interner</td>
+</tr>
+<tr>
+<td><code class="notranslate">Key</code></td>
+<td>Empty and embedded-NUL duplicate insertion</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Backend comparisons use 4,096 keys of exactly 16, 64, or 1,024 bytes. The default population sweep<br>
+also covers 0, 1, 16, 256, and 65,536 existing strings. <code class="notranslate">Unique</code> adds 1,024 distinct keys to each<br>
+starting population; it pauses timing during population setup and destruction. This captures<br>
+growth boundaries during the insertion batch rather than claiming a fixed load factor.<br>
+Inputs use deterministic <code class="notranslate">mt19937_64</code> generation and shuffled query order. Ordinals are encoded<br>
+in the first eight bytes, so the queries also<br>
+exercise embedded NULs. A miss differs in its last byte. Input ownership and generation are outside<br>
+timed loops. Lookup setup and destruction are excluded; lifecycle benchmarks include both.<br>
+Divide a batched benchmark's CPU time by its key count, or use <code class="notranslate">items_per_second</code>, to compare<br>
+per-operation costs. Single-operation <code class="notranslate">Error</code> and <code class="notranslate">Key</code> rows already report per-operation timing.<br>
+These are amortized throughput measurements over independent operations, not a dependency chain<br>
+measuring serialized lookup latency. They do not by themselves measure cold-cache behavior or<br>
+worst-case growth latency. Short diagnostic runs are marked suspect in artifact metadata; selecting<br>
+defaults still requires the longer protocol and both reference machines.</p>
+<p dir="auto"><code class="notranslate">Default</code> uses <code class="notranslate">StringIdU32&lt;&gt;</code>; <code class="notranslate">Plain</code> changes only the ID to <code class="notranslate">std::uint32_t</code>. <code class="notranslate">Optional</code> and<br>
+<code class="notranslate">Status</code> change the insertion-result policy; <code class="notranslate">StlLookup</code> changes the reference-result policy.<br>
+<code class="notranslate">Vector</code>, <code class="notranslate">Deque</code>, and <code class="notranslate">List</code> change the dense sequence. <code class="notranslate">Owning</code> uses a node hash map with owning<br>
+string keys; <code class="notranslate">Unordered</code> uses <code class="notranslate">std::unordered_map</code>. <code class="notranslate">LargeArena</code> compares 64-KiB initial and 1-MiB<br>
+maximum character blocks with the current 4-KiB/64-KiB storage defaults. These are comparison axes;<br>
+they do not change production defaults.</p>
+<p dir="auto"><code class="notranslate">SetIndex</code> uses a key-only flat hash set, exposing the current linear scan needed to recover an ID.<br>
+<code class="notranslate">Colliding</code> gives every key the same hash and measures collision stress with full string comparison.<br>
+<code class="notranslate">DirectIndex</code> measures a flat map referencing original input keys, so it is a component comparison<br>
+rather than a perfectly equivalent allocation layout.</p>
+<p dir="auto">Parent names have arguments <code class="notranslate">depth/key_bytes/strings_per_parent/local_strings</code>. They sweep 0, 1,<br>
+2, and 4 parent links and 0, 1, 32, or 256 strings per layer. Additional cases compare<br>
+populated parents with an empty child, empty parents with a populated child, and 4,096 strings per<br>
+parent with 32 local strings. Each layer owns distinct keys of the requested<br>
+length. Root/local hits are registered only when the corresponding layer is populated; misses<br>
+also exercise entirely empty chains. Cases with at least 32 entries per layer avoid tiny-table<br>
+behavior that could otherwise hide repeated hashing.</p>
+<p dir="auto"><code class="notranslate">Counts/Unique</code> reserves sufficient index capacity before measuring 2,048 additional keys. It uses<br>
+one iteration because later passes over those keys would measure duplicate insertion. Neither<br>
+instrumented counts nor the single-iteration <code class="notranslate">Layout</code> row provide reliable latency samples.</p>
+<p dir="auto">This harness provides diagnostic evidence on its running host. The complete reference-machine<br>
+protocol and requirements for selecting defaults remain in<br>
+<a href="INTERNING_IMPLEMENTATION.html"><code class="notranslate">INTERNING_IMPLEMENTATION.md</code></a>.</p>
+<h2 dir="auto" id="performance-analysis-of-the-current-implementation">Performance analysis of the current implementation</h2>
+<h3 dir="auto" id="m5-diagnostic-observations-2026-11-01">M5 diagnostic observations, 2026-11-01</h3>
+<p dir="auto">Raw, validated artifacts are retained as compressed JSON:<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/measurements/2026-11-01-apple-m5-pro/baseline.json.xz">baseline</a>,<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/measurements/2026-11-01-apple-m5-pro/populations.json.xz">population/parent sweep</a>, and<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/measurements/2026-11-01-apple-m5-pro/exceptions.json.xz">exception-enabled comparison</a>.<br>
+These were collected from the worktree containing this harness, based on production revision<br>
+<code class="notranslate">78fd976284b38ace895998b655555764b8e3d623</code>; the artifact records the dirty source state. LLVM 23.1.4,<br>
+libc++ 22.1.6, <code class="notranslate">-c opt</code>, <code class="notranslate">-mcpu=apple-m5</code>, and nine randomly interleaved repetitions were used.<br>
+The baseline and exception comparison ran after compiler/lint activity stopped, with 0.1-second<br>
+minimum samples and 0.02-second warmup. The wider population sweep used shorter windows while<br>
+two lint workers were active; its metadata records that limitation. All artifacts are marked<br>
+diagnostic/suspect and do not establish cross-platform defaults.</p>
+<p dir="auto">The following values are median amortized CPU nanoseconds per operation. The 4,096-key cases use<br>
+16-byte keys unless another length is shown. Build rows include construction and destruction;<br>
+lookup/ID/iteration rows exclude population and destruction. Differences below a few percent are<br>
+not evidence for choosing a representation in these short runs.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Workload</th>
+<th>Current default</th>
+<th>Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Build, 4,096 keys</td>
+<td>37.65 ns/key</td>
+<td>22.62 ns/key, pre-reserved index</td>
+</tr>
+<tr>
+<td>Build, 64-byte keys</td>
+<td>46.19 ns/key</td>
+<td>29.88 ns/key, pre-reserved index</td>
+</tr>
+<tr>
+<td>Build, 1,024-byte keys</td>
+<td>183.36 ns/key</td>
+<td>118.43 ns/key, pre-reserved index</td>
+</tr>
+<tr>
+<td>Build, one 16-byte key</td>
+<td>103.85 ns</td>
+<td>112.45 ns, pre-reserved index</td>
+</tr>
+<tr>
+<td>String hit, 4,096 keys</td>
+<td>6.85 ns</td>
+<td>4,251 ns, key-only set index</td>
+</tr>
+<tr>
+<td>ID access, 4,096 keys</td>
+<td>0.785 ns</td>
+<td>2,112 ns, list-backed entries</td>
+</tr>
+<tr>
+<td>Reference iteration, 4,096 keys</td>
+<td>0.527 ns/item</td>
+<td>2,108 ns/item, list-backed entries</td>
+</tr>
+<tr>
+<td>Duplicate insertion, plain IDs</td>
+<td>9.77 ns</td>
+<td>9.78 ns optional; 10.48 ns StatusOr</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Reservation is the clearest immediately available throughput improvement at the measured larger<br>
+population. It does not help the measured one-key case. The set/list results confirm algorithmic<br>
+costs rather than small code-generation differences. The measured optional insertion result does<br>
+not improve duplicate insertion despite dropping detailed errors; StatusOr was slightly slower<br>
+than expected here, so there is no basis for changing the default result policy for speed.</p>
+<p dir="auto">For 32 strings per layer, the baseline parent sweep gives:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="right">Parent links</th>
+<th align="right">Root hit</th>
+<th align="right">Local hit</th>
+<th align="right">Miss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="right">0</td>
+<td align="right">7.23 ns</td>
+<td align="right">7.23 ns</td>
+<td align="right">6.29 ns</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td align="right">11.30 ns</td>
+<td align="right">7.20 ns</td>
+<td align="right">10.79 ns</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td align="right">15.68 ns</td>
+<td align="right">7.23 ns</td>
+<td align="right">15.95 ns</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td align="right">22.68 ns</td>
+<td align="right">7.86 ns</td>
+<td align="right">22.32 ns</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The diagnostic population sweep also shows 16-byte root hits rising from about 3.1 ns with one<br>
+existing string to 6.9 ns with 4,096 strings and 11.5 ns with 65,536 strings. This separates the<br>
+tiny-table case from ordinary lookup and the larger memory working set. It does not make parent<br>
+depth an argument for a more elaborate ancestry structure: local hits remain local.</p>
+<p dir="auto">Under <code class="notranslate">-fexceptions</code>, mapped <code class="notranslate">uint64_t</code> build cost was about 35.1 ns/key in exception-free mode and<br>
+35.0 ns/key with safe publication. That difference is within noise, consistent with eliminating<br>
+rollback for trivial publication. It does not measure a value constructor that can actually throw.<br>
+Hash counters independently confirm two hashes per ordinary unique insertion without growth,<br>
+one per ordinary hit/duplicate, and zero for ID access.</p>
+<p dir="auto">To validate an archived artifact, decompress it and pass the resulting JSON to the runner's<br>
+<code class="notranslate">validate</code> subcommand; the content hash covers the complete metadata and raw repetitions.</p>
+<h3 dir="auto" id="source-analysis">Source analysis</h3>
+<p dir="auto">The highest-value optimization is preserving preparation across lookup and insertion.<br>
+<a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/internal/string_interner_base.h"><code class="notranslate">StringInternerBase::Insert</code></a> first calls <code class="notranslate">rfind(key)</code>, which<br>
+prepares and searches each visible index. On a miss it reserves a dense slot, copies the characters,<br>
+prepares the local index again, and inserts. In a populated, non-tiny root table this hashes a new<br>
+key twice even without index growth. Growth can additionally hash existing keys. An ordinary hit<br>
+or duplicate insertion hashes once; ID access does not hash. Empty and tiny tables can take special<br>
+paths that avoid hashing altogether. The instrumented <code class="notranslate">Counts</code> rows measure the non-tiny case.</p>
+<p dir="auto">The existing <code class="notranslate">Prepare</code>/<code class="notranslate">Find</code>/<code class="notranslate">Insert</code> policy interface does not carry the preparation from the<br>
+initial search into insertion. A faster interface needs a query token containing a reusable hash<br>
+and, where supported, probe/insertion state. Character copying must rebind its key view to stable<br>
+storage without recomputing the hash. If commit grows the index, it must invalidate the old bucket<br>
+or probe state and retry with the retained hash. An STL iterator hint alone does not establish any<br>
+of these guarantees. In the pinned Abseil version, <code class="notranslate">emplace_hint</code> ignores its hint and the deprecated<br>
+<code class="notranslate">find(key, hash)</code> overload ignores its hash argument. Its experimental <code class="notranslate">lazy_emplace</code> also requires<br>
+the construction callback to construct the entry; simply returning on arena exhaustion violates<br>
+that API's contract. A recoverable preparation/commit interface needs deliberate backend support.</p>
+<h3 dir="auto" id="costs-by-operation">Costs by operation</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Configuration / operation</th>
+<th>Current expected cost, excluding string length</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Map-backed root string lookup</td>
+<td>Average constant-time index lookup</td>
+</tr>
+<tr>
+<td>Map-backed root unique insertion</td>
+<td>Two searches plus storage and occasional growth</td>
+</tr>
+<tr>
+<td>Cascading lookup / insertion miss</td>
+<td>One search per visited layer</td>
+</tr>
+<tr>
+<td>Segmented/vector/deque ID access</td>
+<td>Constant-time local access plus ancestor walk</td>
+</tr>
+<tr>
+<td>List-backed ID access</td>
+<td>Linear traversal from the local sequence start</td>
+</tr>
+<tr>
+<td>Key-only set index hit</td>
+<td>Hash lookup followed by linear ID recovery</td>
+</tr>
+<tr>
+<td>List-backed whole iteration</td>
+<td>Quadratic local traversal</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">String hashing, copying, and full equality comparisons add length-dependent work. Hash tables can<br>
+also degrade to linear probing under collisions; the <code class="notranslate">Colliding</code> cases expose that behavior.</p>
+<p dir="auto"><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/strings/internal/string_interner_base.h"><code class="notranslate">ElementAt</code></a> uses <code class="notranslate">std::ranges::next(begin, ordinal)</code>.<br>
+This is constant time for the default <code class="notranslate">SegmentedVector</code>, <code class="notranslate">vector</code>, and <code class="notranslate">deque</code> because their<br>
+iterators are random access. Replacing it with <code class="notranslate">operator[]</code> does not fix a default linear scan:<br>
+there is no such scan. A <code class="notranslate">list</code> needs a separate positional directory for constant-time ID access.<br>
+Interner iterators currently call <code class="notranslate">ElementAt</code> on every dereference, restarting list traversal each<br>
+time. Carrying the underlying sequence iterator across increments would restore linear list<br>
+iteration and reduce repeated ancestor walks for all entry types.</p>
+<p dir="auto">A key-only set index cannot return a dense ID. <code class="notranslate">FindLocal</code> therefore scans dense entries and<br>
+compares strings after a successful set lookup. It also makes duplicate insertion linear. The fast<br>
+setup should retain an ID-bearing index, even when the public interner is a set. Changing a<br>
+container from a map to a set saves slot bytes but currently loses the central lookup guarantee.</p>
+<h3 dir="auto" id="priorities-for-a-faster-setup">Priorities for a faster setup</h3>
+<ol dir="auto">
+<li>Preserve one hash across the missing-key search, stable character copy, and index insertion.<br>
+Split query hashing from container-specific probing. Reusing a hash across parents is valid<br>
+only when their hasher states are compatible; equal hasher types alone are insufficient.</li>
+<li>Reserve the index for the expected population. The current <code class="notranslate">options_type</code> can accept an empty,<br>
+pre-reserved container; reservation itself is included in <code class="notranslate">BuildReserved</code>. A supported capacity<br>
+option could also reserve dense storage through its backend, rather than requiring callers to<br>
+construct container objects. Retain the empty-index invariant.</li>
+<li>Keep an ID-bearing hash index in the fast configuration. For key-only compatibility backends,<br>
+add an explicit ID recovery strategy instead of scanning entries.</li>
+<li>Keep <code class="notranslate">SegmentedVector</code> as the stable-reference comparison baseline. A vector can reduce local<br>
+access cost but relocates entries on growth, including mapped values. A list needs an auxiliary<br>
+directory or a different complexity contract. Tune segment size and directory reservation<br>
+against population and entry size before changing either default.</li>
+<li>Benchmark a specialized append-only hash backend with recoverable prepare/commit and growth.<br>
+Candidates include cached full hashes, compact ID-only buckets that resolve keys through dense<br>
+storage, and a shared dense-entry/index record to reduce duplicate metadata. They trade hash and<br>
+equality work against memory footprint and pointer indirections. The existing Abseil default is<br>
+already a flat probing table; a scalar modulo table is not automatically faster.</li>
+<li>Reduce per-layer work where shallow-parent measurements justify it. Empty layers can be skipped;<br>
+hashes may be shared when compatible. Snapshot-prefix checks must remain intact. More elaborate<br>
+ancestry directories, inherited caches, or persistent indexes need evidence even at depth four;<br>
+they add memory and maintenance work that root/local-hit workloads may not recover.</li>
+</ol>
+<p dir="auto">Index preparation can also reject exhausted bounded indexes before character copying. Currently<br>
+an index rejection can leave an unused character copy behind; repeated failed attempts consume<br>
+arena space. The append-only lifetime contract does not require reclaiming those copies, but a<br>
+backend that reports capacity failure during preparation can avoid making them.</p>
+<p dir="auto">The current options constructor does not enforce its empty-container precondition. Importing a<br>
+populated index does not populate the dense entries, so it is unsupported even though the type<br>
+system accepts it. The benchmark always supplies an empty index, including the reserved case.<br>
+Capacity-option work should enforce this invariant rather than expanding the accepted constructor<br>
+arguments further.</p>
+<p dir="auto">Small-object construction deserves separate attention: the default segmented sequence initially<br>
+reserves one directory pointer, and the first entry and first characters each acquire a block.<br>
+Population-sensitive measurements should decide whether inline entries/characters or lazy directory<br>
+reservation are useful. Reducing object size or allocations for a one-string interner does not<br>
+necessarily improve steady-state throughput for a large one.</p>
+<h3 dir="auto" id="result-policies-exceptions-and-memory">Result policies, exceptions, and memory</h3>
+<p dir="auto">Result policies are compile-time types with no virtual dispatch. The fallible index-result branch<br>
+and exception rollback branch are selected with <code class="notranslate">if constexpr</code>; the default direct-result,<br>
+exception-free specialization does not contain an extra runtime policy selection. Lambdas used<br>
+for publication do not allocate. Removing policy abstractions or force-inlining everything has<br>
+no demonstrated benefit; generated code and complete workloads should decide those changes.</p>
+<p dir="auto">The ABI matters more than a general claim that one result API is faster. <code class="notranslate">Layout</code> records actual<br>
+sizes, including padding. In the initial M5/libc++ run, the expected insertion result occupied<br>
+8 bytes, the optional result 12, and the status result 16. <code class="notranslate">OptionalRef</code> occupied one pointer while<br>
+the STL optional reference wrapper occupied two pointer-sized words. These figures are specific<br>
+to the measured types and ABI. None makes throwing result access necessary: the interner's normal<br>
+paths use checked results and non-throwing construction. Error reporting does not eliminate<br>
+allocation failure in STL backends that lack a recoverable allocation interface.</p>
+<p dir="auto">The interner exception-free policy suppresses its publication rollback guard even in an<br>
+exception-enabled translation unit. It does not change the exception behavior of a container,<br>
+hasher, allocator, or value constructor. Such callers must obey that mode's no-throw contract;<br>
+otherwise an unpublished index entry can remain after a value-construction exception. Supporting<br>
+throwing values requires the safe policy. For trivial non-throwing publication the optimizer may<br>
+already eliminate the safe guard, so measure both modes rather than assuming a fixed benefit.</p>
+<p dir="auto">On the measured 64-bit ABI the view-to-ID map slot is 24 bytes and a dense set entry is 16 bytes,<br>
+before hash-control bytes, spare capacity, segment headers, arena headers, and characters. A mapped<br>
+<code class="notranslate">uint64_t</code> dense entry occupies 32 bytes because it contains an optional key/value pair. Compact<br>
+records can reduce cache traffic, but removing optional state requires another way to reserve and<br>
+reuse an unpublished entry without constructing a user value prematurely.</p>
+<p dir="auto">Arena allocation and copying are a distinct cost. Larger character blocks can reduce allocation<br>
+frequency, but do not fix repeated hashing or probing and can retain more unused memory. The<br>
+current byte-aligned, length-aware storage already avoids terminator work and allocating empty<br>
+strings. Dropping embedded-NUL support does not remove any scan in this implementation.</p>
+<p dir="auto">Cached hashes should normally reject mismatches before full key comparison. Treating equal hashes<br>
+as equal strings changes correctness: even a wide hash can collide. Any trusted-hash mode must be<br>
+explicit, and cannot be used to justify a faster exact-interning default. Growth should reuse cached<br>
+hashes where available and benchmark both average throughput and the rehash latency spikes.</p>
+<p dir="auto">Further candidates need additional workloads: batch preparation/prefetch to overlap independent<br>
+lookups, mixed hit/miss and duplicate ratios, mixed string lengths, segment-size sweeps, and<br>
+explicit measurements immediately around growth thresholds. The current synthetic queries do not<br>
+establish a winner for real mbo/xff/proto distributions. A prepared-hash API must also retain the<br>
+tiny-table shortcut: computing a hash eagerly can regress empty or single-entry indexes that<br>
+currently avoid hashing. A cached full hash mainly helps reject non-matching candidates and reuse<br>
+rehash work; successful exact lookups still need string equality unless a canonical identity is<br>
+already known. Callers with an ID should use ID access directly.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

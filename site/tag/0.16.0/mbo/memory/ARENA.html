@@ -1,0 +1,310 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/memory/ARENA.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="arena-design">Arena design</h1>
+<p dir="auto">This document specifies the general arena component in <code class="notranslate">mbo::memory</code>, where aligned storage<br>
+acquisition and region lifetime belong because they are memory-management facilities rather than<br>
+container or string semantics.</p>
+<p dir="auto">The string interner requires an arena-backed character store, and <code class="notranslate">SegmentedVector</code> may share a<br>
+lower-level block source. The arena remains independently useful and independently benchmarked.</p>
+<h2 dir="auto" id="goals">Goals</h2>
+<ul dir="auto">
+<li>amortize many small allocations across a bounded or growing sequence of blocks;</li>
+<li>return suitably aligned storage whose address remains stable until the owning region is released;</li>
+<li>support caller-owned fixed storage with no hidden allocation;</li>
+<li>support configurable block growth through benchmark-proven constexpr policies;</li>
+<li>make exhaustion explicit and non-destructive;</li>
+<li>permit efficient storage of variable-length string records;</li>
+<li>expose narrow concepts so alternative block sources and arena implementations can be composed;</li>
+<li>remain usable with exceptions disabled.</li>
+</ul>
+<h2 dir="auto" id="layers">Layers</h2>
+<p dir="auto">The design separates facilities that are often conflated under the name arena:</p>
+<ol dir="auto">
+<li>A block source acquires and releases backing blocks.</li>
+<li>A byte arena suballocates aligned byte ranges from those blocks.</li>
+<li>A deferred object-lifetime layer constructs objects and, when required, records destruction.</li>
+<li>Domain storage, such as the interner's character store, defines record layout and indexing.</li>
+</ol>
+<p dir="auto">This separation permits a minimal character arena without forcing destructor-registration overhead<br>
+onto every allocation. The initial implementation is the raw byte <code class="notranslate">Arena</code>. A distinct <code class="notranslate">ObjectArena</code><br>
+with typed construction and reverse-order destructor registration is deferred until a concrete use<br>
+requires it.</p>
+<h2 dir="auto" id="byte-arena-contract">Byte-arena contract</h2>
+<p dir="auto">The core operation requests a byte count and alignment. On success it returns only a non-null<br>
+aligned pointer. The contract guarantees that at least the requested number of bytes are available<br>
+at that pointer until the region is released; returning the already-known size would add needless<br>
+result width and work. The requested size must be greater than zero. C++ complete objects that can<br>
+have distinct addresses occupy at least one byte, and the arena does not invent address identity<br>
+for a zero-byte allocation. StringInterner represents an empty string without allocating character<br>
+bytes.</p>
+<p dir="auto">Successful allocations remain valid and do not move until <code class="notranslate">Reset</code>, destruction, or another<br>
+explicitly documented region-lifetime operation. Individual allocations cannot be freed. Allocation<br>
+failure leaves the arena-owned cursors, counters, block chain, and growth position unchanged. A<br>
+consumer-provided source may update its own observable diagnostics before returning null or throwing.</p>
+<p dir="auto"><code class="notranslate">Arena</code> returns raw storage and does not track objects that callers construct in it. The caller must<br>
+destroy every live object placed in that storage before <code class="notranslate">Reset</code>, <code class="notranslate">Release</code>, or arena destruction.</p>
+<p dir="auto">The current byte arena exposes a hard-failing allocation operation, a recoverable operation when<br>
+the selected block source can report failure, lifetime operations, and constant-time counters:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-en">Arena</span>();
+<span class="pl-k">explicit</span> <span class="pl-en">Arena</span>(<span class="pl-k">const</span> Source&amp; source);
+<span class="pl-k">explicit</span> <span class="pl-en">Arena</span>(Source&amp;&amp; source);
+
+std::byte* <span class="pl-en">Allocate</span>(std::<span class="pl-c1">size_t</span> size, std::<span class="pl-c1">size_t</span> alignment = <span class="pl-k">alignof</span>(std::<span class="pl-c1">max_align_t</span>));
+std::byte* <span class="pl-en">TryAllocate</span>(std::<span class="pl-c1">size_t</span> size, std::<span class="pl-c1">size_t</span> alignment = <span class="pl-k">alignof</span>(std::<span class="pl-c1">max_align_t</span>));
+
+std::<span class="pl-c1">size_t</span> <span class="pl-en">bytes_used</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+std::<span class="pl-c1">size_t</span> <span class="pl-en">bytes_reserved</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+<span class="pl-k">void</span> <span class="pl-en">Reset</span>();
+<span class="pl-k">void</span> <span class="pl-en">Release</span>();</pre></div>
+<p dir="auto">The source constructors copy an lvalue source and move an rvalue source. Their availability and<br>
+<code class="notranslate">noexcept</code> specification follow the corresponding <code class="notranslate">Source</code> construction operation. Separate<br>
+reference overloads avoid passing an over-aligned source through a by-value parameter.</p>
+<p dir="auto"><code class="notranslate">TryAllocate</code> returns null for arithmetic overflow, source exhaustion, unsupported alignment, or a<br>
+backing-source failure. A zero size or an alignment that is zero or not a power of two violates an<br>
+API precondition and uses mbo's configured requirement failure. <code class="notranslate">Allocate</code> applies that same hard<br>
+failure policy when an otherwise valid request cannot be served. Neither operation returns an<br>
+undersized or insufficiently aligned allocation.</p>
+<h3 dir="auto" id="existing-mbo-failure-policy-precedent">Existing mbo failure-policy precedent</h3>
+<p dir="auto">Existing bounded containers use <code class="notranslate">MBO_CONFIG_REQUIRE</code> when an operation cannot satisfy a capacity<br>
+precondition. It throws <code class="notranslate">std::runtime_error</code> only when mbo's exception policy is explicitly enabled<br>
+and otherwise terminates through fatal logging. <code class="notranslate">Allocate</code> uses the same mechanism, keeping the<br>
+arena consistent with <code class="notranslate">LimitedVector</code>, <code class="notranslate">LimitedMap</code>, and <code class="notranslate">LimitedSet</code>.</p>
+<p dir="auto">Resource exhaustion can also be ordinary control flow, particularly for a caller-supplied bounded<br>
+arena. <code class="notranslate">TryAllocate</code> therefore reports ordinary source exhaustion directly.<br>
+A nullable pointer carries the same success/failure information as <code class="notranslate">optional&lt;std::byte*&gt;</code> in a<br>
+smaller conventional representation; a separate diagnostic operation can return a typed reason if<br>
+real callers need it.</p>
+<p dir="auto"><code class="notranslate">TryAllocate</code> is not a universal no-throw boundary: programmer-precondition failures still use the<br>
+configured requirement policy, and an exception from a consumer-provided block source propagates.<br>
+The arena commits no cursor, counter, block-chain, or growth-state change before a new block is<br>
+successfully acquired and validated.</p>
+<p dir="auto"><code class="notranslate">Allocate</code> uses the configurable hard requirement. <code class="notranslate">TryAllocate</code> returns null for ordinary<br>
+exhaustion without logging; the precondition and source exceptions above remain exceptions to that<br>
+ordinary-failure path.</p>
+<p dir="auto">Alignment must be a nonzero power of two. Each block source advertises its supported maximum<br>
+alignment. An otherwise valid alignment above that maximum returns null from <code class="notranslate">TryAllocate</code> and<br>
+triggers the configured hard failure from <code class="notranslate">Allocate</code>.</p>
+<p dir="auto">Allocation is transactional at the byte-tail level. Failed block acquisition, alignment, size<br>
+arithmetic, or capacity checks leave the cursor, padding, counters, retained blocks, and normal<br>
+growth-sequence position unchanged.</p>
+<h2 dir="auto" id="block-sources-and-growth">Block sources and growth</h2>
+<p dir="auto">A block-source concept expresses acquisition, ownership, alignment, release behavior, and whether<br>
+resource failure is genuinely recoverable. A successful source result must truthfully describe<br>
+suitably aligned raw or byte-array storage of the reported size, with no live non-trivial object<br>
+occupying it. It must be possible to provide:</p>
+<ul dir="auto">
+<li>fixed caller-owned storage that never allocates;</li>
+<li>an allocator-backed growing source;</li>
+<li>a PMR-backed adapter;</li>
+<li>a source using a constexpr-compatible fixed representation;</li>
+<li>test and benchmark sources that count every acquired byte and block.</li>
+</ul>
+<p dir="auto"><code class="notranslate">NewDeleteBlockSource</code>, <code class="notranslate">FixedBlockSource</code>, and <code class="notranslate">InlineBlockSource</code> use inherently non-throwing<br>
+acquisition and therefore always support <code class="notranslate">TryAllocate</code>. <code class="notranslate">AllocatorBlockSource</code> and<br>
+<code class="notranslate">PmrBlockSource</code> must call standard APIs whose failure contract is <code class="notranslate">std::bad_alloc</code>; their<br>
+<code class="notranslate">TryAllocate</code> is consequently available only in exception-enabled builds, where that exception can<br>
+be caught. In the repository's normal exception-disabled mode they support hard <code class="notranslate">Allocate</code> only.<br>
+This is a compile-time API distinction: mbo does not label an operation “try” when the selected<br>
+upstream API can terminate before returning failure.</p>
+<p dir="auto"><code class="notranslate">ArenaBlockSource&lt;ArenaType, Options&gt;</code> adapts a caller-owned recoverable arena for consumers that<br>
+hold multiple blocks at once, including HAMT nodes and segmented storage. It rounds requests into<br>
+power-of-two size classes and keeps released blocks in exact-size free lists. Reuse does not advance<br>
+the arena cursor; a new block returns failure if the arena is exhausted. The arena must outlive the<br>
+adapter and all blocks it supplies. Configure the arena's source, block sizes, and growth ratio<br>
+explicitly; <code class="notranslate">ArenaOptions{}</code> is invalid. A single-live-block <code class="notranslate">FixedBlockSource</code> is insufficient for<br>
+multi-node HAMT storage without this adapter or another multi-block source.</p>
+<p dir="auto">The adapter is move-only: copying free-list heads would allow overlapping live allocations.<br>
+Moves transfer the free lists and leave the source empty but reusable with its original arena.<br>
+Release outstanding blocks through the destination after moving. Move assignment replaces the<br>
+destination's old cache; those cached bytes remain owned by its old arena until that arena is<br>
+released. Neither moving nor destroying the adapter releases the caller-owned arena.</p>
+<p dir="auto"><code class="notranslate">ArenaOptions</code> defines the initial and maximum normal block sizes and a rational growth factor.<br>
+It deliberately supplies no performance default: <code class="notranslate">ArenaOptions{}</code> is invalid, and every <code class="notranslate">Arena</code><br>
+specialization names both its block source and a fully specified options value. This keeps the<br>
+correctness/API layer usable without selecting an unmeasured growth policy. A future default or<br>
+named policy alias requires comparable Apple M5 Pro and AMD Zen 5 evidence.<br>
+After each normal block, the implementation multiplies the next size by<br>
+<code class="notranslate">growth_numerator / growth_denominator</code>, rounds through integer arithmetic, and clamps the result<br>
+between the current size and <code class="notranslate">maximum_block_size</code>. A request larger than the next normal block<br>
+receives a dedicated oversized block and does not advance or otherwise distort that geometric<br>
+growth sequence. Listed, repeated-size, and hybrid policies are deferred alternatives, not behavior<br>
+of the current arena.</p>
+<p dir="auto">The policy must guard addition, multiplication, alignment rounding, and representation conversion<br>
+against overflow before acquiring or committing storage.</p>
+<h2 dir="auto" id="deferred-objectarena">Deferred <code class="notranslate">ObjectArena</code></h2>
+<p dir="auto">A future typed adapter may provide <code class="notranslate">Create&lt;T&gt;(args...)</code>. Construction failure must not publish the<br>
+object; whether it may consume otherwise unreachable tail bytes depends on the arena's rollback<br>
+contract.</p>
+<p dir="auto">For trivially destructible objects, no destructor metadata is needed. <code class="notranslate">ObjectArena</code> registers<br>
+non-trivial destructors and invokes them in reverse construction order during reset, release, or<br>
+destruction. Destructor registration costs space and time per object and changes reset complexity;<br>
+none of that state or work is present in raw <code class="notranslate">Arena</code>.</p>
+<h2 dir="auto" id="string-record-layouts">String-record layouts</h2>
+<p dir="auto">The interner requires both stable bytes and dense ID lookup. At least these layouts are compared:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Layout</th>
+<th>Arena contents</th>
+<th>External metadata</th>
+<th>Lookup characteristic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Packed bytes</td>
+<td>Concatenated string bytes</td>
+<td><code class="notranslate">(size, pointer)</code></td>
+<td>Direct; native-pointer metadata</td>
+</tr>
+<tr>
+<td>Packed bytes/offsets</td>
+<td>Concatenated string bytes</td>
+<td><code class="notranslate">(size, segment, offset)</code></td>
+<td>Direct; potentially narrower</td>
+</tr>
+<tr>
+<td>Inline records</td>
+<td>Repeated <code class="notranslate">(size, content)</code></td>
+<td>Offset table or linear scan</td>
+<td>Compact record; variable stepping</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Offsets may reduce metadata and improve relocatability, but introduce decoding and capacity limits.<br>
+No pointer-versus-offset choice is made until benchmarks cover realistic string-size distributions,<br>
+arena sizes, and lookup ratios.</p>
+<h2 dir="auto" id="relationship-to-segmentedvector">Relationship to <code class="notranslate">SegmentedVector</code></h2>
+<p dir="auto">Both components can acquire multiple backing blocks through <code class="notranslate">BlockSource</code>. Their ownership and<br>
+indexing remain distinct:</p>
+<ul dir="auto">
+<li>the arena suballocates variable-size, variably aligned byte ranges and uses region lifetime;</li>
+<li><code class="notranslate">SegmentedVector&lt;T&gt;</code> owns uniformly typed element slots, manages each <code class="notranslate">T</code>, and provides dense<br>
+indexed iteration.</li>
+</ul>
+<p dir="auto"><code class="notranslate">BlockSource</code> is their shared allocation boundary; it does not require a shared chain<br>
+representation. Any deeper common primitive should begin as a private implementation detail and<br>
+become public only when measurements or implementation experience show material value without<br>
+leaking one component's semantics into another.</p>
+<p dir="auto"><code class="notranslate">Reset()</code> retains every acquired block, including oversized blocks, resets each cursor, and starts<br>
+reuse at the first block. <code class="notranslate">Release()</code> returns every backing block to its source and restores the<br>
+arena and its geometric growth state to their initial empty values. Selective oversized-block<br>
+retention and retention budgets are deferred alternatives; the current <code class="notranslate">ArenaOptions</code> has no<br>
+retention controls.</p>
+<p dir="auto">Move and swap availability depends on storage and on safe source ownership transfer. They<br>
+participate only when the corresponding source construction, assignment, or swap is non-throwing,<br>
+so block ownership and the source that must release those blocks cannot become separated by an<br>
+exception. Move assignment first releases the destination's old state and therefore invalidates<br>
+pointers into that old destination. An arena with an inline fixed buffer is immovable and<br>
+unswappable because moving its embedded bytes would invalidate their addresses. Concepts and<br>
+constrained special members expose these distinctions at compile time.</p>
+<p dir="auto">Arena operations use external synchronization. The implementation adds no locks or atomics;<br>
+concurrent access, including allocation concurrent with observation, requires synchronization by<br>
+the caller.</p>
+<p dir="auto">Three constant-time counters are part of the basic contract:</p>
+<ul dir="auto">
+<li><code class="notranslate">bytes_used()</code> includes requested bytes and alignment padding consumed in active blocks;</li>
+<li><code class="notranslate">bytes_reserved()</code> includes all bytes in active and retained reusable blocks;</li>
+<li><code class="notranslate">block_count()</code> counts active and retained backing blocks.</li>
+</ul>
+<p dir="auto">These values are already inherent in block and cursor management and must not add a per-allocation<br>
+branch or atomic operation. Allocation count and the sum or distribution of requested sizes would<br>
+require additional hot-path updates, so they belong to opt-in diagnostics rather than the base<br>
+representation.</p>
+<h2 dir="auto" id="required-guarantees">Required guarantees</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Area</th>
+<th>Decision required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Typed lifetime</td>
+<td>Raw <code class="notranslate">Arena</code> now; reverse-destruction <code class="notranslate">ObjectArena</code> deferred</td>
+</tr>
+<tr>
+<td>Failure result</td>
+<td>Null from <code class="notranslate">TryAllocate</code>; configured hard failure from <code class="notranslate">Allocate</code></td>
+</tr>
+<tr>
+<td>Reset</td>
+<td><code class="notranslate">Reset</code> retains reusable blocks; <code class="notranslate">Release</code> returns every backing block</td>
+</tr>
+<tr>
+<td>Rollback</td>
+<td>Failed allocation leaves byte-tail state and growth position unchanged</td>
+</tr>
+<tr>
+<td>Oversized allocation</td>
+<td>Dedicated block without advancing the normal growth sequence</td>
+</tr>
+<tr>
+<td>Zero-size allocation</td>
+<td>Programmer precondition requires a size greater than zero</td>
+</tr>
+<tr>
+<td>Maximum alignment</td>
+<td>Source-specific and exposed by <code class="notranslate">max_alignment()</code></td>
+</tr>
+<tr>
+<td>Move/swap</td>
+<td>Address-preserving when source transfer/swap is non-throwing</td>
+</tr>
+<tr>
+<td>Thread safety</td>
+<td>External synchronization; no internal locks or atomics</td>
+</tr>
+<tr>
+<td>Introspection</td>
+<td><code class="notranslate">bytes_used</code>, <code class="notranslate">bytes_reserved</code>, and <code class="notranslate">block_count</code> in constant time</td>
+</tr>
+<tr>
+<td>Constexpr</td>
+<td>Options are constexpr; current raw-storage mutation is runtime-only</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="measurements-required">Measurements required</h2>
+<ul dir="auto">
+<li>allocation latency distributions for varied sizes and alignments;</li>
+<li>blocks acquired, bytes reserved, bytes used, padding, and fragmentation;</li>
+<li>current geometric and oversized growth behavior, plus any proposed alternative growth policy;</li>
+<li>packed pointer descriptors, relative offsets, and inline string records;</li>
+<li>reset with no destructors, trivial objects, and registered non-trivial destructors;</li>
+<li>branch and code-size cost of each failure-result form;</li>
+<li>PMR, standard allocator, direct allocation, and caller-owned block sources;</li>
+<li>small-string-heavy, mixed, and large-record workloads;</li>
+<li>interaction with the string index and <code class="notranslate">SegmentedVector</code> metadata table;</li>
+<li>exception-enabled and exception-disabled builds;</li>
+<li>single-threaded performance; synchronization remains the caller's responsibility.</li>
+</ul>
+<p dir="auto">The current raw-arena behavior is defined above. Representation choices, including pointer versus<br>
+offset descriptors, any future growth or retention defaults, and whether a deeper abstraction above<br>
+<code class="notranslate">BlockSource</code> merits a public API, remain benchmark decisions rather than missing semantics.<br>
+Callers currently select growth explicitly through <code class="notranslate">ArenaOptions</code>; the implementation does not<br>
+promote any measured candidate to a library default.</p>
+<p dir="auto">The public implementation targets the repository's C++23 baseline. The current raw byte-storage<br>
+representation still cannot create its intrusive <code class="notranslate">Block</code> object during constant evaluation. The<br>
+fixed source is therefore useful for allocation-free runtime operation, but the current arena does<br>
+not claim constexpr allocation. A future representation may add it without weakening the runtime<br>
+contract; the library must not pretend that merely marking a function <code class="notranslate">constexpr</code> proves constant<br>
+evaluability.</p>
+<h2 dir="auto" id="deferred-work">Deferred work</h2>
+<ul dir="auto">
+<li>Implement and benchmark <code class="notranslate">ObjectArena</code> with typed construction and reverse-order destruction when<br>
+a concrete user requires it.</li>
+<li>Design opt-in full diagnostics covering allocation-size histograms, requested bytes versus<br>
+padding, fragmentation, block reuse, oversized allocations, and peak memory. When diagnostics<br>
+are disabled they must contribute no fields, counter updates, branches, locks, or atomics to the<br>
+production hot path.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

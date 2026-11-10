@@ -1,0 +1,277 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/memory/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbomemory"><code class="notranslate">mbo/memory</code></h1>
+<p dir="auto"><code class="notranslate">mbo::memory</code> provides aligned raw memory blocks and an arena for allocating byte ranges from them.<br>
+It supports heap, allocator, memory resource, caller-owned, and inline storage, with configurable<br>
+arena growth, reuse, and allocation accounting. Typed object construction and destruction remain<br>
+the caller's responsibility.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::memory</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/block_source.h">block_source.h</a></td>
+<td><code class="notranslate">//mbo/memory:block_source_cc</code></td>
+<td><code class="notranslate">MemoryBlock</code>, source concepts, five block-source implementations</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/arena.h">arena.h</a></td>
+<td><code class="notranslate">//mbo/memory:arena_cc</code></td>
+<td><code class="notranslate">Arena&lt;Source, Options&gt;</code>, <code class="notranslate">ArenaOptions</code>, <code class="notranslate">ValidArenaOptions</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/arena_block_source.h">arena_block_source.h</a></td>
+<td><code class="notranslate">//mbo/memory:arena_block_source_cc</code></td>
+<td>Move-only recyclable blocks from a caller-owned recoverable arena</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="blocks-and-source-concepts">Blocks and source concepts</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MemoryBlock</code></td>
+<td><code class="notranslate">std::byte* data</code>, byte <code class="notranslate">size</code>, and <code class="notranslate">alignment</code>; default is an empty descriptor</td>
+</tr>
+<tr>
+<td><code class="notranslate">BlockSource&lt;Source&gt;</code></td>
+<td><code class="notranslate">TryAcquire(size, alignment)</code> returns <code class="notranslate">std::optional&lt;MemoryBlock&gt;</code>; <code class="notranslate">Release(block)</code> and <code class="notranslate">max_alignment()</code> are nonthrowing; static <code class="notranslate">supports_recoverable_failure</code> flag</td>
+</tr>
+<tr>
+<td><code class="notranslate">CopyableBlockSource&lt;Source&gt;</code></td>
+<td><code class="notranslate">BlockSource</code> plus <code class="notranslate">CopyForContainer() const</code> returning a new <code class="notranslate">Source</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Successful acquisition: suitable raw storage of at least the requested size and alignment.</li>
+<li>Release: return the descriptor to the source responsible for its acquisition.</li>
+<li>Block descriptors: do not release storage on destruction.</li>
+<li>Caller-owned storage and memory resources: must outlive their users and outstanding allocations.</li>
+</ul>
+<h2 dir="auto" id="block-source-implementations">Block-source implementations</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Source</th>
+<th>Storage</th>
+<th>Maximum alignment</th>
+<th>Recoverable allocation failure</th>
+<th><code class="notranslate">CopyForContainer</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">NewDeleteBlockSource</code></td>
+<td>Aligned nothrow <code class="notranslate">operator new/delete</code></td>
+<td>Largest representable power of two</td>
+<td>Always</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">FixedBlockSource</code></td>
+<td>Caller-owned <code class="notranslate">std::span&lt;std::byte&gt;</code></td>
+<td>Constructor argument; default <code class="notranslate">alignof(std::max_align_t)</code></td>
+<td>Always</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code class="notranslate">InlineBlockSource&lt;Size, Alignment&gt;</code></td>
+<td>Embedded byte array</td>
+<td><code class="notranslate">Alignment</code>; default <code class="notranslate">alignof(std::max_align_t)</code></td>
+<td>Always</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code class="notranslate">AllocatorBlockSource&lt;Allocator&gt;</code></td>
+<td>Allocator traits; default allocator of <code class="notranslate">std::max_align_t</code></td>
+<td>Alignment of allocator <code class="notranslate">value_type</code></td>
+<td>With C++ exceptions enabled</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">PmrBlockSource</code></td>
+<td>Borrowed <code class="notranslate">std::pmr::memory_resource</code></td>
+<td>Largest representable power of two</td>
+<td>With C++ exceptions enabled</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Fixed and inline sources: one outstanding block; successful acquisition returns the whole buffer.</li>
+<li>Fixed source: buffer address must satisfy the requested alignment; no automatic pointer adjustment.</li>
+<li>Inline source: positive size and power-of-two alignment; copying and moving disabled.</li>
+<li>Allocator source: <code class="notranslate">alignof(value_type) &gt;= alignof(std::max_align_t)</code>; allocation rounded to whole values.</li>
+<li>Allocator/PMR sources: catch <code class="notranslate">std::bad_alloc</code> only in exception-enabled builds.</li>
+<li>Allocator copy policy: <code class="notranslate">select_on_container_copy_construction</code>.</li>
+<li>PMR copy policy: retain the same resource pointer.</li>
+<li>Source inspection: <code class="notranslate">allocator()</code> on allocator sources; <code class="notranslate">resource()</code> on PMR sources.</li>
+</ul>
+<p dir="auto"><code class="notranslate">ArenaBlockSource&lt;ArenaType, Options&gt;</code> is a separate move-only adapter for clients that release<br>
+blocks independently. It recycles suitably sized released blocks while the caller-owned arena<br>
+retains the backing bytes. The arena must outlive the adapter and every outstanding allocation;<br>
+do not reset or release it while clients remain. Moving transfers the reusable cache and clears<br>
+the source cache without invalidating outstanding arena-owned blocks. See the<br>
+<a href="ARENA.html#block-sources-and-growth">arena block-source contract</a>. Checkpoint support is not required.</p>
+<h2 dir="auto" id="arena-policy">Arena policy</h2>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/memory/arena.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/memory/block_source.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">inline</span> <span class="pl-k">constexpr</span> mbo::memory::ArenaOptions <span class="pl-c1">kArenaOptions</span>{
+    .<span class="pl-smi">initial_block_size</span> = <span class="pl-c1">4'096</span>,
+    .<span class="pl-smi">maximum_block_size</span> = <span class="pl-c1">65'536</span>,
+    .<span class="pl-smi">growth_numerator</span> = <span class="pl-c1">2</span>,
+    .<span class="pl-smi">growth_denominator</span> = <span class="pl-c1">1</span>,
+};
+
+<span class="pl-k">using</span> ByteArena = mbo::memory::Arena&lt;mbo::memory::NewDeleteBlockSource, <span class="pl-c1">kArenaOptions</span>&gt;;</pre></div>
+<ul dir="auto">
+<li>Both source type and options: explicit template arguments.</li>
+<li>Zero-initialized <code class="notranslate">ArenaOptions{}</code>: invalid.</li>
+<li>Example values above: a caller-selected policy.</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Option</th>
+<th>Validity constraint</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">initial_block_size</code></td>
+<td>Greater than <code class="notranslate">sizeof(void*)</code></td>
+<td>First normal backing-block request</td>
+</tr>
+<tr>
+<td><code class="notranslate">maximum_block_size</code></td>
+<td>At least <code class="notranslate">initial_block_size</code></td>
+<td>Upper limit for normal block growth</td>
+</tr>
+<tr>
+<td><code class="notranslate">growth_numerator</code></td>
+<td>At least <code class="notranslate">growth_denominator</code></td>
+<td>Numerator of the growth ratio</td>
+</tr>
+<tr>
+<td><code class="notranslate">growth_denominator</code></td>
+<td>Nonzero</td>
+<td>Denominator of the growth ratio</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">ArenaOptions::IsValid()</code> and <code class="notranslate">ValidArenaOptions&lt;Options&gt;</code>: policy validation.</li>
+<li>Normal block growth: integer multiplication/division, clamped between current and maximum size.</li>
+<li>Oversized requests: dedicated larger block; normal growth sequence unchanged.</li>
+<li>Backing-block size: includes arena metadata and alignment overhead.</li>
+</ul>
+<h2 dir="auto" id="arena-operations">Arena operations</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default construction</td>
+<td>Default-construct the source; no blocks acquired</td>
+</tr>
+<tr>
+<td>Construction from <code class="notranslate">const Source&amp;</code> or <code class="notranslate">Source&amp;&amp;</code></td>
+<td>Copy or move the source when supported</td>
+</tr>
+<tr>
+<td><code class="notranslate">Allocate(size, alignment)</code></td>
+<td>Return aligned bytes; requirement failure on unsuccessful allocation</td>
+</tr>
+<tr>
+<td><code class="notranslate">TryAllocate(size, alignment)</code></td>
+<td>Return aligned bytes or null; available only when the source advertises recoverable failure</td>
+</tr>
+<tr>
+<td><code class="notranslate">Reset()</code></td>
+<td>Invalidate allocations, rewind cursors, retain every block for reuse</td>
+</tr>
+<tr>
+<td><code class="notranslate">Release()</code></td>
+<td>Invalidate allocations, release every block, restore initial growth state</td>
+</tr>
+<tr>
+<td><code class="notranslate">bytes_used()</code></td>
+<td>Requested bytes plus consumed allocation padding</td>
+</tr>
+<tr>
+<td><code class="notranslate">bytes_reserved()</code></td>
+<td>Total bytes in acquired blocks, including metadata and unused storage</td>
+</tr>
+<tr>
+<td><code class="notranslate">block_count()</code></td>
+<td>Number of acquired blocks, including blocks retained by reset</td>
+</tr>
+<tr>
+<td><code class="notranslate">source()</code></td>
+<td>Mutable or const reference to the underlying source</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Default allocation alignment: <code class="notranslate">alignof(std::max_align_t)</code>.</li>
+<li>Preconditions: <code class="notranslate">size &gt; 0</code>; alignment nonzero and a power of two.</li>
+<li><code class="notranslate">TryAllocate</code>: null for overflow, unsupported alignment, or reported source exhaustion.</li>
+<li>Invalid preconditions: <a href="../config/README.html#requirement-failures">configured requirement failure</a>,<br>
+including for <code class="notranslate">TryAllocate</code>.</li>
+<li>Consumer source exceptions: propagate; <code class="notranslate">TryAllocate</code> is not universally nonthrowing.</li>
+<li>Failed allocation: arena cursors, counters, block ownership, and growth state unchanged.</li>
+<li>Counters: constant-time queries; <code class="notranslate">Reset()</code> sets used bytes to zero and retains reserved bytes/block count.</li>
+<li>Successful allocations: stable addresses until reset, release, destruction, or release of their owning state.</li>
+</ul>
+<h2 dir="auto" id="ownership-and-lifetime">Ownership and lifetime</h2>
+<ul dir="auto">
+<li>Raw storage only: no typed construction API, destructor registry, or per-allocation deallocation.</li>
+<li>Objects constructed in arena storage: caller destroys them before reset, release, or destruction.</li>
+<li>Arena copying: disabled.</li>
+<li>Moving and swapping: constrained to nonthrowing source transfer or swap; preserve transferred addresses.</li>
+<li>Move assignment: releases the destination's old blocks first.</li>
+<li>Inline-source arena: immovable and unswappable.</li>
+<li>Thread synchronization: caller-owned; no internal locks or atomics.</li>
+<li>Allocation: runtime operation; constexpr options do not imply constexpr byte allocation.</li>
+</ul>
+<h2 dir="auto" id="tests-and-benchmarks">Tests and benchmarks</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/memory:all
+bazel run -c opt --config=clang //mbo/memory:arena_benchmark
+bazel run -c opt --config=clang //mbo/memory:arena_layout_benchmark</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/block_source_test.cc">block_source_test.cc</a>: acquisition, alignment, release, source constraints.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/arena_test.cc">arena_test.cc</a>: growth, exhaustion, reuse, moves, and accounting.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/memory/arena_exceptions_test.cc">arena_exceptions_test.cc</a>: consumer-source exceptions and requirement failures.</li>
+<li><a href="measurements/README.html">Measurements</a>: retained benchmark data and commands.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

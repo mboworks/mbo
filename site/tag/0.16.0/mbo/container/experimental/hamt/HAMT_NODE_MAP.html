@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_NODE_MAP.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="hamt-node-map">HAMT node map</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<p dir="auto"><code class="notranslate">HamtNodeMap&lt;Key, Mapped, Hash, Equal, Options, Source&gt;</code> stores immutable keys<br>
+and editable mapped values in separately allocated payloads. Persistent snapshots<br>
+share topology and payload ownership. Structural edits preserve addresses of<br>
+surviving payloads; mapped edits detach shared payloads before exposing mutation.<br>
+The existing HAMT traversal and mutation algorithms remain the single routing<br>
+implementation.</p>
+<p dir="auto">Persistent rvalue insertion accepts nothrow-movable entries, including move-only<br>
+mapped values. Duplicate detection happens before moving the entry, so a duplicate<br>
+does not consume its argument. Once payload construction succeeds, a later topology<br>
+allocation failure can leave the input moved-from while preserving all container<br>
+values. Snapshot sharing and erasure do not copy the mapped value. Editing a shared<br>
+payload and independent cloning require nothrow entry copying; move-only ownership<br>
+does not imply copy-on-write editing support.</p>
+<p dir="auto">Persistent iteration is read-only. Transient <code class="notranslate">at</code> detaches only the edited path<br>
+and payload. Mutable iteration and mutable <code class="notranslate">find</code> prepare unique ownership of the<br>
+whole tree and all payloads before exposing a forward iterator. Iterator copies<br>
+then traverse independently without lazy allocation during dereference. Keys<br>
+remain const. Mutable iterators convert to const iterators, not conversely.</p>
+<p dir="auto">Successful whole-tree payload preparation is remembered by the move-only transient.<br>
+Repeated mutable lookup, iteration, and insertion do not repeat that payload walk.<br>
+Failed partial preparation never establishes the proof. Moves and swaps keep the<br>
+proof with its map; consuming publication leaves an empty reusable transient.<br>
+A new transient created from a shared snapshot must establish its own proof.<br>
+Structural mutation introduces only newly owned payload records, preserving a<br>
+successful proof. The underlying tree separately caches node-ownership uniqueness;<br>
+node uniqueness alone cannot prove payload uniqueness.</p>
+<p dir="auto">Preparation may change topology or payload addresses even when a later allocation<br>
+fails; logical values and existing snapshots remain unchanged. Do not retain<br>
+editable references across publishing snapshots or subsequent ownership preparation.<br>
+External synchronization is required for all operations.</p>
+<p dir="auto"><code class="notranslate">try_clone_to&lt;OtherSource&gt;</code> reconstructs both topology and payloads in the destination<br>
+domain, rather than accidentally retaining payloads allocated by the original source.<br>
+Failure destroys the partial destination; consuming clones empty the source only<br>
+after success. Consuming <code class="notranslate">persistent</code> leaves a valid empty transient.</p>
+<p dir="auto">This implementation is still under validation. First mutable traversal of an<br>
+unprepared transient can perform whole-tree preparation; subsequent preparation<br>
+uses the retained proof. Performance decisions still require the complete benchmarks.<br>
+The copying entry interfaces require nothrow key and mapped-value copies. Tests cover<br>
+full-hash collisions, duplicate preservation, erasure, address stability, bounded<br>
+insertion, size limits, consuming-clone failure, heterogeneous lookup, source lifetime,<br>
+and all fragment widths from four to seven bits. Intermediate payload and topology<br>
+allocation failures preserve snapshots and release temporary ownership. Full-width<br>
+shared-prefix persistent mapped updates, new-key insertions, and chain-collapsing<br>
+erasures sweep every allocation boundary through success for fragment widths 4–7,<br>
+checking temporary release balance, snapshot values, and unchanged sibling payload<br>
+addresses. Mutable whole-tree preparation tests cover partial failure, retry, swap,<br>
+move assignment, snapshot preservation, and proof-cache invalidation. These focused<br>
+sweeps do not claim to enumerate every possible user topology. Source-domain control<br>
+allocation remains separate from the supplied block-source budget. Benchmark<br>
+comparisons follow the complete implementation stack; no fastest-container claim is<br>
+made here.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

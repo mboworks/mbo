@@ -1,0 +1,2000 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-summary.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="apple-m5-pro-c23-segmentedsequence-evidence">Apple M5 Pro C++23 SegmentedSequence evidence</h1>
+<p dir="auto">These tables are derived from the three immutable JSON envelopes recorded at source <code class="notranslate">109bc05353480985c1d1cc6365f078ec818e18f3</code>.<br>
+That source tree is byte-for-byte identical to merged commit <code class="notranslate">43bca82254757ce2f2d1023151de9b362968a175</code>. The measured symbol and<br>
+benchmark-family name was <code class="notranslate">SegmentedSequence</code>; the current API is renamed to <code class="notranslate">SegmentedVector</code> in<br>
+the evidence follow-up, so the historical raw names below remain unchanged for provenance.</p>
+<p dir="auto">All cases use Clang 22.1.8, C++23, libc++, Bazel 9.2.0, nine randomly interleaved repetitions,<br>
+one-second warmup, and one-second minimum time. Every timing is CPU nanoseconds for one benchmark<br>
+iteration. <code class="notranslate">Fast 3</code> is the arithmetic mean of the three smallest repetition means; sample SD and<br>
+CV use all nine. The corresponding JSON, not these derived tables, is authoritative.</p>
+<h2 dir="auto" id="production-matrix">Production matrix</h2>
+<p dir="auto">Artifact: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence.json"><code class="notranslate">macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence.json</code></a></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Min ns</th>
+<th align="right">Fast 3 ns</th>
+<th align="right">Median ns</th>
+<th align="right">Mean ns</th>
+<th align="right">Sample SD ns</th>
+<th align="right">CV</th>
+<th align="right">Max ns</th>
+<th align="right">Capacity</th>
+<th align="right">Reserved bytes</th>
+<th align="right">Segments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Deque/FreshConstructAppendDestroy</code></td>
+<td align="right">16328.45</td>
+<td align="right">16360.52</td>
+<td align="right">16458.54</td>
+<td align="right">16858.81</td>
+<td align="right">1101.97</td>
+<td align="right">6.54%</td>
+<td align="right">19775.46</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation0</code></td>
+<td align="right">47383.43</td>
+<td align="right">47469.79</td>
+<td align="right">47572.25</td>
+<td align="right">47585.33</td>
+<td align="right">111.16</td>
+<td align="right">0.23%</td>
+<td align="right">47717.07</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation1</code></td>
+<td align="right">47310.99</td>
+<td align="right">47386.12</td>
+<td align="right">47526.08</td>
+<td align="right">47595.37</td>
+<td align="right">197.51</td>
+<td align="right">0.41%</td>
+<td align="right">47822.80</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/S256/Capacity64/Reservation64</code></td>
+<td align="right">47734.08</td>
+<td align="right">47770.96</td>
+<td align="right">47834.52</td>
+<td align="right">47853.66</td>
+<td align="right">97.09</td>
+<td align="right">0.20%</td>
+<td align="right">48058.48</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/Uniform1024</code></td>
+<td align="right">44515.99</td>
+<td align="right">44568.86</td>
+<td align="right">44645.75</td>
+<td align="right">44665.20</td>
+<td align="right">95.92</td>
+<td align="right">0.21%</td>
+<td align="right">44808.42</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/Uniform256</code></td>
+<td align="right">47235.06</td>
+<td align="right">47298.35</td>
+<td align="right">47482.65</td>
+<td align="right">47456.26</td>
+<td align="right">141.62</td>
+<td align="right">0.30%</td>
+<td align="right">47623.00</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/FreshConstructAppendDestroy/Uniform64</code></td>
+<td align="right">58964.16</td>
+<td align="right">59076.19</td>
+<td align="right">59194.30</td>
+<td align="right">60095.14</td>
+<td align="right">2793.50</td>
+<td align="right">4.65%</td>
+<td align="right">67540.86</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation0/Cross2To4</code></td>
+<td align="right">1178.11</td>
+<td align="right">1179.14</td>
+<td align="right">1182.73</td>
+<td align="right">1182.69</td>
+<td align="right">3.34</td>
+<td align="right">0.28%</td>
+<td align="right">1188.40</td>
+<td align="right">768</td>
+<td align="right">6240</td>
+<td align="right">3</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation1/Cross2To4</code></td>
+<td align="right">1170.60</td>
+<td align="right">1173.11</td>
+<td align="right">1182.12</td>
+<td align="right">1181.98</td>
+<td align="right">8.35</td>
+<td align="right">0.71%</td>
+<td align="right">1195.70</td>
+<td align="right">768</td>
+<td align="right">6240</td>
+<td align="right">3</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation64/Preallocated</code></td>
+<td align="right">1151.39</td>
+<td align="right">1155.92</td>
+<td align="right">1161.19</td>
+<td align="right">1162.84</td>
+<td align="right">7.22</td>
+<td align="right">0.62%</td>
+<td align="right">1173.13</td>
+<td align="right">768</td>
+<td align="right">6240</td>
+<td align="right">3</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Indexed/Uniform1024</code></td>
+<td align="right">8164.88</td>
+<td align="right">8170.48</td>
+<td align="right">8177.87</td>
+<td align="right">8180.54</td>
+<td align="right">12.00</td>
+<td align="right">0.15%</td>
+<td align="right">8202.25</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Indexed/Uniform256</code></td>
+<td align="right">7083.83</td>
+<td align="right">7089.57</td>
+<td align="right">7095.78</td>
+<td align="right">7200.86</td>
+<td align="right">290.81</td>
+<td align="right">4.04%</td>
+<td align="right">7974.92</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Indexed/Uniform64</code></td>
+<td align="right">10183.33</td>
+<td align="right">10192.68</td>
+<td align="right">10217.20</td>
+<td align="right">10337.03</td>
+<td align="right">367.62</td>
+<td align="right">3.56%</td>
+<td align="right">11315.85</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IndexedPermuted/Uniform1024</code></td>
+<td align="right">8079.50</td>
+<td align="right">8084.82</td>
+<td align="right">8103.95</td>
+<td align="right">8108.42</td>
+<td align="right">29.61</td>
+<td align="right">0.37%</td>
+<td align="right">8176.49</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IndexedPermuted/Uniform256</code></td>
+<td align="right">7140.78</td>
+<td align="right">7142.26</td>
+<td align="right">7211.22</td>
+<td align="right">7210.53</td>
+<td align="right">73.25</td>
+<td align="right">1.02%</td>
+<td align="right">7332.27</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IndexedPermuted/Uniform64</code></td>
+<td align="right">8078.68</td>
+<td align="right">8084.36</td>
+<td align="right">8098.87</td>
+<td align="right">8117.42</td>
+<td align="right">41.04</td>
+<td align="right">0.51%</td>
+<td align="right">8197.35</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorArithmetic/Uniform1024</code></td>
+<td align="right">8191.76</td>
+<td align="right">8196.25</td>
+<td align="right">8208.56</td>
+<td align="right">8247.04</td>
+<td align="right">117.11</td>
+<td align="right">1.42%</td>
+<td align="right">8557.41</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorArithmetic/Uniform256</code></td>
+<td align="right">7067.10</td>
+<td align="right">7069.01</td>
+<td align="right">7087.16</td>
+<td align="right">7085.24</td>
+<td align="right">13.30</td>
+<td align="right">0.19%</td>
+<td align="right">7100.60</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorArithmetic/Uniform64</code></td>
+<td align="right">8123.63</td>
+<td align="right">8127.60</td>
+<td align="right">8139.00</td>
+<td align="right">8140.45</td>
+<td align="right">14.35</td>
+<td align="right">0.18%</td>
+<td align="right">8171.43</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorForward/Uniform1024</code></td>
+<td align="right">8211.42</td>
+<td align="right">8213.51</td>
+<td align="right">8221.78</td>
+<td align="right">8224.02</td>
+<td align="right">10.93</td>
+<td align="right">0.13%</td>
+<td align="right">8242.01</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorForward/Uniform256</code></td>
+<td align="right">7125.35</td>
+<td align="right">7130.69</td>
+<td align="right">7137.56</td>
+<td align="right">7138.21</td>
+<td align="right">7.92</td>
+<td align="right">0.11%</td>
+<td align="right">7152.61</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorForward/Uniform64</code></td>
+<td align="right">8143.43</td>
+<td align="right">8147.71</td>
+<td align="right">8156.18</td>
+<td align="right">8323.87</td>
+<td align="right">489.53</td>
+<td align="right">5.88%</td>
+<td align="right">9628.71</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorReverse/Uniform1024</code></td>
+<td align="right">8199.30</td>
+<td align="right">8205.30</td>
+<td align="right">8217.63</td>
+<td align="right">8222.29</td>
+<td align="right">17.23</td>
+<td align="right">0.21%</td>
+<td align="right">8247.34</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorReverse/Uniform256</code></td>
+<td align="right">7070.12</td>
+<td align="right">7073.63</td>
+<td align="right">7087.42</td>
+<td align="right">7087.73</td>
+<td align="right">15.92</td>
+<td align="right">0.22%</td>
+<td align="right">7119.63</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/IteratorReverse/Uniform64</code></td>
+<td align="right">9643.07</td>
+<td align="right">9655.84</td>
+<td align="right">9677.13</td>
+<td align="right">9687.86</td>
+<td align="right">46.24</td>
+<td align="right">0.48%</td>
+<td align="right">9800.27</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/RetainedAppendClear/Uniform1024</code></td>
+<td align="right">77423.62</td>
+<td align="right">77522.91</td>
+<td align="right">77622.41</td>
+<td align="right">77660.70</td>
+<td align="right">142.14</td>
+<td align="right">0.18%</td>
+<td align="right">77890.28</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/RetainedAppendClear/Uniform256</code></td>
+<td align="right">78062.91</td>
+<td align="right">78137.51</td>
+<td align="right">78205.60</td>
+<td align="right">78307.36</td>
+<td align="right">191.33</td>
+<td align="right">0.24%</td>
+<td align="right">78575.19</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/RetainedAppendClear/Uniform64</code></td>
+<td align="right">77684.63</td>
+<td align="right">77727.91</td>
+<td align="right">77975.90</td>
+<td align="right">77959.05</td>
+<td align="right">200.12</td>
+<td align="right">0.26%</td>
+<td align="right">78274.47</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Segments/Uniform1024</code></td>
+<td align="right">1522.11</td>
+<td align="right">1523.39</td>
+<td align="right">1526.85</td>
+<td align="right">1527.85</td>
+<td align="right">4.50</td>
+<td align="right">0.29%</td>
+<td align="right">1534.63</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Segments/Uniform256</code></td>
+<td align="right">1864.54</td>
+<td align="right">1867.76</td>
+<td align="right">1877.38</td>
+<td align="right">1919.86</td>
+<td align="right">135.78</td>
+<td align="right">7.07%</td>
+<td align="right">2281.56</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/Segments/Uniform64</code></td>
+<td align="right">3123.16</td>
+<td align="right">3134.96</td>
+<td align="right">3168.20</td>
+<td align="right">3157.10</td>
+<td align="right">17.99</td>
+<td align="right">0.57%</td>
+<td align="right">3175.37</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Vector/FreshConstructAppendDestroy</code></td>
+<td align="right">20604.63</td>
+<td align="right">20845.44</td>
+<td align="right">21119.79</td>
+<td align="right">21106.79</td>
+<td align="right">249.73</td>
+<td align="right">1.18%</td>
+<td align="right">21403.89</td>
+<td align="right">16384</td>
+<td align="right">131072</td>
+<td align="right">n/a</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="isolated-growth-event-counters">Isolated growth-event counters</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Source allocs</th>
+<th align="right">Source bytes</th>
+<th align="right">Directory allocs</th>
+<th align="right">Directory bytes</th>
+<th align="right">Directory frees</th>
+<th align="right">Directory freed bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation0/Cross2To4</code></td>
+<td align="right">1</td>
+<td align="right">2080</td>
+<td align="right">1</td>
+<td align="right">32</td>
+<td align="right">1</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation1/Cross2To4</code></td>
+<td align="right">1</td>
+<td align="right">2080</td>
+<td align="right">1</td>
+<td align="right">32</td>
+<td align="right">1</td>
+<td align="right">16</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedSequence/GrowthBoundary/S256/Capacity64/Reservation64/Preallocated</code></td>
+<td align="right">1</td>
+<td align="right">2080</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">All 32 production families have CV at or below 7.07%. At the isolated S256 third-segment<br>
+boundary, reservation 64 removes one 32-byte directory allocation and one 16-byte directory<br>
+deallocation, but changes median time only from 1,182.73/1,182.12 ns for reservations 0/1 to<br>
+1,161.19 ns: about 1.8%. The corresponding complete fresh-cycle medians of 47,572.25, 47,526.08,<br>
+and 47,834.52 ns do not establish a general reservation winner.</p>
+<p dir="auto">The S256 fresh-cycle median (47,482.65 ns) and retained append/clear median (78,205.60 ns) are<br>
+not equivalent workloads: one constructs and destroys the container and storage, while the other<br>
+reuses acquired segments and times <code class="notranslate">clear()</code>. Their ordering does not show that reuse is generally<br>
+slower. No segment-size or reservation default is selected from this one-machine diagnostic.</p>
+<h2 dir="auto" id="element-shape-matrix">Element-shape matrix</h2>
+<p dir="auto">Artifact: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-element-shape.json"><code class="notranslate">macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-element-shape.json</code></a></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Min ns</th>
+<th align="right">Fast 3 ns</th>
+<th align="right">Median ns</th>
+<th align="right">Mean ns</th>
+<th align="right">Sample SD ns</th>
+<th align="right">CV</th>
+<th align="right">Max ns</th>
+<th align="right">Capacity</th>
+<th align="right">Reserved bytes</th>
+<th align="right">Segments</th>
+<th align="right">Element bytes</th>
+<th align="right">Element alignment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/Aligned64</code></td>
+<td align="right">12081.13</td>
+<td align="right">12148.90</td>
+<td align="right">12203.16</td>
+<td align="right">12578.99</td>
+<td align="right">1190.18</td>
+<td align="right">9.46%</td>
+<td align="right">15751.03</td>
+<td align="right">16384</td>
+<td align="right">1049600</td>
+<td align="right">16</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/Blob16</code></td>
+<td align="right">8392.85</td>
+<td align="right">8415.06</td>
+<td align="right">8494.64</td>
+<td align="right">9133.61</td>
+<td align="right">1661.65</td>
+<td align="right">18.19%</td>
+<td align="right">13464.69</td>
+<td align="right">16384</td>
+<td align="right">262656</td>
+<td align="right">16</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/Blob256</code></td>
+<td align="right">26881.83</td>
+<td align="right">27066.79</td>
+<td align="right">27223.57</td>
+<td align="right">27229.54</td>
+<td align="right">165.21</td>
+<td align="right">0.61%</td>
+<td align="right">27419.97</td>
+<td align="right">16384</td>
+<td align="right">4194816</td>
+<td align="right">16</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/Blob64</code></td>
+<td align="right">11815.26</td>
+<td align="right">11850.08</td>
+<td align="right">12017.97</td>
+<td align="right">12626.61</td>
+<td align="right">1944.30</td>
+<td align="right">15.40%</td>
+<td align="right">17798.28</td>
+<td align="right">16384</td>
+<td align="right">1049088</td>
+<td align="right">16</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/String</code></td>
+<td align="right">13027.30</td>
+<td align="right">13034.87</td>
+<td align="right">13244.87</td>
+<td align="right">13386.99</td>
+<td align="right">372.04</td>
+<td align="right">2.78%</td>
+<td align="right">14023.77</td>
+<td align="right">16384</td>
+<td align="right">393728</td>
+<td align="right">16</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/StringRecord</code></td>
+<td align="right">9575.49</td>
+<td align="right">9598.11</td>
+<td align="right">9632.77</td>
+<td align="right">9916.63</td>
+<td align="right">787.08</td>
+<td align="right">7.94%</td>
+<td align="right">12008.71</td>
+<td align="right">16384</td>
+<td align="right">262656</td>
+<td align="right">16</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/U16</code></td>
+<td align="right">5787.29</td>
+<td align="right">5793.59</td>
+<td align="right">5800.02</td>
+<td align="right">5804.64</td>
+<td align="right">12.85</td>
+<td align="right">0.22%</td>
+<td align="right">5826.94</td>
+<td align="right">16384</td>
+<td align="right">33280</td>
+<td align="right">16</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/U32</code></td>
+<td align="right">5791.51</td>
+<td align="right">5793.29</td>
+<td align="right">5799.75</td>
+<td align="right">5804.38</td>
+<td align="right">15.36</td>
+<td align="right">0.26%</td>
+<td align="right">5841.67</td>
+<td align="right">16384</td>
+<td align="right">66048</td>
+<td align="right">16</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/U64</code></td>
+<td align="right">8091.65</td>
+<td align="right">8097.82</td>
+<td align="right">8114.22</td>
+<td align="right">8775.92</td>
+<td align="right">1264.29</td>
+<td align="right">14.41%</td>
+<td align="right">11200.69</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S1024/U8</code></td>
+<td align="right">7754.72</td>
+<td align="right">7761.29</td>
+<td align="right">7772.53</td>
+<td align="right">7787.67</td>
+<td align="right">55.05</td>
+<td align="right">0.71%</td>
+<td align="right">7932.54</td>
+<td align="right">16384</td>
+<td align="right">16896</td>
+<td align="right">16</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/Aligned64</code></td>
+<td align="right">11608.67</td>
+<td align="right">11684.27</td>
+<td align="right">11818.02</td>
+<td align="right">11870.03</td>
+<td align="right">258.34</td>
+<td align="right">2.18%</td>
+<td align="right">12497.25</td>
+<td align="right">16384</td>
+<td align="right">1052672</td>
+<td align="right">64</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/Blob16</code></td>
+<td align="right">7550.81</td>
+<td align="right">7567.12</td>
+<td align="right">7580.58</td>
+<td align="right">7703.27</td>
+<td align="right">176.08</td>
+<td align="right">2.29%</td>
+<td align="right">7992.70</td>
+<td align="right">16384</td>
+<td align="right">264192</td>
+<td align="right">64</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/Blob256</code></td>
+<td align="right">26598.45</td>
+<td align="right">26696.98</td>
+<td align="right">26850.27</td>
+<td align="right">28233.32</td>
+<td align="right">4060.94</td>
+<td align="right">14.38%</td>
+<td align="right">39049.76</td>
+<td align="right">16384</td>
+<td align="right">4196352</td>
+<td align="right">64</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/Blob64</code></td>
+<td align="right">11490.80</td>
+<td align="right">11652.12</td>
+<td align="right">11829.11</td>
+<td align="right">14177.42</td>
+<td align="right">4528.28</td>
+<td align="right">31.94%</td>
+<td align="right">25339.23</td>
+<td align="right">16384</td>
+<td align="right">1050624</td>
+<td align="right">64</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/String</code></td>
+<td align="right">13168.74</td>
+<td align="right">13388.09</td>
+<td align="right">13553.19</td>
+<td align="right">14041.91</td>
+<td align="right">1397.13</td>
+<td align="right">9.95%</td>
+<td align="right">17694.55</td>
+<td align="right">16384</td>
+<td align="right">395264</td>
+<td align="right">64</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/StringRecord</code></td>
+<td align="right">10851.80</td>
+<td align="right">10865.07</td>
+<td align="right">10972.70</td>
+<td align="right">12055.56</td>
+<td align="right">2965.14</td>
+<td align="right">24.60%</td>
+<td align="right">19908.49</td>
+<td align="right">16384</td>
+<td align="right">264192</td>
+<td align="right">64</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/U16</code></td>
+<td align="right">5329.77</td>
+<td align="right">5330.85</td>
+<td align="right">5336.09</td>
+<td align="right">5338.44</td>
+<td align="right">8.05</td>
+<td align="right">0.15%</td>
+<td align="right">5351.00</td>
+<td align="right">16384</td>
+<td align="right">34816</td>
+<td align="right">64</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/U32</code></td>
+<td align="right">5331.67</td>
+<td align="right">5333.00</td>
+<td align="right">5341.86</td>
+<td align="right">5441.48</td>
+<td align="right">308.60</td>
+<td align="right">5.67%</td>
+<td align="right">6264.33</td>
+<td align="right">16384</td>
+<td align="right">67584</td>
+<td align="right">64</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/U64</code></td>
+<td align="right">7140.05</td>
+<td align="right">7149.37</td>
+<td align="right">7219.10</td>
+<td align="right">7214.98</td>
+<td align="right">56.29</td>
+<td align="right">0.78%</td>
+<td align="right">7307.82</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S256/U8</code></td>
+<td align="right">6650.32</td>
+<td align="right">6653.39</td>
+<td align="right">6662.84</td>
+<td align="right">6843.33</td>
+<td align="right">544.70</td>
+<td align="right">7.96%</td>
+<td align="right">8295.68</td>
+<td align="right">16384</td>
+<td align="right">18432</td>
+<td align="right">64</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/Aligned64</code></td>
+<td align="right">12191.15</td>
+<td align="right">12354.98</td>
+<td align="right">12762.42</td>
+<td align="right">12810.24</td>
+<td align="right">631.37</td>
+<td align="right">4.93%</td>
+<td align="right">14370.43</td>
+<td align="right">16384</td>
+<td align="right">1064960</td>
+<td align="right">256</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/Blob16</code></td>
+<td align="right">9853.41</td>
+<td align="right">10265.35</td>
+<td align="right">10885.94</td>
+<td align="right">10993.29</td>
+<td align="right">706.31</td>
+<td align="right">6.42%</td>
+<td align="right">12084.57</td>
+<td align="right">16384</td>
+<td align="right">270336</td>
+<td align="right">256</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/Blob256</code></td>
+<td align="right">26836.60</td>
+<td align="right">27000.37</td>
+<td align="right">27294.13</td>
+<td align="right">27243.34</td>
+<td align="right">214.92</td>
+<td align="right">0.79%</td>
+<td align="right">27514.18</td>
+<td align="right">16384</td>
+<td align="right">4202496</td>
+<td align="right">256</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/Blob64</code></td>
+<td align="right">12454.78</td>
+<td align="right">12522.65</td>
+<td align="right">12836.85</td>
+<td align="right">12783.94</td>
+<td align="right">239.50</td>
+<td align="right">1.87%</td>
+<td align="right">13128.39</td>
+<td align="right">16384</td>
+<td align="right">1056768</td>
+<td align="right">256</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/String</code></td>
+<td align="right">13288.10</td>
+<td align="right">13409.35</td>
+<td align="right">13789.13</td>
+<td align="right">13786.45</td>
+<td align="right">382.43</td>
+<td align="right">2.77%</td>
+<td align="right">14521.58</td>
+<td align="right">16384</td>
+<td align="right">401408</td>
+<td align="right">256</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/StringRecord</code></td>
+<td align="right">10390.58</td>
+<td align="right">10602.48</td>
+<td align="right">10883.28</td>
+<td align="right">11133.99</td>
+<td align="right">851.40</td>
+<td align="right">7.65%</td>
+<td align="right">13298.07</td>
+<td align="right">16384</td>
+<td align="right">270336</td>
+<td align="right">256</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/U16</code></td>
+<td align="right">5627.02</td>
+<td align="right">5636.55</td>
+<td align="right">5648.46</td>
+<td align="right">5653.10</td>
+<td align="right">18.93</td>
+<td align="right">0.33%</td>
+<td align="right">5693.16</td>
+<td align="right">16384</td>
+<td align="right">40960</td>
+<td align="right">256</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/U32</code></td>
+<td align="right">5635.81</td>
+<td align="right">5642.35</td>
+<td align="right">5649.03</td>
+<td align="right">5765.96</td>
+<td align="right">284.14</td>
+<td align="right">4.93%</td>
+<td align="right">6502.39</td>
+<td align="right">16384</td>
+<td align="right">73728</td>
+<td align="right">256</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/U64</code></td>
+<td align="right">10398.07</td>
+<td align="right">10401.37</td>
+<td align="right">10424.80</td>
+<td align="right">10890.56</td>
+<td align="right">1401.04</td>
+<td align="right">12.86%</td>
+<td align="right">14626.12</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Permuted/S64/U8</code></td>
+<td align="right">7746.85</td>
+<td align="right">7750.79</td>
+<td align="right">7763.71</td>
+<td align="right">7771.06</td>
+<td align="right">30.58</td>
+<td align="right">0.39%</td>
+<td align="right">7848.26</td>
+<td align="right">16384</td>
+<td align="right">24576</td>
+<td align="right">256</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/Aligned64</code></td>
+<td align="right">11782.56</td>
+<td align="right">11820.82</td>
+<td align="right">11888.72</td>
+<td align="right">11880.60</td>
+<td align="right">57.76</td>
+<td align="right">0.49%</td>
+<td align="right">11966.99</td>
+<td align="right">16384</td>
+<td align="right">1049600</td>
+<td align="right">16</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/Blob16</code></td>
+<td align="right">8172.97</td>
+<td align="right">8179.60</td>
+<td align="right">8194.38</td>
+<td align="right">8564.23</td>
+<td align="right">1119.74</td>
+<td align="right">13.07%</td>
+<td align="right">11550.05</td>
+<td align="right">16384</td>
+<td align="right">262656</td>
+<td align="right">16</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/Blob256</code></td>
+<td align="right">26467.59</td>
+<td align="right">26547.90</td>
+<td align="right">27193.07</td>
+<td align="right">27008.95</td>
+<td align="right">351.39</td>
+<td align="right">1.30%</td>
+<td align="right">27310.97</td>
+<td align="right">16384</td>
+<td align="right">4194816</td>
+<td align="right">16</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/Blob64</code></td>
+<td align="right">11800.79</td>
+<td align="right">11839.91</td>
+<td align="right">11895.34</td>
+<td align="right">13026.03</td>
+<td align="right">2264.43</td>
+<td align="right">17.38%</td>
+<td align="right">17028.62</td>
+<td align="right">16384</td>
+<td align="right">1049088</td>
+<td align="right">16</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/String</code></td>
+<td align="right">9348.81</td>
+<td align="right">9357.48</td>
+<td align="right">9377.17</td>
+<td align="right">9588.20</td>
+<td align="right">594.86</td>
+<td align="right">6.20%</td>
+<td align="right">11169.36</td>
+<td align="right">16384</td>
+<td align="right">393728</td>
+<td align="right">16</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/StringRecord</code></td>
+<td align="right">8553.60</td>
+<td align="right">8564.63</td>
+<td align="right">8577.03</td>
+<td align="right">8591.13</td>
+<td align="right">35.24</td>
+<td align="right">0.41%</td>
+<td align="right">8659.54</td>
+<td align="right">16384</td>
+<td align="right">262656</td>
+<td align="right">16</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/U16</code></td>
+<td align="right">4525.79</td>
+<td align="right">4527.29</td>
+<td align="right">4531.72</td>
+<td align="right">4850.17</td>
+<td align="right">952.54</td>
+<td align="right">19.64%</td>
+<td align="right">7390.22</td>
+<td align="right">16384</td>
+<td align="right">33280</td>
+<td align="right">16</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/U32</code></td>
+<td align="right">4353.91</td>
+<td align="right">4361.39</td>
+<td align="right">4373.97</td>
+<td align="right">4371.30</td>
+<td align="right">8.96</td>
+<td align="right">0.20%</td>
+<td align="right">4380.05</td>
+<td align="right">16384</td>
+<td align="right">66048</td>
+<td align="right">16</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/U64</code></td>
+<td align="right">10165.15</td>
+<td align="right">10178.27</td>
+<td align="right">10204.15</td>
+<td align="right">10328.18</td>
+<td align="right">376.05</td>
+<td align="right">3.64%</td>
+<td align="right">11328.34</td>
+<td align="right">16384</td>
+<td align="right">131584</td>
+<td align="right">16</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S1024/U8</code></td>
+<td align="right">7859.78</td>
+<td align="right">7863.13</td>
+<td align="right">7872.10</td>
+<td align="right">7871.07</td>
+<td align="right">8.61</td>
+<td align="right">0.11%</td>
+<td align="right">7888.87</td>
+<td align="right">16384</td>
+<td align="right">16896</td>
+<td align="right">16</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/Aligned64</code></td>
+<td align="right">11600.02</td>
+<td align="right">11622.30</td>
+<td align="right">11645.81</td>
+<td align="right">12225.79</td>
+<td align="right">1709.83</td>
+<td align="right">13.99%</td>
+<td align="right">16783.76</td>
+<td align="right">16384</td>
+<td align="right">1052672</td>
+<td align="right">64</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/Blob16</code></td>
+<td align="right">7047.05</td>
+<td align="right">7069.41</td>
+<td align="right">7099.35</td>
+<td align="right">7468.44</td>
+<td align="right">865.94</td>
+<td align="right">11.59%</td>
+<td align="right">9665.33</td>
+<td align="right">16384</td>
+<td align="right">264192</td>
+<td align="right">64</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/Blob256</code></td>
+<td align="right">26656.45</td>
+<td align="right">26687.09</td>
+<td align="right">26833.87</td>
+<td align="right">26864.44</td>
+<td align="right">177.43</td>
+<td align="right">0.66%</td>
+<td align="right">27146.27</td>
+<td align="right">16384</td>
+<td align="right">4196352</td>
+<td align="right">64</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/Blob64</code></td>
+<td align="right">11613.86</td>
+<td align="right">11622.72</td>
+<td align="right">11665.04</td>
+<td align="right">11685.87</td>
+<td align="right">70.54</td>
+<td align="right">0.60%</td>
+<td align="right">11798.60</td>
+<td align="right">16384</td>
+<td align="right">1050624</td>
+<td align="right">64</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/String</code></td>
+<td align="right">9228.65</td>
+<td align="right">9239.47</td>
+<td align="right">9262.61</td>
+<td align="right">9641.53</td>
+<td align="right">854.44</td>
+<td align="right">8.86%</td>
+<td align="right">11738.22</td>
+<td align="right">16384</td>
+<td align="right">395264</td>
+<td align="right">64</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/StringRecord</code></td>
+<td align="right">10104.61</td>
+<td align="right">10131.40</td>
+<td align="right">10216.46</td>
+<td align="right">10201.81</td>
+<td align="right">59.27</td>
+<td align="right">0.58%</td>
+<td align="right">10285.27</td>
+<td align="right">16384</td>
+<td align="right">264192</td>
+<td align="right">64</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/U16</code></td>
+<td align="right">4415.76</td>
+<td align="right">4420.02</td>
+<td align="right">4430.27</td>
+<td align="right">4429.52</td>
+<td align="right">9.76</td>
+<td align="right">0.22%</td>
+<td align="right">4447.07</td>
+<td align="right">16384</td>
+<td align="right">34816</td>
+<td align="right">64</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/U32</code></td>
+<td align="right">4318.18</td>
+<td align="right">4321.03</td>
+<td align="right">4332.76</td>
+<td align="right">4497.21</td>
+<td align="right">500.53</td>
+<td align="right">11.13%</td>
+<td align="right">5831.76</td>
+<td align="right">16384</td>
+<td align="right">67584</td>
+<td align="right">64</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/U64</code></td>
+<td align="right">7094.75</td>
+<td align="right">7099.12</td>
+<td align="right">7103.20</td>
+<td align="right">7110.89</td>
+<td align="right">15.18</td>
+<td align="right">0.21%</td>
+<td align="right">7141.14</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S256/U8</code></td>
+<td align="right">6697.15</td>
+<td align="right">6703.58</td>
+<td align="right">6713.06</td>
+<td align="right">6717.10</td>
+<td align="right">14.51</td>
+<td align="right">0.22%</td>
+<td align="right">6745.12</td>
+<td align="right">16384</td>
+<td align="right">18432</td>
+<td align="right">64</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/Aligned64</code></td>
+<td align="right">12115.37</td>
+<td align="right">12144.18</td>
+<td align="right">12188.23</td>
+<td align="right">12566.33</td>
+<td align="right">1152.18</td>
+<td align="right">9.17%</td>
+<td align="right">15637.27</td>
+<td align="right">16384</td>
+<td align="right">1064960</td>
+<td align="right">256</td>
+<td align="right">64</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/Blob16</code></td>
+<td align="right">8174.59</td>
+<td align="right">8175.36</td>
+<td align="right">8180.94</td>
+<td align="right">9638.46</td>
+<td align="right">4374.65</td>
+<td align="right">45.39%</td>
+<td align="right">21304.20</td>
+<td align="right">16384</td>
+<td align="right">270336</td>
+<td align="right">256</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/Blob256</code></td>
+<td align="right">26843.41</td>
+<td align="right">27115.69</td>
+<td align="right">27303.63</td>
+<td align="right">28093.36</td>
+<td align="right">2482.97</td>
+<td align="right">8.84%</td>
+<td align="right">34698.30</td>
+<td align="right">16384</td>
+<td align="right">4202496</td>
+<td align="right">256</td>
+<td align="right">256</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/Blob64</code></td>
+<td align="right">12107.17</td>
+<td align="right">12119.38</td>
+<td align="right">12152.31</td>
+<td align="right">12160.93</td>
+<td align="right">45.22</td>
+<td align="right">0.37%</td>
+<td align="right">12251.52</td>
+<td align="right">16384</td>
+<td align="right">1056768</td>
+<td align="right">256</td>
+<td align="right">64</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/String</code></td>
+<td align="right">9503.64</td>
+<td align="right">9513.05</td>
+<td align="right">9567.08</td>
+<td align="right">9829.92</td>
+<td align="right">780.37</td>
+<td align="right">7.94%</td>
+<td align="right">11903.78</td>
+<td align="right">16384</td>
+<td align="right">401408</td>
+<td align="right">256</td>
+<td align="right">24</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/StringRecord</code></td>
+<td align="right">8515.93</td>
+<td align="right">8528.39</td>
+<td align="right">8550.29</td>
+<td align="right">8565.73</td>
+<td align="right">50.99</td>
+<td align="right">0.60%</td>
+<td align="right">8687.15</td>
+<td align="right">16384</td>
+<td align="right">270336</td>
+<td align="right">256</td>
+<td align="right">16</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/U16</code></td>
+<td align="right">4340.82</td>
+<td align="right">4343.09</td>
+<td align="right">4347.75</td>
+<td align="right">4599.35</td>
+<td align="right">755.65</td>
+<td align="right">16.43%</td>
+<td align="right">6614.39</td>
+<td align="right">16384</td>
+<td align="right">40960</td>
+<td align="right">256</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/U32</code></td>
+<td align="right">4328.17</td>
+<td align="right">4329.18</td>
+<td align="right">4341.08</td>
+<td align="right">4347.27</td>
+<td align="right">20.83</td>
+<td align="right">0.48%</td>
+<td align="right">4386.73</td>
+<td align="right">16384</td>
+<td align="right">73728</td>
+<td align="right">256</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/U64</code></td>
+<td align="right">8130.56</td>
+<td align="right">8134.07</td>
+<td align="right">8154.49</td>
+<td align="right">8154.50</td>
+<td align="right">23.68</td>
+<td align="right">0.29%</td>
+<td align="right">8210.06</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td><code class="notranslate">ElementShape/Sequential/S64/U8</code></td>
+<td align="right">7807.51</td>
+<td align="right">7810.73</td>
+<td align="right">7823.43</td>
+<td align="right">7821.51</td>
+<td align="right">10.55</td>
+<td align="right">0.13%</td>
+<td align="right">7837.61</td>
+<td align="right">16384</td>
+<td align="right">24576</td>
+<td align="right">256</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Exactly 15 of 60 element-shape families exceed 10% CV. The largest are<br>
+<code class="notranslate">Sequential/S64/Blob16</code> at 45.39%, <code class="notranslate">Permuted/S256/Blob64</code> at 31.94%, and<br>
+<code class="notranslate">Permuted/S256/StringRecord</code> at 24.60%. No memory counter changes across repetitions, but the<br>
+timing dispersion makes these families diagnostic only and unsuitable for fine ranking.</p>
+<p dir="auto">The envelope's UTC timestamps span 1,592.63 seconds while its recorded monotonic benchmark<br>
+duration is 922.36 seconds, an unexplained difference of about 670 seconds. No cause is asserted.<br>
+The recorded host load is sampled at artifact completion, not benchmark startup. These limitations<br>
+reinforce that a quiet rerun, especially on Zen 5, is required before selection decisions.</p>
+<h2 dir="auto" id="lifecycle-matrix">Lifecycle matrix</h2>
+<p dir="auto">Artifact: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/container/measurements/data/macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-lifecycle.json"><code class="notranslate">macos-arm64-apple-m5-pro_clang-22_109bc05353480985c1d1cc6365f078ec818e18f3_segmented-sequence-lifecycle.json</code></a></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Min ns</th>
+<th align="right">Fast 3 ns</th>
+<th align="right">Median ns</th>
+<th align="right">Mean ns</th>
+<th align="right">Sample SD ns</th>
+<th align="right">CV</th>
+<th align="right">Max ns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S256</code></td>
+<td align="right">44995.16</td>
+<td align="right">46659.93</td>
+<td align="right">47744.24</td>
+<td align="right">47493.65</td>
+<td align="right">980.37</td>
+<td align="right">2.06%</td>
+<td align="right">48480.56</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S64</code></td>
+<td align="right">44756.60</td>
+<td align="right">46767.79</td>
+<td align="right">47867.27</td>
+<td align="right">47579.47</td>
+<td align="right">1073.90</td>
+<td align="right">2.26%</td>
+<td align="right">48278.54</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S256</code></td>
+<td align="right">14944.05</td>
+<td align="right">14979.22</td>
+<td align="right">15069.51</td>
+<td align="right">15077.60</td>
+<td align="right">101.09</td>
+<td align="right">0.67%</td>
+<td align="right">15270.21</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S64</code></td>
+<td align="right">23375.80</td>
+<td align="right">23485.75</td>
+<td align="right">23688.81</td>
+<td align="right">23676.94</td>
+<td align="right">191.18</td>
+<td align="right">0.81%</td>
+<td align="right">24035.99</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/16384</code></td>
+<td align="right">81911.35</td>
+<td align="right">82005.71</td>
+<td align="right">82118.29</td>
+<td align="right">82295.24</td>
+<td align="right">372.78</td>
+<td align="right">0.45%</td>
+<td align="right">82992.96</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/256</code></td>
+<td align="right">797.53</td>
+<td align="right">809.75</td>
+<td align="right">819.07</td>
+<td align="right">817.88</td>
+<td align="right">8.88</td>
+<td align="right">1.09%</td>
+<td align="right">828.94</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/4096</code></td>
+<td align="right">20373.21</td>
+<td align="right">20449.73</td>
+<td align="right">20547.25</td>
+<td align="right">20539.01</td>
+<td align="right">88.64</td>
+<td align="right">0.43%</td>
+<td align="right">20663.05</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/16384</code></td>
+<td align="right">75264.51</td>
+<td align="right">80154.69</td>
+<td align="right">82834.99</td>
+<td align="right">82053.47</td>
+<td align="right">2556.44</td>
+<td align="right">3.12%</td>
+<td align="right">83196.25</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/4096</code></td>
+<td align="right">18333.77</td>
+<td align="right">19819.81</td>
+<td align="right">20627.68</td>
+<td align="right">20380.04</td>
+<td align="right">769.12</td>
+<td align="right">3.77%</td>
+<td align="right">20710.50</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/64</code></td>
+<td align="right">203.19</td>
+<td align="right">207.41</td>
+<td align="right">210.12</td>
+<td align="right">209.38</td>
+<td align="right">2.36</td>
+<td align="right">1.13%</td>
+<td align="right">210.71</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/16384</code></td>
+<td align="right">79714.99</td>
+<td align="right">80716.76</td>
+<td align="right">87456.22</td>
+<td align="right">84667.05</td>
+<td align="right">3552.98</td>
+<td align="right">4.20%</td>
+<td align="right">87855.33</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/256</code></td>
+<td align="right">851.18</td>
+<td align="right">853.79</td>
+<td align="right">857.29</td>
+<td align="right">856.80</td>
+<td align="right">2.68</td>
+<td align="right">0.31%</td>
+<td align="right">859.44</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/4096</code></td>
+<td align="right">20155.05</td>
+<td align="right">21133.50</td>
+<td align="right">21714.39</td>
+<td align="right">21536.15</td>
+<td align="right">520.93</td>
+<td align="right">2.42%</td>
+<td align="right">21761.28</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/16384</code></td>
+<td align="right">96966.15</td>
+<td align="right">97029.03</td>
+<td align="right">97173.06</td>
+<td align="right">97244.11</td>
+<td align="right">233.42</td>
+<td align="right">0.24%</td>
+<td align="right">97624.13</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/4096</code></td>
+<td align="right">22457.02</td>
+<td align="right">23558.05</td>
+<td align="right">24146.71</td>
+<td align="right">24124.74</td>
+<td align="right">769.98</td>
+<td align="right">3.19%</td>
+<td align="right">25513.28</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/64</code></td>
+<td align="right">248.94</td>
+<td align="right">249.35</td>
+<td align="right">250.24</td>
+<td align="right">258.31</td>
+<td align="right">12.83</td>
+<td align="right">4.97%</td>
+<td align="right">278.24</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="lifecycle-state">Lifecycle state</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Depth</th>
+<th align="right">Low capacity</th>
+<th align="right">Low reserved</th>
+<th align="right">Low segments</th>
+<th align="right">Restored capacity</th>
+<th align="right">Restored reserved</th>
+<th align="right">Restored segments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S256</code></td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S64</code></td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S256</code></td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S64</code></td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">n/a</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/16384</code></td>
+<td align="right">16384</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/256</code></td>
+<td align="right">256</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/4096</code></td>
+<td align="right">4096</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/16384</code></td>
+<td align="right">16384</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/4096</code></td>
+<td align="right">4096</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/64</code></td>
+<td align="right">64</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/16384</code></td>
+<td align="right">16384</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/256</code></td>
+<td align="right">256</td>
+<td align="right">16128</td>
+<td align="right">131040</td>
+<td align="right">63</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/4096</code></td>
+<td align="right">4096</td>
+<td align="right">12288</td>
+<td align="right">99840</td>
+<td align="right">48</td>
+<td align="right">16384</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/16384</code></td>
+<td align="right">16384</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/4096</code></td>
+<td align="right">4096</td>
+<td align="right">12288</td>
+<td align="right">104448</td>
+<td align="right">192</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/64</code></td>
+<td align="right">64</td>
+<td align="right">16320</td>
+<td align="right">138720</td>
+<td align="right">255</td>
+<td align="right">16384</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="lifecycle-event-counters-per-cycle">Lifecycle event counters per cycle</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Family</th>
+<th align="right">Source allocs</th>
+<th align="right">Source bytes</th>
+<th align="right">Source releases</th>
+<th align="right">Source released bytes</th>
+<th align="right">Directory allocs</th>
+<th align="right">Directory bytes</th>
+<th align="right">Directory frees</th>
+<th align="right">Directory freed bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S256</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ClearRegrow/S64</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S256</code></td>
+<td align="right">64</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">133120</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/ReleaseRegrow/S64</code></td>
+<td align="right">256</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">139264</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/16384</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/256</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S256/4096</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/16384</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/4096</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Retained/S64/64</code></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/16384</code></td>
+<td align="right">64</td>
+<td align="right">133120</td>
+<td align="right">64</td>
+<td align="right">133120</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/256</code></td>
+<td align="right">1</td>
+<td align="right">2080</td>
+<td align="right">1</td>
+<td align="right">2080</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S256/4096</code></td>
+<td align="right">16</td>
+<td align="right">33280</td>
+<td align="right">16</td>
+<td align="right">33280</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/16384</code></td>
+<td align="right">256</td>
+<td align="right">139264</td>
+<td align="right">256</td>
+<td align="right">139264</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/4096</code></td>
+<td align="right">64</td>
+<td align="right">34816</td>
+<td align="right">64</td>
+<td align="right">34816</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lifecycle/Trimmed/S64/64</code></td>
+<td align="right">1</td>
+<td align="right">544</td>
+<td align="right">1</td>
+<td align="right">544</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">All 16 lifecycle families have CV at or below 4.97%. <code class="notranslate">ReleaseRegrow/S256</code> has a 15,069.51 ns<br>
+median versus 47,744.24 ns for <code class="notranslate">ClearRegrow/S256</code>, but the code paths and compiler-visible work<br>
+are not equivalent enough to generalize that release beats reuse. Both use reserved unchecked<br>
+append and retain the directory; release reacquires 64 source blocks while clear reacquires none.<br>
+They also must not be compared as like-for-like with the production fresh case, which constructs<br>
+and destroys its directory and uses checked emplacement.</p>
+<h2 dir="auto" id="evidence-status">Evidence status</h2>
+<p dir="auto">This is valid, clean-tree Apple M5 Pro C++23 evidence for the merged fixed-segment<br>
+implementation. It is diagnostic rather than a cross-machine selection result. Matching AMD Zen 5<br>
+evidence remains pending and is required before a performance-sensitive representation or default<br>
+is selected. Schema validity establishes provenance and completeness; it does not by itself make a<br>
+noisy family reliable for ranking.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

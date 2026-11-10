@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_NODE_SET.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="persistent-node-hamt-set">Persistent node HAMT set</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<p dir="auto"><code class="notranslate">HamtNodeSet&lt;Key, Hash, Equal, Options, Source&gt;</code> shares the general HAMT core with<br>
+the flat containers but stores each key in a separately owned payload. Persistent<br>
+copies and structural mutation keep unchanged key addresses stable. Iterators<br>
+expose <code class="notranslate">const Key&amp;</code>, not ownership handles; keys cannot be edited.</p>
+<p dir="auto">Persistent insertion and erasure return <code class="notranslate">(new_set, changed)</code>. The move-only transient<br>
+provides iterator/bool insertion and count erasure; consuming conversion leaves it<br>
+empty and reusable. Duplicate insertion preserves its original payload and does<br>
+not allocate. Full-hash collisions still compare keys, independently of hashes.</p>
+<p dir="auto"><code class="notranslate">try_</code> mutation reports allocation exhaustion and maximum-size failure. Ordinary<br>
+mutation terminates on these failures; it does not throw. Source construction,<br>
+called hash/equality operations, and key copies used by const-reference insertion<br>
+must be nonthrowing. An unexpected source exception terminates rather than being<br>
+caught. Source and container access require external synchronization.</p>
+<p dir="auto">Source-changing cloning reconstructs independent payloads and topology in the new<br>
+domain. Successful cloning therefore does not preserve original key addresses.<br>
+Consuming clones empty the original only after complete success; failure preserves<br>
+its contents. Erasing a key invalidates access through the modified container, while<br>
+unchanged snapshots retain their payloads. Iterators are invalidated by structural<br>
+mutation even though unchanged key references remain stable.</p>
+<p dir="auto">Persistent and transient rvalue insertion move keys into payload storage and<br>
+support nothrow move-only keys. Duplicate checks happen before moving, preserving<br>
+duplicate arguments. A later topology-allocation failure preserves container values<br>
+but may leave the supplied argument moved from; input objects are not rolled back.<br>
+Clone operations require nothrow key copying, even when insertion supports moves.<br>
+Bounded-source tests cover payload and topology exhaustion, snapshot preservation, and failed cloning.<br>
+<a href="HAMT_NODE_MAP.html"><code class="notranslate">HamtNodeMap</code></a> implements the corresponding stable-payload map.<br>
+The general map comparison harness is described in<br>
+<a href="HAMT_MAP_BENCHMARKS.html"><code class="notranslate">HAMT_MAP_BENCHMARKS.md</code></a>. Final performance comparisons<br>
+remain workload-dependent; this layout is not a performance claim.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

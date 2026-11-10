@@ -1,0 +1,287 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/SEGMENTED_VECTOR.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="segmentedvector-design">SegmentedVector design</h1>
+<p dir="auto">This document specifies the current <code class="notranslate">mbo::container::SegmentedVector</code> contract. The container is<br>
+an append-oriented sequence with stable element addresses, fixed-capacity segments, and constant-time<br>
+indexed access.</p>
+<p dir="auto"><code class="notranslate">SegmentedVector</code> is the current name for the fixed-size-segment container originally introduced as<br>
+<code class="notranslate">SegmentedSequence</code>. There is intentionally no compatibility alias. Callers migrate the header,<br>
+type, options, concepts, tests, and Bazel labels from <code class="notranslate">segmented_sequence</code> / <code class="notranslate">SegmentedSequence</code> to<br>
+<code class="notranslate">segmented_vector</code> / <code class="notranslate">SegmentedVector</code>. Historical benchmark JSON and links keep their measured<br>
+names and source SHAs unchanged.</p>
+<p dir="auto">The shared options and element/representation concepts live in <code class="notranslate">segmented_options.h</code>: <code class="notranslate">SegmentedOptions</code>,<br>
+<code class="notranslate">ValidSegmentedOptions</code>, <code class="notranslate">SegmentedElement</code>, and <code class="notranslate">RepresentableSegmentedOptions</code>. Both segmented<br>
+containers use these names; the former vector-specific option and concept names have been removed.</p>
+<h2 dir="auto" id="purpose">Purpose</h2>
+<p dir="auto"><code class="notranslate">SegmentedVector&lt;T&gt;</code> avoids relocating existing elements when it grows. It is useful for dense ID<br>
+metadata and other append-heavy storage where references must remain valid, without requiring one<br>
+contiguous allocation for every element.</p>
+<h2 dir="auto" id="current-contract">Current contract</h2>
+<ul dir="auto">
+<li><code class="notranslate">T</code> is a complete, cv-unqualified, non-array object type with a non-throwing destructor.</li>
+<li><code class="notranslate">SegmentedOptions::segment_size</code> is the power-of-two element count in every segment and is<br>
+part of the segment type. <code class="notranslate">segment_capacity</code> is the maximum number of segment slots: a finite value<br>
+is a nonzero power of two, while <code class="notranslate">SIZE_MAX</code> selects growth up to the private representation limit.<br>
+<code class="notranslate">segment_reservation</code> is the initial directory reservation; it is zero or a power of two, cannot<br>
+exceed a finite capacity, and defaults to one.</li>
+<li>A finite <code class="notranslate">segment_size * segment_capacity</code> product must fit the iterator and element-count<br>
+representation limits. It is a private validation/growth bound, not a third public capacity API.<br>
+A block source has no static size-limit API; runtime source exhaustion is reported by <code class="notranslate">try_*</code> or by<br>
+the configured hard requirement.</li>
+<li>A dense position maps to a directory index and slot index with a shift and mask. Iterators model<br>
+<code class="notranslate">random_access_iterator</code>; indexed access and iterator movement are constant time.</li>
+<li>Existing elements, references, and iterators remain valid when the directory or sequence grows.<br>
+Directory reallocation moves only <code class="notranslate">Segment*</code> entries. It never moves a segment header or element.</li>
+<li>Mutation is limited to append, suffix removal, and whole-container operations. Arbitrary insertion<br>
+and erasure are intentionally unsupported.</li>
+<li>An emptied tail segment remains allocated for later append. <code class="notranslate">trim_capacity()</code> releases empty tail<br>
+segments, <code class="notranslate">clear()</code> destroys elements but retains segments, and <code class="notranslate">release()</code> destroys elements and<br>
+returns every segment to its source.</li>
+<li><code class="notranslate">capacity()</code> is the number of element slots in currently acquired full segments. Growth stops at<br>
+the hard <code class="notranslate">segment_capacity</code> segment bound even when the source and directory allocator could keep<br>
+allocating.</li>
+<li><code class="notranslate">segments()</code> exposes non-contiguous random-access views of constructed element prefixes and omits<br>
+empty tail segments. The whole-container API makes no contiguity promise. Adding <code class="notranslate">data()</code> or a<br>
+<code class="notranslate">span</code> conversion would require a separate public-contract and representation decision; it does<br>
+not follow merely from the current <code class="notranslate">Slot</code> representation.</li>
+<li><code class="notranslate">pop_back()</code> invalidates the removed element and old past-the-end iterator, but nothing referring<br>
+to earlier elements. <code class="notranslate">clear()</code> and <code class="notranslate">release()</code> invalidate all element references and iterators.<br>
+<code class="notranslate">trim_capacity()</code> preserves references and iterators to live elements.</li>
+<li><code class="notranslate">pop_back_value()</code> participates when <code class="notranslate">T</code> is move constructible. It follows<br>
+<a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3182r1.html" rel="nofollow">P3182R1</a>:<br>
+construct the return value directly from the endpoint, then pop only after success. A throwing<br>
+move preserves size and element lifetimes but may change the source value. There is no copy<br>
+fallback. Its conditional <code class="notranslate">noexcept</code> accounts for both move construction and the requirement<br>
+policy. See the shared <a href="README.html#value-returning-pops">value-pop contract</a>.</li>
+<li>Append, range append, and <code class="notranslate">resize()</code> roll back constructed suffix elements and newly acquired<br>
+segments after allocation or construction failure. A successful directory reserve may remain.<br>
+As with standard containers, an aliased argument whose throwing move already modified an existing<br>
+element does not receive a value-level strong guarantee. Consuming an external single-pass range<br>
+also cannot itself be undone.</li>
+<li>Thread safety uses external synchronization. Concurrent const access is permitted only while no<br>
+thread mutates the sequence. The implementation adds no locks or atomics.</li>
+</ul>
+<h2 dir="auto" id="storage-allocation-and-lifetime">Storage, allocation, and lifetime</h2>
+<p dir="auto">Each segment is one complete typed object containing its source <code class="notranslate">MemoryBlock</code>, constructed size,<br>
+and <code class="notranslate">std::array&lt;Slot, segment_size&gt;</code>. Runtime growth requests exactly one raw<br>
+block of <code class="notranslate">sizeof(Segment)</code> and <code class="notranslate">alignof(Segment)</code> from the <code class="notranslate">BlockSource</code>, then placement-constructs the<br>
+segment in that block. Individual <code class="notranslate">T</code> lifetimes begin and end in inactive union slots through<br>
+<code class="notranslate">construct_at</code> and <code class="notranslate">destroy_at</code>. Releasing a segment destroys its typed header before returning the<br>
+original block to the source.</p>
+<p dir="auto">The separate flat directory is <code class="notranslate">std::vector&lt;Segment*&gt;</code>. Its allocator is the fourth template<br>
+parameter, <code class="notranslate">DirectoryAllocator</code>, rebound internally to <code class="notranslate">Segment*</code>. Consequently, ordinary segment<br>
+growth is one source allocation except when the directory also crosses a reserve threshold. The<br>
+three options make that behavior explicit:</p>
+<ul dir="auto">
+<li><code class="notranslate">segment_reservation == 0</code> keeps empty construction allocation-free.</li>
+<li>The default reservation of one requests one pointer slot during construction, so default<br>
+construction is potentially throwing.</li>
+<li><code class="notranslate">segment_reservation == segment_capacity</code> for a finite configuration requests the whole directory<br>
+once; every later segment growth then performs only its source allocation.</li>
+<li>Intermediate reservations grow with power-of-two requests up to the hard capacity. <code class="notranslate">std::vector</code><br>
+may reserve more than requested, so its reported capacity is not promised to equal a request.</li>
+</ul>
+<p dir="auto">The container is allocator-aware for its directory: it defines <code class="notranslate">allocator_type</code>, <code class="notranslate">get_allocator()</code>,<br>
+and leading <code class="notranslate">allocator_arg_t</code> constructors. Copy construction applies<br>
+<code class="notranslate">select_on_container_copy_construction</code>. Copy assignment retains the destination directory allocator.<br>
+It is disabled for allocators that request <code class="notranslate">propagate_on_container_copy_assignment</code>, because changing<br>
+the directory allocator independently of the block-owning source would not be transactional.<br>
+Move assignment and swap preserve unequal non-propagating allocators by first building replacement<br>
+pointer directories; they never invoke <code class="notranslate">vector::swap</code> with unequal non-propagating allocators.<br>
+Their participation and <code class="notranslate">noexcept</code> specifications also account for the <code class="notranslate">Source</code> operations.</p>
+<p dir="auto">Segment storage and directory storage are independent choices. They can use different resources, or<br>
+a <code class="notranslate">PmrBlockSource</code> and <code class="notranslate">pmr::polymorphic_allocator</code> can direct both to the same memory resource.<br>
+<code class="notranslate">FixedBlockSource</code> and <code class="notranslate">InlineBlockSource</code> each permit one outstanding block, so they support<br>
+bounded one-segment configurations unless a different multi-block source is supplied. The pointer<br>
+directory still uses its configured allocator.</p>
+<h2 dir="auto" id="constant-evaluation">Constant evaluation</h2>
+<p dir="auto">The default standard-allocator configuration supports real C++23 constant evaluation. During<br>
+constant evaluation, the implementation allocates a typed <code class="notranslate">Segment</code> with <code class="notranslate">std::allocator&lt;Segment&gt;</code>;<br>
+this avoids forbidden constant-expression casts from raw bytes. Destruction uses the matching typed<br>
+deallocation. Runtime evaluation continues to use the configured <code class="notranslate">BlockSource</code>.</p>
+<p dir="auto">The test suite statically evaluates construction, growth across multiple segments, indexed access,<br>
+copy construction, suffix removal, clearing, and destruction. The typed growth fallback is restricted<br>
+to <code class="notranslate">NewDeleteBlockSource</code>: using it for another source would bypass that source's exhaustion and<br>
+observable state. Only source construction, copying, and destruction required by the selected<br>
+operation occur during constant evaluation; segment acquisition does not call the source. A custom<br>
+directory allocator must itself be constant-expression capable. <code class="notranslate">bytes_reserved()</code> counts<br>
+<code class="notranslate">sizeof(Segment)</code> for each constant-evaluation segment, matching the runtime meaning of<br>
+source-reported reserved bytes.</p>
+<h2 dir="auto" id="api-surface">API surface</h2>
+<p dir="auto">The principal C++23 surface is:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate"><span class="pl-k">template</span>&lt;SegmentedElement T,
+         SegmentedOptions Options = {},
+         mbo::memory::BlockSource Source = mbo::memory::NewDeleteBlockSource,
+         <span class="pl-k">typename</span> DirectoryAllocator = std::allocator&lt;std::byte&gt;&gt;
+<span class="pl-k">class</span> <span class="pl-en">SegmentedVector</span> {
+ <span class="pl-k">public:</span>
+  <span class="pl-k">using</span> value_type = T;
+  <span class="pl-k">using</span> size_type = std::<span class="pl-c1">size_t</span>;
+  <span class="pl-k">using</span> allocator_type = DirectoryAllocator;
+
+  <span class="pl-en">SegmentedVector</span>();
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> SourceArg&gt;
+    <span class="pl-k">requires</span> std::same_as&lt;std::<span class="pl-c1">remove_cvref_t</span>&lt;SourceArg&gt;, Source&gt;
+             &amp;&amp; std::constructible_from&lt;Source, SourceArg&amp;&amp;&gt;
+  <span class="pl-k">explicit</span> <span class="pl-en">SegmentedVector</span>(SourceArg&amp;&amp; source);
+  <span class="pl-en">SegmentedVector</span>(std::<span class="pl-c1">allocator_arg_t</span>, <span class="pl-k">const</span> allocator_type&amp; allocator);
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> SourceArg&gt;
+    <span class="pl-k">requires</span> std::same_as&lt;std::<span class="pl-c1">remove_cvref_t</span>&lt;SourceArg&gt;, Source&gt;
+             &amp;&amp; std::constructible_from&lt;Source, SourceArg&amp;&amp;&gt;
+  <span class="pl-en">SegmentedVector</span>(std::<span class="pl-c1">allocator_arg_t</span>, <span class="pl-k">const</span> allocator_type&amp; allocator, SourceArg&amp;&amp; source);
+
+  <span class="pl-k">template</span>&lt;std::input_iterator I, std::sentinel_for&lt;I&gt; S&gt;
+  <span class="pl-en">SegmentedVector</span>(I first, S last);
+  <span class="pl-k">template</span>&lt;std::ranges::input_range R&gt;
+  <span class="pl-en">SegmentedVector</span>(std::<span class="pl-c1">from_range_t</span>, R&amp;&amp; range);
+  <span class="pl-c"><span class="pl-c">//</span> Source-taking and allocator-extended iterator/range overloads are also provided.</span>
+
+  allocator_type <span class="pl-en">get_allocator</span>() <span class="pl-k">const</span>;
+  <span class="pl-k">bool</span> <span class="pl-en">empty</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+  size_type <span class="pl-en">size</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+  size_type <span class="pl-en">capacity</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+  size_type <span class="pl-en">segment_count</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+  size_type <span class="pl-en">bytes_reserved</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+
+  <span class="pl-k">void</span> <span class="pl-en">reserve</span>(size_type n);
+  <span class="pl-k">void</span> <span class="pl-en">resize</span>(size_type n);
+  <span class="pl-k">void</span> <span class="pl-en">resize</span>(size_type n, <span class="pl-k">const</span> T&amp; value);
+
+  T&amp; <span class="pl-k">operator</span>[](size_type pos) <span class="pl-k">noexcept</span>;
+  <span class="pl-k">const</span> T&amp; <span class="pl-k">operator</span>[](size_type pos) <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+  T&amp; <span class="pl-en">at</span>(size_type pos);
+  <span class="pl-k">const</span> T&amp; <span class="pl-en">at</span>(size_type pos) <span class="pl-k">const</span>;
+  T&amp; <span class="pl-en">front</span>();
+  <span class="pl-k">const</span> T&amp; <span class="pl-en">front</span>() <span class="pl-k">const</span>;
+  T&amp; <span class="pl-en">back</span>();
+  <span class="pl-k">const</span> T&amp; <span class="pl-en">back</span>() <span class="pl-k">const</span>;
+
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span>... Args&gt;
+  T&amp; <span class="pl-en">emplace_back</span>(Args&amp;&amp;... args);
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span>... Args&gt;
+  std::optional&lt;std::reference_wrapper&lt;T&gt;&gt; <span class="pl-en">try_emplace_back</span>(Args&amp;&amp;... args);
+  <span class="pl-k">template</span>&lt;<span class="pl-k">typename</span>... Args&gt;
+  T&amp; <span class="pl-en">unchecked_emplace_back</span>(Args&amp;&amp;... args);
+  T&amp; <span class="pl-en">push_back</span>(<span class="pl-k">const</span> T&amp; value);
+  T&amp; <span class="pl-en">push_back</span>(T&amp;&amp; value);
+  std::optional&lt;std::reference_wrapper&lt;T&gt;&gt; <span class="pl-en">try_push_back</span>(<span class="pl-k">const</span> T&amp; value);
+  std::optional&lt;std::reference_wrapper&lt;T&gt;&gt; <span class="pl-en">try_push_back</span>(T&amp;&amp; value);
+  T&amp; <span class="pl-en">unchecked_push_back</span>(<span class="pl-k">const</span> T&amp; value);
+  T&amp; <span class="pl-en">unchecked_push_back</span>(T&amp;&amp; value);
+  <span class="pl-k">template</span>&lt;std::ranges::input_range R&gt;
+  <span class="pl-k">void</span> <span class="pl-en">append_range</span>(R&amp;&amp; range);
+
+  <span class="pl-k">void</span> <span class="pl-en">pop_back</span>();
+  T <span class="pl-en">pop_back_value</span>() requires std::move_constructible&lt;T&gt;;
+  <span class="pl-k">void</span> <span class="pl-en">clear</span>() <span class="pl-k">noexcept</span>;
+  <span class="pl-k">void</span> <span class="pl-en">release</span>() <span class="pl-k">noexcept</span>;
+  <span class="pl-k">void</span> <span class="pl-en">trim_capacity</span>() <span class="pl-k">noexcept</span>;
+  <span class="pl-k">void</span> <span class="pl-en">trim_capacity</span>(size_type n) <span class="pl-k">noexcept</span>;
+
+  segment_range <span class="pl-en">segments</span>() <span class="pl-k">noexcept</span>;
+  const_segment_range <span class="pl-en">segments</span>() <span class="pl-k">const</span> <span class="pl-k">noexcept</span>;
+};</pre></div>
+<p dir="auto"><code class="notranslate">try_emplace_back()</code> and <code class="notranslate">try_push_back()</code> return a reference to the appended element or an empty<br>
+optional when a recoverable source cannot provide storage. Ordinary append uses the configured hard<br>
+requirement for storage exhaustion. The <code class="notranslate">unchecked_*</code> forms require <code class="notranslate">size() &lt; capacity()</code> and never<br>
+acquire a segment. All overloads participate only when <code class="notranslate">T</code> is constructible from their arguments.</p>
+<p dir="auto">Iterator-pair and <code class="notranslate">std::from_range_t</code> constructors default-construct the source in place, so they<br>
+also support immovable <code class="notranslate">InlineBlockSource</code>. Constrained forwarding overloads accept a<br>
+caller-supplied source in the direct, allocator-extended, iterator-pair, and <code class="notranslate">from_range</code> forms.<br>
+They copy an lvalue source and move an rvalue source without passing an over-aligned source through<br>
+a by-value parameter. Allocator-extended forms control the directory independently. Sized ranges<br>
+reserve once; single-pass ranges grow as consumed.</p>
+<h2 dir="auto" id="implemented-guarantees">Implemented guarantees</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Area</th>
+<th>Current guarantee</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segment growth</td>
+<td>Every segment has the fixed compile-time power-of-two <code class="notranslate">segment_size</code></td>
+</tr>
+<tr>
+<td>Segment bound</td>
+<td><code class="notranslate">segment_capacity</code> is a hard maximum number of segment slots</td>
+</tr>
+<tr>
+<td>Segment allocation</td>
+<td>One BlockSource allocation co-locates typed header and element slots</td>
+</tr>
+<tr>
+<td>Directory</td>
+<td>Stable pointers; configurable initial reserve, then power-of-two growth requests</td>
+</tr>
+<tr>
+<td>Segment reuse</td>
+<td>Empty acquired tail segments reused in sequence order</td>
+</tr>
+<tr>
+<td>Indexed complexity</td>
+<td>Constant-time shift/mask mapping</td>
+</tr>
+<tr>
+<td>Iterator category</td>
+<td>Random access, including mutable/const interoperability</td>
+</tr>
+<tr>
+<td>Iterator identity</td>
+<td>Cross-sequence comparison and subtraction enforce a precondition in every build</td>
+</tr>
+<tr>
+<td>Exception guarantee</td>
+<td>Structural rollback; aliased throwing moves can modify an existing element</td>
+</tr>
+<tr>
+<td>Allocation</td>
+<td>Shared new/delete, allocator, PMR, fixed, and inline block sources</td>
+</tr>
+<tr>
+<td>Ownership</td>
+<td>Source-specific copies plus allocator-aware directory copy/move/swap</td>
+</tr>
+<tr>
+<td>Invalidation</td>
+<td>Append/trim preserve; pop invalidates removed element and old end</td>
+</tr>
+<tr>
+<td>Constant evaluation</td>
+<td>Typed standard-allocator path is statically exercised</td>
+</tr>
+<tr>
+<td>Contiguous operations</td>
+<td>Random-access segment views; no <code class="notranslate">T*</code>/span claim</td>
+</tr>
+<tr>
+<td>Thread safety</td>
+<td>External synchronization; no internal locks or atomics</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="measurement-and-deferred-work">Measurement and deferred work</h2>
+<p dir="auto">The companion <a href="measurements/SEGMENTED_VECTOR.html">measurement report</a> covers indexed access,<br>
+iteration, append throughput, allocation counts and bytes, directory-growth boundaries, element<br>
+size/alignment, and lifecycle evidence. Exception configurations remain correctness gates, while<br>
+generated-code size is deferred. Growth-boundary evidence isolates the append that adds a segment<br>
+and reports minimum, median, fastest-three mean, all-nine mean, sample standard deviation,<br>
+coefficient of variation, maximum, and allocation/deallocation counters. Nine calibrated<br>
+repetition means do not establish a tail-latency distribution.</p>
+<p dir="auto">The generic heterogeneous-capacity implementation merged in<br>
+<a href="https://github.com/mboworks/mbo/pull/443" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/mbo/pull/443/hovercard">pull request 443</a> at<br>
+<a href="https://github.com/mboworks/mbo/commit/12bf51f8fdcceb2c452442a0287f332263a34680"><code class="notranslate">12bf51f8fdcceb2c452442a0287f332263a34680</code></a><br>
+remains historical provenance and a comparison baseline. The current API intentionally chooses the<br>
+single flat pointer directory and fixed power-of-two segments. Embedded jump tables, alternative<br>
+directories, retained segment budgets, and relocating <code class="notranslate">shrink_to_fit()</code> remain future experiments<br>
+rather than parallel public modes.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

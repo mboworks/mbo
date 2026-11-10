@@ -1,0 +1,504 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main>
+
+<h1 dir="auto" id="containers">Containers</h1>
+<p dir="auto"><code class="notranslate">mbo::container</code> provides bounded inline containers, stable segmented sequences, and adapters for<br>
+container-independent iteration and conversion. Its experimental namespace also provides immutable<br>
+hash maps and sets and a growable circular buffer.</p>
+<p dir="auto">All require the repository's C++23 compiler and library baseline:<br>
+GCC 15/libstdc++ 15, Clang 22/libc++ 22, or Xcode 16.3 with its matching Apple Clang/libc++.</p>
+<h2 dir="auto" id="choosing-a-container">Choosing a container</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Storage and purpose</th>
+<th>Supported mutation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">LimitedVector&lt;T, N&gt;</code></td>
+<td>At most <code class="notranslate">N</code> elements stored inside the object</td>
+<td>Append, suffix removal, positional insertion/erasure</td>
+</tr>
+<tr>
+<td><code class="notranslate">LimitedSet&lt;Key, N, Compare&gt;</code></td>
+<td>Bounded sorted unique keys stored inline</td>
+<td>Key insertion/erasure; keys are immutable</td>
+</tr>
+<tr>
+<td><code class="notranslate">LimitedMap&lt;Key, Value, N, Compare&gt;</code></td>
+<td>Bounded sorted unique keys with mapped values stored inline</td>
+<td>Key insertion/erasure and mapped-value updates</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedVector&lt;T, Options, Source, DirectoryAllocator&gt;</code></td>
+<td>Fixed-size segments; append-heavy storage with stable addresses</td>
+<td>Append, suffix removal, resize, reserve</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedDeque&lt;T, Options, Source, DirectoryAllocator&gt;</code></td>
+<td>Fixed-size segments with reusable storage at both ends</td>
+<td>Front/back insertion/removal, resize, directional reserve</td>
+</tr>
+<tr>
+<td><code class="notranslate">experimental::CircularBuffer&lt;T, Allocator&gt;</code></td>
+<td>A growable ring in one allocator-managed allocation</td>
+<td>Front/back and positional insertion/removal</td>
+</tr>
+<tr>
+<td><code class="notranslate">AnyScan&lt;T&gt;</code>, <code class="notranslate">ConstScan&lt;T&gt;</code>, <code class="notranslate">ConvertingScan&lt;T&gt;</code></td>
+<td>Type-erased input iteration over another container</td>
+<td>Access through references or converted values</td>
+</tr>
+<tr>
+<td><code class="notranslate">ConvertContainer(source[, conversion])</code></td>
+<td>An adapter used to construct a destination container</td>
+<td>Converts and inserts each source element</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">The Limited and segmented containers provide random-access iterators, <strong>not contiguous iterators</strong>.<br>
+Limited containers additionally provide runtime pointer/count span access through <code class="notranslate">data()</code> under<br>
+the <a href="#limited-dataspan-portability">packed-slot portability assumption</a> below. This does not make<br>
+them standard contiguous ranges. Segmented containers and segment views make no whole-sequence<br>
+contiguity promise.</p>
+<h2 dir="auto" id="headers-and-bazel-dependencies">Headers and Bazel dependencies</h2>
+<p dir="auto">Headers are included relative to the repository root. In a consuming Bazel module, prefix the<br>
+following labels with <code class="notranslate">@mboworks_mbo</code>; within this repository use the labels as shown.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">mbo/container/limited_vector.h</code></td>
+<td><code class="notranslate">//mbo/container:limited_vector_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/limited_set.h</code></td>
+<td><code class="notranslate">//mbo/container:limited_set_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/limited_map.h</code></td>
+<td><code class="notranslate">//mbo/container:limited_map_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/limited_options.h</code></td>
+<td><code class="notranslate">//mbo/container:limited_options_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/segmented_vector.h</code></td>
+<td><code class="notranslate">//mbo/container:segmented_vector_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/segmented_deque.h</code></td>
+<td><code class="notranslate">//mbo/container:segmented_deque_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/segmented_options.h</code></td>
+<td><code class="notranslate">//mbo/container:segmented_options_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/experimental/circular_buffer.h</code></td>
+<td><code class="notranslate">//mbo/container/experimental:circular_buffer_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/any_scan.h</code></td>
+<td><code class="notranslate">//mbo/container:any_scan_cc</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo/container/convert_container.h</code></td>
+<td><code class="notranslate">//mbo/container:convert_container_cc</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">For example, a target using both sequences declares:</p>
+<div class="highlight highlight-source-python" dir="auto"><pre class="notranslate"><span class="pl-s1">deps</span> <span class="pl-c1">=</span> [
+    <span class="pl-s">"@mboworks_mbo//mbo/container:segmented_deque_cc"</span>,
+    <span class="pl-s">"@mboworks_mbo//mbo/container:segmented_vector_cc"</span>,
+]</pre></div>
+<p dir="auto">The examples below are exercised by <code class="notranslate">//mbo/container:container_readme_test</code>.</p>
+<h2 dir="auto" id="frozen-containers">Frozen containers</h2>
+<p dir="auto">The experimental <a href="experimental/FROZEN.html"><code class="notranslate">FrozenMap</code> and <code class="notranslate">FrozenSet</code></a> provide immutable<br>
+perfect-hash tables with constexpr and runtime construction, generic keys and values,<br>
+transparent lookup, and const forward iteration. They use fixed inline storage and a shared<br>
+index builder. See their guide for the read-only C++26 interface, construction limits,<br>
+minimal/sparse layouts, and benchmark commands.</p>
+<p dir="auto"><strong>Read performance:</strong> the <a href="experimental/FROZEN.html#measured-read-performance">measured comparison and hash diagnosis</a><br>
+cover STL unordered and Abseil flat/node maps and sets, including constexpr <code class="notranslate">mumbo</code>,<br>
+<code class="notranslate">fambo</code>, and <code class="notranslate">dumbo</code> alternatives. In the nine-repetition Apple M5 Pro 64-string-key<br>
+fixture, sparse FrozenMap mixed lookup took 5.97 ns with fambo versus 11.16 ns with its<br>
+former FNV-based default; native STL/Abseil maps took 5.81 to 6.44 ns. The guide retains the<br>
+complete results, matching-hasher controls, and comparisons at 8/64/256 entries. String-view<br>
+keys now use fambo by default; no custom hasher argument is needed.</p>
+<h2 dir="auto" id="limited-containers">Limited containers</h2>
+<p dir="auto"><code class="notranslate">LimitedVector</code>, <code class="notranslate">LimitedSet</code>, and <code class="notranslate">LimitedMap</code> reserve their entire compile-time bound inside each<br>
+container object. They do not allocate container storage, though the elements themselves may<br>
+allocate. <code class="notranslate">size()</code> counts live elements; <code class="notranslate">capacity()</code> and <code class="notranslate">max_size()</code> report the fixed bound.<br>
+Zero capacity is supported. <code class="notranslate">reserve(n)</code> cannot increase the bound. Exceeding it is a requirement<br>
+failure, not an automatic transition to heap storage.</p>
+<h3 dir="auto" id="limited-dataspan-portability">Limited data/span portability</h3>
+<p dir="auto"><code class="notranslate">LimitedVector</code>, <code class="notranslate">LimitedSet</code>, and <code class="notranslate">LimitedMap</code> retain <code class="notranslate">data()</code> for runtime pointer/count views:</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>span<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/limited_vector.h<span class="pl-pds">"</span></span>
+
+mbo::container::LimitedVector&lt;std::string, <span class="pl-c1">4</span>&gt; tasks{<span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>};
+<span class="pl-k">const</span> std::span&lt;std::string&gt; <span class="pl-en">view</span>(tasks.data(), tasks.size());
+view.subspan&lt;<span class="pl-c1">1</span>&gt;().front().append(<span class="pl-s"><span class="pl-pds">"</span> all<span class="pl-pds">"</span></span>);  <span class="pl-c"><span class="pl-c">//</span> Updates tasks[1] to "test all".</span></pre></div>
+<p dir="auto">This is an intentional, temporary <strong>non-portable layout assumption</strong> for the supported compiler<br>
+baseline. Elements are active <code class="notranslate">T</code> members of adjacent union slots; the implementation statically<br>
+checks that slot size and alignment match <code class="notranslate">T</code>. The live prefix is physically packed, but those<br>
+checks do not establish a single <code class="notranslate">T[]</code> object in the C++23 object model. Under ISO C++23, pointer<br>
+arithmetic across those separate members has undefined behavior. Runtime pointer/span traversal<br>
+intentionally relies on observed compiler behavior, and optimizations can expose this discrepancy.<br>
+Runtime regression tests and sanitizer checks are evidence of observed behavior, not proof of<br>
+standard conformance. See the <a href="https://timsong-cpp.github.io/cppwp/n4950/expr.add" rel="nofollow">C++23 pointer-arithmetic rules</a>.</p>
+<p dir="auto"><code class="notranslate">data()</code> is <code class="notranslate">noexcept</code> and returns null when empty. Set data pointers expose const keys; map data<br>
+pointers expose <code class="notranslate">std::pair&lt;const Key, Value&gt;</code> so only mapped values are writable. Views follow<br>
+the same element-lifetime and invalidation rules as references. No hidden allocation or copy is<br>
+performed. The iterators remain random access rather than claiming standard contiguous-iterator<br>
+semantics, so construct spans from <code class="notranslate">data()</code> and <code class="notranslate">size()</code>, not from the container range.</p>
+<p dir="auto">Existing constexpr container operations and iteration remain supported, including persistent<br>
+<code class="notranslate">static constexpr</code> objects. Returning <code class="notranslate">data()</code> and accessing the first live element can be<br>
+constant-evaluated, but cross-element pointer/span traversal is not supported in constant evaluation.<br>
+Use container iterators or indexed access for constexpr traversal. C++23's <a href="https://timsong-cpp.github.io/cppwp/n4950/obj.lifetime" rel="nofollow"><code class="notranslate">std::start_lifetime_as_array</code></a> does not solve this because it is not constexpr.</p>
+<p dir="auto"><strong>Planned migration:</strong> replace the union-slot representation with genuine inline typed-array<br>
+storage once the supported compiler and standard-library baseline implements the required C++26<br>
+array-lifetime and constant-expression rules, including partially initialized constexpr objects.<br>
+The relevant work is <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3074r7.html" rel="nofollow">P3074</a><br>
+and <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3726r2.html" rel="nofollow">P3726</a>.<br>
+Merely selecting a C++26 language flag is not sufficient. The migration must preserve inline<br>
+storage, supported element types, live-element-only construction/destruction, destructor-suppression<br>
+options, and all existing constexpr operations. Add constexpr span-traversal regression tests;<br>
+restore contiguous iterators only if those guarantees are retained. Until that migration, do not<br>
+advertise this runtime compatibility API as portable or promise constexpr multi-element spans.</p>
+<h3 dir="auto" id="migration-from-0150">Migration from 0.15.0</h3>
+<p dir="auto">The Limited-container lifetime repairs preserve runtime pointer/count span access while tightening<br>
+iterator, lifetime, and const-correctness guarantees:</p>
+<ul dir="auto">
+<li><code class="notranslate">data()</code> is retained under the <a href="#limited-dataspan-portability">portability assumption</a> above.<br>
+Runtime pointer/count spans remain available. Iterators are random-access, not raw <code class="notranslate">T*</code> or<br>
+contiguous iterators, so construct spans from <code class="notranslate">data()</code> and <code class="notranslate">size()</code>, not from the range.<br>
+Use iterators or indexed access for constexpr traversal across elements.</li>
+<li>Set keys are immutable. Erase and reinsert to change a key; never cast away constness.<br>
+Map keys are likewise immutable; mapped values remain writable.</li>
+<li><code class="notranslate">noexcept</code> depends on element and comparator operations. Do not require all instantiations<br>
+to be nothrow when user operations can throw.</li>
+<li>Rebuild dependent binaries: the lifetime repairs change implementation layouts, and these<br>
+template types do not promise binary-layout compatibility across releases.</li>
+</ul>
+<p dir="auto"><code class="notranslate">SegmentedSequence</code> was an unreleased development name, not a 0.15.0 API. New code uses<br>
+<code class="notranslate">SegmentedVector</code> and the shared <code class="notranslate">SegmentedOptions</code>.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/limited_map.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/limited_set.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/limited_vector.h<span class="pl-pds">"</span></span>
+
+mbo::container::LimitedVector&lt;std::string, <span class="pl-c1">4</span>&gt; tasks;
+tasks.emplace_back(<span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>);
+tasks.emplace_back(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>);
+<span class="pl-k">auto</span> task = tasks.pop_back_value();  <span class="pl-c"><span class="pl-c">//</span> "test"; one task remains.</span>
+
+mbo::container::LimitedSet&lt;<span class="pl-k">int</span>, <span class="pl-c1">4</span>&gt; priorities{<span class="pl-c1">3</span>, <span class="pl-c1">1</span>, <span class="pl-c1">3</span>};  <span class="pl-c"><span class="pl-c">//</span> {1, 3}</span>
+mbo::container::LimitedMap&lt;<span class="pl-k">int</span>, std::string, <span class="pl-c1">4</span>&gt; names{{<span class="pl-c1">2</span>, <span class="pl-s"><span class="pl-pds">"</span>two<span class="pl-pds">"</span></span>}, {<span class="pl-c1">1</span>, <span class="pl-s"><span class="pl-pds">"</span>one<span class="pl-pds">"</span></span>}};
+names.at(<span class="pl-c1">2</span>) = <span class="pl-s"><span class="pl-pds">"</span>second<span class="pl-pds">"</span></span>;</pre></div>
+<p dir="auto">Vector indexing and endpoint operations take constant container work. Middle insertion/erasure<br>
+and ordered-container insertion/erasure can move a linear number of elements. Ordered lookup uses<br>
+the configured comparator and optimized search routines; it should be measured for the actual<br>
+capacity and key distribution. <code class="notranslate">find</code>, <code class="notranslate">contains</code>, <code class="notranslate">index_of</code>, <code class="notranslate">lower_bound</code>, <code class="notranslate">upper_bound</code>, and<br>
+<code class="notranslate">at_index</code> support lookup without treating the storage as a node-based map or set.</p>
+<p dir="auto">Vector append preserves references to existing elements. Insertion and erasure can invalidate<br>
+references and iterators at or after the changed position. Ordered insertion/erasure can shift the<br>
+sorted suffix. Set keys and map keys cannot be modified through their iterators. Copy, move, and<br>
+swap operate on inline elements rather than transferring an allocation. Operations participate<br>
+according to the construction/assignment capabilities of the element; an immovable value can still<br>
+be emplaced directly into unused vector storage and removed from the back.</p>
+<p dir="auto">The capacity argument can instead be a <code class="notranslate">LimitedOptions&lt;N, Flags...&gt;{}</code> value. The options header<br>
+also provides <code class="notranslate">MakeLimitedOptions</code> and the corresponding option concepts.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">kDefault</code></td>
+<td>No additional behavior</td>
+</tr>
+<tr>
+<td><code class="notranslate">kRequireSortedInput</code></td>
+<td>Ordered-container range/list constructors require input already sorted by the comparator; checked only without <code class="notranslate">NDEBUG</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kNoOptimizeIndexOf</code></td>
+<td>Disable optimized ordered lookup</td>
+</tr>
+<tr>
+<td><code class="notranslate">kCustomIndexOfBeyondUnroll</code></td>
+<td>Select the custom ordered lookup beyond the unrolled capacity</td>
+</tr>
+<tr>
+<td><code class="notranslate">kEmptyDestructor</code></td>
+<td>Suppress the normal destruction pass; only use when element cleanup is deliberately unnecessary</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Prefer the normal destructor. <code class="notranslate">kEmptyDestructor</code> is a specialized constant-evaluation/ASan escape<br>
+hatch, not a general performance option for owning values. The ordered lookup unroll bound is<br>
+configured by <code class="notranslate">--//mbo/config:limited_ordered_max_unroll_capacity</code>.</p>
+<h2 dir="auto" id="segmented-sequences">Segmented sequences</h2>
+<p dir="auto">Both segmented containers acquire fixed-size segments and keep an independently allocated pointer<br>
+directory. Growing the directory never relocates elements. Use <code class="notranslate">SegmentedVector</code> for append and<br>
+suffix removal; use <code class="notranslate">SegmentedDeque</code> when insertion/removal at the front is required. Neither<br>
+implements arbitrary middle insertion or erasure.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/segmented_options.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/segmented_vector.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">constexpr</span> mbo::container::SegmentedOptions <span class="pl-c1">kOptions</span>{
+    .<span class="pl-smi">segment_size</span> = <span class="pl-c1">64</span>, .<span class="pl-smi">segment_capacity</span> = <span class="pl-c1">8</span>, .<span class="pl-smi">segment_reservation</span> = <span class="pl-c1">8</span>};
+mbo::container::SegmentedVector&lt;<span class="pl-k">int</span>, <span class="pl-c1">kOptions</span>&gt; values;
+values.emplace_back(<span class="pl-c1">7</span>);
+<span class="pl-k">auto</span> first = values.begin();
+values.resize(<span class="pl-c1">130</span>, <span class="pl-c1">9</span>);  <span class="pl-c"><span class="pl-c">//</span> Acquire more segments without moving the first element.</span>
+<span class="pl-k">const</span> <span class="pl-k">int</span> original = *first;  <span class="pl-c"><span class="pl-c">//</span> Still 7.</span>
+<span class="pl-k">const</span> <span class="pl-k">int</span> last = values.pop_back_value();  <span class="pl-c"><span class="pl-c">//</span> 9.</span></pre></div>
+<p dir="auto"><code class="notranslate">SegmentedOptions</code> is shared by both classes. Invalid options are rejected by template constraints.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Valid values and meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">segment_size</code></td>
+<td><code class="notranslate">256</code></td>
+<td>Nonzero power-of-two elements per segment</td>
+</tr>
+<tr>
+<td><code class="notranslate">segment_capacity</code></td>
+<td><code class="notranslate">SIZE_MAX</code></td>
+<td>Nonzero power-of-two maximum segment count, or <code class="notranslate">SIZE_MAX</code> for the representation bound</td>
+</tr>
+<tr>
+<td><code class="notranslate">segment_reservation</code></td>
+<td><code class="notranslate">1</code></td>
+<td>Zero or power-of-two initial directory reservation, no greater than a finite segment capacity</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Finite products must fit element-count and iterator-difference representations. Reservation alone<br>
+allocates directory slots, not elements or segments. Set <code class="notranslate">segment_reservation</code> to zero for<br>
+allocation-free empty construction. Setting it to a finite <code class="notranslate">segment_capacity</code> avoids subsequent<br>
+directory growth within that bound. Elements must be complete, cv-unqualified, non-array objects<br>
+with nonthrowing destructors; <code class="notranslate">SegmentedElement</code>, <code class="notranslate">ValidSegmentedOptions</code>, and<br>
+<code class="notranslate">RepresentableSegmentedOptions</code> expose these checks.</p>
+<p dir="auto"><code class="notranslate">reserve(n)</code> acquires segments for at least <code class="notranslate">n</code> total element slots. <code class="notranslate">clear()</code> destroys elements<br>
+while retaining storage; <code class="notranslate">trim_capacity()</code> returns empty segments; <code class="notranslate">release()</code> destroys elements<br>
+and returns all segments, retaining the directory allocation until destruction. <code class="notranslate">segments()</code><br>
+exposes views of the live portions of segments, with separate invalidation rules from element<br>
+iterators. <code class="notranslate">bytes_reserved()</code> counts source-reported segment storage and excludes the directory.</p>
+<p dir="auto">For a deque, unused slots can be split across partially occupied endpoint segments. Use<br>
+<code class="notranslate">reserve_front(n)</code> or <code class="notranslate">reserve_back(n)</code> to reserve <strong>additional</strong> room at a specific end and<br>
+<code class="notranslate">front_capacity()</code> or <code class="notranslate">back_capacity()</code> to query it. Those capacities overlap through shared spare<br>
+segments and must not be added. A sliding window may need one extra segment. At a hard segment<br>
+bound, one end can be full even when the other end has unused slots.</p>
+<p dir="auto">Indexing, iterator arithmetic, and endpoint removal are constant time. Endpoint insertion is<br>
+amortized constant time for directory management, plus element construction and source allocation.<br>
+References and iterators to live elements survive endpoint growth, reservation, and trimming.<br>
+Removal invalidates the removed elements; size changes invalidate the old end iterator. Deque<br>
+front insertion also preserves existing element iterators. Move and swap invalidate container-owned<br>
+iterators. See the detailed <a href="SEGMENTED_VECTOR.html">vector</a> and <a href="SEGMENTED_DEQUE.html">deque</a> contracts<br>
+for allocation propagation, rollback, segment-view invalidation, and constant evaluation.</p>
+<h3 dir="auto" id="block-sources-and-arenas">Block sources and arenas</h3>
+<p dir="auto">The third template parameter is a <code class="notranslate">mbo::memory::BlockSource</code>; the fourth is the directory allocator.<br>
+The default source is <code class="notranslate">NewDeleteBlockSource</code>. Other supplied sources are <code class="notranslate">AllocatorBlockSource</code>,<br>
+<code class="notranslate">PmrBlockSource</code>, <code class="notranslate">FixedBlockSource</code>, and <code class="notranslate">InlineBlockSource</code>. The last two permit only one outstanding<br>
+block and therefore support one-segment configurations. Source storage must also accommodate the<br>
+segment header, alignment, and all slots, not just <code class="notranslate">segment_size * sizeof(T)</code>.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>memory_resource<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/segmented_deque.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/memory/block_source.h<span class="pl-pds">"</span></span>
+
+std::pmr::monotonic_buffer_resource resource;
+<span class="pl-k">using</span> Queue = mbo::container::SegmentedDeque&lt;
+    <span class="pl-k">int</span>, mbo::container::SegmentedOptions{.<span class="pl-smi">segment_size</span> = <span class="pl-c1">64</span>}, mbo::memory::PmrBlockSource&gt;;
+Queue queue{<span class="pl-c1">mbo::memory::PmrBlockSource</span>(&amp;resource)};
+queue.reserve_back(<span class="pl-c1">128</span>);
+queue.push_back(<span class="pl-c1">1</span>);
+queue.push_front(<span class="pl-c1">0</span>);
+<span class="pl-k">const</span> <span class="pl-k">int</span> next = queue.pop_front_value();  <span class="pl-c"><span class="pl-c">//</span> 0.</span></pre></div>
+<p dir="auto">Here only segment storage uses the resource; a PMR directory allocator can direct the directory<br>
+there as well. The resource must outlive the container and must not be reset while it owns blocks.<br>
+Monotonic resources do not reclaim individual releases, so retain and recycle segments for steady<br>
+queue traffic. The separate <code class="notranslate">mbo::memory::Arena</code> owns raw bytes and requires an adapter implementing<br>
+<code class="notranslate">BlockSource</code> before use as a segment source; it is not itself that adapter.</p>
+<p dir="auto"><code class="notranslate">try_emplace_*</code> and <code class="notranslate">try_push_*</code> participate for recoverable sources and return an optional reference<br>
+on allocation success. They return empty for recoverable source exhaustion or the configured<br>
+segment bound; they do not suppress element-construction or directory-allocation exceptions.<br>
+Ordinary insertion reports exhaustion through the requirement policy. <code class="notranslate">unchecked_*</code> methods need<br>
+pre-reserved usable capacity at their selected end and never acquire a segment.</p>
+<h2 dir="auto" id="experimental-circularbuffer">Experimental CircularBuffer</h2>
+<p dir="auto"><code class="notranslate">mbo::container::experimental::CircularBuffer</code> is public and usable independently of the deque.<br>
+Its experimental namespace and directory explicitly permit API changes between releases without<br>
+a compatibility alias or deprecation period.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>memory<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/experimental/circular_buffer.h<span class="pl-pds">"</span></span>
+
+mbo::container::experimental::CircularBuffer&lt;std::unique_ptr&lt;<span class="pl-k">int</span>&gt;&gt; pending;
+pending.reserve(<span class="pl-c1">3</span>);  <span class="pl-c"><span class="pl-c">//</span> Rounds to a power-of-two capacity of 4.</span>
+pending.push_back(std::make_unique&lt;<span class="pl-k">int</span>&gt;(<span class="pl-c1">2</span>));
+pending.push_front(std::make_unique&lt;<span class="pl-k">int</span>&gt;(<span class="pl-c1">1</span>));
+<span class="pl-k">auto</span> item = pending.pop_front_value();  <span class="pl-c"><span class="pl-c">//</span> Owns 1.</span></pre></div>
+<p dir="auto">This is a <strong>growable</strong> ring: pushing onto a full buffer preserves all existing values and grows<br>
+the allocation. It never silently overwrites an endpoint. Zero capacity is the empty unallocated<br>
+state; nonzero capacity is always a power of two, validated by a private capacity value type.<br>
+<code class="notranslate">reserve</code> creates storage without elements; <code class="notranslate">clear</code> retains it; <code class="notranslate">shrink_to_fit</code> reduces it to the<br>
+smallest fitting power of two or releases it if empty. The allocator parameter supports standard<br>
+allocators and PMR. There is no <code class="notranslate">BlockSource</code> parameter.</p>
+<p dir="auto">Both ends have push/emplace/pop operations. Positional insertion/erasure, range operations,<br>
+<code class="notranslate">resize</code>, checked <code class="notranslate">at</code>, indexing, all four iterator families, comparisons, copy/move, and swap<br>
+complete the STL-style interface. Indexing/removal are constant time; endpoint insertion is<br>
+amortized constant time. Growth and middle/bulk insertion take linear time and relocate elements.<br>
+Treat successful structural changes as invalidating buffer iterators. References survive<br>
+endpoint insertion without growth and removal of other elements. This differs from the stable<br>
+element iterators of <code class="notranslate">SegmentedDeque</code>. See <a href="experimental/CIRCULAR_BUFFER.html">the full circular buffer contract</a>.</p>
+<h2 dir="auto" id="value-returning-pops">Value-returning pops</h2>
+<p dir="auto">The following APIs follow<br>
+<a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3182r1.html" rel="nofollow">P3182R1: Add container pop methods that return the popped value</a>.<br>
+They supplement the existing void pops.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Container</th>
+<th><code class="notranslate">pop_front_value()</code></th>
+<th><code class="notranslate">pop_back_value()</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">LimitedVector</code></td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedVector</code></td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">SegmentedDeque</code></td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">experimental::CircularBuffer</code></td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo::json::Json</code> array</td>
+<td>No</td>
+<td>Yes, returning <code class="notranslate">Json</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">mbo::types::ContainerProxy</code></td>
+<td>When the underlying container supports it</td>
+<td>When the underlying container supports it</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Each sequence method requires <code class="notranslate">std::move_constructible&lt;T&gt;</code> and a nonempty container. It directly<br>
+initializes the returned object from <code class="notranslate">std::move</code> of the endpoint and removes the element only<br>
+after that construction succeeds. There is one move even with optional copy elision disabled.<br>
+There is no <code class="notranslate">move_if_noexcept</code> copy fallback. If moving throws, size, capacity, element identity,<br>
+and ownership remain intact, but the throwing move may have modified the source value.<br>
+A subsequent assignment failure in caller code cannot undo a completed pop.</p>
+<p dir="auto">The operations retain container capacity and take constant container work plus element<br>
+construction/destruction. Sequence methods are <code class="notranslate">constexpr</code> where storage and element operations<br>
+permit, and <code class="notranslate">noexcept</code> only when moving and the configured requirement policy are nonthrowing.<br>
+Json requires an actual nonempty array: null, scalar, and object values are rejected without<br>
+conversion. A proxy forwards the available operation and accounts for the accessor and underlying<br>
+call in its exception specification. Ordered maps/sets and scanning/conversion adapters do not<br>
+gain endpoint pops.</p>
+<p dir="auto">Checked preconditions use <code class="notranslate">MBO_CONFIG_REQUIRE</code>, active in optimized builds. The default policy<br>
+logs a fatal error. With exceptions enabled and <code class="notranslate">--//mbo/config:require_throws=true</code>, it throws<br>
+<code class="notranslate">std::runtime_error</code>. This does not make unchecked indexing, iterator misuse, or ordinary STL-style<br>
+preconditions valid. No container adds internal synchronization; callers synchronize mutation.</p>
+<h2 dir="auto" id="scanning-and-converting-containers">Scanning and converting containers</h2>
+<p dir="auto">The scan types allow an API to accept different container representations without becoming a<br>
+function template. <code class="notranslate">AnyScan&lt;T&gt;</code> exposes compatible references, <code class="notranslate">ConstScan&lt;T&gt;</code> exposes const<br>
+references, and <code class="notranslate">ConvertingScan&lt;T&gt;</code> returns converted values without <code class="notranslate">operator-&gt;</code>.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string_view<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>vector<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/any_scan.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/convert_container.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">const</span> std::vector&lt;std::string&gt; words{<span class="pl-s"><span class="pl-pds">"</span>one<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>two<span class="pl-pds">"</span></span>};
+mbo::container::ConstScan&lt;std::string&gt; scan = mbo::container::MakeConstScan(words);
+std::<span class="pl-c1">size_t</span> characters = <span class="pl-c1">0</span>;
+<span class="pl-k">for</span> (<span class="pl-k">const</span> <span class="pl-k">auto</span>&amp; word : scan) {
+  characters += word.<span class="pl-c1">size</span>();
+}
+<span class="pl-k">const</span> std::vector&lt;std::string_view&gt; views{<span class="pl-s"><span class="pl-pds">"</span>three<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>four<span class="pl-pds">"</span></span>};
+std::vector&lt;std::string&gt; owned = mbo::container::ConvertContainer(views);</pre></div>
+<p dir="auto">Use the matching <code class="notranslate">MakeAnyScan</code>, <code class="notranslate">MakeConstScan</code>, or <code class="notranslate">MakeConvertingScan</code> factory. Lvalue scans borrow<br>
+their source, which must outlive the scan and active iterators. Movable rvalue containers are kept<br>
+in shared ownership. Initializer lists remain borrowed; a temporary list is safe for an immediate<br>
+function call, not for a retained scan. Conversions to views also depend on their backing storage.<br>
+<code class="notranslate">size()</code> and <code class="notranslate">empty()</code> delegate to the underlying container.</p>
+<p dir="auto">Scanning uses type-erased input iterators, with allocation and indirect-call overhead. It does not<br>
+provide random access or independent multipass iterator copies. A fresh <code class="notranslate">begin()</code> can start a new<br>
+traversal of a reusable source. Exhausted iterators compare equal; live reference iterators compare<br>
+element addresses; live converting iterators compare unequal unless they are the same iterator<br>
+object. Do not use cross-range equality to identify a container.</p>
+<p dir="auto"><code class="notranslate">ConvertContainer</code> builds the selected output type through its available emplacement/insertion<br>
+interface. It borrows lvalues and owns moved-in rvalue containers. It forwards source elements as<br>
+rvalues, so a mutable source can be moved from; pass a const source to preserve owning elements.<br>
+An optional conversion callable transforms each element. Materialize the output while borrowed<br>
+containers, initializer lists, and any borrowed callable are still alive. Destination semantics<br>
+apply, including ordering, duplicate removal, allocation, and capacity limits.</p>
+<h2 dir="auto" id="validation-and-measurements">Validation and measurements</h2>
+<p dir="auto"><code class="notranslate">bazel test //...</code> exercises the repository. The shared value-pop suite runs over every supported<br>
+sequence endpoint, including constexpr evaluation, move-only values, capacity retention, failed<br>
+moves, and live-object accounting. The exception target disables optional return-value elision:</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --//mbo/config:require_throws=true \
+  //mbo/container:value_pop_require_exceptions_test \
+  //mbo/container/experimental:circular_buffer_require_exceptions_test \
+  //mbo/json:json_require_exceptions_test</pre></div>
+<p dir="auto">CI additionally runs the supported compiler/Bazel matrix, sanitizer builds, and coverage gates.<br>
+Performance evidence is collected separately for <a href="measurements/README.html">ordered lookup</a>,<br>
+<a href="measurements/SEGMENTED_VECTOR.html">SegmentedVector</a>, and<br>
+<a href="measurements/SEGMENTED_DEQUE.html">SegmentedDeque</a>. The segmented reports describe runnable harnesses,<br>
+reproduction commands, and retained evidence. Results apply to the recorded source SHA, compiler,<br>
+element type, allocator, and workload.</p>
+<h2 dir="auto" id="experimental-hamt-maps-and-sets">Experimental HAMT maps and sets</h2>
+<p dir="auto"><a href="experimental/hamt/README.html">The HAMT package</a> provides persistent flat/node maps and sets in<br>
+<code class="notranslate">mbo::container::experimental::hamt</code>, with shared snapshots, transient mutation, and configurable<br>
+block sources. Its headers and targets are under <code class="notranslate">mbo/container/experimental/hamt</code>; the API may<br>
+change between releases. HAMT-specific string-index adapters live in the same package.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

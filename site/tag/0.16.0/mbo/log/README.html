@@ -1,0 +1,230 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/log/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbolog"><code class="notranslate">mbo/log</code></h1>
+<p dir="auto"><code class="notranslate">mbo::log</code> provides type-name demangling, elapsed-time logging through Abseil, and scoped output<br>
+streams. Its timing and stream objects emit output on destruction, with duration filtering and<br>
+output suppression options.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::log</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>API</th>
+<th>Visibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/demangle.h">demangle.h</a></td>
+<td><code class="notranslate">//mbo/log:demangle_cc</code></td>
+<td><code class="notranslate">Demangle</code>, <code class="notranslate">DemangleV</code></td>
+<td>Public</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/log_timing.h">log_timing.h</a></td>
+<td><code class="notranslate">//mbo/log:log_timing_cc</code></td>
+<td><code class="notranslate">LogTiming</code></td>
+<td>Public</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/scoped_stream.h">scoped_stream.h</a></td>
+<td><code class="notranslate">//mbo/log:scoped_stream_cc</code></td>
+<td>Scoped streams and output suppression</td>
+<td>Public</td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/scoped_log_check.h">scoped_log_check.h</a></td>
+<td><code class="notranslate">//mbo/log:scoped_log_check_cc</code></td>
+<td><code class="notranslate">MBO_LOG_CHECK</code>, demonstration <code class="notranslate">ScopedLogCheck</code></td>
+<td>Package-private</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="demangling">Demangling</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Input</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Demangle(name)</code></td>
+<td>NUL-terminated mangled type name</td>
+<td>Demangled <code class="notranslate">std::string</code>; original name on failure or unsupported platforms</td>
+</tr>
+<tr>
+<td><code class="notranslate">DemangleV(value)</code></td>
+<td>Object expression</td>
+<td><code class="notranslate">Demangle(typeid(value).name())</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Demangling backend: <code class="notranslate">abi::__cxa_demangle</code> on supported builds.</li>
+<li>Type-name spelling: compiler and ABI dependent.</li>
+</ul>
+<h2 dir="auto" id="timing">Timing</h2>
+<ul dir="auto">
+<li><code class="notranslate">LogTiming(...)</code>: returns an RAII object; destruction logs elapsed time through Abseil.</li>
+<li>Named local object: measures until its scope ends.</li>
+<li><code class="notranslate">&lt;&lt;</code>: appends message parts using <code class="notranslate">absl::StrAppend</code>.</li>
+<li>Move construction: transfers the pending log; copying and assignment are disabled.</li>
+<li>Argument form: designated aggregate initialization; the argument type is internal.</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Argument field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">severity</code></td>
+<td><code class="notranslate">absl::LogSeverity::kInfo</code></td>
+<td>Log severity</td>
+</tr>
+<tr>
+<td><code class="notranslate">min_duration</code></td>
+<td><code class="notranslate">std::nullopt</code></td>
+<td>Per-call duration threshold; otherwise use the flag</td>
+</tr>
+<tr>
+<td><code class="notranslate">start_time</code></td>
+<td><code class="notranslate">absl::Now()</code></td>
+<td>Start of the measured interval</td>
+</tr>
+<tr>
+<td><code class="notranslate">src</code></td>
+<td><code class="notranslate">std::source_location::current()</code></td>
+<td>Reported caller location</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Abseil flag</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">--mbo_log_timing_min_duration</code></td>
+<td><code class="notranslate">2s</code></td>
+<td>Suppress shorter durations</td>
+</tr>
+<tr>
+<td><code class="notranslate">--mbo_log_timing_min_severity_always</code></td>
+<td><code class="notranslate">ERROR</code></td>
+<td>Log at or above this severity regardless of duration</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/time/time.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/log/log_timing.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">Process</span>();
+
+<span class="pl-k">void</span> <span class="pl-en">TimedProcess</span>() {
+  <span class="pl-k">auto</span> timing = <span class="pl-c1">mbo::log::LogTiming</span>({.<span class="pl-smi">min_duration</span> = <span class="pl-c1">absl::Milliseconds</span>(<span class="pl-c1">50</span>)}) &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span>Process<span class="pl-pds">"</span></span>;
+  <span class="pl-c1">Process</span>();
+}</pre></div>
+<h2 dir="auto" id="scoped-output">Scoped output</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Destination or behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">ScopedStreamOut()</code></td>
+<td><code class="notranslate">std::cout</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">ScopedStreamErr()</code></td>
+<td><code class="notranslate">std::cerr</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">ScopedStreamVoid()</code></td>
+<td>Discard output</td>
+</tr>
+<tr>
+<td><code class="notranslate">ScopedStream&lt;Mode, StringStreamT, OStreamT, MessageT&gt;</code></td>
+<td>Configurable message collection and destination</td>
+</tr>
+<tr>
+<td><code class="notranslate">VoidStream</code></td>
+<td>Discard <code class="notranslate">&lt;&lt;</code> values; empty <code class="notranslate">str()</code>; false boolean conversion</td>
+</tr>
+<tr>
+<td><code class="notranslate">Voidifier</code></td>
+<td>Empty placeholder for omitted stream/message state</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Output time: destruction of the scoped stream.</li>
+<li>Prefix: <code class="notranslate">[file:line] @function</code>; optional message and collected text separated by a colon with one<br>
+space on each side.</li>
+<li>Terminator: newline.</li>
+<li>Location argument: <code class="notranslate">std::source_location</code>, captured at the factory call by default.</li>
+<li>Copying and moving: disabled for <code class="notranslate">ScopedStream</code>.</li>
+<li>Custom destination stream and <code class="notranslate">std::string_view</code> message: must outlive the scoped stream.</li>
+<li>Suppression discards output; ordinary C++ argument expressions still evaluate.</li>
+</ul>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th><code class="notranslate">ScopedStreamMode</code></th>
+<th>Destruction behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">kContinue</code></td>
+<td>Emit configured output and continue</td>
+</tr>
+<tr>
+<td><code class="notranslate">kQuickExit</code></td>
+<td>Emit and flush configured output, then <code class="notranslate">std::quick_exit(1)</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/log/scoped_stream.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">void</span> <span class="pl-en">ReportCount</span>(<span class="pl-k">int</span> count) {
+  <span class="pl-c1">mbo::log::ScopedStreamErr</span>() &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span>Processed <span class="pl-pds">"</span></span> &lt;&lt; count &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span> items<span class="pl-pds">"</span></span>;
+}</pre></div>
+<h2 dir="auto" id="package-private-checks">Package-private checks</h2>
+<ul dir="auto">
+<li><code class="notranslate">MBO_LOG_CHECK(condition) &lt;&lt; message</code>: evaluate the condition; create the fatal stream only on failure.</li>
+<li>Failure behavior: write to <code class="notranslate">std::cerr</code>, flush, and call <code class="notranslate">std::quick_exit(1)</code>.</li>
+<li><code class="notranslate">ScopedLogCheck</code>: explicitly marked as demonstration-only in its header.</li>
+</ul>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/log:all</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/demangle_test.cc">demangle_test.cc</a>, <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/log_timing_test.cc">log_timing_test.cc</a>.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/scoped_stream_test.cc">scoped_stream_test.cc</a>, <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/log/scoped_log_check_test.cc">scoped_log_check_test.cc</a>.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

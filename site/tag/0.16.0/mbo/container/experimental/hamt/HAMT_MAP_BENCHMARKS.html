@@ -1,0 +1,107 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/HAMT_MAP_BENCHMARKS.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="general-hamt-map-benchmark-harness">General HAMT map benchmark harness</h1>
+<p dir="auto">This API is experimental and lives in <code class="notranslate">mbo::container::experimental::hamt</code>.<br>
+See the <a href="README.html">package guide</a> for headers, targets, and compatibility.</p>
+<h2 dir="auto" id="generic-stringinterner-compositions">Generic StringInterner compositions</h2>
+<p dir="auto"><code class="notranslate">//mbo/container/experimental/hamt:hamt_string_interner_benchmark</code> uses the existing<br>
+<code class="notranslate">mbo::strings::StringInternerSet</code> for every case. It compares transient flat HAMT fragment widths<br>
+4 through 7, a transient node HAMT at width 5, and Abseil flat hashing with the same Mumbo hash,<br>
+32-bit strong IDs, descriptor storage, and character storage. A separate width-5 flat case uses<br>
+64 KiB initial character blocks with a 1 MiB growth ceiling to expose the allocation tradeoff.</p>
+<p dir="auto"><code class="notranslate">Build</code> includes fresh index/interner construction, insertion, and destruction. <code class="notranslate">Hit</code>, <code class="notranslate">Miss</code>,<br>
+<code class="notranslate">Duplicate</code>, and <code class="notranslate">Get</code> exclude population and destruction and visit a deterministic shuffled<br>
+order. Populations are 1,024 and 16,384 unique keys. Every configuration validates insertion,<br>
+ID assignment, duplicate handling, and lookup before timing. Items processed count strings;<br>
+reported times are per complete batch, so divide by population for per-string latency.</p>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel build --config=clang -c opt \
+  //mbo/container/experimental/hamt:hamt_string_interner_benchmark
+bazel-bin/mbo/container/experimental/hamt/hamt_string_interner_benchmark \
+  --benchmark_min_time=0.05s --benchmark_min_warmup_time=0.02 \
+  --benchmark_repetitions=9 --benchmark_enable_random_interleaving=true \
+  --benchmark_out=/private/tmp/hamt-generic-interner.json --benchmark_out_format=json</pre></div>
+<p dir="auto">The adapter deliberately holds a transient map throughout the interner's lifetime. The former<br>
+custom interner and its persistent-on-each-insert adapter are removed. Neither old custom-interner<br>
+results nor short local diagnostics establish the best representation on every platform. Retain<br>
+the source SHA, toolchain, host, complete command, and raw repetitions for any published comparison.</p>
+<h2 dir="auto" id="general-map-workloads">General map workloads</h2>
+<p dir="auto"><code class="notranslate">//mbo/container/experimental/hamt:hamt_map_benchmark</code> is a manual, test-only comparison of<br>
+read-only general maps. It is not the final performance report. Final measurements<br>
+follow the complete implementation and each draft PR's own-context CI validation.</p>
+<p dir="auto">The initial 198 cases compare <code class="notranslate">HamtFlatMap</code> and <code class="notranslate">HamtNodeMap</code> at fragment widths<br>
+4, 5, 6, and 7 against <code class="notranslate">std::unordered_map</code>, <code class="notranslate">absl::flat_hash_map</code>, and<br>
+<code class="notranslate">absl::node_hash_map</code>. All use the same 64-bit integer mixer, keys, mapped values,<br>
+cardinality, and lookup loop. Sizes are 64, 1,024, and 16,384 entries. Each batch<br>
+visits every key once in a deterministic permutation, either all hits or all<br>
+misses. The power-of-two sizes make the odd-multiplier permutation bijective.</p>
+<p dir="auto">Population and exhaustive hit/miss/value validation happen before timing.<br>
+HAMTs are populated through persistent insertion, discarding the previous snapshot<br>
+after each insertion, and then exposed as a const snapshot. This avoids requesting<br>
+mutable iterators during untimed setup: the current mutable-iterator preparation<br>
+walks the tree and would distort setup scalability. The other maps are populated<br>
+through ordinary insertion. Population,<br>
+destruction, mutation, persistence conversion, and allocation costs are therefore<br>
+not measured by these lookup cases. A compiler escape and identical per-batch<br>
+memory barriers prevent hoisting the complete read-only batch out of timing.</p>
+<p dir="auto">This harness deliberately measures public <code class="notranslate">find</code>, including iterator construction<br>
+where a container requires it; it does not substitute an internal pointer lookup<br>
+for the HAMTs. Stored keys and query keys are unsigned 64-bit integers, so this<br>
+initial matrix does not cover heterogeneous lookup or string-key hashing costs.</p>
+<p dir="auto">Traversal adds one batch over every container's native const iterator order.<br>
+An untimed preflight verifies every key appears exactly once with the expected<br>
+mapped value; it does not assume hash-container iteration orders agree. Timed<br>
+batches sum mapped values, with the same compiler escape and memory barriers as<br>
+lookup. These cases measure complete traversal, not random indexed access or<br>
+mutable ownership preparation.</p>
+<p dir="auto"><code class="notranslate">FillEraseFresh</code> starts with a new editable map for each iteration, inserts every<br>
+key once, then erases every key in the same permutation used by lookup. HAMTs<br>
+use a transient; comparison maps use their ordinary mutable interface. The timed<br>
+cycle includes construction, public iterator/bool insertion results, count erasure,<br>
+and destruction. It neither reserves standard containers nor retains capacity<br>
+between iterations. An untimed complete cycle validates every insertion result,<br>
+mapped value, erasure count, and final emptiness. Timed results escape to the<br>
+compiler without adding correctness branches; items processed count insertion<br>
+and erasure separately. This measures fresh end-to-end churn, not isolated<br>
+insertion latency or shared-snapshot detachment.</p>
+<p dir="auto"><code class="notranslate">BranchUpdateOne</code> and <code class="notranslate">BranchUpdateAll</code> retain an unchanged populated parent<br>
+and create an editable child for every timed iteration. HAMTs create a transient<br>
+sharing the parent; standard/Abseil maps copy the parent because they do not<br>
+provide persistent snapshots. The child updates one mapped value or every mapped<br>
+value through public <code class="notranslate">operator[]</code>, then is destroyed. Branch creation, ownership<br>
+detachment or full copying, updates, and child destruction are timed together.<br>
+Parent population and destruction are not timed. An untimed preflight checks all<br>
+parent and child values and both cardinalities; this validates isolation, not just<br>
+the updated value. These cases compare equivalent independent-child outcomes,<br>
+not equivalent internal algorithms or pure update latency. Items processed count<br>
+mapped edits, so compare matching cases rather than one-edit and all-edit rates.</p>
+<p dir="auto">Remaining measurement work includes isolated mutation, transient conversion,<br>
+collision-heavy inputs, bounded sources, allocation and memory accounting, and<br>
+representative heterogeneous keys. These lookup cases alone cannot establish an<br>
+overall winner or justify every storage option. No measurements from the earlier<br>
+implementation are published here; they remain recoverable from Git history.</p>
+<h2 dir="auto" id="measurement-pipeline-review">Measurement pipeline review</h2>
+<ul dir="auto">
+<li><strong>Collection:</strong> rerun from a clean final commit on at least the Apple M5 Pro and AMD Zen 5.<br>
+Keep nine randomly interleaved repetitions, warmup, immutable raw JSON, the exact source<br>
+commit, compiler, flags, host, and operation count. Verify that each task compares equivalent<br>
+outcomes and distinguish lookup, traversal, fresh mutation, and snapshot updates. Record<br>
+allocations and memory separately from timing. ASAN and one-iteration smoke runs prove only<br>
+harness execution.</li>
+<li><strong>Generation:</strong> validate raw repetitions and normalize every case by its actual operations per<br>
+iteration before comparing matching task, cardinality, and host cells. Preserve both absolute<br>
+timing and relative factor. Missing cells stay missing; do not interpolate measurements or use<br>
+historic results as a baseline for the relocated implementation.</li>
+<li><strong>Presentation:</strong> review XFF's Three.js landscape for a task-by-log-cardinality surface whose<br>
+height is a clearly labeled relative factor or percentage. Select the container, fragment width,<br>
+baseline, and host outside the surface. Categorical task connections are visual guides only.<br>
+Provide exact values and provenance in an accessible table alongside the view. Publish no new<br>
+chart or configuration recommendation until fresh data and the renderer are reviewed together.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

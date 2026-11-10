@@ -1,0 +1,147 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/container/experimental/hamt/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="experimental-hamt-containers">Experimental HAMT containers</h1>
+<p dir="auto">The HAMT implementation lives in <code class="notranslate">mbo/container/experimental/hamt</code> and namespace<br>
+<code class="notranslate">mbo::container::experimental::hamt</code>. Headers, target names, types, and behavior in this<br>
+experimental package may change between releases without compatibility aliases or deprecation.<br>
+Internal machinery lives in its <code class="notranslate">hamt_internal</code> namespace and is not a supported interface.</p>
+<p dir="auto">HAMTs share unchanged hash-trie nodes between persistent snapshots. Use them when structural<br>
+sharing or explicitly provisioned storage matters. This package does not claim a general lookup<br>
+advantage over ordinary hash tables.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Public type</th>
+<th>Storage and access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">hamt_flat_map.h</code></td>
+<td><code class="notranslate">HamtFlatMap</code></td>
+<td>Packed key/value entries; persistent and transient maps</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_flat_set.h</code></td>
+<td><code class="notranslate">HamtFlatSet</code></td>
+<td>Packed keys; persistent and transient sets</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_node_map.h</code></td>
+<td><code class="notranslate">HamtNodeMap</code></td>
+<td>Separately owned payloads for stable surviving addresses</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_node_set.h</code></td>
+<td><code class="notranslate">HamtNodeSet</code></td>
+<td>Separately owned keys for stable surviving addresses</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_options.h</code></td>
+<td><code class="notranslate">HamtOptions</code></td>
+<td>Fragment width, maximum size, and full-hash collision cap</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_string_index.h</code></td>
+<td><code class="notranslate">HamtStringIndex</code></td>
+<td>Transient flat-map index for the generic StringInterner</td>
+</tr>
+<tr>
+<td><code class="notranslate">hamt_node_string_index.h</code></td>
+<td><code class="notranslate">HamtNodeStringIndex</code></td>
+<td>Transient node-map index for the generic StringInterner</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Bazel targets use <code class="notranslate">//mbo/container/experimental/hamt:&lt;header_basename&gt;_cc</code>.<br>
+For example, depend on <code class="notranslate">//mbo/container/experimental/hamt:hamt_flat_map_cc</code> and include<br>
+<code class="notranslate">mbo/container/experimental/hamt/hamt_flat_map.h</code>.</p>
+<p dir="auto">Persistent insertion and erasure return a new container and a change flag. Existing snapshots<br>
+remain unchanged. Each container has a move-only <code class="notranslate">transient_type</code> for editing and a consuming<br>
+<code class="notranslate">persistent()</code> conversion. Shared paths are copied before mutation; unique paths can be edited<br>
+in place. See the <a href="HAMT_FLAT_MAP.html">flat map</a>,<br>
+<a href="HAMT_FLAT_SET.html">flat set</a>, <a href="HAMT_NODE_MAP.html">node map</a>, and<br>
+<a href="HAMT_NODE_SET.html">node set</a> contracts for reference and iterator invalidation.</p>
+<p dir="auto"><code class="notranslate">HamtOptions</code> accepts fragment widths from four through seven bits, positive maximum size, and<br>
+positive maximum full-hash collision size. The latter two default to unrestricted size bounds.<br>
+Routing depth is bounded by hash width; collision scans are bounded only when a finite collision<br>
+cap is configured. Hashing and equality still depend on the key's representation and length.</p>
+<p dir="auto">Supported hash, equality, construction, and mutation callbacks must satisfy the operation's<br>
+nothrow constraints. Recoverable <code class="notranslate">try_*</code> operations report allocation, size, or collision<br>
+exhaustion without publishing a partial update. Convenience operations fail hard when their<br>
+requirements cannot be met. See <a href="HAMT_STORAGE.html">storage and ownership</a> for the<br>
+allocation-domain and lifetime rules.</p>
+<p dir="auto">Node storage uses <code class="notranslate">BlockSource</code>. Factories accepting caller-owned control storage avoid allocating<br>
+the ownership domain separately. A source must support the simultaneously live blocks required<br>
+by a trie and its snapshots; one fixed single-live-block source is not a general HAMT allocator.<br>
+<code class="notranslate">ArenaBlockSource</code> supports recyclable blocks from a caller-owned arena. Borrowed backing storage<br>
+must outlive every snapshot using it. External synchronization is required for copying and<br>
+mutating shared ownership; atomic node reference counts do not provide a publication protocol.</p>
+<p dir="auto">The standalone <a href="HAMT_COLLISIONS.html">flat collision bucket</a> uses the released<br>
+<code class="notranslate">SegmentedVector</code> for append, indexed access, and back removal. No legacy segmented-container<br>
+implementation is carried by this package.</p>
+<p dir="auto">The <a href="HAMT_MAP_BENCHMARKS.html">benchmark guide</a> describes the current harness and the review needed<br>
+before publishing new performance results. Previous charts and measurements were removed because<br>
+they predate this integrated implementation; their commits remain available in Git history.<br>
+String ownership and cascading interning use the existing<br>
+<a href="../../../strings/STRING_INTERNING.html">generic StringInterner</a>. The HAMT string-index adapters<br>
+hold transient flat or node maps and expose const container iterators. Pair them with<br>
+<code class="notranslate">HamtStringInternerIndexPolicy</code> to preserve recoverable index exhaustion through the generic<br>
+interner's policy interface. Character storage uses the existing append-only <code class="notranslate">ArenaStringStorage</code>;<br>
+Arena checkpoints are not required.</p>
+<h2 dir="auto" id="generic-interner-composition">Generic interner composition</h2>
+<p dir="auto">Use an ID-bearing map index: a key-only set would force the generic interner to scan its dense<br>
+entries to recover an ID. <code class="notranslate">StringIdU32</code> keeps the index payload compact, while <code class="notranslate">SegmentedVector</code><br>
+preserves descriptor and mapped-value addresses. The ordinary exception-free publication policy<br>
+avoids a rollback guard for mapped values that cannot throw. Select the generic exception-safe<br>
+policy when a mapped-value constructor can throw.</p>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/experimental/hamt/hamt_string_index.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/container/experimental/hamt/hamt_string_interner_policy.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/hash/hash.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/strings/string_interner.h<span class="pl-pds">"</span></span>
+
+<span class="pl-k">using</span> Id = mbo::strings::StringIdU32&lt;&gt;;
+<span class="pl-k">using</span> Hash = mbo::hash::DefaultHasher;
+<span class="pl-k">constexpr</span> mbo::container::experimental::hamt::HamtOptions <span class="pl-c1">kIndexOptions</span>{.<span class="pl-smi">fragment_bits</span> = <span class="pl-c1">6</span>};
+<span class="pl-k">using</span> Index = mbo::container::experimental::hamt::HamtStringIndex&lt;Id, Hash, std::equal_to&lt;&gt;, <span class="pl-c1">kIndexOptions</span>&gt;;
+<span class="pl-k">using</span> Policy = mbo::strings::StringInternerPolicyHolder&lt;
+    mbo::strings::StringInternerErrorStlPolicy,
+    mbo::strings::StringInternerLookupMboPolicy,
+    mbo::container::experimental::hamt::HamtStringInternerIndexPolicy&gt;;
+<span class="pl-k">using</span> Interner = mbo::strings::StringInternerSet&lt;
+    Id, Hash, Index, mbo::strings::ArenaStringStorage&lt;&gt;,
+    mbo::container::SegmentedVector&lt;std::string_view&gt;, Policy&gt;;
+
+Interner strings;
+<span class="pl-k">auto</span> inserted = strings.insert(<span class="pl-s"><span class="pl-pds">"</span>example<span class="pl-pds">"</span></span>);</pre></div>
+<p dir="auto"><code class="notranslate">HamtStringIndex</code> and <code class="notranslate">HamtNodeStringIndex</code> are move-only containers with const iterators,<br>
+<code class="notranslate">find</code>, <code class="notranslate">emplace</code>, <code class="notranslate">erase(iterator)</code>, and fallible <code class="notranslate">try_emplace</code>. An interner has one evolving<br>
+local index, so insertion uses transient ownership rather than copying a persistent root first.<br>
+Parent visibility continues to use the generic interner's captured ID prefix. Keys borrow the<br>
+interner's character storage; insertion results never expose mutable keys or IDs.</p>
+<p dir="auto">The flat adapter avoids separate payload allocations and is the initial compact composition.<br>
+The example selects six-bit fragments for lookup-oriented use. Local nine-repetition diagnostics<br>
+at 1,024 and 16,384 keys favored width 6 for lookup and duplicate insertion; width 5 built the larger<br>
+population slightly faster. The node adapter is available for comparison. Fragment widths, hash<br>
+algorithms, character-block sizes, and expected populations remain measurement axes rather than<br>
+universal speed defaults. These diagnostics do not change the core <code class="notranslate">HamtOptions</code> defaults.<br>
+The <a href="HAMT_MAP_BENCHMARKS.html#generic-stringinterner-compositions">generic interner benchmark</a><br>
+compares these choices using the same interner implementation.</p>
+<p dir="auto">Failed index insertion leaves no published ID or lookup entry. As in the generic interner on<br>
+<code class="notranslate">main</code>, an uncommitted character copy can remain reserved until storage destruction. Checkpoint<br>
+rollback is not part of this composition. With exception-safe mapped publication, the index policy<br>
+retains the pre-insertion root until publication succeeds. A throwing mapped constructor restores<br>
+that root without allocating, including when insertion consumed the source's remaining capacity.<br>
+Transactional insertion path-copies only the modified branch; it does not prepare mutable iteration<br>
+or clone the whole tree. Normal exception-free insertion retains its transient fast path and does<br>
+not retain an extra root. Ordinary <code class="notranslate">erase(iterator)</code> can still allocate and retains its source's<br>
+exhaustion behavior; publication rollback does not call it.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

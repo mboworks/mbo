@@ -1,0 +1,322 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/json/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbojson"><code class="notranslate">mbo/json</code></h1>
+<p dir="auto"><code class="notranslate">mbo::json</code> is a write-only JSON generator. It provides owning scalar, array, and object values for<br>
+building documents in C++ and serializing object or null roots to strings or streams. It does not<br>
+read or parse JSON input.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::json</code>.</li>
+<li>Header: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/json/json.h">json.h</a>.</li>
+<li>Bazel target: <code class="notranslate">//mbo/json:json_cc</code>.</li>
+</ul>
+<h2 dir="auto" id="value-kinds">Value kinds</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th><code class="notranslate">Json::Kind</code></th>
+<th>Storage</th>
+<th>Predicates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">kNull</code></td>
+<td><code class="notranslate">std::nullopt_t</code></td>
+<td><code class="notranslate">IsNull()</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kArray</code></td>
+<td>Owned <code class="notranslate">std::vector&lt;Json&gt;</code></td>
+<td><code class="notranslate">IsArray()</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kBool</code></td>
+<td><code class="notranslate">bool</code></td>
+<td><code class="notranslate">IsBool()</code>, <code class="notranslate">IsTrue()</code>, <code class="notranslate">IsFalse()</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kNumber</code></td>
+<td><code class="notranslate">int64_t</code>, <code class="notranslate">uint64_t</code>, or <code class="notranslate">double</code></td>
+<td><code class="notranslate">IsNumber()</code>, <code class="notranslate">IsInteger()</code>, <code class="notranslate">IsSignedInt()</code>, <code class="notranslate">IsUnsignedInt()</code>, <code class="notranslate">IsFloat()</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kObject</code></td>
+<td><code class="notranslate">absl::flat_hash_map&lt;std::string, std::unique_ptr&lt;Json&gt;&gt;</code></td>
+<td><code class="notranslate">IsObject()</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">kString</code></td>
+<td><code class="notranslate">std::string</code></td>
+<td><code class="notranslate">IsString()</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Default construction: null.</li>
+<li>Scalar construction: explicit; null, boolean, supported numeric, and string inputs.</li>
+<li><code class="notranslate">ConvertibleToJson&lt;T&gt;</code>: accepted scalar conversion categories; not arbitrary aggregate conversion.</li>
+<li><code class="notranslate">GetKind()</code>: stored value kind; numeric representations share <code class="notranslate">kNumber</code>.</li>
+<li>Copy construction and copy assignment: deep copies of arrays and objects.</li>
+<li>Move construction and move assignment: supported and <code class="notranslate">noexcept</code>.</li>
+<li>Explicit boolean conversion: <code class="notranslate">!IsNull()</code>, including true for a stored <code class="notranslate">false</code>, zero, or empty string.</li>
+<li>Equality and ordering: <code class="notranslate">Json</code> values and supported scalar operands.</li>
+</ul>
+<h2 dir="auto" id="construction-and-mutation">Construction and mutation</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Required kind</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Reset()</code></td>
+<td>Any</td>
+<td>Replace with null</td>
+</tr>
+<tr>
+<td><code class="notranslate">MakeArray()</code></td>
+<td>Null or array</td>
+<td>Create an empty array from null; preserve an existing array</td>
+</tr>
+<tr>
+<td><code class="notranslate">MakeObject()</code></td>
+<td>Null or object</td>
+<td>Create an empty object from null; preserve an existing object</td>
+</tr>
+<tr>
+<td><code class="notranslate">MakeString(value)</code></td>
+<td>Null or string</td>
+<td>Create a string from null; preserve an existing string</td>
+</tr>
+<tr>
+<td>Assignment from a supported scalar</td>
+<td>Any</td>
+<td>Replace the stored value</td>
+</tr>
+<tr>
+<td><code class="notranslate">clear()</code></td>
+<td>Any</td>
+<td>Empty arrays/objects without changing kind; reset other kinds to null</td>
+</tr>
+<tr>
+<td><code class="notranslate">size()</code></td>
+<td>Any</td>
+<td>Array element or object property count; zero for other kinds</td>
+</tr>
+<tr>
+<td><code class="notranslate">empty()</code></td>
+<td>Any</td>
+<td>Container emptiness; true for every scalar and null</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="objects">Objects</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mutable <code class="notranslate">operator[](property)</code></td>
+<td>Convert null to object; insert a null value if the property is absent</td>
+</tr>
+<tr>
+<td>Const <code class="notranslate">operator[](property)</code></td>
+<td>Require an object and an existing property</td>
+</tr>
+<tr>
+<td><code class="notranslate">at(property)</code></td>
+<td>Require an object and an existing property; no insertion</td>
+</tr>
+<tr>
+<td><code class="notranslate">contains(property)</code></td>
+<td>Property presence; false for non-objects</td>
+</tr>
+<tr>
+<td><code class="notranslate">emplace(property, value)</code></td>
+<td>Convert null to object; insert if absent; return the existing value on a duplicate</td>
+</tr>
+<tr>
+<td><code class="notranslate">erase(property)</code></td>
+<td>Return the number erased; zero for non-objects</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 dir="auto" id="arrays">Arrays</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">push_back(value)</code></td>
+<td>Convert null to array and append</td>
+</tr>
+<tr>
+<td><code class="notranslate">emplace_back(value)</code></td>
+<td>Convert null to array, append, and return the new element</td>
+</tr>
+<tr>
+<td>Mutable <code class="notranslate">operator[](index)</code> or <code class="notranslate">at(index)</code></td>
+<td>Require null or array, then a valid index; no automatic growth</td>
+</tr>
+<tr>
+<td>Const <code class="notranslate">operator[](index)</code> or <code class="notranslate">at(index)</code></td>
+<td>Require array and a valid index</td>
+</tr>
+<tr>
+<td><code class="notranslate">resize(count)</code></td>
+<td>Require array; add null values when growing</td>
+</tr>
+<tr>
+<td><code class="notranslate">resize(count, value)</code></td>
+<td>Require array; fill new elements with the supplied value</td>
+</tr>
+<tr>
+<td><code class="notranslate">pop_back()</code></td>
+<td>Remove the final element; requires a nonempty array</td>
+</tr>
+<tr>
+<td><code class="notranslate">pop_back_value()</code></td>
+<td>Check array kind and nonempty size, then remove and return the final value</td>
+</tr>
+<tr>
+<td><code class="notranslate">erase(iterator)</code> or <code class="notranslate">erase(first, last)</code></td>
+<td>Remove array elements and return the following iterator</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li><code class="notranslate">pop_back_value()</code>: retains array kind when removing the final element.</li>
+<li>Checked requirements: <a href="../config/README.html#requirement-failures">MBO_CONFIG_REQUIRE</a>.</li>
+<li><code class="notranslate">MakeArray</code>, <code class="notranslate">MakeObject</code>, and <code class="notranslate">MakeString</code>: no conversion between existing non-null kinds;<br>
+call <code class="notranslate">Reset()</code> first or assign a replacement value.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/json/json.h<span class="pl-pds">"</span></span>
+
+std::string <span class="pl-en">MakeDocument</span>() {
+  mbo::json::Json document;
+  document[<span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>] = <span class="pl-s"><span class="pl-pds">"</span>sample<span class="pl-pds">"</span></span>;
+  document[<span class="pl-s"><span class="pl-pds">"</span>enabled<span class="pl-pds">"</span></span>] = <span class="pl-c1">true</span>;
+  document[<span class="pl-s"><span class="pl-pds">"</span>values<span class="pl-pds">"</span></span>].<span class="pl-c1">push_back</span>(<span class="pl-c1">3</span>);
+  document[<span class="pl-s"><span class="pl-pds">"</span>values<span class="pl-pds">"</span></span>].<span class="pl-c1">push_back</span>(<span class="pl-c1">5</span>);
+  document[<span class="pl-s"><span class="pl-pds">"</span>last<span class="pl-pds">"</span></span>] = document[<span class="pl-s"><span class="pl-pds">"</span>values<span class="pl-pds">"</span></span>].<span class="pl-c1">pop_back_value</span>();
+  <span class="pl-k">return</span> document.<span class="pl-c1">Serialize</span>(mbo::json::Json::SerializeMode::<span class="pl-c1">kPretty</span>);
+}</pre></div>
+<h2 dir="auto" id="iteration-and-views">Iteration and views</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API</th>
+<th>Required kind</th>
+<th>Elements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">begin/end</code>, <code class="notranslate">cbegin/cend</code>, reverse variants</td>
+<td>Array</td>
+<td>Array values</td>
+</tr>
+<tr>
+<td><code class="notranslate">array_values()</code></td>
+<td>Array</td>
+<td>View of array values</td>
+</tr>
+<tr>
+<td><code class="notranslate">values()</code></td>
+<td>Array or object</td>
+<td>Forward view of <code class="notranslate">Json</code> values</td>
+</tr>
+<tr>
+<td><code class="notranslate">property_names()</code></td>
+<td>Object</td>
+<td>Property names</td>
+</tr>
+<tr>
+<td><code class="notranslate">property_values()</code></td>
+<td>Object</td>
+<td>Property values</td>
+</tr>
+<tr>
+<td><code class="notranslate">property_pairs()</code></td>
+<td>Object</td>
+<td>Name/value reference pairs</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Views: borrow the owning <code class="notranslate">Json</code> and its elements.</li>
+<li>Array iteration order: element order.</li>
+<li>Object iteration order: hash-table order; not insertion order.</li>
+<li>Mutations: subject to the underlying vector/hash-table iterator invalidation rules.</li>
+<li><code class="notranslate">erase</code> also accepts the value iterators returned by <code class="notranslate">values()</code> for arrays and objects.</li>
+<li>Mutable <code class="notranslate">values()</code>: writes <code class="notranslate">Array Size: N</code> or <code class="notranslate">Object Size: N</code> to <code class="notranslate">std::cout</code> when creating the view.</li>
+</ul>
+<h2 dir="auto" id="serialization">Serialization</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>API or mode</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">Serialize(mode, root_options)</code></td>
+<td>Return <code class="notranslate">std::string</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">Stream(ostream, mode, root_options)</code></td>
+<td>Write to the stream and return it</td>
+</tr>
+<tr>
+<td><code class="notranslate">SerializeMode::kCompact</code></td>
+<td>Default compact JSON formatting</td>
+</tr>
+<tr>
+<td><code class="notranslate">SerializeMode::kLine</code></td>
+<td>JSON line formatting</td>
+</tr>
+<tr>
+<td><code class="notranslate">SerializeMode::kPretty</code></td>
+<td>Indented JSON formatting</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Root kinds: object or null only; other root kinds trigger a requirement failure.</li>
+<li>Null root output: <code class="notranslate">{}</code> followed by a newline with default options.</li>
+<li>Nested values: arrays, objects, strings, booleans, numbers, and null.</li>
+<li>Formatting and root options: <a href="../types/README.html#stringification">mbo/types Stringify</a>.</li>
+<li>Compact object property order: unspecified.</li>
+</ul>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/json:all
+bazel <span class="pl-c1">test</span> --config=clang --//mbo/config:require_throws=true \
+  //mbo/json:json_require_exceptions_test</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/json/json_test.cc">json_test.cc</a>: values, deep copies, mutation, iteration, and serialization.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/json/json_exception_test.cc">json_exception_test.cc</a>: exception-enabled compilation.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/json/json_require_exceptions_test.cc">json_require_exceptions_test.cc</a>: checked precondition failures;<br>
+excluded from the normal configuration.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

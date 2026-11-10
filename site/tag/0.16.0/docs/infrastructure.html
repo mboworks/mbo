@@ -1,0 +1,204 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>docs/infrastructure.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="infrastructure-and-publishing">Infrastructure and publishing</h1>
+<p dir="auto">This applies the lessons from <a href="https://github.com/mboworks/proto/pull/100" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/proto/pull/100/hovercard">proto PR 100</a><br>
+and xff PRs 835–848, excluding 841. Run <code class="notranslate">bazel test //...</code>,<br>
+<code class="notranslate">python3 -m unittest discover -s tools -p '*_test.py'</code>, and <code class="notranslate">pre-commit run --all-files</code>.</p>
+<h2 dir="auto" id="local-clang-tidy">Local clang-tidy</h2>
+<p dir="auto">Build with <code class="notranslate">bazel build --config=clang-tidy //...</code>, then run<br>
+<code class="notranslate">./compile_commands-update.sh</code> before <code class="notranslate">pre-commit run clang-tidy --all-files</code>.<br>
+The enforcing hook is report-only. Missing prerequisites, stale compilation databases,<br>
+parse errors, and findings fail the check. The clang-tidy job also uses that compiler database<br>
+to run <code class="notranslate">mbo/container/experimental/frozen_compile_test.py</code>: a successful baseline compile,<br>
+negative construction diagnostics, and C++26 interface compilation.</p>
+<p dir="auto"><code class="notranslate">require_serial: true</code> gives one coordinator ownership of all workers; pre-commit filename<br>
+batching cannot multiply worker pools. The default is <code class="notranslate">max(1, min(2, CPUs - 1))</code>, further<br>
+limited by selected translation units. <code class="notranslate">CLANG_TIDY_JOBS=1</code> reduces contention; a positive<br>
+integer overrides the default, while <code class="notranslate">auto</code> selects it. CI explicitly uses its runner CPU count.<br>
+These are worker limits, not operating-system CPU or memory quotas. Independently launched<br>
+commands do not share a global limit. Interruptions terminate active children and prevent queued<br>
+work from starting. Source-only changes remain focused, while header/build changes retain<br>
+mbo's conservative full-sweep behavior and SMHasher exclusions.</p>
+<p dir="auto">LLVM 23's renamed checks retain the established policy in <code class="notranslate">.clang-tidy</code>: the HICPP signed-bitwise<br>
+exclusion uses its new <code class="notranslate">bugprone</code> name, and deprecated <code class="notranslate">zircon</code> aliases follow the existing<br>
+<code class="notranslate">fuchsia</code> exclusion. STYLE_CPP's per-initializer trailing-comma choice remains owned by<br>
+clang-format. Const analysis and the other correctness checks remain enabled; required implicit<br>
+conversions, generic move-only operations, and exception-injection tests document their narrow<br>
+exceptions at the relevant source locations.</p>
+<h2 dir="auto" id="build-caches-and-ci">Build caches and CI</h2>
+<p dir="auto">With <code class="notranslate">--config=clang</code>, the hermetic LLVM module selects Apple's native linker (<code class="notranslate">auto</code>)<br>
+for macOS ARM64 and x86_64, following <a href="https://github.com/mboworks/proto/pull/118" data-hovercard-type="pull_request" data-hovercard-url="/mboworks/proto/pull/118/hovercard">proto PR 118</a>.<br>
+The toolchain supplies the matching linker capabilities; <code class="notranslate">.bazelrc</code> does not override the<br>
+linker executable or allow unresolved symbols through <code class="notranslate">dynamic_lookup</code>. Linux retains<br>
+the toolchain's bundled LLD default. Both target and host configurations use Bazel's<br>
+<code class="notranslate">--macos_minimum_os=11.0</code> settings so Apple platform metadata and compile/link actions<br>
+agree on the deployment target.</p>
+<p dir="auto">The default compiler and formatter are LLVM 23.1.5 from the <code class="notranslate">toolchains_llvm</code> 1.13.0 release<br>
+catalogue. No supplemental LLVM distribution catalogue or Git override is required. Normal<br>
+builds fetch only that LLVM distribution; GCC and distribution Clang share its formatter.<br>
+The pre-commit formatter invokes <code class="notranslate">tools/clang_format.sh</code>, which builds and resolves the public<br>
+Bazel formatter target without compiling mbo or downloading a separate formatter package.</p>
+<p dir="auto"><code class="notranslate">bazel test --config=msan //...</code> enables MemorySanitizer on Linux x86_64. A feature override<br>
+selects LLVM 22.1.8 and its matching instrumented libc++ archive, following<br>
+<a href="https://github.com/mboworks/xff/blob/main/bazelmod/llvm.MODULE.bazel">xff's LLVM module</a>.<br>
+The instrumented libc++ comes from the same checksum-pinned third-party archive as<br>
+<a href="https://github.com/bazel-contrib/toolchains_llvm/blob/v1.13.0/tests/MODULE.bazel">toolchains_llvm's MSan test</a>.<br>
+The toolchain replaces standard-library headers, libraries, and sanitizer flags together.<br>
+Bazel's execution configuration keeps build tools uninstrumented on LLVM 23; formatting and<br>
+symbolization use that same LLVM 23 distribution. Only MSan builds additionally fetch LLVM 22<br>
+and the instrumented libc++ overlay. No sanitizer suppressions are configured. Linux jobs that fetch LLVM first remove the unused<br>
+Android and .NET SDKs from their disposable runners to provide archive-extraction space.</p>
+<p dir="auto">Linux LLVM jobs and the Bazel compatibility matrix use <code class="notranslate">ubuntu-24.04</code>; the MSan cell requires<br>
+LLVM 22's <code class="notranslate">libxml2.so.2</code> runtime dependency, which Ubuntu 26.04 replaces with <code class="notranslate">libxml2.so.16</code>.<br>
+Regular GCC and CMake jobs continue to use <code class="notranslate">ubuntu-latest</code>. The Linux Clang sanitizer matrix<br>
+covers both ASan/UBSan on LLVM 23 and MSan on LLVM 22; macOS retains ASan/UBSan coverage.<br>
+The digest unit-test target uses four shards so its million-byte vectors retain the existing<br>
+small-test timeout under MSan. Every test case still runs; the timeout and sanitizer checks<br>
+are unchanged.</p>
+<p dir="auto"><code class="notranslate">bazel test --config=tsan //mbo/container/experimental/hamt:hamt_shared_node_test //mbo/container/experimental/hamt:hamt_node_value_test //mbo/container/experimental/hamt:hamt_source_domain_test</code> checks the three threaded ownership/refcount<br>
+targets on Linux with LLVM 23. The required <code class="notranslate">thread-sanitizer</code> job runs only those targets and<br>
+uses the normal bounded compiled-output cache policy under the separate <code class="notranslate">tsan-llvm23</code> namespace.<br>
+TSan stops on the first reported race; no suppressions are configured. Hermetic Clang builds also<br>
+enable <code class="notranslate">-Wthread-safety</code>. This validates reference ownership, not unsynchronized publication or<br>
+mutation of HAMT containers, which continue to require the documented external synchronization.</p>
+<p dir="auto">Two additional optimized Bazel jobs use distribution Clang/LLD 22 and the distribution's default<br>
+standard library: one on the <code class="notranslate">ubuntu-26.04</code> host, and one in the official <code class="notranslate">ubuntu:26.10</code> container<br>
+on that host. Both run the full existing test suite, differential hashing, and disabled-mangling<br>
+checks through the reusable runner and participate in <code class="notranslate">done</code>. They do not add sanitizer, coverage,<br>
+or tidy matrix entries. The container covers Ubuntu 26.10 userspace on the host's kernel.<br>
+Distribution LLD handles both target and build-tool links; the Ubuntu 26.10 binutils 2.47<br>
+linker crashed while linking the MoPe build tool in the initial validation run.<br>
+MoPe uses <code class="notranslate">clang-format</code> from the pinned <code class="notranslate">toolchains_llvm</code> distribution for every compiler,<br>
+including GCC and distribution Clang. These jobs do not install or select another formatter.<br>
+The formatting action uses the <code class="notranslate">@llvm_toolchain_llvm//:clang-format</code> executable target and<br>
+its runfiles so the formatter and its declared dependencies are available inside Bazel sandboxes.<br>
+Containers use Docker's init process to reap the Bazel server before cache upload. They<br>
+explicitly shut down Bazel after tests so PRs also exercise process reaping.<br>
+Container bootstrap installs its Git/LFS, GitHub CLI, Python, and package tooling before checkout;<br>
+the setup action installs Bazelisk 1.30.0 in the container and uses the repository Bazel pin. Compiler<br>
+probes reject a different compiler family or Clang major version. Cache namespaces include the<br>
+Ubuntu userspace release, compiler mode/version, and existing build/dependency axes.</p>
+<p dir="auto">Cache only compiled outputs: Bazel disk caches and the CMake job's ccache directory. Bazel keys separate OS, architecture, compiler/version, Bazel<br>
+version, build configuration, dependency hash, run, and attempt. Only main saves generations;<br>
+PRs and releases restore main caches. Legacy main prefixes provide a migration fallback.<br>
+Do not upload extracted LLVM distributions or downloaded module repositories.</p>
+<p dir="auto">The default Bazel version is 9.3.2; the minimum supported release and compatibility rung is<br>
+Bazel 9.2.0. Bazel 8's dependency-metadata patches and root-only compatibility overrides are<br>
+removed, so development and downstream builds resolve the same published dependency metadata.<br>
+The registry presubmit supplies both macOS deployment-target flags at 11.0, matching native<br>
+archive-consumer builds; dependencies do not inherit the root module's <code class="notranslate">.bazelrc</code> settings.<br>
+Its Ubuntu 24.04 tasks install Clang/libc++ 23 from the LLVM APT repository, scoped by <code class="notranslate">signed-by</code>,<br>
+and explicitly select that compiler and standard library for compilation and linking rather than<br>
+the image's unsupported defaults. macOS uses Apple Clang. Both platforms exercise the same targets<br>
+with Bazel 9.2 and 9.x; GCC remains covered by main CI and independent archive-consumer jobs.</p>
+<p dir="auto">Release coverage and the separate release build/test job both explicitly select the pinned<br>
+hermetic LLVM toolchain. The reusable packaging workflow does not inherit the coverage runner's<br>
+compiler selection, so its <code class="notranslate">bazel_test_command</code> must retain <code class="notranslate">--config=clang</code>. The BCR source<br>
+template references the uploaded <code class="notranslate">mbo-&lt;tag&gt;.tar.gz</code>, whose <code class="notranslate">mbo-&lt;version&gt;/</code> prefix matches<br>
+<code class="notranslate">strip_prefix</code>; the publisher computes its integrity from that archive. Generated installation<br>
+instructions link to tag-pinned module files and require consumers to select their own compiler<br>
+and C++23 flags. The checkout-only development module is not a standalone consumer template.<br>
+The metadata template preserves the maintainer's numeric GitHub ID, required by registry validation.</p>
+<p dir="auto">The required <code class="notranslate">release-artifacts</code> matrix packages committed HEAD using the real release-preparation<br>
+script in a disposable clone, then extracts and validates that tarball. Independent native-toolchain<br>
+Bazel consumers run on Linux with 9.2.0 and 9.3.2 and on macOS with 9.3.2; independent CMake<br>
+consumers run on both platforms. They exercise new public containers and string APIs without<br>
+inheriting mbo's <code class="notranslate">.bazelrc</code>, toolchain, or root overrides. The archive stores version metadata as<br>
+<code class="notranslate">VERSION.txt</code>, never <code class="notranslate">VERSION</code>, which would shadow <code class="notranslate">&lt;version&gt;</code> on case-insensitive filesystems.<br>
+The dev-only <code class="notranslate">bazelmod/BUILD.bazel</code> is excluded so recursive external queries do not load Hedron.<br>
+Run <code class="notranslate">python3 tools/release_artifact.py</code> locally on committed changes; use <code class="notranslate">--archive PATH</code> to<br>
+validate an existing or downloaded release. These jobs do not tag, upload, or publish releases.<br>
+<code class="notranslate">tools/trigger_release.sh</code>, including its dry run, requires the latest main-push CI run for the<br>
+exact prospective tag commit to have succeeded, including the aggregate <code class="notranslate">done</code> gate. A green PR<br>
+run, older main commit, or older successful run cannot substitute for that validation.<br>
+<code class="notranslate">--norewind_lost_inputs</code> keeps cached-action output checks enabled when CI cache<br>
+trimming evicts individual CAS blobs, so missing outputs cause a rebuild. Repository<br>
+downloads use 20 connector attempts and 20 downloader retries, with connector retry<br>
+backoff capped at five seconds.</p>
+<p dir="auto">Before upload, stop the correct Bazel server and synchronously trim largest files first,<br>
+oldest first at equal size. The starting limit is 600,000,000 uncompressed bytes and a compressed<br>
+entry must be strictly below 700,000,000 bytes. These conservative initial budgets replace the<br>
+old policy that discarded an entire upload above 500 MiB. They are not measured optimal sizes<br>
+for mbo. A read-only inventory on 2026-09-17 found 108 entries totaling 7,933,025,070<br>
+bytes; the largest main build cache was macOS ASan at 344,079,951 compressed bytes.<br>
+Compressed sizes do not establish uncompressed payload needs. Use the one-day cache measurement artifacts, final job inventory, and Bazel disk-cache<br>
+hit statistics to decide whether configuration-specific budgets should change. The inventory<br>
+uses 10 GB as a planning budget, not a claim about account-specific limits.</p>
+<p dir="auto">Retire old main generations only after the exact usable replacement appears in the inventory.<br>
+Missing, empty, oversized, equal-age, or newer generations do not authorize retirement.<br>
+Trusted main-only maintenance removes closed-PR/tag caches, superseded generations, and<br>
+oversized entries. A cache API failure defers immediate retirement.</p>
+<p dir="auto">Coverage starts alongside lint. Every existing matrix job remains in the final required gate.<br>
+The existing GCC, Clang, macOS, sanitizer, and Bazel compatibility matrix stays intact.</p>
+<p dir="auto">The <code class="notranslate">cmake-gcc</code> job builds all CMake library, command-line, and benchmark targets<br>
+with GCC 15 on Ubuntu and runs the existing C++ tests through CTest. Builds and tests use all<br>
+runner CPUs through <code class="notranslate">CMAKE_BUILD_PARALLEL_LEVEL</code> and <code class="notranslate">CTEST_PARALLEL_LEVEL</code>. It also repeats the glob<br>
+test to verify fresh temporary directories on repeated invocations. A second configuration<br>
+enables compiler exceptions and checks requirement exceptions and disabled hash mangling,<br>
+including the optional wrappers and Stringify option validation. A separate consumer project verifies<br>
+<code class="notranslate">add_subdirectory</code> and the transitive C++23, include, and link requirements of <code class="notranslate">mbo::mbo</code>.<br>
+This job participates in <code class="notranslate">done</code>; it does not replace any Bazel, sanitizer, lint, or coverage gate.<br>
+The default, exception/configuration, and consumer builds use CMake's C/C++ compiler launchers<br>
+with ccache. PRs restore main generations; only successful main jobs save them. CMake keys use a<br>
+separate <code class="notranslate">cmake-ccache-v1</code> family partitioned by OS, architecture, GCC version, dependency/build-adapter<br>
+hash, run, and attempt. Compiler-content checks protect reuse when an installed compiler changes.<br>
+The ccache limit is 500 MB; saving synchronously cleans the cache and rejects a payload at or above<br>
+600,000,000 bytes. The shared compressed entry ceiling remains 700,000,000 bytes. Retirement requires<br>
+an exact usable main replacement and preserves other cache families, configurations, and newer runs.<br>
+One-day cache measurements feed the existing final storage report.</p>
+<p dir="auto">A clean rebuild of the configuration test must produce actual direct or preprocessed cache hits.<br>
+The job summary separates the initial library/binary/test build counters from the cache-verification<br>
+and alternate-build counters. CMake build trees and fetched dependencies remain local and are<br>
+excluded from uploads.</p>
+<h2 dir="auto" id="preparation-profiles">Preparation profiles</h2>
+<p dir="auto">Experimental HAMT production headers are included in the <code class="notranslate">container</code> coverage category through<br>
+its recursive glob. HAMT integration tests use the generic StringInterner from <code class="notranslate">mbo/strings</code>.<br>
+Manual HAMT benchmarks are listed explicitly for clang-tidy; benchmark translation units remain<br>
+excluded from coverage reporting by <code class="notranslate">coverage_policy.json</code>.</p>
+<p dir="auto">The reusable coverage runner serves main, PRs, and releases. The supplemental exception-policy<br>
+targets include the experimental frozen containers' construction and lookup failures,<br>
+the experimental circular buffer's checked operations and its deque integration,<br>
+the shared value-pop suite across all sequence endpoints, Json array pop requirements, and<br>
+the optional wrappers' checked access and assignment, and Stringify option validation. The<br>
+value-pop exception tests disable optional return-value elision to exercise the single-move<br>
+contract. Its primary and exception-policy<br>
+coverage invocations write separate <code class="notranslate">coverage-preparation.json.gz</code> and<br>
+<code class="notranslate">coverage-exceptions-preparation.json.gz</code> traces. Later <code class="notranslate">bazel info</code> calls do not overwrite them.<br>
+The <code class="notranslate">coverage-preparation-profile</code> artifact retains both for seven days, even after failure.<br>
+Missing traces warn without hiding the underlying coverage failure.</p>
+<p dir="auto">The traces include repository fetches, Starlark repository functions, Starlark builtins, and<br>
+fetch events. Compare their durations with elapsed time, action critical path, executed actions,<br>
+and cache hits before deciding that downloading, extraction, analysis, or compilation dominates.<br>
+xff's timing improvements are evidence for measuring these phases, not predicted mbo speedups.</p>
+<h2 dir="auto" id="coverage-and-publishing">Coverage and publishing</h2>
+<p dir="auto">The trusted coverage publisher archives every identified report and attempt before replacing a<br>
+target URL, including late reports that cannot replace a newer latest report. Aggregate history,<br>
+policy and patch data, and original run metadata remain indefinitely; detailed LCOV source pages<br>
+expire seven days after original completion. Shared compressed page bases and manifests retain<br>
+recent source views without duplicating each full HTML tree. Main stays first; merged<br>
+PRs and releases follow by actual merge/tag timestamps, while open and unknown reports follow by<br>
+workflow creation time. Closed-unmerged PRs are omitted from the overview while direct reports<br>
+remain. Aggregation ancestry is provenance and is verified for squashed parents without changing<br>
+measured identities. Replacement freshness is independent: an older slow run cannot overwrite a<br>
+newer report.</p>
+<p dir="auto">Both publishers compact the retained tree before committing, then measure the complete deployment<br>
+after artwork installation. <code class="notranslate">storage-report.json</code> records section totals; 200 MB warns and a 9 GB<br>
+payload guard stops packaging. The supported Pages site limit remains 1 GB. Publication snapshots<br>
+are fetched shallowly, source ancestry uses <code class="notranslate">blob:none</code>, and historical Git objects are not rewritten.<br>
+See <a href="site-storage.html">published site storage</a> for retention, browser requirements, and validation.</p>
+<p dir="auto">Both full-site publishers add shared MBO Works favicons to the staged deployment copy only.<br>
+Retained release snapshots remain unchanged. The README uses the shared logo at 64 by 64 pixels.<br>
+Release tags remain numeric semantic versions and existing immutable release/BCR flows remain<br>
+in place. No dependency or toolchain pins change as part of this infrastructure adaptation.</p>
+<h2 dir="auto" id="contributor-rules">Contributor rules</h2>
+<p dir="auto"><code class="notranslate">AGENTS.md</code> describes contributor obligations; <code class="notranslate">GIT_RULES.md</code> owns branch and PR operations.<br>
+<code class="notranslate">STYLE_CPP.md</code> and <code class="notranslate">STYLE_SH.md</code> own language conventions. This rollout corrects stale lint<br>
+instructions without replacing mbo's detailed C++ rules or bashtest-specific shell test policy.</p></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

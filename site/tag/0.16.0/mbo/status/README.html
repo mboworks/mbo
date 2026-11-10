@@ -1,0 +1,199 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>mbo/status/README.md - mbo 0.16.0</title><style>
+:root { color-scheme: light dark; font: 17px/1.6 system-ui, sans-serif; }
+body { max-width: 76rem; margin: auto; padding: 2rem; }
+a { color: light-dark(#075da8, #8cc8ff); }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #888; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#f3f5f7, #20252b); }
+code { font-size: .9em; } img { max-width: 100%; }
+table { display: block; overflow: auto; border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: .4rem .7rem; }
+blockquote { border-left: 4px solid #888; margin-left: 0; padding-left: 1rem; }
+</style><body><nav><a href="/mbo/site/tag/0.16.0/">Home</a><a href="/mbo/site/tag/0.16.0/documents.html">Documentation</a><a href="https://github.com/mboworks/mbo/releases/tag/0.16.0">Release &amp; downloads</a><a href="https://github.com/mboworks/mbo/tree/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de">Source</a><a href="/mbo/coverage/tag/0.16.0/">Coverage</a></nav><p>mbo 0.16.0</p><main><h1 dir="auto" id="mbostatus"><code class="notranslate">mbo/status</code></h1>
+<p dir="auto"><code class="notranslate">mbo::status</code> provides helpers for error handling with <code class="notranslate">absl::Status</code> and <code class="notranslate">absl::StatusOr</code>.<br>
+It includes status extraction, a builder for messages and payloads, and macros that propagate<br>
+errors while assigning or moving successful results.</p>
+<ul dir="auto">
+<li>Namespace: <code class="notranslate">mbo::status</code>.</li>
+<li>Build definitions: <a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/BUILD.bazel">BUILD.bazel</a>.</li>
+</ul>
+<h2 dir="auto" id="headers-and-targets">Headers and targets</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Header</th>
+<th>Bazel target</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status.h">status.h</a></td>
+<td><code class="notranslate">//mbo/status:status_cc</code></td>
+<td><code class="notranslate">GetStatus</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status_builder.h">status_builder.h</a></td>
+<td><code class="notranslate">//mbo/status:status_builder_cc</code></td>
+<td><code class="notranslate">StatusBuilder</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status_macros.h">status_macros.h</a></td>
+<td><code class="notranslate">//mbo/status:status_macros_cc</code></td>
+<td><code class="notranslate">MBO_RETURN_IF_ERROR</code>, <code class="notranslate">MBO_ASSIGN_OR_RETURN</code>, <code class="notranslate">MBO_MOVE_TO_OR_RETURN</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2 dir="auto" id="status-extraction">Status extraction</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Input to <code class="notranslate">GetStatus</code></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">absl::Status</code></td>
+<td>Status value</td>
+</tr>
+<tr>
+<td><code class="notranslate">const absl::StatusOr&lt;T&gt;&amp;</code></td>
+<td>Contained status</td>
+</tr>
+<tr>
+<td><code class="notranslate">absl::StatusOr&lt;T&gt;&amp;&amp;</code></td>
+<td>Status from the moved argument</td>
+</tr>
+<tr>
+<td>Type constructible or convertible to <code class="notranslate">absl::Status</code></td>
+<td>Constructed <code class="notranslate">absl::Status</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Return type: <code class="notranslate">absl::Status</code>.</li>
+<li><code class="notranslate">StatusOr&lt;T&gt;</code> extraction: no access to the contained <code class="notranslate">T</code>.</li>
+</ul>
+<h2 dir="auto" id="statusbuilder"><code class="notranslate">StatusBuilder</code></h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default construction</td>
+<td>OK status</td>
+</tr>
+<tr>
+<td>Construction from <code class="notranslate">Status</code> or <code class="notranslate">StatusOr&lt;T&gt;</code></td>
+<td>Preserve the input status code and payloads</td>
+</tr>
+<tr>
+<td><code class="notranslate">ok()</code></td>
+<td>Whether the builder represents OK</td>
+</tr>
+<tr>
+<td><code class="notranslate">operator&lt;&lt;</code></td>
+<td>Collect additional message text; no effect for OK</td>
+</tr>
+<tr>
+<td><code class="notranslate">SetAppend()</code> or <code class="notranslate">&lt;&lt; StatusBuilder::Append</code></td>
+<td>Insert the original message once at the current stream position</td>
+</tr>
+<tr>
+<td><code class="notranslate">SetPrepend()</code></td>
+<td>Fluent marker; does not insert the original message or reset append mode</td>
+</tr>
+<tr>
+<td><code class="notranslate">SetPayload(type_url, payload)</code></td>
+<td>Set or replace a payload on a non-OK status</td>
+</tr>
+<tr>
+<td>Conversion to <code class="notranslate">absl::Status</code></td>
+<td>Construct the resulting status with its message and payloads</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Copy construction and copy assignment: deleted.</li>
+<li>Move construction and move assignment: supported.</li>
+<li>Default message order: original message, then collected text.</li>
+<li>Prefix construction: stream the prefix, insert <code class="notranslate">Append</code>, then stream any suffix.</li>
+<li>Lvalue conversion: explicit; rvalue conversion: implicit.</li>
+<li>OK input: remains OK; streamed text and payload additions have no effect.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/status.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/status/status_builder.h<span class="pl-pds">"</span></span>
+
+absl::Status <span class="pl-en">AddContext</span>(absl::Status status) {
+  <span class="pl-k">using</span> mbo::status::StatusBuilder;
+  <span class="pl-k">return</span> <span class="pl-c1">StatusBuilder</span>(<span class="pl-c1">std::move</span>(status)) &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span>Reading configuration: <span class="pl-pds">"</span></span> &lt;&lt; StatusBuilder::Append &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span> [startup]<span class="pl-pds">"</span></span>;
+}</pre></div>
+<h2 dir="auto" id="propagation-macros">Propagation macros</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Macro</th>
+<th>Success</th>
+<th>Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">MBO_RETURN_IF_ERROR(expression)</code></td>
+<td>Continue</td>
+<td>Return a <code class="notranslate">StatusBuilder</code> for the error; supports trailing <code class="notranslate">&lt;&lt;</code> context</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_ASSIGN_OR_RETURN(target, expression)</code></td>
+<td>Move the <code class="notranslate">StatusOr&lt;T&gt;</code> value into an existing variable or declaration</td>
+<td>Return the original status</td>
+</tr>
+<tr>
+<td><code class="notranslate">MBO_MOVE_TO_OR_RETURN(expression, ...)</code></td>
+<td>Move the value into a declaration, including a structured binding</td>
+<td>Return the original status</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul dir="auto">
+<li>Expression evaluation: once per macro invocation.</li>
+<li>Assignment macros: multiple statements; enclosing braces required in conditional or loop bodies.</li>
+<li>Newly declared variables: remain in the enclosing scope.</li>
+<li>Assignment macro temporary names: based on <code class="notranslate">__LINE__</code>; one invocation per source line.</li>
+<li>Enclosing function: return type must accept the propagated error.</li>
+<li><code class="notranslate">MBO_MOVE_TO_OR_RETURN</code>: expression first, declaration second.</li>
+</ul>
+<div class="highlight highlight-source-c++" dir="auto"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>string<span class="pl-pds">&gt;</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>utility<span class="pl-pds">&gt;</span></span>
+
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/status.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>absl/status/statusor.h<span class="pl-pds">"</span></span>
+#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">"</span>mbo/status/status_macros.h<span class="pl-pds">"</span></span>
+
+absl::Status <span class="pl-en">Validate</span>();
+absl::StatusOr&lt;std::string&gt; <span class="pl-en">ReadName</span>();
+absl::StatusOr&lt;std::pair&lt;<span class="pl-k">int</span>, <span class="pl-k">int</span>&gt;&gt; <span class="pl-en">ReadBounds</span>();
+
+absl::StatusOr&lt;std::string&gt; <span class="pl-en">LoadName</span>() {
+  <span class="pl-c1">MBO_RETURN_IF_ERROR</span>(<span class="pl-c1">Validate</span>()) &lt;&lt; <span class="pl-s"><span class="pl-pds">"</span> while loading a name<span class="pl-pds">"</span></span>;
+  <span class="pl-c1">MBO_ASSIGN_OR_RETURN</span>(std::string name, <span class="pl-c1">ReadName</span>());
+  <span class="pl-c1">MBO_MOVE_TO_OR_RETURN</span>(<span class="pl-c1">ReadBounds</span>(), <span class="pl-k">const</span> <span class="pl-k">auto</span> [first, last]);
+  <span class="pl-k">if</span> (first &gt; last) {
+    <span class="pl-k">return</span> <span class="pl-c1">absl::InvalidArgumentError</span>(<span class="pl-s"><span class="pl-pds">"</span>Invalid bounds<span class="pl-pds">"</span></span>);
+  }
+  <span class="pl-k">return</span> name;
+}</pre></div>
+<h2 dir="auto" id="tests">Tests</h2>
+<div class="highlight highlight-source-shell" dir="auto"><pre class="notranslate">bazel <span class="pl-c1">test</span> --config=clang //mbo/status:all</pre></div>
+<ul dir="auto">
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status_test.cc">status_test.cc</a>: extraction and conversion.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status_builder_test.cc">status_builder_test.cc</a>: message ordering, moves, payloads, and OK handling.</li>
+<li><a href="https://github.com/mboworks/mbo/blob/f0e1b25939f202d229ea2ec53e9ae55b7de3f7de/mbo/status/status_macros_test.cc">status_macros_test.cc</a>: propagation and assignment.</li>
+<li>Status matchers and assertion macros: <a href="../testing/README.html">mbo/testing</a>.</li>
+</ul></main><footer>Release snapshot · f0e1b25939f202d229ea2ec53e9ae55b7de3f7de</footer></body></html>

@@ -1,3 +1,5 @@
+# 0.16.1
+
 # 0.16.0
 
 - Select pinned Clang explicitly in the release build/test job and Clang/libc++ 23 in Linux registry

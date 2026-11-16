@@ -93,7 +93,7 @@ jobs:
         # leaves them as LFS pointers, so materialize just those (each is small).
         run: git lfs pull --include="mbo/hash/measurements/data/*.tgz"
       - uses: ./.github/actions/prepare-llvm
-      - uses: bazel-contrib/setup-bazel@0.19.1
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-version: ${{ inputs.ubuntu_container != '' && '1.30.0' || '' }}
           bazelisk-cache: false

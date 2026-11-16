@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: bazel-contrib/setup-bazel@0.19.1
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-version: 1.30.0
           bazelisk-cache: false
@@ -170,7 +170,7 @@ jobs:
           # changed sources below.
           fetch-depth: 0
       - uses: ./.github/actions/prepare-llvm
-      - uses: bazel-contrib/setup-bazel@0.19.1
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-cache: false
           disk-cache: false
@@ -545,7 +545,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/prepare-llvm
-      - uses: bazel-contrib/setup-bazel@0.19.1
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-cache: false
           disk-cache: false

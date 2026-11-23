@@ -1,14 +1,18 @@
 {
   "schema": 1,
-  "total_bytes": 77403832,
+  "total_bytes": 75989106,
   "sections": {
     "root": {
       "files": 30,
       "bytes": 201146
     },
-    "mbo": {
-      "files": 388,
-      "bytes": 2376736
+    "coverage": {
+      "files": 5065,
+      "bytes": 68638485
+    },
+    "third_party": {
+      "files": 3,
+      "bytes": 676
     },
     ".bcr": {
       "files": 4,
@@ -18,17 +22,13 @@
       "files": 4,
       "bytes": 3865
     },
-    "third_party": {
-      "files": 3,
-      "bytes": 676
+    "tools": {
+      "files": 23,
+      "bytes": 93700
     },
-    ".pre-commit": {
-      "files": 4,
-      "bytes": 7707
-    },
-    "coverage": {
-      "files": 5062,
-      "bytes": 70053211
+    "mbo": {
+      "files": 388,
+      "bytes": 2376736
     },
     "bazelmod": {
       "files": 4,
@@ -38,9 +38,9 @@
       "files": 10,
       "bytes": 47188
     },
-    "tools": {
-      "files": 23,
-      "bytes": 93700
+    ".pre-commit": {
+      "files": 4,
+      "bytes": 7707
     },
     "site": {
       "files": 134,

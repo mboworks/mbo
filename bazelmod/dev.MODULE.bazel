@@ -22,7 +22,7 @@ git_override(
     remote = "https://github.com/helly25/bazel-compile-commands-extractor.git",
 )
 
-bazel_dep(name = "depend_on_what_you_use", version = "1.2.0", dev_dependency = True)
+bazel_dep(name = "depend_on_what_you_use", version = "1.3.0", dev_dependency = True)
 
 # Reference xxHash for //mbo/hash:hash_differential_test (dev/test only). Used
 # directly via http_archive because the BCR module's BUILD file predates
